@@ -1,0 +1,99 @@
+$(document).ready(function() {
+      loadCountries();
+
+ $('.form-group').each(function() {
+        var countryDropdown = $(this).find('#country-dropdown');
+        var stateDropdown = $(this).find('#state-dropdown');
+        var cityDropdown = $(this).find('#city-dropdown');
+        
+        countryDropdown.change(function() {
+            var countryId = $(this).val();
+           alert("countryId",countryId);
+             loadStates(countryId);
+        });
+ 
+        // Add click event to the city-dropdown if needed
+            stateDropdown.change(function() {
+             var stateId = $(this).val();
+             alert("stateId", stateId);
+             loadCities(stateId);
+         });
+ });
+});
+
+
+/*$(document).ready(function () {
+ alert("Java is Insane!");
+
+   loadCountries();
+
+    $('#country-dropdown').change(function () {
+        var countryId = $(this).val();
+       console.log("country_id:", countryId); 
+       loadStates(countryId);
+    });
+
+    $('#state-dropdown').change(function () {
+        var stateId = $(this).val();
+        console.log("state_id:", stateId);
+        loadCities(stateId);
+    });
+});
+*/
+
+/*
+function loadCountries() {
+    $.getJSON('get_countries.php', function (data) {
+       // var options = '<option value="">Select Country</option>';
+       // $.each(data, function (key, value) {
+      //      options += '<option value="' + value.id + '">' + value.name + '</option>';
+      //  });
+      //  $('#country-dropdown').html(options);
+      alert("Countries here!!!!!!!!");
+    });
+}
+*/
+
+
+function loadCountries() {
+$.getJSON('./inc/get_countries.php')
+    .done(function (data) {
+      var options = '<option value="">Select Country</option>';
+      $.each(data, function (key, country) {
+        options += '<option value="' + country.id + '">' + country.name + '</option>';
+      });
+      $('#country-dropdown').html(options);
+    })
+    .fail(function (error) {
+      console.error('Error fetching countries:', error);
+    });
+}
+
+
+function loadStates(countryId) {
+    $.getJSON('./inc/get_states.php', { country_id: countryId }, function (data) { 
+       var options = '<option value="">Select State</option>';
+        $.each(data, function (key, value) {
+            options += '<option value="' + value.id + '">' + value.name + '</option>';
+        });
+        $('#state-dropdown').html(options);
+    })
+    .fail(function (error) {
+      console.error('Error fetching states:', error);
+    });
+}
+
+ function loadCities(stateId) {
+   $.getJSON('./inc/get_cities.php', { state_id: stateId }, function (data) {
+        var options = '<option value="">Select City</option>';
+        $.each(data, function (key, value) {
+            options += '<option value="' + value.id + '">' + value.name + '</option>';
+        });
+        $('#city-dropdown').html(options);
+    })
+    .fail(function (error) {
+      console.error('Error fetching cities:', error);
+    });
+}
+
+
