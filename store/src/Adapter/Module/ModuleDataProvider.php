@@ -145,10 +145,10 @@ class ModuleDataProvider
         $from = ' FROM `' . _DB_PREFIX_ . 'module` m';
 
         $id_shops = (new Context())->getContextListShopID();
-        if (count($id_shops) === 1) {
-            $select .= ', ms.`id_module` as active, ms.`enable_device` as active_on_mobile';
+        if (count($id_shops) > 0) {
+            $select .= ', ms.`enable_device` as active_on_mobile';
             $from .= ' LEFT JOIN `' . _DB_PREFIX_ . 'module_shop` ms ON ms.`id_module` = m.`id_module`';
-            $from .= ' AND ms.`id_shop` = ' . reset($id_shops);
+            $from .= ' AND ms.`id_shop` IN (' . implode(',', array_map('intval', $id_shops)) . ')';
         }
 
         $results = Db::getInstance()->executeS($select . $from);
@@ -160,9 +160,7 @@ class ModuleDataProvider
             if (array_key_exists('active_on_mobile', $module)) {
                 $module['active_on_mobile'] = (bool) ($module['active_on_mobile'] & AddonListFilterDeviceStatus::DEVICE_MOBILE);
             }
-            if (array_key_exists('active', $module)) {
-                $module['active'] = (bool) $module['active'];
-            }
+            $module['active'] = $this->isModuleActive($module['id'], $id_shops);
             $modules[$module['name']] = $module;
         }
 
@@ -369,5 +367,19 @@ class ModuleDataProvider
         }
 
         return false;
+    }
+
+    /**
+     * Checks if the module is active on at least one shop of the context.
+     */
+    private function isModuleActive(int $id, array $id_shops): bool
+    {
+        $result = Db::getInstance()->getRow('SELECT m.`active`, ms.`id_module` as `shop_active`, ms.`enable_device` as `enable_device`
+            FROM `' . _DB_PREFIX_ . 'module` m
+            LEFT JOIN `' . _DB_PREFIX_ . 'module_shop` ms ON m.`id_module` = ms.`id_module`
+            WHERE m.`id_module` = ' . $id . '
+            AND ms.`id_shop` IN (' . implode(',', $id_shops) . ')');
+
+        return !empty($result);
     }
 }

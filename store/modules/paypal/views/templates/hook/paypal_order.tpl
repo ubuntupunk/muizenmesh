@@ -23,6 +23,9 @@
  *  @copyright PayPal
  *
  *}
+<div class="module_warning">
+  {$paypal_msg nofilter} {* HTML content*}
+</div>
 <script>
     $('.kpi-container').after($('.paypal-warning').parents('.module_warning'));
 </script>

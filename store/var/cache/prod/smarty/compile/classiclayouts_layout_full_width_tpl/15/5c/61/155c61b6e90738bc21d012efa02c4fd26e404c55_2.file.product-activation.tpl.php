@@ -1,18 +1,18 @@
 <?php
-/* Smarty version 4.2.1, created on 2023-03-30 14:09:21
+/* Smarty version 4.3.1, created on 2023-12-21 13:10:29
   from '/home/sexthera/public_html/muizenmesh.co.za/store/themes/classic/templates/catalog/_partials/product-activation.tpl' */
 
 /* @var Smarty_Internal_Template $_smarty_tpl */
 if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
-  'version' => '4.2.1',
-  'unifunc' => 'content_64257bf1995b29_58527375',
+  'version' => '4.3.1',
+  'unifunc' => 'content_65841d25bd92a8_12360521',
   'has_nocache_code' => false,
   'file_dependency' => 
   array (
     '155c61b6e90738bc21d012efa02c4fd26e404c55' => 
     array (
       0 => '/home/sexthera/public_html/muizenmesh.co.za/store/themes/classic/templates/catalog/_partials/product-activation.tpl',
-      1 => 1671890850,
+      1 => 1694187264,
       2 => 'file',
     ),
   ),
@@ -20,7 +20,7 @@ if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
   array (
   ),
 ),false)) {
-function content_64257bf1995b29_58527375 (Smarty_Internal_Template $_smarty_tpl) {
+function content_65841d25bd92a8_12360521 (Smarty_Internal_Template $_smarty_tpl) {
 if ($_smarty_tpl->tpl_vars['page']->value['admin_notifications']) {?>
   <div class="alert alert-warning row" role="alert">
     <div class="container">

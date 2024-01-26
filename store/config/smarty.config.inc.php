@@ -94,6 +94,44 @@ smartyRegisterFunction($smarty, 'modifier', 'classname', 'smartyClassname');
 smartyRegisterFunction($smarty, 'modifier', 'classnames', 'smartyClassnames');
 smartyRegisterFunction($smarty, 'function', 'url', array('Link', 'getUrlSmarty'));
 
+// Native PHP Functions
+smartyRegisterFunction($smarty, 'modifier', 'addcslashes', 'addcslashes');
+smartyRegisterFunction($smarty, 'modifier', 'addslashes', 'addslashes');
+smartyRegisterFunction($smarty, 'modifier', 'date','date');
+smartyRegisterFunction($smarty, 'modifier', 'end', 'smarty_endWithoutReference');
+smartyRegisterFunction($smarty, 'modifier', 'floatval', 'floatval');
+smartyRegisterFunction($smarty, 'modifier', 'htmlentities', 'htmlentities');
+smartyRegisterFunction($smarty, 'modifier', 'intval', 'intval');
+smartyRegisterFunction($smarty, 'modifier', 'json_decode', 'json_decode');
+smartyRegisterFunction($smarty, 'modifier', 'json_encode', 'json_encode');
+smartyRegisterFunction($smarty, 'modifier', 'mt_rand','mt_rand');
+smartyRegisterFunction($smarty, 'modifier', 'rand','rand');
+smartyRegisterFunction($smarty, 'modifier', 'strtolower','strtolower');
+smartyRegisterFunction($smarty, 'modifier', 'str_replace','str_replace');
+smartyRegisterFunction($smarty, 'modifier', 'strval','strval');
+smartyRegisterFunction($smarty, 'modifier', 'trim', 'trim');
+smartyRegisterFunction($smarty, 'modifier', 'ucfirst', 'ucfirst');
+smartyRegisterFunction($smarty, 'modifier', 'urlencode','urlencode');
+smartyRegisterFunction($smarty, 'modifier', 'htmlspecialchars','htmlspecialchars');
+smartyRegisterFunction($smarty, 'modifier', 'implode', 'implode');
+smartyRegisterFunction($smarty, 'modifier', 'explode', 'explode');
+smartyRegisterFunction($smarty, 'modifier', 'print_r', 'print_r');
+smartyRegisterFunction($smarty, 'modifier', 'var_dump', 'var_dump');
+smartyRegisterFunction($smarty, 'modifier', 'lcfirst', 'lcfirst');
+smartyRegisterFunction($smarty, 'modifier', 'nl2br', 'nl2br');
+smartyRegisterFunction($smarty, 'modifier', 'sizeof', 'sizeof');
+smartyRegisterFunction($smarty, 'modifier', 'in_array', 'in_array');
+smartyRegisterFunction($smarty, 'modifier', 'substr', 'substr');
+smartyRegisterFunction($smarty, 'modifier', 'intval', 'intval');
+smartyRegisterFunction($smarty, 'modifier', 'date', 'date');
+smartyRegisterFunction($smarty, 'modifier', 'trim', 'trim');
+smartyRegisterFunction($smarty, 'modifier', 'json_encode', 'json_encode');
+smartyRegisterFunction($smarty, 'modifier', 'in_array', 'in_array');
+smartyRegisterFunction($smarty, 'modifier', 'stripslashes', 'stripslashes');
+smartyRegisterFunction($smarty, 'modifier', 'mt_rand', 'mt_rand');
+smartyRegisterFunction($smarty, 'modifier', 'md5', 'md5');
+smartyRegisterFunction($smarty, 'modifier', 'floatval', 'floatval');
+
 function smarty_modifier_htmlentitiesUTF8($string)
 {
     return Tools::htmlentitiesUTF8($string);
@@ -192,4 +230,16 @@ function smartyClassnames(array $classnames)
     }
 
     return implode(' ', $enabled_classes);
+}
+
+/**
+ * We add this intermediate method to prevent a warning because end expects its input to be a reference
+ *
+ * @param array<mixed> $arrayValue
+ *
+ * @return false|mixed
+ */
+function smarty_endWithoutReference($arrayValue)
+{
+    return end($arrayValue);
 }

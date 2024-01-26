@@ -370,7 +370,7 @@ class AdminTranslationsControllerCore extends AdminController
             // translations array is ordered by key (easy merge)
             ksort($to_insert);
             $tab = $translation_informations['var'];
-            fwrite($fd, "<?php\n\nglobal \$" . $tab . ";\n\$" . $tab . " = array();\n");
+            fwrite($fd, "<?php\n\nglobal \$" . $tab . ";\n\$" . $tab . " = [];\n");
             foreach ($to_insert as $key => $value) {
                 fwrite($fd, '$' . $tab . '[\'' . pSQL($key, true) . '\'] = \'' . pSQL($value, true) . '\';' . "\n");
             }
@@ -2309,11 +2309,6 @@ class AdminTranslationsControllerCore extends AdminController
                 }
 
                 $class_name = substr($file, 0, -4);
-
-                if (!class_exists($class_name, false) && !class_exists($class_name . 'Core', false)) {
-                    PrestaShopAutoload::getInstance()->load($class_name);
-                }
-
                 if (!is_subclass_of($class_name . 'Core', 'ObjectModel')) {
                     continue;
                 }
@@ -3301,7 +3296,7 @@ class AdminTranslationsControllerCore extends AdminController
             $email_file = _PS_ROOT_DIR_ . $email;
         }
 
-        if (file_exists($email_file)) {
+        if (strpos(realpath($email_file), _PS_ROOT_DIR_) === 0 && file_exists($email_file)) {
             $email_html = file_get_contents($email_file);
         } else {
             $email_html = '';

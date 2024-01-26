@@ -26,6 +26,10 @@
 
 namespace PaypalAddons\classes;
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 interface PuiMethodInterface
 {
     public function createPartnerReferrals();

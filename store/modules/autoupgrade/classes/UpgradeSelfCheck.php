@@ -71,6 +71,11 @@ class UpgradeSelfCheck
     /**
      * @var bool
      */
+    private $localEnvironement;
+
+    /**
+     * @var bool
+     */
     private $cacheDisabled;
 
     /**
@@ -237,6 +242,15 @@ class UpgradeSelfCheck
         return $this->shopDeactivated = $this->checkShopIsDeactivated();
     }
 
+    public function isLocalEnvironment()
+    {
+        if (null !== $this->localEnvironement) {
+            return $this->localEnvironement;
+        }
+
+        return $this->localEnvironement = $this->checkIsLocalEnvironment();
+    }
+
     /**
      * @return bool
      */
@@ -344,11 +358,12 @@ class UpgradeSelfCheck
             && $this->isZipEnabled()
             && $this->isRootDirectoryWritable()
             && $this->isAdminAutoUpgradeDirectoryWritable()
-            && $this->isShopDeactivated()
+            && ($this->isShopDeactivated() || $this->isLocalEnvironment())
             && $this->isCacheDisabled()
             && $this->isModuleVersionLatest()
             && $this->isPhpVersionCompatible()
             && $this->isApacheModRewriteEnabled()
+            && $this->checkKeyGeneration()
             && $this->getNotLoadedPhpExtensions() === []
             && $this->isMemoryLimitValid()
             && $this->isPhpFileUploadsConfigurationEnabled()
@@ -413,16 +428,19 @@ class UpgradeSelfCheck
     /**
      * @return bool
      */
+    private function checkIsLocalEnvironment()
+    {
+        return in_array($this->getRemoteAddr(), ['127.0.0.1', 'localhost', '[::1]', '::1']);
+    }
+
+    /**
+     * @return bool
+     */
     private function checkShopIsDeactivated()
     {
-        // always return true in localhost
-        if (in_array($this->getRemoteAddr(), ['127.0.0.1', 'localhost', '[::1]', '::1'])) {
-            return true;
-        }
-
         // if multistore is not active, just check if shop is enabled and has a maintenance IP
         if (!Shop::isFeatureActive()) {
-            return !(Configuration::get('PS_SHOP_ENABLE') || !Configuration::get('PS_MAINTENANCE_IP'));
+            return !Configuration::get('PS_SHOP_ENABLE') && Configuration::get('PS_MAINTENANCE_IP');
         }
 
         // multistore is active: all shops must be deactivated and have a maintenance IP, otherwise return false
@@ -504,6 +522,32 @@ class UpgradeSelfCheck
     }
 
     /**
+     * @return bool
+     */
+    public function checkKeyGeneration()
+    {
+        if ($this->upgrader->version_num === null) {
+            return true;
+        }
+
+        // Check if key is needed on the version we are upgrading to, if lower, not needed
+        if (version_compare($this->upgrader->version_num, '8.1.0', '<')) {
+            return true;
+        }
+
+        $privateKey = openssl_pkey_new([
+            'private_key_bits' => 2048,
+            'private_key_type' => OPENSSL_KEYTYPE_RSA,
+        ]);
+
+        if ($privateKey === false) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * @return array<string>
      */
     public function getNotLoadedPhpExtensions()
@@ -574,11 +618,7 @@ class UpgradeSelfCheck
      */
     public function isPhpSessionsValid()
     {
-        if (!class_exists(ConfigurationTest::class)) {
-            return true;
-        }
-
-        return ConfigurationTest::test_sessions();
+        return in_array(session_status(), [PHP_SESSION_ACTIVE, PHP_SESSION_NONE], true);
     }
 
     /**

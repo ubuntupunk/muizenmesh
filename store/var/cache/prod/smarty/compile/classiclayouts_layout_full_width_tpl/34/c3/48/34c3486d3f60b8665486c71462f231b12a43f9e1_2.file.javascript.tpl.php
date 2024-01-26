@@ -1,18 +1,18 @@
 <?php
-/* Smarty version 4.2.1, created on 2023-03-30 14:09:21
+/* Smarty version 4.3.1, created on 2023-12-21 13:10:29
   from '/home/sexthera/public_html/muizenmesh.co.za/store/themes/classic/templates/_partials/javascript.tpl' */
 
 /* @var Smarty_Internal_Template $_smarty_tpl */
 if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
-  'version' => '4.2.1',
-  'unifunc' => 'content_64257bf1972aa0_69932080',
+  'version' => '4.3.1',
+  'unifunc' => 'content_65841d25b11b96_24921394',
   'has_nocache_code' => false,
   'file_dependency' => 
   array (
     '34c3486d3f60b8665486c71462f231b12a43f9e1' => 
     array (
       0 => '/home/sexthera/public_html/muizenmesh.co.za/store/themes/classic/templates/_partials/javascript.tpl',
-      1 => 1671890850,
+      1 => 1694187264,
       2 => 'file',
     ),
   ),
@@ -20,7 +20,8 @@ if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
   array (
   ),
 ),false)) {
-function content_64257bf1972aa0_69932080 (Smarty_Internal_Template $_smarty_tpl) {
+function content_65841d25b11b96_24921394 (Smarty_Internal_Template $_smarty_tpl) {
+$_smarty_tpl->_checkPlugins(array(0=>array('file'=>'/home/sexthera/public_html/muizenmesh.co.za/store/vendor/smarty/smarty/libs/plugins/modifier.count.php','function'=>'smarty_modifier_count',),));
 $_from = $_smarty_tpl->smarty->ext->_foreach->init($_smarty_tpl, $_smarty_tpl->tpl_vars['javascript']->value['external'], 'js');
 $_smarty_tpl->tpl_vars['js']->do_else = true;
 if ($_from !== null) foreach ($_from as $_smarty_tpl->tpl_vars['js']->value) {
@@ -51,7 +52,7 @@ $_smarty_tpl->tpl_vars['js']->do_else = false;
 }
 $_smarty_tpl->smarty->ext->_foreach->restore($_smarty_tpl, 1);?>
 
-<?php if ((isset($_smarty_tpl->tpl_vars['vars']->value)) && count($_smarty_tpl->tpl_vars['vars']->value)) {?>
+<?php if ((isset($_smarty_tpl->tpl_vars['vars']->value)) && smarty_modifier_count($_smarty_tpl->tpl_vars['vars']->value)) {?>
   <?php echo '<script'; ?>
  type="text/javascript">
     <?php

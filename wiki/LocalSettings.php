@@ -70,7 +70,7 @@ $wgDBTableOptions = "ENGINE=InnoDB, DEFAULT CHARSET=binary";
 $wgSharedTables[] = "actor";
 
 ## Shared memory settings
-$wgMainCacheType = CACHE_NONE; #Or use CACHE_ACCEL
+//$wgMainCacheType = CACHE_NONE; #Or use CACHE_ACCEL
 $wgMemCachedServers = [];
 $wgParserCacheType = CACHE_NONE; 
 $wgCompressRevisions = true;
@@ -83,6 +83,11 @@ $wgJobRunRate = 0.01;
 $wgEnableUploads = true;
 #$wgUseImageMagick = true;
 #$wgImageMagickConvertCommand = "/usr/bin/convert";
+
+$wgFileExtensions = [ 'png', 'gif', 'jpg', 'jpeg', 'doc',
+	'xls', 'mpp', 'pdf', 'ppt', 'tiff', 'bmp', 'docx', 'xlsx',
+	'pptx', 'ps', 'odt', 'ods', 'odp', 'odg'
+];
 
 # InstantCommons allows wiki to use images from https://commons.wikimedia.org
 $wgUseInstantCommons = true;
@@ -146,6 +151,8 @@ wfLoadExtension("EmbedVideo");
 wfLoadExtension( 'WikiLove' );
 
 ### End of automatically generated settings.###
+#wfLoadExtension( 'intersection' );
+
 # Add more configuration options below.##
 
 
@@ -169,30 +176,31 @@ wfLoadExtension( 'JsonConfig' );
 wfLoadExtension( 'InputBox' );
 
 #AbuseFilter
-#wfLoadExtension( 'AbuseFilter' );
+wfLoadExtension( 'AbuseFilter' );
 #wfLoadExtension( 'StopForumSpam' );
-
+wfLoadExtension( 'SmiteSpam' );
 #$wgSFSIPListLocation = '/home/sexthera/public_html/muizenmesh.co.za/wiki/deny.txt';
 #$wgDebugLogGroups['StopForumSpam'] = '/home/sexthera/public_html/muizenmesh.co.za/wiki/stopforumspam.log';
 
 ##CAPTCHA SECTION##
-#wfLoadExtensions([ 'ConfirmEdit', 'ConfirmEdit/QuestyCaptcha' ]);
+wfLoadExtensions([ 'ConfirmEdit', 'ConfirmEdit/QuestyCaptcha' ]);
 
-## Add your QuestyCaptchaquestions below:
-#$wgCaptchaQuestions = [
-#	'What is the name of the Bay near Muizenberg?' => 'False Bay',
-#	'What is the name of the ocean' => 'INDIAN OCEAN', // Answers are case insensitive
-#	'What is the name of this wiki?' => $wgSitename, // You can use variables
-#	'How many fingers does a hand have?' => [ 5, 'five' ], // A question may have many answers
-#];
+$wgCaptchaClass = 'QuestyCaptcha';
+
+$wgCaptchaQuestions = [
+	'What is the name of the Bay near Muizenberg?' => 'False Bay',
+	'What is the name of the ocean near Muizenberg?' => 'INDIAN OCEAN', // Answers are case insensitive
+	'What is the name of this wiki?' => $wgSitename, // You can use variables
+	'How many fingers does a hand have?' => [ 5, 'five' ], // A question may have many answers
+];
 
 
-#$wgCaptchaTriggers['edit'] = true;
-#$wgCaptchaTriggers['create'] = true;
-#$wgCaptchaTriggers['createtalk'] = true;
-#$wgCaptchaTriggers['addurl'] = true;
-#$wgCaptchaTriggers['createaccount'] = true;
-#$wgCaptchaTriggers['badlogin'] = true;
+$wgCaptchaTriggers['edit'] = true;
+$wgCaptchaTriggers['create'] = true;
+$wgCaptchaTriggers['createtalk'] = true;
+$wgCaptchaTriggers['addurl'] = true;
+$wgCaptchaTriggers['createaccount'] = true;
+$wgCaptchaTriggers['badlogin'] = true;
 
 ##END CAPTCHA SECION##
 
@@ -208,28 +216,48 @@ $wgGroupPermissions['*']['createpage'] = false;
 # Prevent new user registrations except by sysops
 $wgGroupPermissions['*']['createaccount'] = false;
 
+#AbuseFilter settings
+$wgGroupPermissions['sysop']['abusefilter-modify'] = true;
+$wgGroupPermissions['*']['abusefilter-log-detail'] = true;
+$wgGroupPermissions['*']['abusefilter-view'] = true;
+$wgGroupPermissions['*']['abusefilter-log'] = true;
+$wgGroupPermissions['sysop']['abusefilter-privatedetails'] = true;
+$wgGroupPermissions['sysop']['abusefilter-modify-restricted'] = true;
+$wgGroupPermissions['sysop']['abusefilter-revert'] = true;
+
+#$wfLoadExtension( 'AntiSpoof' );
+
 #REVOKE ACCOUNT CREATION SET TO FALSE (True will overide ConfirmAccount Extension)
-#$wgGroupPermissions['*']['createaccount'] = true;
+$wgGroupPermissions['*']['createaccount'] = false;
+
+//require_once( "$IP/extensions/recaptcha/ReCaptcha.php" );
+//wfLoadExtension( 'ReCaptcha' );
+// Sign up for these at https://www.google.com/recaptcha/admin#createsite
+$recaptcha_public_key = '6LdJZjMnAAAAAOmKyFHARmM7V57_1cYYd8uNGOs_';
+$recaptcha_private_key = '6LdJZjMnAAAAADGfPdfG1ZlESKvSR8L6kHHan2FN';
 
 #INVOKE ACCOUNT CONFIRMATION
 wfLoadExtension( 'ConfirmAccount' );
-wfLoadExtension( 'UserAgreement' );
+#wfLoadExtension( 'UserAgreement' );
+$wgUserAgreement_DaysToReaccept = 0;
+$wgRejectedAccountMaxAge = 0;
 
 $wgMakeUserPageFromBio = false;
-$wgAutoWelcomeNewUsers = false;
+$wgAutoWelcomeNewUsers = true;
 $wgConfirmAccountRequestFormItems = [
  	'UserName'        => [ 'enabled' => true ],
- 	'RealName'        => [ 'enabled' => false ],
- 	'Biography'       => [ 'enabled' => false, 'minWords' => 50 ],
+        'RealName'        => [ 'enabled' => true ],
+ 	'Biography'       => [ 'enabled' => true, 'minWords' => 50 ],
  	'AreasOfInterest' => [ 'enabled' => false ],
  	'CV'              => [ 'enabled' => false ],
  	'Notes'           => [ 'enabled' => true ],
  	'Links'           => [ 'enabled' => false ],
- 	'TermsOfService'  => [ 'enabled' => false ],
+ 	'TermsOfService'  => [ 'enabled' => true ],
  ];
 
 $wgConfirmAccountContact = 'admin@muizenmesh.co.za';
-$wgGroupPermissions['bureaucrat']['confirmaccount-notify'] = true;
+$wgGroupPermissions['administrator']['confirmaccount-notify'] = true;
+$wgGroupPermissions['bureacrat']['confirmaccount-notify'] = true;
 
 #SET SPECIAL PERMISSIONS FOR SYSOP
 $wgGroupPermissions['sysop']['deletelogentry'] = true;

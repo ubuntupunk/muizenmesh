@@ -30,21 +30,30 @@
 		</branch>
 		<branch name="1.7" available="1" >
 			<name>1.7.8 stable</name>
-			<num>1.7.8.8</num>
+			<num>1.7.8.10</num>
 			<download>
-				<link>http://download.prestashop.com/download/releases/prestashop_1.7.8.8.zip</link>
-				<md5>4d5e656fb6e9b2dc8b272a2e564944d5</md5>
+				<link>https://github.com/PrestaShop/PrestaShop/releases/download/1.7.8.10/prestashop_1.7.8.10.zip</link>
+				<md5>d7ad1349e9f5e7e90e79480612d0ce12</md5>
 			</download>
-			<changelog>https://build.prestashop.com/news/prestashop-1-7-8-8-maintenance-release/</changelog>
+			<changelog>https://build.prestashop-project.org/news/2023/prestashop-1-7-8-10-maintenance-release/</changelog>
 		</branch>
 		<branch name="8.0" available="1" >
 			<name>8.0 stable</name>
-			<num>8.0.2</num>
+			<num>8.0.5</num>
 			<download>
-				<link>https://github.com/PrestaShop/PrestaShop/releases/download/8.0.2/prestashop_8.0.2.zip</link>
-				<md5>649754302505ddf68dd6ae93d5c480ac</md5>
+				<link>https://github.com/PrestaShop/PrestaShop/releases/download/8.0.5/prestashop_8.0.5.zip</link>
+				<md5>d58befe954bc29864b6a5f62628d8a6e</md5>
 			</download>
-			<changelog>https://build.prestashop-project.org/news/2023/prestashop-8-0-2-maintenance-release/</changelog>
+			<changelog>https://build.prestashop-project.org/news/2023/prestashop-8-0-5-maintenance-release/</changelog>
+		</branch>
+		<branch name="8.1" available="1" >
+			<name>8.1 stable</name>
+			<num>8.1.2</num>
+			<download>
+				<link>https://github.com/PrestaShop/PrestaShop/releases/download/8.1.2/prestashop_8.1.2.zip</link>
+				<md5>c04b1b6dce814145619d77920aca0531</md5>
+			</download>
+			<changelog>https://build.prestashop-project.org/news/2023/prestashop-8-1-2-maintenance-release/</changelog>
 		</branch>
 	</channel>
 	<channel name="rc" available="1" >
@@ -74,10 +83,10 @@
 		</branch>
 	</channel>
 	<autoupgrade>
-		<last_version>4.15.0</last_version>
+		<last_version>5.0.0</last_version>
 		<download>
-			<link>https://github.com/PrestaShop/autoupgrade/releases/download/v4.15.0/autoupgrade.zip</link>
-			<md5>9ac0982c3ed2c82db671c8bae419da8d</md5>
+			<link>https://github.com/PrestaShop/autoupgrade/releases/download/v5.0.0/autoupgrade.zip</link>
+			<md5>13c032c953f4bfd7547702c4c856b83e</md5>
 		</download>
 		<changelog></changelog>
 	</autoupgrade>

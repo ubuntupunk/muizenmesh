@@ -31,6 +31,10 @@ use PayPal\Api\Payment;
 use PayPal\Api\PaymentExecution;
 use PaypalAddons\classes\API\Response\ResponseOrderCapture;
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 class PaypalOrderCaptureRequest extends RequestAbstractMB
 {
     public function execute()
@@ -172,6 +176,10 @@ class PaypalOrderCaptureRequest extends RequestAbstractMB
     protected function getDateTransaction($payment)
     {
         $date = \DateTime::createFromFormat(\DateTime::ISO8601, $payment->update_time);
+
+        if (!$date) {
+            $date = new \DateTime();
+        }
 
         return $date;
     }

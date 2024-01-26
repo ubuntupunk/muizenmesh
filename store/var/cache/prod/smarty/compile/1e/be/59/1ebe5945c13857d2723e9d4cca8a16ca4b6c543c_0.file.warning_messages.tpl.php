@@ -1,18 +1,18 @@
 <?php
-/* Smarty version 4.2.1, created on 2023-03-30 14:04:05
+/* Smarty version 4.3.1, created on 2023-12-21 13:08:56
   from '/home/sexthera/public_html/muizenmesh.co.za/store/admin963hiaiywinz0astpu8/themes/new-theme/template/components/layout/warning_messages.tpl' */
 
 /* @var Smarty_Internal_Template $_smarty_tpl */
 if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
-  'version' => '4.2.1',
-  'unifunc' => 'content_64257ab5dbbc29_71384271',
+  'version' => '4.3.1',
+  'unifunc' => 'content_65841cc88efb05_01882209',
   'has_nocache_code' => false,
   'file_dependency' => 
   array (
     '1ebe5945c13857d2723e9d4cca8a16ca4b6c543c' => 
     array (
       0 => '/home/sexthera/public_html/muizenmesh.co.za/store/admin963hiaiywinz0astpu8/themes/new-theme/template/components/layout/warning_messages.tpl',
-      1 => 1678447298,
+      1 => 1694187249,
       2 => 'file',
     ),
   ),
@@ -20,7 +20,7 @@ if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
   array (
   ),
 ),false)) {
-function content_64257ab5dbbc29_71384271 (Smarty_Internal_Template $_smarty_tpl) {
+function content_65841cc88efb05_01882209 (Smarty_Internal_Template $_smarty_tpl) {
 if (count($_smarty_tpl->tpl_vars['warnings']->value)) {?>
   <div class="bootstrap">
     <div class="alert alert-warning">

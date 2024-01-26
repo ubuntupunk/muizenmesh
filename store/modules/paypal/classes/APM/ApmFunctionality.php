@@ -31,6 +31,10 @@ use Country;
 use PaypalAddons\classes\Constants\PaypalConfigurations;
 use Tools;
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 class ApmFunctionality
 {
     public function isAvailable()
@@ -40,8 +44,13 @@ class ApmFunctionality
         return Tools::strtolower($isoCountryDefault) == 'de';
     }
 
-    public function isEnabled()
+    public function isSofortEnabled()
     {
-        return (int) Configuration::get(PaypalConfigurations::APM_OPTION);
+        return (int) Configuration::get(PaypalConfigurations::SOFORT_ENABLED);
+    }
+
+    public function isGiropayEnabled()
+    {
+        return (int) Configuration::get(PaypalConfigurations::GIROPAY_ENABLED);
     }
 }

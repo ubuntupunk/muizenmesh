@@ -36,6 +36,10 @@ use PayPalCheckoutSdk\Core\PayPalHttpClient;
 use PayPalHttp\HttpException;
 use Throwable;
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 class PaypalAddTrackingInfoRequest extends RequestAbstract
 {
     protected $paypalOrder;
@@ -74,6 +78,8 @@ class PaypalAddTrackingInfoRequest extends RequestAbstract
 
             if (false == empty($resultDecoded['message'])) {
                 $error->setMessage($resultDecoded['message']);
+            } else {
+                $error->setMessage($e->getMessage());
             }
 
             $response->setSuccess(false)

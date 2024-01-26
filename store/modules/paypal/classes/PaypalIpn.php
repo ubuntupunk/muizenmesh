@@ -23,13 +23,16 @@
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
  */
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
 
 /**
  * Class PaypalIpn.
  */
 class PaypalIpn extends ObjectModel
 {
-    /* @var string transaction_id*/
+    /* @var string */
     public $id_transaction;
 
     /* @var string */
@@ -38,7 +41,7 @@ class PaypalIpn extends ObjectModel
     /* @var string */
     public $response;
 
-    /* @var string creation date*/
+    /* @var string */
     public $date_add;
 
     /**
@@ -50,8 +53,8 @@ class PaypalIpn extends ObjectModel
         'multilang' => false,
         'fields' => [
             'id_transaction' => ['type' => self::TYPE_STRING, 'validate' => 'isGenericName'],
-            'status' => ['type' => self::TYPE_STRING, 'validate' => 'isString'],
-            'response' => ['type' => self::TYPE_HTML, 'validate' => 'isString'],
+            'status' => ['type' => self::TYPE_STRING, 'validate' => 'isCleanHtml', 'size' => 50],
+            'response' => ['type' => self::TYPE_HTML, 'validate' => 'isCleanHtml'],
             'date_add' => ['type' => self::TYPE_DATE, 'validate' => 'isDateFormat'],
         ],
         'collation' => 'utf8_general_ci',

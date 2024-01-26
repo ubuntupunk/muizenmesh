@@ -1,18 +1,18 @@
 <?php
-/* Smarty version 4.2.1, created on 2023-03-30 14:09:22
+/* Smarty version 4.3.1, created on 2023-12-21 13:10:29
   from '/home/sexthera/public_html/muizenmesh.co.za/store/themes/classic/templates/_partials/password-policy-template.tpl' */
 
 /* @var Smarty_Internal_Template $_smarty_tpl */
 if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
-  'version' => '4.2.1',
-  'unifunc' => 'content_64257bf210ca14_95977106',
+  'version' => '4.3.1',
+  'unifunc' => 'content_65841d25e11786_71404715',
   'has_nocache_code' => false,
   'file_dependency' => 
   array (
     'fb7b06db66dc49e5a8afea966209b9e8ad06c2bf' => 
     array (
       0 => '/home/sexthera/public_html/muizenmesh.co.za/store/themes/classic/templates/_partials/password-policy-template.tpl',
-      1 => 1671890850,
+      1 => 1694187264,
       2 => 'file',
     ),
   ),
@@ -20,7 +20,7 @@ if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
   array (
   ),
 ),false)) {
-function content_64257bf210ca14_95977106 (Smarty_Internal_Template $_smarty_tpl) {
+function content_65841d25e11786_71404715 (Smarty_Internal_Template $_smarty_tpl) {
 ?>
 
 <template id="password-feedback">

@@ -7,7 +7,8 @@
 			"Janezdrilc",
 			"Matma Rex",
 			"RStular",
-			"Upwinxp"
+			"Upwinxp",
+			"Amire80"
 		]
 	},
 	"abusefilter-desc": "Uporaba samodejne hevristike pri urejanjih",
@@ -94,7 +95,7 @@
 	"abusefilter-log-details-checkuser": "Preveri uporabnika",
 	"abusefilter-log-noactions": "nobeno",
 	"abusefilter-log-noactions-filter": "nič",
-	"abusefilter-log-details-diff": "Spremembe narejene v urejanju",
+	"abusefilter-log-details-diff": "Spremembe, opravljene v urejanju",
 	"abusefilter-log-linkoncontribs": "dnevnik filtrov zlorab",
 	"abusefilter-log-linkoncontribs-text": "Dnevnik filtrov zlorab za {{GENDER:$1|tega uporabnika|to uporabnico|tega_to uporabnika_co}}",
 	"abusefilter-log-linkonhistory": "ogled dnevnika filtrov zlorab",
@@ -358,7 +359,7 @@
 	"abusefilter-edit-builder-vars-timestamp": "Unixov časovni žig spremembe",
 	"abusefilter-edit-builder-vars-timestamp-expanded": "Čas in datum dnevniškega zapisa",
 	"abusefilter-edit-builder-vars-action": "Dejanje",
-	"abusefilter-edit-builder-vars-addedlines": "Vrstice dodane v urejanju",
+	"abusefilter-edit-builder-vars-addedlines": "Vrstice, dodane v urejanju",
 	"abusefilter-edit-builder-vars-delta": "Sprememba velikosti v urejanju",
 	"abusefilter-edit-builder-vars-diff": "Poenotene razlike sprememb, narejenih z urejanjem",
 	"abusefilter-edit-builder-vars-newsize": "Nova velikost strani",
@@ -487,7 +488,7 @@
 	"abusefilter-action-disallow": "preprečitev",
 	"abusefilter-revert-title": "Povrni vse spremembe filtra $1",
 	"abusefilter-revert-intro": "Ta obrazec omogoča vračanje vseh sprememb filtra zlorab zaradi filtra $1.\nProsimo, bodite previdni pri uporabi tega orodja.",
-	"abusefilter-revert-preview-item": "$1: $2 je na strani $4  {{GENDER:$7|storil|storila|storil_a}} $3.\nDejanja, ki bodo vrnjena: $5 ($6)",
+	"abusefilter-revert-preview-item": "$1: $2 je na strani $4 {{GENDER:$7|storil|storila|storil_a}} $3.\nDejanja, ki bodo vrnjena: $5 ($6)",
 	"abusefilter-revert-search-legend": "Izberite dejanja filtra zlorab, ki naj bodo vrnjena",
 	"abusefilter-revert-periodstart": "Začetek obdobja:",
 	"abusefilter-revert-periodend": "Konec obdobja:",

@@ -30,6 +30,7 @@ use DateTime;
 use Db;
 use Exception;
 use PrestaShop\PrestaShop\Adapter\Module\AdminModuleDataProvider;
+use PrestaShop\PrestaShop\Adapter\Module\Module;
 use PrestaShop\PrestaShop\Adapter\Module\Module as ModuleAdapter;
 use PrestaShop\PrestaShop\Core\Module\ModuleCollection;
 use PrestaShop\PrestaShop\Core\Module\SourceHandler\SourceHandlerNotFoundException;
@@ -68,6 +69,11 @@ class ModuleController extends ModuleAbstractController
 
         $installedProducts = $moduleRepository->getList();
 
+        $moduleErrors = $installedProducts->getErrors();
+        foreach ($moduleErrors as $moduleError) {
+            $this->addFlash('warning', $moduleError->getMessage());
+        }
+
         $categories = $this->getCategories($modulesProvider, $installedProducts);
         $bulkActions = [
             'bulk-install' => $this->trans('Install', 'Admin.Actions'),
@@ -77,6 +83,7 @@ class ModuleController extends ModuleAbstractController
             'bulk-reset' => $this->trans('Reset', 'Admin.Actions'),
             'bulk-enable-mobile' => $this->trans('Enable Mobile', 'Admin.Modules.Feature'),
             'bulk-disable-mobile' => $this->trans('Disable Mobile', 'Admin.Modules.Feature'),
+            'bulk-delete' => $this->trans('Delete', 'Admin.Modules.Feature'),
         ];
 
         return $this->render(
@@ -176,6 +183,7 @@ class ModuleController extends ModuleAbstractController
             case ModuleAdapter::ACTION_INSTALL:
                 $deniedAccess = $this->checkPermission(PageVoter::CREATE);
                 break;
+            case ModuleAdapter::ACTION_DELETE:
             case ModuleAdapter::ACTION_UNINSTALL:
                 $deniedAccess = $this->checkPermission(PageVoter::DELETE);
                 break;
@@ -192,30 +200,36 @@ class ModuleController extends ModuleAbstractController
             return $this->getDisabledFunctionalityResponse($request);
         }
 
-        $module = $request->get('module_name');
+        $moduleName = $request->get('module_name');
         $source = $request->query->get('source');
         $moduleManager = $this->container->get('prestashop.module.manager');
         $moduleRepository = $this->container->get('prestashop.core.admin.module.repository');
         $modulesProvider = $this->container->get('prestashop.core.admin.data_provider.module_interface');
-        $response = [$module => []];
+        $response = [$moduleName => []];
 
         if (!method_exists($moduleManager, $action)) {
-            $response[$module]['status'] = false;
-            $response[$module]['msg'] = $this->trans('Invalid action', 'Admin.Notifications.Error');
+            $response[$moduleName]['status'] = false;
+            $response[$moduleName]['msg'] = $this->trans('Invalid action', 'Admin.Notifications.Error');
 
             return new JsonResponse($response);
         }
 
         $actionTitle = AdminModuleDataProvider::ACTIONS_TRANSLATION_LABELS[$action];
-
         try {
-            $args = [$module];
+            $args = [$moduleName];
             if ($source !== null) {
                 $args[] = $source;
             }
             if ($action === ModuleAdapter::ACTION_UNINSTALL) {
                 $args[] = (bool) ($request->request->get('actionParams', [])['deletion'] ?? false);
-                $response[$module]['refresh_needed'] = $this->moduleNeedsReload($moduleRepository->getModule($module));
+                $moduleInstance = $moduleRepository->getModule($moduleName);
+                $response[$moduleName]['refresh_needed'] = $this->moduleNeedsReload($moduleInstance);
+                $response[$moduleName]['has_download_url'] = $moduleInstance->attributes->has('download_url');
+            }
+            if ($action === ModuleAdapter::ACTION_DELETE) {
+                $moduleInstance = $moduleRepository->getModule($moduleName);
+                $response[$moduleName]['refresh_needed'] = false;
+                $response[$moduleName]['has_download_url'] = $moduleInstance->attributes->has('download_url');
             }
             $systemCacheClearEnabled = filter_var(
                 $request->request->get('actionParams', [])['cacheClearEnabled'] ?? true,
@@ -224,15 +238,15 @@ class ModuleController extends ModuleAbstractController
             if (!$systemCacheClearEnabled) {
                 $moduleManager->disableSystemClearCache();
             }
-            $response[$module]['status'] = call_user_func([$moduleManager, $action], ...$args);
+            $response[$moduleName]['status'] = call_user_func([$moduleManager, $action], ...$args);
         } catch (Exception $e) {
-            $response[$module]['status'] = false;
-            $response[$module]['msg'] = $this->trans(
+            $response[$moduleName]['status'] = false;
+            $response[$moduleName]['msg'] = $this->trans(
                 'Cannot %action% module %module%. %error_details%',
                 'Admin.Modules.Notification',
                 [
                     '%action%' => $actionTitle,
-                    '%module%' => $module,
+                    '%module%' => $moduleName,
                     '%error_details%' => $e->getMessage(),
                 ]
             );
@@ -240,22 +254,22 @@ class ModuleController extends ModuleAbstractController
             return new JsonResponse($response);
         }
 
-        $moduleInstance = $moduleRepository->getModule($module);
-        if ($response[$module]['status'] === true) {
-            if (!isset($response[$module]['refresh_needed'])) {
-                $response[$module]['refresh_needed'] = $this->moduleNeedsReload($moduleInstance);
+        $moduleInstance = $moduleRepository->getModule($moduleName);
+        if ($response[$moduleName]['status'] === true) {
+            if (!isset($response[$moduleName]['refresh_needed'])) {
+                $response[$moduleName]['refresh_needed'] = $this->moduleNeedsReload($moduleInstance);
             }
-            $response[$module]['msg'] = $this->trans(
+            $response[$moduleName]['msg'] = $this->trans(
                 '%action% action on module %module% succeeded.',
                 'Admin.Modules.Notification',
                 [
                     '%action%' => ucfirst($actionTitle),
-                    '%module%' => $module,
+                    '%module%' => $moduleName,
                 ]
             );
-            if ($action !== 'uninstall') {
-                $response[$module]['module_name'] = $module;
-                $response[$module]['is_configurable'] = (bool) $moduleInstance->attributes->get('is_configurable');
+            if ($action !== 'uninstall' && $action !== 'delete') {
+                $response[$moduleName]['module_name'] = $moduleName;
+                $response[$moduleName]['is_configurable'] = (bool) $moduleInstance->attributes->get('is_configurable');
             }
 
             $collection = ModuleCollection::createFrom([$moduleInstance]);
@@ -263,8 +277,7 @@ class ModuleController extends ModuleAbstractController
 
             $modulePresenter = $this->get('prestashop.adapter.presenter.module');
             $collectionPresented = $modulePresenter->presentCollection($collectionWithActionUrls);
-
-            $response[$module]['action_menu_html'] = $this->container->get('twig')->render(
+            $response[$moduleName]['action_menu_html'] = $this->container->get('twig')->render(
                 '@PrestaShop/Admin/Module/Includes/action_menu.html.twig',
                 [
                     'module' => $collectionPresented[0],
@@ -272,13 +285,13 @@ class ModuleController extends ModuleAbstractController
                 ]
             );
         } else {
-            $response[$module]['msg'] = $this->trans(
+            $response[$moduleName]['msg'] = $this->trans(
                 'Cannot %action% module %module%. %error_details%',
                 'Admin.Modules.Notification',
                 [
                     '%action%' => $actionTitle,
-                    '%module%' => $module,
-                    '%error_details%' => $moduleManager->getError($module),
+                    '%module%' => $moduleName,
+                    '%error_details%' => $moduleManager->getError($moduleName),
                 ]
             );
         }
@@ -367,9 +380,13 @@ class ModuleController extends ModuleAbstractController
 
             $moduleName = $zipSource->getModuleName($fileUploaded->getPathname());
 
+            $moduleWasAlreadyInstalled = $moduleManager->isInstalled($moduleName);
+            $installationResult = $moduleManager->install($moduleName, $fileUploaded->getPathname());
+
             // Install the module
             $installationResponse = [
-                'status' => $moduleManager->install($moduleName, $fileUploaded->getPathname()),
+                'status' => $installationResult,
+                'upgraded' => $installationResult && $moduleWasAlreadyInstalled,
                 'msg' => '',
                 'module_name' => $moduleName,
             ];

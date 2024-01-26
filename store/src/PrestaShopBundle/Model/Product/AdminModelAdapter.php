@@ -27,7 +27,7 @@
 namespace PrestaShopBundle\Model\Product;
 
 use Attachment;
-use Configuration as ConfigurationLegacy;
+use PrestaShop\PrestaShop\Adapter\Configuration;
 use PrestaShop\PrestaShop\Adapter\Feature\FeatureDataProvider;
 use PrestaShop\PrestaShop\Adapter\LegacyContext;
 use PrestaShop\PrestaShop\Adapter\Pack\PackDataProvider;
@@ -45,6 +45,8 @@ use ProductDownload;
 use Symfony\Component\Routing\Router;
 
 /**
+ * @deprecated since 8.1 and will be removed in next major.
+ *
  * This form class is responsible to map the form data to the product object.
  */
 class AdminModelAdapter extends \PrestaShopBundle\Model\AdminModelAdapter
@@ -75,12 +77,11 @@ class AdminModelAdapter extends \PrestaShopBundle\Model\AdminModelAdapter
     private $productPricePriority;
     /** @var WarehouseDataProvider */
     private $warehouseAdapter;
+    /** @var Configuration */
+    private $configuration;
     /** @var Router */
     private $router;
-
-    /**
-     * @var FloatParser
-     */
+    /** @var FloatParser */
     private $floatParser;
 
     /** @var array */
@@ -183,6 +184,7 @@ class AdminModelAdapter extends \PrestaShopBundle\Model\AdminModelAdapter
      * @param PackDataProvider $packDataProvider
      * @param ShopContext $shopContext
      * @param TaxRuleDataProvider $taxRuleDataProvider
+     * @param Configuration $configuration
      * @param Router $router
      * @param FloatParser|null $floatParser
      */
@@ -197,6 +199,7 @@ class AdminModelAdapter extends \PrestaShopBundle\Model\AdminModelAdapter
         PackDataProvider $packDataProvider,
         ShopContext $shopContext,
         TaxRuleDataProvider $taxRuleDataProvider,
+        Configuration $configuration,
         Router $router,
         FloatParser $floatParser = null
     ) {
@@ -212,6 +215,7 @@ class AdminModelAdapter extends \PrestaShopBundle\Model\AdminModelAdapter
         $this->packAdapter = $packDataProvider;
         $this->shopContext = $shopContext;
         $this->taxRuleDataProvider = $taxRuleDataProvider;
+        $this->configuration = $configuration;
         $this->router = $router;
         $this->floatParser = $floatParser ?? new FloatParser();
     }
@@ -257,22 +261,55 @@ class AdminModelAdapter extends \PrestaShopBundle\Model\AdminModelAdapter
             $form_data['is_virtual'] = 0;
         }
 
-        // Product redirection
+        // Product redirection type and object ID
         $form_data['redirect_type'] = (string) $form_data['redirect_type'];
-        if ($form_data['redirect_type'] != RedirectType::TYPE_NOT_FOUND) {
-            if (isset($form_data['id_type_redirected']) && !empty($form_data['id_type_redirected']['data'])) {
+
+        /*
+         * In case of categories, we will use the category ID, but if it's missing,
+         * it can be assigned to zero. Product default category will be used.
+         */
+        if (RedirectType::TYPE_CATEGORY_PERMANENT == $form_data['redirect_type'] ||
+            RedirectType::TYPE_CATEGORY_TEMPORARY == $form_data['redirect_type']) {
+            if (!empty($form_data['id_type_redirected']['data'][0])) {
                 $form_data['id_type_redirected'] = $form_data['id_type_redirected']['data'][0];
-            } elseif (RedirectType::TYPE_CATEGORY_PERMANENT == $form_data['redirect_type'] || RedirectType::TYPE_CATEGORY_TEMPORARY == $form_data['redirect_type']) {
+            } else {
                 $form_data['id_type_redirected'] = 0;
-            } elseif (RedirectType::TYPE_GONE == $form_data['redirect_type']) {
-                $form_data['id_type_redirected'] = 0;
-                $form_data['redirect_type'] = RedirectType::TYPE_GONE;
+            }
+            /*
+             * For redirects to products, we need that ID. If its missing and it was still submitted
+             * somehow, we will fall back to default category redirect with no object ID.
+             */
+        } elseif (RedirectType::TYPE_PRODUCT_PERMANENT == $form_data['redirect_type'] ||
+            RedirectType::TYPE_PRODUCT_TEMPORARY == $form_data['redirect_type']) {
+            if (!empty($form_data['id_type_redirected']['data'][0])) {
+                $form_data['id_type_redirected'] = $form_data['id_type_redirected']['data'][0];
             } else {
                 $form_data['id_type_redirected'] = 0;
                 $form_data['redirect_type'] = RedirectType::TYPE_CATEGORY_PERMANENT;
             }
+            /*
+             * For all other redirection types that don't need any other object ID.
+             */
         } else {
             $form_data['id_type_redirected'] = 0;
+        }
+
+        // If redirection is set to category and we have proper data, we assign it
+        if ((RedirectType::TYPE_CATEGORY_PERMANENT == $form_data['redirect_type'] ||
+            RedirectType::TYPE_CATEGORY_TEMPORARY == $form_data['redirect_type']) &&
+            !empty($form_data['id_type_redirected']['data'][0])) {
+            $form_data['id_type_redirected'] = $form_data['id_type_redirected']['data'][0];
+        }
+
+        // If redirection is set to product and we have proper data, we assign it
+        // Otherwise, we fallback to category permament redirect
+        if (RedirectType::TYPE_PRODUCT_PERMANENT == $form_data['redirect_type'] ||
+            RedirectType::TYPE_PRODUCT_TEMPORARY == $form_data['redirect_type']) {
+            if (!empty($form_data['id_type_redirected']['data'][0])) {
+                $form_data['id_type_redirected'] = $form_data['id_type_redirected']['data'][0];
+            } else {
+                $form_data['redirect_type'] = RedirectType::TYPE_CATEGORY_PERMANENT;
+            }
         }
 
         //map inputPackItems
@@ -337,7 +374,9 @@ class AdminModelAdapter extends \PrestaShopBundle\Model\AdminModelAdapter
             $form_data['combinations'][$k]['attribute_unity'] = abs(
                 $this->floatParser->fromString($combination['attribute_unity'])
             );
-            $form_data['combinations'][$k]['attribute_quantity'] = $this->floatParser->fromString($combination['attribute_quantity']);
+            if ($this->configuration->getBoolean('PS_STOCK_MANAGEMENT')) {
+                $form_data['combinations'][$k]['attribute_quantity'] = $this->floatParser->fromString($combination['attribute_quantity']);
+            }
 
             $form_data['combinations'][$k]['attribute_wholesale_price'] = abs(
                 $this->floatParser->fromString($combination['attribute_wholesale_price'])
@@ -711,7 +750,7 @@ class AdminModelAdapter extends \PrestaShopBundle\Model\AdminModelAdapter
     private function getVirtualProductData(Product $product)
     {
         //force virtual product feature
-        ConfigurationLegacy::updateGlobalValue('PS_VIRTUAL_PROD_FEATURE_ACTIVE', '1');
+        $this->configuration->set('PS_VIRTUAL_PROD_FEATURE_ACTIVE', '1');
 
         $id_product_download = ProductDownload::getIdFromIdProduct((int) $product->id, false);
         if ($id_product_download) {

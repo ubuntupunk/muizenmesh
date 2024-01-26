@@ -25,6 +25,11 @@
  */
 
 use PaypalAddons\classes\AbstractMethodPaypal;
+use PaypalAddons\services\PaypalContext;
+
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
 
 /**
  * Init payment for EC shortcut
@@ -151,6 +156,10 @@ class PaypalScInitModuleFrontController extends PaypalAbstarctModuleFrontControl
 
         if (empty($request->addAddress)) {
             $this->method->setShortCut(true);
+        }
+
+        if (isset($request->savePaypalAccount) && $request->savePaypalAccount) {
+            PaypalContext::getContext()->set('savePaypalAccount', true);
         }
 
         if (empty($request->apmMethod)) {

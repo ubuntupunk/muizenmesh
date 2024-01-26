@@ -26,6 +26,10 @@
 
 namespace PaypalAddons\classes\API\Response;
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 class ResponseOrderGet extends Response
 {
     /** @var Client */
@@ -40,6 +44,21 @@ class ResponseOrderGet extends Response
 
     /** @var string */
     protected $status;
+
+    /** @var string */
+    protected $transactionId;
+
+    /** @var \DateTime */
+    protected $dateTransaction;
+
+    /** @var string */
+    protected $paymentMethod;
+
+    /** @var string */
+    protected $paymentTool;
+
+    /** @var string */
+    protected $method;
 
     public function __construct()
     {
@@ -125,5 +144,105 @@ class ResponseOrderGet extends Response
     public function getDepositBankDetails()
     {
         return $this->depositBankDetails;
+    }
+
+    /**
+     * @return string
+     */
+    public function getTransactionId()
+    {
+        return $this->transactionId;
+    }
+
+    /**
+     * @param string $transactionId
+     *
+     * @return ResponseOrderGet
+     */
+    public function setTransactionId($transactionId)
+    {
+        $this->transactionId = $transactionId;
+
+        return $this;
+    }
+
+    /**
+     * @return \DateTime
+     */
+    public function getDateTransaction()
+    {
+        return $this->dateTransaction;
+    }
+
+    /**
+     * @param \DateTime $dateTransaction
+     *
+     * @return ResponseOrderGet
+     */
+    public function setDateTransaction(\DateTime $dateTransaction)
+    {
+        $this->dateTransaction = $dateTransaction;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPaymentMethod()
+    {
+        return $this->paymentMethod;
+    }
+
+    /**
+     * @param string $paymentMethod
+     *
+     * @return ResponseOrderGet
+     */
+    public function setPaymentMethod($paymentMethod)
+    {
+        $this->paymentMethod = $paymentMethod;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPaymentTool()
+    {
+        return $this->paymentTool;
+    }
+
+    /**
+     * @param string $paymentTool
+     *
+     * @return ResponseOrderGet
+     */
+    public function setPaymentTool($paymentTool)
+    {
+        $this->paymentTool = $paymentTool;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getMethod()
+    {
+        return $this->method;
+    }
+
+    /**
+     * @param string $method
+     *
+     * @return ResponseOrderGet
+     */
+    public function setMethod($method)
+    {
+        $this->method = $method;
+
+        return $this;
     }
 }

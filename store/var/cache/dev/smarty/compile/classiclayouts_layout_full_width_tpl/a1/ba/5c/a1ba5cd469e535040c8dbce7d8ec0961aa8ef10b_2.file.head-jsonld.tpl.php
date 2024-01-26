@@ -1,18 +1,18 @@
 <?php
-/* Smarty version 4.2.1, created on 2023-03-31 10:26:31
+/* Smarty version 4.3.1, created on 2023-09-14 20:11:44
   from '/home/sexthera/public_html/muizenmesh.co.za/store/themes/classic/templates/_partials/microdata/head-jsonld.tpl' */
 
 /* @var Smarty_Internal_Template $_smarty_tpl */
 if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
-  'version' => '4.2.1',
-  'unifunc' => 'content_64269937e13767_30753330',
+  'version' => '4.3.1',
+  'unifunc' => 'content_65034ce054e0d8_63514784',
   'has_nocache_code' => false,
   'file_dependency' => 
   array (
     'a1ba5cd469e535040c8dbce7d8ec0961aa8ef10b' => 
     array (
       0 => '/home/sexthera/public_html/muizenmesh.co.za/store/themes/classic/templates/_partials/microdata/head-jsonld.tpl',
-      1 => 1671890850,
+      1 => 1694187264,
       2 => 'file',
     ),
   ),
@@ -20,7 +20,7 @@ if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
   array (
   ),
 ),false)) {
-function content_64269937e13767_30753330 (Smarty_Internal_Template $_smarty_tpl) {
+function content_65034ce054e0d8_63514784 (Smarty_Internal_Template $_smarty_tpl) {
 echo '<script'; ?>
  type="application/ld+json">
   {
@@ -78,7 +78,7 @@ echo '<script'; ?>
       <?php }?>
       "potentialAction": {
         "@type": "SearchAction",
-        "target": "<?php echo htmlspecialchars((string) str_replace('--search_term_string--','{search_term_string}',$_smarty_tpl->tpl_vars['link']->value->getPageLink('search',true,null,array('search_query'=>'--search_term_string--'))), ENT_QUOTES, 'UTF-8');?>
+        "target": "<?php echo htmlspecialchars((string) call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'str_replace' ][ 0 ], array( '--search_term_string--','{search_term_string}',$_smarty_tpl->tpl_vars['link']->value->getPageLink('search',true,null,array('search_query'=>'--search_term_string--')) )), ENT_QUOTES, 'UTF-8');?>
 ",
         "query-input": "required name=search_term_string"
       }

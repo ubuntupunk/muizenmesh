@@ -8,30 +8,29 @@
 return [
     false, // $matchHost
     [ // $staticRoutes
-        '/common/notifications' => [[['_route' => 'admin_common_notifications', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CommonController::notificationsAction', '_legacy_controller' => 'AdminCommon', '_legacy_link' => 'AdminCommon'], null, ['POST' => 0], null, false, false, null]],
+        '/common/notifications' => [[['_route' => 'admin_common_notifications', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CommonController::notificationsAction', '_legacy_link' => 'AdminCommon'], null, ['POST' => 0], null, false, false, null]],
         '/common/notifications/ack' => [[['_route' => 'admin_common_notifications_ack', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CommonController::notificationsAckAction'], null, ['POST' => 0], null, false, false, null]],
         '/security/compromised' => [[['_route' => 'admin_security_compromised', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\SecurityController::compromisedAccessAction'], null, ['GET' => 0], null, false, false, null]],
-        '/sell/catalog/products/new' => [[['_route' => 'admin_product_new', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductController::newAction'], null, ['GET' => 0], null, false, false, null]],
-        '/sell/catalog/products/image/positions' => [[['_route' => 'admin_product_image_positions', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductImageController::updateImagePositionAction'], null, ['POST' => 0], null, false, false, null]],
+        '/sell/catalog/products/new' => [[['_route' => 'admin_product_new', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductController::newAction', '_legacy_controller' => 'AdminProducts'], null, ['GET' => 0], null, false, false, null]],
+        '/sell/catalog/products/image/positions' => [[['_route' => 'admin_product_image_positions', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductImageController::updateImagePositionAction', '_legacy_controller' => 'AdminProducts'], null, ['POST' => 0], null, false, false, null]],
         '/sell/catalog/products/attributes/get-all' => [[['_route' => 'admin_attribute_get_all', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\AttributeController::getAllAttributesAction', '_format' => 'json', '_legacy_controller' => 'AdminProducts'], null, ['GET' => 0], null, false, false, null]],
         '/sell/catalog/products/attributes/generator' => [[['_route' => 'admin_attribute_generator', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\AttributeController::attributesGeneratorAction', '_legacy_controller' => 'AdminProducts'], null, ['POST' => 0], null, false, false, null]],
         '/sell/catalog/products/categories/add/simple' => [[['_route' => 'admin_category_simple_add_form', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CategoryController::addSimpleCategoryFormAction'], null, ['POST' => 0], null, false, false, null]],
         '/sell/catalog/products/specific-prices/add' => [[['_route' => 'admin_specific_price_add', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\SpecificPriceController::addAction'], null, ['POST' => 0], null, false, false, null]],
-        '/sell/catalog/products-v2/all-attribute-groups' => [[['_route' => 'admin_all_attribute_groups', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::getAllAttributeGroupsAction', '_legacy_controller' => 'AdminProducts'], null, ['GET' => 0], null, false, false, null]],
-        '/sell/catalog/products-v2/images/add' => [[['_route' => 'admin_products_v2_add_image', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ImageController::addImageAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:addimage'], '_legacy_parameters' => ['id_product' => 'productId']], null, ['POST' => 0], null, false, false, null]],
+        '/sell/catalog/products-v2/images/add' => [[['_route' => 'admin_products_add_image', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ImageController::addImageAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:addimage'], '_legacy_parameters' => ['id_product' => 'productId']], null, ['POST' => 0], null, false, false, null]],
         '/sell/catalog/products-v2' => [
-            [['_route' => 'admin_products_v2_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::indexAction', '_legacy_controller' => 'AdminProducts'], null, ['GET' => 0], null, true, false, null],
+            [['_route' => 'admin_products_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::indexAction', '_legacy_controller' => 'AdminProducts'], null, ['GET' => 0], null, true, false, null],
             [['_route' => 'admin_products_search', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::searchGridAction', '_legacy_controller' => 'AdminProducts'], null, ['POST' => 0], null, true, false, null],
         ],
-        '/sell/catalog/products-v2/light-list' => [[['_route' => 'admin_products_v2_light_list', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::lightListAction', '_legacy_controller' => 'AdminProducts'], null, ['GET' => 0], null, false, false, null]],
+        '/sell/catalog/products-v2/light-list' => [[['_route' => 'admin_products_light_list', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::lightListAction', '_legacy_controller' => 'AdminProducts'], null, ['GET' => 0], null, false, false, null]],
         '/sell/catalog/products-v2/reset_grid_search' => [[['_route' => 'admin_products_reset_grid_search', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::resetGridSearchAction', '_legacy_controller' => 'AdminProducts'], null, ['POST' => 0], null, false, false, null]],
         '/sell/catalog/products-v2/grid_category_filter' => [[['_route' => 'admin_products_grid_category_filter', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::gridCategoryFilterAction', '_legacy_controller' => 'AdminProducts'], null, ['POST' => 0], null, false, false, null]],
-        '/sell/catalog/products-v2/create' => [[['_route' => 'admin_products_v2_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::createAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:addproduct', 'AdminProducts:add']], null, ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        '/sell/catalog/products-v2/update_position' => [[['_route' => 'admin_products_v2_update_position', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::updatePositionAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:positionproduct'], '_legacy_parameters' => ['id_product' => 'productId']], null, ['POST' => 0], null, false, false, null]],
-        '/sell/catalog/products-v2/bulk-enable' => [[['_route' => 'admin_products_v2_bulk_enable', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::bulkEnableAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:submitBulkdisableSelectionproduct']], null, ['POST' => 0], null, false, false, null]],
-        '/sell/catalog/products-v2/bulk-disable' => [[['_route' => 'admin_products_v2_bulk_disable', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::bulkDisableAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:submitBulkenableSelectionproduct']], null, ['POST' => 0], null, false, false, null]],
-        '/sell/catalog/products-v2/bulk-duplicate' => [[['_route' => 'admin_products_v2_bulk_duplicate', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::bulkDuplicateAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:submitBulkduplicateSelectionproduct'], '_legacy_parameters' => ['id_product' => 'productId']], null, ['POST' => 0], null, false, false, null]],
-        '/sell/catalog/products-v2/bulk-delete' => [[['_route' => 'admin_products_v2_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::bulkDeleteAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:submitBulkdeleteproduct'], '_legacy_parameters' => ['id_product' => 'productId']], null, ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
+        '/sell/catalog/products-v2/create' => [[['_route' => 'admin_products_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::createAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:addproduct', 'AdminProducts:add']], null, ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        '/sell/catalog/products-v2/update_position' => [[['_route' => 'admin_products_update_position', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::updatePositionAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:positionproduct'], '_legacy_parameters' => ['id_product' => 'productId']], null, ['POST' => 0], null, false, false, null]],
+        '/sell/catalog/products-v2/bulk-enable-all-shops' => [[['_route' => 'admin_products_bulk_enable_all_shops', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::bulkEnableAllShopsAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:submitBulkdisableSelectionproduct']], null, ['POST' => 0], null, false, false, null]],
+        '/sell/catalog/products-v2/bulk-disable-for-all-shops' => [[['_route' => 'admin_products_bulk_disable_all_shops', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::bulkDisableAllShopsAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:submitBulkenableSelectionproduct']], null, ['POST' => 0], null, false, false, null]],
+        '/sell/catalog/products-v2/bulk-duplicate-all-shops' => [[['_route' => 'admin_products_bulk_duplicate_all_shops', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::bulkDuplicateAllShopsAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:submitBulkduplicateSelectionproduct'], '_legacy_parameters' => ['id_product' => 'productId']], null, ['POST' => 0], null, false, false, null]],
+        '/sell/catalog/products-v2/bulk-delete-from-all-shops' => [[['_route' => 'admin_products_bulk_delete_from_all_shops', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::bulkDeleteFromAllShopsAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:submitBulkdeleteproduct'], '_legacy_parameters' => ['id_product' => 'productId']], null, ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
         '/sell/catalog/categories/search' => [[['_route' => 'admin_categories_search', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CommonController::searchGridAction', '_legacy_controller' => 'AdminCategories', '_legacy_link' => 'AdminCategories:submitFiltercategory', 'gridDefinitionFactoryServiceId' => 'prestashop.core.grid.definition.factory.category', 'redirectRoute' => 'admin_categories_index', 'redirectQueryParamsToKeep' => ['categoryId']], null, ['POST' => 0], null, false, false, null]],
         '/sell/catalog/categories/bulk-status-enable' => [[['_route' => 'admin_categories_bulk_enable_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CategoryController::bulkEnableStatusAction', '_legacy_controller' => 'AdminCategories', '_legacy_link' => 'AdminCategories:submitBulkenableSelectioncategory'], null, ['POST' => 0], null, false, false, null]],
         '/sell/catalog/categories/bulk-status-disable' => [[['_route' => 'admin_categories_bulk_disable_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CategoryController::bulkDisableStatusAction', '_legacy_controller' => 'AdminCategories', '_legacy_link' => 'AdminCategories:submitBulkdisableSelectioncategory'], null, ['POST' => 0], null, false, false, null]],
@@ -69,28 +68,29 @@ return [
         ],
         '/sell/catalog/monitoring/delete-bulk' => [[['_route' => 'admin_monitoring_products_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\MonitoringController::deleteBulkAction', '_legacy_controller' => 'AdminTracking'], null, ['POST' => 0], null, false, false, null]],
         '/sell/catalog/catalog-price-rules' => [
-            [['_route' => 'admin_catalog_price_rules_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CatalogPriceRuleController::indexAction', '_legacy_controller' => 'AdminSpecificPriceRule'], null, ['GET' => 0], null, true, false, null],
-            [['_route' => 'admin_catalog_price_rules_search', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CatalogPriceRuleController::searchAction', '_legacy_controller' => 'AdminSpecificPriceRule'], null, ['POST' => 0], null, true, false, null],
+            [['_route' => 'admin_catalog_price_rules_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CatalogPriceRuleController::indexAction', '_legacy_controller' => 'AdminSpecificPriceRule', '_legacy_link' => 'AdminSpecificPriceRule', '_legacy_feature_flag' => 'catalog_price_rule'], null, ['GET' => 0], null, true, false, null],
+            [['_route' => 'admin_catalog_price_rules_search', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CatalogPriceRuleController::searchAction', '_legacy_controller' => 'AdminSpecificPriceRule', '_legacy_link' => 'AdminSpecificPriceRule:submitFilterspecific_price_rule', '_legacy_feature_flag' => 'catalog_price_rule'], null, ['POST' => 0], null, true, false, null],
         ],
-        '/sell/catalog/catalog-price-rules/new' => [[['_route' => 'admin_catalog_price_rules_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CatalogPriceRuleController::createAction', '_legacy_controller' => 'AdminSpecificPriceRule'], null, ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        '/sell/catalog/catalog-price-rules/bulk-delete' => [[['_route' => 'admin_catalog_price_rules_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CatalogPriceRuleController::bulkDeleteAction', '_legacy_controller' => 'AdminSpecificPriceRule'], null, ['POST' => 0], null, false, false, null]],
+        '/sell/catalog/catalog-price-rules/new' => [[['_route' => 'admin_catalog_price_rules_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CatalogPriceRuleController::createAction', '_legacy_controller' => 'AdminSpecificPriceRule', '_legacy_link' => 'AdminSpecificPriceRule:addspecific_price_rule', '_legacy_feature_flag' => 'catalog_price_rule'], null, ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        '/sell/catalog/catalog-price-rules/bulk-delete' => [[['_route' => 'admin_catalog_price_rules_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CatalogPriceRuleController::bulkDeleteAction', '_legacy_controller' => 'AdminSpecificPriceRule', '_legacy_link' => 'AdminSpecificPriceRule:submitBulkdeletespecific_price_rule', '_legacy_feature_flag' => 'catalog_price_rule'], null, ['POST' => 0], null, false, false, null]],
         '/sell/catalog/features' => [[['_route' => 'admin_features_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\FeatureController::indexAction', '_legacy_controller' => 'AdminFeatures'], null, ['GET' => 0, 'POST' => 1], null, true, false, null]],
+        '/sell/catalog/features/new' => [[['_route' => 'admin_features_add', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\FeatureController::createAction', '_legacy_controller' => 'AdminFeatures'], null, ['GET' => 0, 'POST' => 1], null, false, false, null]],
         '/sell/catalog/attribute-groups' => [
-            [['_route' => 'admin_attribute_groups_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeGroupController::indexAction', '_legacy_controller' => 'AdminAttributesGroups'], null, ['GET' => 0], null, true, false, null],
-            [['_route' => 'admin_attribute_groups_search', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CommonController::searchGridAction', '_legacy_controller' => 'AdminAttributesGroups', 'gridDefinitionFactoryServiceId' => 'prestashop.core.grid.definition.factory.attribute_group', 'redirectRoute' => 'admin_attribute_groups_index'], null, ['POST' => 0], null, true, false, null],
+            [['_route' => 'admin_attribute_groups_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeGroupController::indexAction', '_legacy_controller' => 'AdminAttributesGroups', '_legacy_link' => 'AdminAttributesGroups', '_legacy_feature_flag' => 'attribute_group'], null, ['GET' => 0], null, true, false, null],
+            [['_route' => 'admin_attribute_groups_search', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CommonController::searchGridAction', '_legacy_controller' => 'AdminAttributesGroups', '_legacy_link' => 'AdminAttributeGroups:submitFilterattribute_group', 'gridDefinitionFactoryServiceId' => 'prestashop.core.grid.definition.factory.attribute_group', 'redirectRoute' => 'admin_attribute_groups_index', '_legacy_feature_flag' => 'attribute_group'], null, ['POST' => 0], null, true, false, null],
         ],
-        '/sell/catalog/attribute-groups/new' => [[['_route' => 'admin_attribute_groups_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeGroupController::indexAction', '_legacy_controller' => 'AdminAttributesGroups'], null, ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        '/sell/catalog/attribute-groups/bulk-delete' => [[['_route' => 'admin_attribute_groups_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeGroupController::bulkDeleteAction', '_legacy_controller' => 'AdminAttributesGroups'], null, ['POST' => 0], null, false, false, null]],
-        '/sell/catalog/attribute-groups/export' => [[['_route' => 'admin_attribute_groups_export', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeGroupController::exportAction', '_legacy_controller' => 'AdminAttributesGroups'], null, ['GET' => 0], null, false, false, null]],
-        '/sell/catalog/attribute-groups/update-position' => [[['_route' => 'admin_attribute_groups_update_position', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeGroupController::updatePositionAction', '_legacy_controller' => 'AdminAttributesGroups'], null, ['POST' => 0], null, false, false, null]],
+        '/sell/catalog/attribute-groups/new' => [[['_route' => 'admin_attribute_groups_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeGroupController::indexAction', '_legacy_controller' => 'AdminAttributesGroups', '_legacy_link' => 'AdminAttributeGroups:addattribute_group', '_legacy_feature_flag' => 'attribute_group'], null, ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        '/sell/catalog/attribute-groups/bulk-delete' => [[['_route' => 'admin_attribute_groups_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeGroupController::bulkDeleteAction', '_legacy_controller' => 'AdminAttributesGroups', '_legacy_link' => 'AdminAttributesGroups:submitBulkdeleteattribute_group', '_legacy_feature_flag' => 'attribute_group'], null, ['POST' => 0], null, false, false, null]],
+        '/sell/catalog/attribute-groups/export' => [[['_route' => 'admin_attribute_groups_export', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeGroupController::exportAction', '_legacy_controller' => 'AdminAttributesGroups', '_legacy_link' => 'AdminAttributesGroups:exportattribute_group', '_legacy_feature_flag' => 'attribute_group'], null, ['GET' => 0], null, false, false, null]],
+        '/sell/catalog/attribute-groups/update-position' => [[['_route' => 'admin_attribute_groups_update_position', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeGroupController::updatePositionAction', '_legacy_controller' => 'AdminAttributesGroups', '_legacy_link' => 'AdminAttributesGroups:updateGroupsPositions', '_legacy_feature_flag' => 'attribute_group'], null, ['POST' => 0], null, false, false, null]],
         '/sell/catalog/cart-rules' => [
-            [['_route' => 'admin_cart_rules_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CartRuleController::indexAction', '_legacy_controller' => 'AdminCartRules'], null, ['GET' => 0], null, true, false, null],
+            [['_route' => 'admin_cart_rules_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CartRuleController::indexAction', '_legacy_controller' => 'AdminCartRules', '_legacy_link' => 'AdminCartRules', '_legacy_feature_flag' => 'cart_rule'], null, ['GET' => 0], null, true, false, null],
             [['_route' => 'admin_cart_rules_search_grid', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CommonController::searchGridAction', 'gridDefinitionFactoryServiceId' => 'prestashop.core.grid.definition.factory.cart_rule', 'redirectRoute' => 'admin_cart_rules_index', '_legacy_controller' => 'AdminCartRules'], null, ['POST' => 0], null, true, false, null],
         ],
         '/sell/catalog/cart-rules/search' => [[['_route' => 'admin_cart_rules_search', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CartRuleController::searchAction', '_legacy_controller' => 'AdminCartRules'], null, ['GET' => 0], null, false, false, null]],
-        '/sell/catalog/cart-rules/bulk-delete' => [[['_route' => 'admin_cart_rules_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CartRuleController::bulkDeleteAction', '_legacy_controller' => 'AdminCartRules'], null, ['POST' => 0], null, false, false, null]],
-        '/sell/catalog/cart-rules/bulk-enable' => [[['_route' => 'admin_cart_rules_bulk_enable_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CartRuleController::bulkEnableAction', '_legacy_controller' => 'AdminCartRules'], null, ['POST' => 0], null, false, false, null]],
-        '/sell/catalog/cart-rules/bulk-disable' => [[['_route' => 'admin_cart_rules_bulk_disable_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CartRuleController::bulkDisableAction', '_legacy_controller' => 'AdminCartRules'], null, ['POST' => 0], null, false, false, null]],
+        '/sell/catalog/cart-rules/bulk-delete' => [[['_route' => 'admin_cart_rules_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CartRuleController::bulkDeleteAction', '_legacy_controller' => 'AdminCartRules', '_legacy_link' => 'AdminCartRules:submitBulkdeletecart_rule', '_legacy_feature_flag' => 'cart_rule'], null, ['POST' => 0], null, false, false, null]],
+        '/sell/catalog/cart-rules/bulk-enable' => [[['_route' => 'admin_cart_rules_bulk_enable_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CartRuleController::bulkEnableAction', '_legacy_controller' => 'AdminCartRules', '_legacy_link' => 'AdminCartRules:submitBulkenableSelectioncart_rule', '_legacy_feature_flag' => 'cart_rule'], null, ['POST' => 0], null, false, false, null]],
+        '/sell/catalog/cart-rules/bulk-disable' => [[['_route' => 'admin_cart_rules_bulk_disable_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CartRuleController::bulkDisableAction', '_legacy_controller' => 'AdminCartRules', '_legacy_link' => 'AdminCartRules:submitBulkdisableSelectioncart_rule', '_legacy_feature_flag' => 'cart_rule'], null, ['POST' => 0], null, false, false, null]],
         '/sell/customers' => [
             [['_route' => 'admin_customers_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Customer\\CustomerController::indexAction', '_legacy_controller' => 'AdminCustomers', '_legacy_link' => 'AdminCustomers'], null, ['GET' => 0], null, true, false, null],
             [['_route' => 'admin_customers_filter', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CommonController::searchGridAction', '_legacy_controller' => 'AdminCustomers', '_legacy_link' => 'AdminCustomers:submitFiltercustomer', 'gridDefinitionFactoryServiceId' => 'prestashop.core.grid.definition.factory.customer', 'redirectRoute' => 'admin_customers_index'], null, ['POST' => 0], null, true, false, null],
@@ -126,11 +126,16 @@ return [
             [['_route' => 'admin_merchandise_returns_filter', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CommonController::searchGridAction', 'gridDefinitionFactoryServiceId' => 'prestashop.core.grid.definition.factory.merchandise_return', 'redirectRoute' => 'admin_merchandise_returns_index', '_legacy_controller' => 'AdminReturn'], null, ['POST' => 0], null, true, false, null],
         ],
         '/sell/customer-service/merchandise-return/options' => [[['_route' => 'admin_merchandise_returns_save_options', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\CustomerService\\MerchandiseReturnController::indexAction', '_legacy_controller' => 'AdminReturn'], null, ['PATCH' => 0, 'POST' => 1], null, false, false, null]],
+        '/sell/customer-service/customer-threads' => [
+            [['_route' => 'admin_customer_threads', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\CustomerService\\CustomerThreadController::indexAction', '_legacy_controller' => 'AdminCustomerThreads', '_legacy_link' => 'AdminCustomerThreads', '_legacy_feature_flag' => 'customer_threads'], null, ['GET' => 0], null, true, false, null],
+            [['_route' => 'admin_customer_threads_filter', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CommonController::searchGridAction', 'gridDefinitionFactoryServiceId' => 'prestashop.core.grid.definition.factory.customer_thread', 'redirectRoute' => 'admin_customer_threads', '_legacy_controller' => 'AdminCustomerThreads', '_legacy_feature_flag' => 'customer_threads'], null, ['POST' => 0], null, true, false, null],
+        ],
+        '/sell/customer-service/customer-threads/bulk_delete' => [[['_route' => 'admin_customer_threads_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\CustomerService\\CustomerThreadController::bulkDeleteAction', '_legacy_controller' => 'AdminCustomerThreads', '_legacy_link' => 'AdminCustomerThreads', '_legacy_feature_flag' => 'customer_threads'], null, ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
         '/sell/orders/delivery-slips' => [[['_route' => 'admin_order_delivery_slip', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\DeliveryController::slipAction', '_legacy_controller' => 'AdminDeliverySlip', '_legacy_link' => 'AdminDeliverySlip'], null, ['GET' => 0, 'POST' => 1], null, true, false, null]],
         '/sell/orders/delivery-slips/pdf' => [[['_route' => 'admin_order_delivery_slip_pdf', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\DeliveryController::generatePdfAction', '_legacy_controller' => 'AdminDeliverySlip', '_legacy_link' => 'AdminDeliverySlip:submitAdddelivery'], null, ['POST' => 0], null, false, false, null]],
         '/sell/orders/invoices' => [
             [['_route' => 'admin_order_invoices', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\InvoicesController::indexAction', '_legacy_controller' => 'AdminInvoices', '_legacy_link' => 'AdminInvoices'], null, ['GET' => 0], null, true, false, null],
-            [['_route' => 'admin_order_invoices_process', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\InvoicesController::processAction', '_legacy_controller' => 'AdminInvoices', '_legacy_link' => 'AdminInvoices:update'], null, ['POST' => 0], null, true, false, null],
+            [['_route' => 'admin_order_invoices_process', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\InvoicesController::processAction', '_legacy_controller' => 'AdminInvoices', '_legacy_link' => 'AdminInvoices:update'], null, ['PATCH' => 0, 'POST' => 1], null, true, false, null],
         ],
         '/sell/orders/invoices/by_date' => [[['_route' => 'admin_order_invoices_generate_by_date', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\InvoicesController::generatePdfByDateAction', '_legacy_controller' => 'AdminInvoices', '_legacy_link' => 'AdminInvoices:submitAddinvoice_date'], null, ['POST' => 0], null, false, false, null]],
         '/sell/orders/invoices/by_status' => [[['_route' => 'admin_order_invoices_generate_by_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\InvoicesController::generatePdfByStatusAction', '_legacy_controller' => 'AdminInvoices', '_legacy_link' => 'AdminInvoices:submitAddinvoice_status'], null, ['POST' => 0], null, false, false, null]],
@@ -230,6 +235,9 @@ return [
         '/configure/advanced/webservice-keys/bulk-delete' => [[['_route' => 'admin_webservice_keys_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\WebserviceController::bulkDeleteAction', '_legacy_controller' => 'AdminWebservice', '_legacy_link' => 'AdminWebservice:submitBulkdeletewebservice_account'], null, ['POST' => 0], null, false, false, null]],
         '/configure/advanced/webservice-keys/bulk-enable' => [[['_route' => 'admin_webservice_keys_bulk_enable', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\WebserviceController::bulkEnableAction', '_legacy_controller' => 'AdminWebservice', '_legacy_link' => 'AdminWebservice:submitBulkenableSelectionwebservice_account'], null, ['POST' => 0], null, false, false, null]],
         '/configure/advanced/webservice-keys/bulk-disable' => [[['_route' => 'admin_webservice_keys_bulk_disable', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\WebserviceController::bulkDisableAction', '_legacy_controller' => 'AdminWebservice', '_legacy_link' => 'AdminWebservice:submitBulkdisableSelectionwebservice_account'], null, ['POST' => 0], null, false, false, null]],
+        '/configure/advanced/authorization-server/applications' => [[['_route' => 'admin_authorized_applications_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\AuthorizationServer\\ApplicationController::indexAction', '_legacy_controller' => 'AdminAuthorizationServer', '_legacy_link' => 'AdminAuthorizationServer'], null, ['GET' => 0], null, false, false, null]],
+        '/configure/advanced/authorization-server/applications/create' => [[['_route' => 'admin_authorized_applications_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\AuthorizationServer\\ApplicationController::createAction', '_legacy_controller' => 'AdminAuthorizationServer'], null, ['GET' => 0, 'POST' => 1, 'PATCH' => 2], null, false, false, null]],
+        '/configure/advanced/authorization-server/applications/api-accesses/create' => [[['_route' => 'admin_api_accesses_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\AuthorizationServer\\ApiAccessController::createAction', '_legacy_controller' => 'AdminAuthorizationServer'], null, ['GET' => 0, 'POST' => 1, 'PATCH' => 2], null, false, false, null]],
         '/configure/advanced/backups' => [
             [['_route' => 'admin_backups_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\BackupController::indexAction', '_legacy_controller' => 'AdminBackup', '_legacy_link' => 'AdminBackup'], null, ['GET' => 0], null, true, false, null],
             [['_route' => 'admin_backups_save_options', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\BackupController::saveOptionsAction', '_legacy_controller' => 'AdminBackup', '_legacy_link' => 'AdminBackup:update'], null, ['POST' => 0], null, true, false, null],
@@ -269,9 +277,9 @@ return [
         ],
         '/configure/advanced/security/session/employee/delete/bulk' => [[['_route' => 'admin_security_sessions_employee_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\SecurityController::bulkDeleteEmployeeSessionAction', '_legacy_controller' => 'AdminSecuritySessionEmployee', '_legacy_link' => 'AdminSecuritySessionEmployee:submitBulkdeleteemployees'], null, ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
         '/configure/advanced/security/session/customer/delete/bulk' => [[['_route' => 'admin_security_sessions_customer_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\SecurityController::bulkDeleteCustomerSessionAction', '_legacy_controller' => 'AdminSecuritySessionCustomer', '_legacy_link' => 'AdminSecuritySessionCustomer:submitBulkdeleteemployees'], null, ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
-        '/configure/advanced/permissions' => [[['_route' => 'admin_permissions_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\PermissionController::indexAction', '_legacy_controller' => 'AdminAccess'], null, ['GET' => 0], null, true, false, null]],
-        '/configure/advanced/permissions/update/permissions/tab' => [[['_route' => 'admin_permissions_update_tab_permissions', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\PermissionController::updateTabPermissionsAction', '_legacy_controller' => 'AdminAccess'], null, ['POST' => 0], null, false, false, null]],
-        '/configure/advanced/permissions/update/permissions/module' => [[['_route' => 'admin_permissions_update_module_permissions', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\PermissionController::updateModulePermissionsAction', '_legacy_controller' => 'AdminAccess'], null, ['POST' => 0], null, false, false, null]],
+        '/configure/advanced/permissions' => [[['_route' => 'admin_permissions_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\PermissionController::indexAction', '_legacy_controller' => 'AdminAccess', '_legacy_link' => 'AdminAccess', '_legacy_feature_flag' => 'permission'], null, ['GET' => 0], null, true, false, null]],
+        '/configure/advanced/permissions/update/permissions/tab' => [[['_route' => 'admin_permissions_update_tab_permissions', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\PermissionController::updateTabPermissionsAction', '_legacy_controller' => 'AdminAccess', '_legacy_link' => 'AdminAccess:updateAccess', '_legacy_feature_flag' => 'permission'], null, ['POST' => 0], null, false, false, null]],
+        '/configure/advanced/permissions/update/permissions/module' => [[['_route' => 'admin_permissions_update_module_permissions', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\PermissionController::updateModulePermissionsAction', '_legacy_controller' => 'AdminAccess', '_legacy_link' => 'AdminAccess:updateModuleAccess', '_legacy_feature_flag' => 'permission'], null, ['POST' => 0], null, false, false, null]],
         '/configure/shop/preferences/preferences' => [
             [['_route' => 'admin_preferences', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\PreferencesController::indexAction', '_legacy_controller' => 'AdminPreferences', '_legacy_link' => 'AdminPreferences'], null, ['GET' => 0], null, false, false, null],
             [['_route' => 'admin_preferences_save', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\PreferencesController::processFormAction', '_legacy_controller' => 'AdminPreferences', '_legacy_link' => 'AdminPreferences:update'], null, ['POST' => 0], null, false, false, null],
@@ -286,7 +294,7 @@ return [
         '/configure/shop/product-preferences/stock' => [[['_route' => 'admin_product_preferences_stock_save', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\ProductPreferencesController::processStockFormAction', '_legacy_controller' => 'AdminPPreferences', '_legacy_link' => 'AdminPPreferences:update'], null, ['POST' => 0], null, false, false, null]],
         '/configure/shop/customer-preferences' => [
             [['_route' => 'admin_customer_preferences', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\CustomerPreferencesController::indexAction', '_legacy_controller' => 'AdminCustomerPreferences', '_legacy_link' => 'AdminCustomerPreferences'], null, ['GET' => 0], null, true, false, null],
-            [['_route' => 'admin_customer_preferences_process', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\CustomerPreferencesController::processAction', '_legacy_controller' => 'AdminCustomerPreferences', '_legacy_link' => 'AdminCustomerPreferences:update'], null, ['POST' => 0], null, true, false, null],
+            [['_route' => 'admin_customer_preferences_process', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\CustomerPreferencesController::processAction', '_legacy_controller' => 'AdminCustomerPreferences', '_legacy_link' => 'AdminCustomerPreferences:update'], null, ['PATCH' => 0, 'POST' => 1], null, true, false, null],
         ],
         '/configure/shop/maintenance' => [
             [['_route' => 'admin_maintenance', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\MaintenanceController::indexAction', '_legacy_controller' => 'AdminMaintenance', '_legacy_link' => 'AdminMaintenance'], null, ['GET' => 0], null, true, false, null],
@@ -310,8 +318,8 @@ return [
         '/configure/shop/contacts/new' => [[['_route' => 'admin_contacts_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\ContactsController::createAction', '_legacy_controller' => 'AdminContacts', '_legacy_link' => 'AdminContacts:addcontact'], null, ['GET' => 0, 'POST' => 1], null, false, false, null]],
         '/configure/shop/contacts/delete/bulk' => [[['_route' => 'admin_contacts_delete_bulk', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\ContactsController::deleteBulkAction', '_legacy_controller' => 'AdminContacts', '_legacy_link' => 'AdminContacts:submitBulkdeletecontact'], null, ['POST' => 0], null, false, false, null]],
         '/configure/shop/order-states' => [
-            [['_route' => 'admin_order_states', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\OrderStateController::indexAction', '_legacy_controller' => 'AdminStatuses'], null, ['GET' => 0], null, true, false, null],
-            [['_route' => 'admin_order_states_filter', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\OrderStateController::searchGridAction', '_legacy_controller' => 'AdminStatuses', 'gridDefinitionFactoryServiceId' => 'prestashop.core.grid.definition.factory.order_states', 'redirectRoute' => 'admin_order_states'], null, ['POST' => 0], null, true, false, null],
+            [['_route' => 'admin_order_states', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\OrderStateController::indexAction', '_legacy_controller' => 'AdminStatuses', '_legacy_link' => 'AdminStatuses', '_legacy_feature_flag' => 'order_state'], null, ['GET' => 0], null, true, false, null],
+            [['_route' => 'admin_order_states_filter', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\OrderStateController::searchGridAction', '_legacy_controller' => 'AdminStatuses', 'gridDefinitionFactoryServiceId' => 'prestashop.core.grid.definition.factory.order_states', 'redirectRoute' => 'admin_order_states', '_legacy_link' => 'AdminStatuses:submitFilterstate', '_legacy_feature_flag' => 'order_state'], null, ['POST' => 0], null, true, false, null],
         ],
         '/configure/shop/order-states/new' => [[['_route' => 'admin_order_states_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\OrderStateController::createAction', '_legacy_controller' => 'AdminStatuses', '_legacy_link' => 'AdminStatuses:addorderstate'], null, ['GET' => 0, 'POST' => 1], null, false, false, null]],
         '/configure/shop/order-states/delete-bulk' => [[['_route' => 'admin_order_states_delete_bulk', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\OrderStateController::deleteBulkAction', '_legacy_controller' => 'AdminStatuses', '_legacy_link' => 'AdminStatuses:submitBulkdeleteorderstate'], null, ['POST' => 0], null, false, false, null]],
@@ -324,11 +332,11 @@ return [
         '/configure/shop/search-engines/new' => [[['_route' => 'admin_search_engines_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\SearchEnginesController::createAction', '_legacy_controller' => 'AdminSearchEngines', '_legacy_link' => 'AdminSearchEngines:addsearch_engine'], null, ['GET' => 0, 'POST' => 1], null, false, false, null]],
         '/configure/shop/search-engines/bulk-delete' => [[['_route' => 'admin_search_engines_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\SearchEnginesController::bulkDeleteAction', '_legacy_controller' => 'AdminSearchEngines', '_legacy_link' => 'AdminSearchEngines:submitBulkdeletesearch_engine'], null, ['POST' => 0], null, false, false, null]],
         '/configure/shop/title' => [
-            [['_route' => 'admin_title_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\TitleController::indexAction', '_legacy_controller' => 'AdminGenders'], null, ['GET' => 0], null, true, false, null],
-            [['_route' => 'admin_title_search', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CommonController::searchGridAction', 'gridDefinitionFactoryServiceId' => 'prestashop.core.grid.definition.factory.title', 'redirectRoute' => 'admin_title_index', '_legacy_controller' => 'AdminGenders'], null, ['POST' => 0], null, true, false, null],
+            [['_route' => 'admin_title_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\TitleController::indexAction', '_legacy_controller' => 'AdminGenders', '_legacy_link' => 'AdminGenders', '_legacy_feature_flag' => 'title'], null, ['GET' => 0], null, true, false, null],
+            [['_route' => 'admin_title_search', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CommonController::searchGridAction', 'gridDefinitionFactoryServiceId' => 'prestashop.core.grid.definition.factory.title', 'redirectRoute' => 'admin_title_index', '_legacy_controller' => 'AdminGenders', '_legacy_link' => 'AdminGenders:submitFiltergenders', '_legacy_feature_flag' => 'title'], null, ['POST' => 0], null, true, false, null],
         ],
-        '/configure/shop/title/new' => [[['_route' => 'admin_title_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\TitleController::createAction', '_legacy_controller' => 'AdminGenders'], null, ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        '/configure/shop/title/bulk-delete' => [[['_route' => 'admin_title_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\TitleController::bulkDeleteAction', '_legacy_controller' => 'AdminGenders'], null, ['POST' => 0], null, false, false, null]],
+        '/configure/shop/title/new' => [[['_route' => 'admin_title_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\TitleController::createAction', '_legacy_controller' => 'AdminGenders', '_legacy_link' => 'AdminGenders:addgender', '_legacy_feature_flag' => 'title'], null, ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        '/configure/shop/title/bulk-delete' => [[['_route' => 'admin_title_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\TitleController::bulkDeleteAction', '_legacy_controller' => 'AdminGenders', '_legacy_link' => 'AdminGenders:submitBulkdeletegender', '_legacy_feature_flag' => 'title'], null, ['POST' => 0], null, false, false, null]],
         '/configure/showcase-card/close' => [[['_route' => 'admin_close_showcase_card', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShowcaseCardController::closeShowcaseCardAction'], null, ['POST' => 0], null, false, false, null]],
         '/improve/international/translations' => [[['_route' => 'admin_international_translation_overview', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TranslationsController::overviewAction', '_legacy_controller' => 'AdminTranslations', '_legacy_link' => 'AdminTranslationSf'], null, ['GET' => 0], null, true, false, null]],
         '/improve/international/translations/export' => [[['_route' => 'admin_international_translations_export_catalogues', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TranslationsController::exportCataloguesAction', '_legacy_controller' => 'AdminTranslations', '_legacy_link' => 'AdminTranslations:submitExport'], null, ['POST' => 0], null, false, false, null]],
@@ -370,21 +378,21 @@ return [
         '/improve/international/taxes/bulk-delete' => [[['_route' => 'admin_taxes_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxController::bulkDeleteAction', '_legacy_controller' => 'AdminTaxes', '_legacy_link' => 'AdminTaxes:submitBulkdeletetax'], null, ['POST' => 0], null, false, false, null]],
         '/improve/international/states/country-states' => [[['_route' => 'admin_country_states', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\StateController::getStatesAction', '_legacy_controller' => 'AdminStates'], null, ['GET' => 0], null, false, false, null]],
         '/improve/international/states' => [
-            [['_route' => 'admin_states_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\StateController::indexAction', '_legacy_controller' => 'AdminStates'], null, ['GET' => 0], null, true, false, null],
-            [['_route' => 'admin_states_filter', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CommonController::searchGridAction', '_legacy_controller' => 'AdminStates', 'gridDefinitionFactoryServiceId' => 'prestashop.core.grid.definition.factory.state', 'redirectRoute' => 'admin_states_index'], null, ['POST' => 0], null, true, false, null],
+            [['_route' => 'admin_states_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\StateController::indexAction', '_legacy_controller' => 'AdminStates', '_legacy_link' => 'AdminStates', '_legacy_feature_flag' => 'state'], null, ['GET' => 0], null, true, false, null],
+            [['_route' => 'admin_states_filter', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CommonController::searchGridAction', '_legacy_controller' => 'AdminStates', 'gridDefinitionFactoryServiceId' => 'prestashop.core.grid.definition.factory.state', 'redirectRoute' => 'admin_states_index', '_legacy_link' => 'AdminStates:submitFilterstate', '_legacy_feature_flag' => 'state'], null, ['POST' => 0], null, true, false, null],
         ],
-        '/improve/international/states/new' => [[['_route' => 'admin_states_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\StateController::createAction', '_legacy_controller' => 'AdminStates'], null, ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        '/improve/international/states/delete-bulk' => [[['_route' => 'admin_states_delete_bulk', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\StateController::deleteBulkAction', '_legacy_controller' => 'AdminStates'], null, ['POST' => 0], null, false, false, null]],
-        '/improve/international/states/bulk-status-enable' => [[['_route' => 'admin_states_bulk_enable_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\StateController::bulkEnableAction', '_legacy_controller' => 'AdminStates'], null, ['POST' => 0], null, false, false, null]],
-        '/improve/international/states/bulk-status-disable' => [[['_route' => 'admin_states_bulk_disable_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\StateController::bulkDisableAction', '_legacy_controller' => 'AdminStates'], null, ['POST' => 0], null, false, false, null]],
+        '/improve/international/states/new' => [[['_route' => 'admin_states_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\StateController::createAction', '_legacy_controller' => 'AdminStates', '_legacy_link' => 'AdminStates:addstate', '_legacy_feature_flag' => 'state'], null, ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        '/improve/international/states/delete-bulk' => [[['_route' => 'admin_states_delete_bulk', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\StateController::deleteBulkAction', '_legacy_controller' => 'AdminStates', '_legacy_link' => 'AdminStates:submitBulkdeletestate', '_legacy_feature_flag' => 'state'], null, ['POST' => 0], null, false, false, null]],
+        '/improve/international/states/bulk-status-enable' => [[['_route' => 'admin_states_bulk_enable_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\StateController::bulkEnableAction', '_legacy_controller' => 'AdminStates', '_legacy_link' => 'AdminStates:submitBulkenableSelectionstate', '_legacy_feature_flag' => 'state'], null, ['POST' => 0], null, false, false, null]],
+        '/improve/international/states/bulk-status-disable' => [[['_route' => 'admin_states_bulk_disable_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\StateController::bulkDisableAction', '_legacy_controller' => 'AdminStates', '_legacy_link' => 'AdminStates:submitBulkdisableSelectionstate', '_legacy_feature_flag' => 'state'], null, ['POST' => 0], null, false, false, null]],
         '/improve/international/tax_rules_groups' => [
-            [['_route' => 'admin_tax_rules_groups_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxRulesGroupController::indexAction', '_legacy_controller' => 'AdminTaxRulesGroup'], null, ['GET' => 0], null, true, false, null],
-            [['_route' => 'admin_tax_rules_groups_search', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CommonController::searchGridAction', '_legacy_controller' => 'AdminTaxRulesGroup', 'gridDefinitionFactoryServiceId' => 'prestashop.core.grid.definition.factory.tax_rules_group', 'redirectRoute' => 'admin_tax_rules_groups_index'], null, ['POST' => 0], null, true, false, null],
+            [['_route' => 'admin_tax_rules_groups_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxRulesGroupController::indexAction', '_legacy_controller' => 'AdminTaxRulesGroup', '_legacy_link' => 'AdminTaxRulesGroup', '_legacy_feature_flag' => 'tax_rules_group'], null, ['GET' => 0], null, true, false, null],
+            [['_route' => 'admin_tax_rules_groups_search', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CommonController::searchGridAction', 'gridDefinitionFactoryServiceId' => 'prestashop.core.grid.definition.factory.tax_rules_group', 'redirectRoute' => 'admin_tax_rules_groups_index', '_legacy_controller' => 'AdminTaxRulesGroup', '_legacy_link' => 'AdminTaxRulesGroup:submitFiltertax_rules_group', '_legacy_feature_flag' => 'tax_rules_group'], null, ['POST' => 0], null, true, false, null],
         ],
-        '/improve/international/tax_rules_groups/new' => [[['_route' => 'admin_tax_rules_groups_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxRulesGroupController::createAction', '_legacy_controller' => 'AdminTaxRulesGroup'], null, ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        '/improve/international/tax_rules_groups/bulk-enable-status' => [[['_route' => 'admin_tax_rules_groups_bulk_enable_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxRulesGroupController::bulkEnableStatusAction', '_legacy_controller' => 'AdminTaxRulesGroup'], null, ['POST' => 0], null, false, false, null]],
-        '/improve/international/tax_rules_groups/bulk-disable-status' => [[['_route' => 'admin_tax_rules_groups_bulk_disable_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxRulesGroupController::bulkDisableStatusAction', '_legacy_controller' => 'AdminTaxRulesGroup'], null, ['POST' => 0], null, false, false, null]],
-        '/improve/international/tax_rules_groups/bulk-delete' => [[['_route' => 'admin_tax_rules_groups_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxRulesGroupController::bulkDeleteAction', '_legacy_controller' => 'AdminTaxRulesGroup'], null, ['POST' => 0], null, false, false, null]],
+        '/improve/international/tax_rules_groups/new' => [[['_route' => 'admin_tax_rules_groups_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxRulesGroupController::createAction', '_legacy_controller' => 'AdminTaxRulesGroup', '_legacy_link' => 'AdminTaxRulesGroup:addtax_rules_group', '_legacy_feature_flag' => 'tax_rules_group'], null, ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        '/improve/international/tax_rules_groups/bulk-enable-status' => [[['_route' => 'admin_tax_rules_groups_bulk_enable_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxRulesGroupController::bulkEnableStatusAction', '_legacy_controller' => 'AdminTaxRulesGroup', '_legacy_link' => 'AdminTaxRulesGroup:submitBulkenableSelectiontax_rules_group', '_legacy_feature_flag' => 'tax_rules_group'], null, ['POST' => 0], null, false, false, null]],
+        '/improve/international/tax_rules_groups/bulk-disable-status' => [[['_route' => 'admin_tax_rules_groups_bulk_disable_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxRulesGroupController::bulkDisableStatusAction', '_legacy_controller' => 'AdminTaxRulesGroup', '_legacy_link' => 'AdminTaxRulesGroup:submitBulkdisableSelectiontax_rules_group', '_legacy_feature_flag' => 'tax_rules_group'], null, ['POST' => 0], null, false, false, null]],
+        '/improve/international/tax_rules_groups/bulk-delete' => [[['_route' => 'admin_tax_rules_groups_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxRulesGroupController::bulkDeleteAction', '_legacy_controller' => 'AdminTaxRulesGroup', '_legacy_link' => 'AdminTaxRulesGroup:submitBulkdeletetax_rules_group', '_legacy_feature_flag' => 'tax_rules_group'], null, ['POST' => 0], null, false, false, null]],
         '/improve/international/zones' => [
             [['_route' => 'admin_zones_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\ZoneController::indexAction', '_legacy_controller' => 'AdminZones', '_legacy_link' => 'AdminZones'], null, ['GET' => 0], null, true, false, null],
             [['_route' => 'admin_zones_search', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\ZoneController::searchAction', '_legacy_controller' => 'AdminZones', '_legacy_link' => 'AdminZones:submitFilterzone'], null, ['POST' => 0], null, true, false, null],
@@ -392,9 +400,10 @@ return [
         '/improve/international/zones/new' => [[['_route' => 'admin_zones_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\ZoneController::createAction', '_legacy_controller' => 'AdminZones', '_legacy_link' => 'AdminZones:addzone'], null, ['GET' => 0, 'POST' => 1], null, false, false, null]],
         '/improve/international/zones/bulk-delete' => [[['_route' => 'admin_zones_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\ZoneController::bulkDeleteAction', '_legacy_controller' => 'AdminZones', '_legacy_link' => 'AdminZones:submitBulkdeletezone'], null, ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
         '/improve/international/countries' => [
-            [['_route' => 'admin_countries_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\CountryController::indexAction', '_legacy_controller' => 'AdminCountries'], null, ['GET' => 0], null, true, false, null],
-            [['_route' => 'admin_countries_search', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CommonController::searchGridAction', 'gridDefinitionFactoryServiceId' => 'prestashop.core.grid.definition.factory.country', 'redirectRoute' => 'admin_countries_index', '_legacy_controller' => 'AdminCountries'], null, ['POST' => 0], null, true, false, null],
+            [['_route' => 'admin_countries_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\CountryController::indexAction', '_legacy_controller' => 'AdminCountries', '_legacy_link' => 'AdminCountries', '_legacy_feature_flag' => 'country'], null, ['GET' => 0], null, true, false, null],
+            [['_route' => 'admin_countries_search', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CommonController::searchGridAction', 'gridDefinitionFactoryServiceId' => 'prestashop.core.grid.definition.factory.country', 'redirectRoute' => 'admin_countries_index', '_legacy_controller' => 'AdminCountries', '_legacy_link' => 'AdminCountries:submitFiltercountry', '_legacy_feature_flag' => 'country'], null, ['POST' => 0], null, true, false, null],
         ],
+        '/improve/international/countries/new' => [[['_route' => 'admin_countries_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\CountryController::createAction', '_legacy_controller' => 'AdminCountries', '_legacy_link' => 'AdminCountries:addCountry', '_legacy_feature_flag' => 'country'], null, ['GET' => 0, 'POST' => 1], null, false, false, null]],
         '/improve/modules/import' => [[['_route' => 'admin_module_import', 'module_name' => null, '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\ModuleController::importModuleAction'], null, ['POST' => 0], null, false, false, null]],
         '/improve/modules/alerts' => [[['_route' => 'admin_module_notification', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Modules\\AlertsController::indexAction', '_legacy_controller' => 'AdminModulesNotifications', '_legacy_link' => 'AdminModulesNotifications'], null, ['GET' => 0], null, false, false, null]],
         '/improve/modules/alerts/count' => [[['_route' => 'admin_module_notification_count', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Modules\\AlertsController::notificationsCountAction', '_legacy_controller' => 'AdminModulesNotifications', '_legacy_link' => 'AdminModulesNotifications:count'], null, ['GET' => 0], null, false, false, null]],
@@ -435,13 +444,13 @@ return [
         '/improve/shipping/preferences/handling' => [[['_route' => 'admin_shipping_preferences_handling_save', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Shipping\\PreferencesController::processHandlingFormAction', '_legacy_controller' => 'AdminShipping', '_legacy_link' => 'AdminShipping:update'], null, ['PATCH' => 0, 'POST' => 1], null, false, false, null]],
         '/improve/shipping/preferences/carrier-options' => [[['_route' => 'admin_shipping_preferences_carrier_options_save', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Shipping\\PreferencesController::processCarrierOptionsFormAction', '_legacy_controller' => 'AdminShipping'], null, ['PATCH' => 0, 'POST' => 1], null, false, false, null]],
         '/improve/shipping/carriers' => [
-            [['_route' => 'admin_carriers_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Shipping\\CarriersController::indexAction', '_legacy_controller' => 'AdminCarriers'], null, ['GET' => 0], null, true, false, null],
-            [['_route' => 'admin_carriers_search', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Shipping\\CarriersController::searchAction', '_legacy_controller' => 'AdminCarriers'], null, ['POST' => 0], null, true, false, null],
+            [['_route' => 'admin_carriers_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Shipping\\CarriersController::indexAction', '_legacy_controller' => 'AdminCarriers', '_legacy_link' => 'AdminCarriers', '_legacy_feature_flag' => 'carrier'], null, ['GET' => 0], null, true, false, null],
+            [['_route' => 'admin_carriers_search', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Shipping\\CarriersController::searchAction', '_legacy_controller' => 'AdminCarriers', '_legacy_link' => 'AdminCarriers:submitFiltercarrier', '_legacy_feature_flag' => 'carrier'], null, ['POST' => 0], null, true, false, null],
         ],
-        '/improve/shipping/carriers/update-position' => [[['_route' => 'admin_carriers_update_position', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Shipping\\CarriersController::updatePositionAction', '_legacy_controller' => 'AdminCarriers'], null, ['POST' => 0], null, false, false, null]],
-        '/improve/shipping/carriers/bulk-enable' => [[['_route' => 'admin_carriers_bulk_enable_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Shipping\\CarriersController::bulkEnableStatusAction', '_legacy_controller' => 'AdminCarriers'], null, ['POST' => 0], null, false, false, null]],
-        '/improve/shipping/carriers/bulk-disable' => [[['_route' => 'admin_carriers_bulk_disable_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Shipping\\CarriersController::bulkDisableStatusAction', '_legacy_controller' => 'AdminCarriers'], null, ['POST' => 0], null, false, false, null]],
-        '/improve/shipping/carriers/bulk-delete' => [[['_route' => 'admin_carriers_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Shipping\\CarriersController::bulkDeleteAction', '_legacy_controller' => 'AdminCarriers'], null, ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
+        '/improve/shipping/carriers/update-position' => [[['_route' => 'admin_carriers_update_position', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Shipping\\CarriersController::updatePositionAction', '_legacy_controller' => 'AdminCarriers', '_legacy_link' => 'AdminCarriers:updatePositions', '_legacy_feature_flag' => 'carrier'], null, ['POST' => 0], null, false, false, null]],
+        '/improve/shipping/carriers/bulk-enable' => [[['_route' => 'admin_carriers_bulk_enable_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Shipping\\CarriersController::bulkEnableStatusAction', '_legacy_controller' => 'AdminCarriers', '_legacy_link' => 'AdminCarriers:submitBulkenableSelectioncarrier', '_legacy_feature_flag' => 'carrier'], null, ['POST' => 0], null, false, false, null]],
+        '/improve/shipping/carriers/bulk-disable' => [[['_route' => 'admin_carriers_bulk_disable_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Shipping\\CarriersController::bulkDisableStatusAction', '_legacy_controller' => 'AdminCarriers', '_legacy_link' => 'AdminCarriers:submitBulkdisableSelectioncarrier', '_legacy_feature_flag' => 'carrier'], null, ['POST' => 0], null, false, false, null]],
+        '/improve/shipping/carriers/bulk-delete' => [[['_route' => 'admin_carriers_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Shipping\\CarriersController::bulkDeleteAction', '_legacy_controller' => 'AdminCarriers', '_legacy_link' => 'AdminCarriers:submitBulkdeletecarrier', '_legacy_feature_flag' => 'carrier'], null, ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
         '/errors/enable-debug-mode' => [[['_route' => 'admin_errors_enable_debug_mode', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ErrorController::enableDebugModeAction'], null, ['POST' => 0], null, false, false, null]],
         '/api/stocks' => [[['_route' => 'api_stock_list_products', '_controller' => 'prestashop.core.api.stock.controller:listProductsAction', '_legacy_controller' => 'AdminStockManagement'], null, ['GET' => 0], null, true, false, null]],
         '/api/stocks/export' => [[['_route' => 'api_stock_list_products_export', '_controller' => 'prestashop.core.api.stock.controller:listProductsExportAction', '_legacy_controller' => 'AdminStockManagement'], null, ['GET' => 0], null, false, false, null]],
@@ -457,14 +466,28 @@ return [
         '/api/translations/edit' => [[['_route' => 'api_translation_value_edit', '_controller' => 'prestashop.core.api.translation.controller:translationEditAction', '_legacy_controller' => 'AdminTranslations'], null, ['POST' => 0], null, false, false, null]],
         '/api/translations/reset' => [[['_route' => 'api_translation_value_reset', '_controller' => 'prestashop.core.api.translation.controller:translationResetAction', '_legacy_controller' => 'AdminTranslations'], null, ['POST' => 0], null, false, false, null]],
         '/api/improve/design/positions/update' => [[['_route' => 'api_improve_design_positions_update', '_controller' => 'prestashop.core.api.improve.design.postions.controller:updateAction', '_legacy_controller' => 'AdminModulesPositions'], null, ['POST' => 0], null, false, false, null]],
+        '/api/oauth2/token' => [[['_route' => 'api_oauth2', '_controller' => 'PrestaShopBundle\\Controller\\Api\\OAuth2\\AccessTokenController'], null, ['POST' => 0], null, false, false, null]],
         '/modules/link-widget/list' => [[['_route' => 'admin_link_block_list', '_controller' => 'PrestaShop\\Module\\LinkList\\Controller\\Admin\\Improve\\Design\\LinkBlockController::listAction', '_legacy_controller' => 'AdminLinkWidget', '_legacy_link' => 'AdminLinkWidget'], null, ['GET' => 0], null, false, false, null]],
         '/modules/link-widget/create' => [
             [['_route' => 'admin_link_block_create', '_controller' => 'PrestaShop\\Module\\LinkList\\Controller\\Admin\\Improve\\Design\\LinkBlockController::createAction', '_legacy_controller' => 'AdminLinkWidget'], null, ['GET' => 0], null, false, false, null],
             [['_route' => 'admin_link_block_create_process', '_controller' => 'PrestaShop\\Module\\LinkList\\Controller\\Admin\\Improve\\Design\\LinkBlockController::createProcessAction', '_legacy_controller' => 'AdminLinkWidget'], null, ['POST' => 0], null, false, false, null],
         ],
+        '/modules/mbo/modules/catalog' => [[['_route' => 'admin_mbo_catalog_module', '_controller' => 'mbo.controller.modules.catalog:indexAction', '_legacy_controller' => 'AdminPsMboModule', '_legacy_link' => ['AdminPsMboModuleParent', 'AdminPsMboModule']], null, ['GET' => 0], null, true, false, null]],
+        '/modules/mbo/modules/catalog/selection' => [[['_route' => 'admin_mbo_catalog_module_selection', '_controller' => 'mbo.controller.modules.selection:indexAction', '_legacy_controller' => 'AdminPsMboSelection', '_legacy_link' => 'AdminPsMboSelection'], null, ['GET' => 0], null, false, false, null]],
+        '/modules/mbo/modules/catalog/cdc_error' => [[['_route' => 'admin_mbo_module_cdc_error', '_controller' => 'mbo.controller.modules.catalog:cdcErrorAction'], null, ['GET' => 0], null, false, false, null]],
+        '/modules/mbo/modules/recommended' => [[['_route' => 'admin_mbo_recommended_modules', '_controller' => 'mbo.controller.modules.recommended:indexAction', '_legacy_controller' => 'AdminPsMboRecommended', '_legacy_link' => 'AdminPsMboRecommended'], null, ['GET' => 0], null, true, false, null]],
+        '/modules/mbo/themes/catalog' => [[['_route' => 'admin_mbo_catalog_theme', '_controller' => 'mbo.controller.themes.catalog:indexAction', '_legacy_controller' => 'AdminPsMboTheme', '_legacy_link' => 'AdminPsMboTheme'], null, ['GET' => 0], null, true, false, null]],
+        '/modules/mbo/addons/login' => [[['_route' => 'admin_mbo_addons_login', '_controller' => 'mbo.controller.addons:loginAction'], null, ['POST' => 0], null, false, false, null]],
+        '/modules/mbo/addons/logout' => [[['_route' => 'admin_mbo_addons_logout', '_controller' => 'mbo.controller.addons:logoutAction'], null, ['GET' => 0], null, false, false, null]],
+        '/modules/mbo/addons/modules/upgrade' => [[['_route' => 'admin_mbo_addons_module_upgrade', '_controller' => 'mbo.controller.addons:upgradeModuleAction'], null, ['POST' => 0], null, false, false, null]],
         '/modules/blockwishlist/configuration' => [[['_route' => 'blockwishlist_configuration', '_controller' => 'PrestaShop\\Module\\BlockWishList\\Controller\\WishlistConfigurationAdminController::configurationAction', '_legacy_controller' => 'WishlistConfigurationAdminController', '_legacy_link' => 'WishlistConfigurationAdminController'], null, ['GET' => 0, 'POST' => 1], null, false, false, null]],
         '/modules/blockwishlist/statistics' => [[['_route' => 'blockwishlist_statistics', '_controller' => 'PrestaShop\\Module\\BlockWishList\\Controller\\WishlistConfigurationAdminController::statisticsAction', '_legacy_controller' => 'WishlistStatisticsAdminController', '_legacy_link' => 'WishlistStatisticsAdminController'], null, ['GET' => 0], null, false, false, null]],
         '/modules/blockwishlist/statistics/reset' => [[['_route' => 'blockwishlist_statistics_reset', '_controller' => 'PrestaShop\\Module\\BlockWishList\\Controller\\WishlistConfigurationAdminController::resetStatisticsCacheAction'], null, ['POST' => 0], null, false, false, null]],
+        '/modules/psgdpr/api' => [[['_route' => 'psgdpr_api_index'], null, ['GET' => 0, 'POST' => 1, 'PUT' => 2, 'PATCH' => 3], null, true, false, null]],
+        '/modules/psgdpr/api/customer' => [[['_route' => 'psgdpr_api_search_customer', '_controller' => 'PrestaShop\\Module\\Psgdpr\\Controller\\Admin\\CustomerController::searchCustomers'], null, ['POST' => 0], null, false, false, null]],
+        '/modules/psgdpr/api/customer/delete' => [[['_route' => 'psgdpr_api_delete_customer', '_controller' => 'PrestaShop\\Module\\Psgdpr\\Controller\\Admin\\CustomerController::deleteCustomerData'], null, ['DELETE' => 0], null, false, false, null]],
+        '/modules/psgdpr/api/customer/get' => [[['_route' => 'psgdpr_api_get_customer_data', '_controller' => 'PrestaShop\\Module\\Psgdpr\\Controller\\Admin\\CustomerController::getCustomerData'], null, ['POST' => 0], null, false, false, null]],
+        '/modules/psgdpr/download/invoices' => [[['_route' => 'psgdpr_download_invoices', '_controller' => 'PrestaShop\\Module\\Psgdpr\\Controller\\Admin\\DownloadInvoicesController::postProcess'], null, ['GET' => 0], null, false, false, null]],
     ],
     [ // $regexpList
         0 => '{^(?'
@@ -509,48 +532,53 @@ return [
                                 .'|(\\d+)/delete(*:638)'
                                 .'|(\\d+)/toggle\\-status(*:666)'
                             .')'
+                            .'|authorization\\-server/applications/(?'
+                                .'|(\\d+)(*:718)'
+                                .'|(\\d+)/edit(*:736)'
+                                .'|([^/]++)/delete(*:759)'
+                            .')'
                             .'|backups/(?'
-                                .'|view/([^/]++)(*:699)'
-                                .'|download/([^/]++)(*:724)'
-                                .'|([^/]++)(*:740)'
-                                .'|bulk\\-delete(*:760)'
+                                .'|view/([^/]++)(*:792)'
+                                .'|download/([^/]++)(*:817)'
+                                .'|([^/]++)(*:833)'
+                                .'|bulk\\-delete(*:853)'
                             .')'
                             .'|profiles/(?'
-                                .'|(\\d+)/edit(*:791)'
-                                .'|(\\d+)/delete(*:811)'
+                                .'|(\\d+)/edit(*:884)'
+                                .'|(\\d+)/delete(*:904)'
                             .')'
                         .')'
                         .'|shop/(?'
                             .'|se(?'
                                 .'|o\\-urls/([^/]++)/(?'
-                                    .'|edit(*:858)'
-                                    .'|delete(*:872)'
+                                    .'|edit(*:951)'
+                                    .'|delete(*:965)'
                                 .')'
                                 .'|arch\\-engines/(?'
-                                    .'|(\\d+)/edit(*:908)'
-                                    .'|(\\d+)/delete(*:928)'
+                                    .'|(\\d+)/edit(*:1001)'
+                                    .'|(\\d+)/delete(*:1022)'
                                 .')'
                             .')'
                             .'|contacts/(?'
-                                .'|(\\d+)/edit(*:960)'
-                                .'|(\\d+)/delete(*:980)'
+                                .'|(\\d+)/edit(*:1055)'
+                                .'|(\\d+)/delete(*:1076)'
                             .')'
                             .'|order\\-(?'
                                 .'|states/(?'
-                                    .'|([^/]++)/edit(*:1022)'
-                                    .'|(\\d+)/toggle\\-delivery(*:1053)'
-                                    .'|(\\d+)/toggle\\-invoice(*:1083)'
-                                    .'|(\\d+)/toggle\\-send\\-email(*:1117)'
-                                    .'|([^/]++)/delete(*:1141)'
+                                    .'|([^/]++)/edit(*:1119)'
+                                    .'|(\\d+)/toggle\\-delivery(*:1150)'
+                                    .'|(\\d+)/toggle\\-invoice(*:1180)'
+                                    .'|(\\d+)/toggle\\-send\\-email(*:1214)'
+                                    .'|([^/]++)/delete(*:1238)'
                                 .')'
                                 .'|return\\-states/([^/]++)/(?'
-                                    .'|edit(*:1182)'
-                                    .'|delete(*:1197)'
+                                    .'|edit(*:1279)'
+                                    .'|delete(*:1294)'
                                 .')'
                             .')'
                             .'|title/(?'
-                                .'|(\\d+)/edit(*:1227)'
-                                .'|(\\d+)/delete(*:1248)'
+                                .'|(\\d+)/edit(*:1324)'
+                                .'|(\\d+)/delete(*:1345)'
                             .')'
                         .')'
                     .')'
@@ -560,364 +588,429 @@ return [
                         .'|atalog/(?'
                             .'|products(?'
                                 .'|/(?'
-                                    .'|(\\d+)(*:1304)'
+                                    .'|(\\d+)(*:1401)'
                                     .'|virtual/(?'
-                                        .'|save(?:/(\\d+))?(*:1339)'
+                                        .'|save(?:/(\\d+))?(*:1436)'
                                         .'|remove(?'
-                                            .'|\\-file(?:/(\\d+))?(*:1374)'
-                                            .'|(?:/(\\d+))?(*:1394)'
+                                            .'|\\-file(?:/(\\d+))?(*:1471)'
+                                            .'|(?:/(\\d+))?(*:1491)'
                                         .')'
-                                        .'|download\\-file(?:/(\\d+))?(*:1429)'
+                                        .'|download\\-file(?:/(\\d+))?(*:1526)'
                                     .')'
-                                    .'|attachment/form/add(?:/(\\d+))?(*:1469)'
+                                    .'|attachment/form/add(?:/(\\d+))?(*:1566)'
                                     .'|image/(?'
-                                        .'|upload(?:/(\\d+))?(*:1504)'
-                                        .'|form(?:/(\\d+))?(*:1528)'
-                                        .'|delete(?:/(\\d+))?(*:1554)'
+                                        .'|upload(?:/(\\d+))?(*:1601)'
+                                        .'|form(?:/(\\d+))?(*:1625)'
+                                        .'|delete(?:/(\\d+))?(*:1651)'
                                     .')'
-                                    .'|([^/]++)/toggle\\-status(*:1587)'
+                                    .'|([^/]++)/toggle\\-status(*:1684)'
                                     .'|attributes/(?'
-                                        .'|([^/]++)(*:1618)'
-                                        .'|delete\\-all(?:/(\\d+))?(*:1649)'
-                                        .'|form\\-images(?:/(\\d+))?(*:1681)'
+                                        .'|([^/]++)(*:1715)'
+                                        .'|delete\\-all(?:/(\\d+))?(*:1746)'
+                                        .'|form\\-images(?:/(\\d+))?(*:1778)'
                                     .')'
                                     .'|c(?'
-                                        .'|ategories/list(?:/(\\d+))?(*:1720)'
+                                        .'|ategories/list(?:/(\\d+))?(*:1817)'
                                         .'|ombinations(?'
-                                            .'|/form(?:/([^/]++))?(*:1762)'
-                                            .'|(?:/(\\d+))?(*:1782)'
+                                            .'|/form(?:/([^/]++))?(*:1859)'
+                                            .'|(?:/(\\d+))?(*:1879)'
                                         .')'
                                     .')'
-                                    .'|features(?:/(\\d+))?(*:1812)'
+                                    .'|features(?:/(\\d+))?(*:1909)'
                                     .'|s(?'
                                         .'|pecific\\-prices/(?'
-                                            .'|list(?:/(\\d+))?(*:1859)'
-                                            .'|form/(\\d+)(*:1878)'
-                                            .'|update/(\\d+)(*:1899)'
-                                            .'|delete(?:/(\\d+))?(*:1925)'
+                                            .'|list(?:/(\\d+))?(*:1956)'
+                                            .'|form/(\\d+)(*:1975)'
+                                            .'|update/(\\d+)(*:1996)'
+                                            .'|delete(?:/(\\d+))?(*:2022)'
                                         .')'
-                                        .'|uppliers/refresh\\-product\\-supplier\\-combination\\-form(?:/(\\d+)(?:/([^/]++))?)?(*:2014)'
+                                        .'|uppliers/refresh\\-product\\-supplier\\-combination\\-form(?:/(\\d+)(?:/([^/]++))?)?(*:2111)'
                                     .')'
-                                    .'|warehouses/refresh\\-product\\-warehouse\\-combination\\-form(?:/(\\d+))?(*:2092)'
+                                    .'|warehouses/refresh\\-product\\-warehouse\\-combination\\-form(?:/(\\d+))?(*:2189)'
                                 .')'
-                                .'|(?:/(last|\\d+)(?:/(_limit|last|\\d+)(?:/(last|id_product|name|reference|name_category|price|sav_quantity|position|active|position_ordering)(?:/(last|asc|desc))?)?)?)?(*:2267)'
+                                .'|(?:/(last|\\d+)(?:/(_limit|last|\\d+)(?:/(last|id_product|name|reference|name_category|price|sav_quantity|position|active|position_ordering)(?:/(last|asc|desc))?)?)?)?(*:2364)'
                                 .'|/(?'
-                                    .'|filters(?:/(none|<=\\d+|<\\d+|>\\d+|>=\\d+)(?:/(none|1|0))?)?(*:2337)'
-                                    .'|list(?:/(last|\\d+)(?:/(_limit|last|\\d+)(?:/(last|id_product|name|reference|name_category|price|sav_quantity|position|active|position_ordering)(?:/(last|asc|desc)(?:/(full|quicknav))?)?)?)?)?(*:2536)'
-                                    .'|bulk/(activate_all|deactivate_all|delete_all|duplicate_all)(*:2604)'
-                                    .'|unit/(delete|duplicate|activate|deactivate)/(\\d+)(*:2662)'
-                                    .'|massedit/(sort)(*:2686)'
-                                    .'|export(?:\\.(csv))?(*:2713)'
+                                    .'|filters(?:/(none|<=\\d+|<\\d+|>\\d+|>=\\d+)(?:/(none|1|0))?)?(*:2434)'
+                                    .'|list(?:/(last|\\d+)(?:/(_limit|last|\\d+)(?:/(last|id_product|name|reference|name_category|price|sav_quantity|position|active|position_ordering)(?:/(last|asc|desc)(?:/(full|quicknav))?)?)?)?)?(*:2633)'
+                                    .'|bulk/(activate_all|deactivate_all|delete_all|duplicate_all)(*:2701)'
+                                    .'|unit/(delete|duplicate|activate|deactivate)/(\\d+)(*:2759)'
+                                    .'|massedit/(sort)(*:2783)'
+                                    .'|export(?:\\.(csv))?(*:2810)'
                                 .')'
                                 .'|\\-v2/(?'
                                     .'|([^/]++)/combinations(?'
-                                        .'|(*:2755)'
-                                        .'|/ids(*:2768)'
+                                        .'|(*:2852)'
+                                        .'|/ids(*:2865)'
                                     .')'
                                     .'|combinations/(?'
-                                        .'|([^/]++)/update\\-combination\\-from\\-listing(*:2837)'
-                                        .'|(\\d+)/edit(*:2856)'
+                                        .'|([^/]++)/update\\-combination\\-from\\-listing(*:2934)'
+                                        .'|(\\d+)/edit(*:2953)'
                                     .')'
-                                    .'|([^/]++)/combinations/bulk\\-form(*:2898)'
-                                    .'|(\\d+)/combinations/bulk\\-edit(*:2936)'
-                                    .'|combinations/(\\d+)/delete(*:2970)'
-                                    .'|(\\d+)/combinations/bulk\\-delete(*:3010)'
-                                    .'|([^/]++)/attribute\\-groups(*:3045)'
-                                    .'|generate\\-combinations/([^/]++)(*:3085)'
-                                    .'|(\\d+)/images(*:3106)'
+                                    .'|([^/]++)/combinations/bulk\\-form(*:2995)'
+                                    .'|(\\d+)/combinations/bulk\\-edit(*:3033)'
+                                    .'|combinations/(\\d+)/delete(?:/(\\d+))?(*:3078)'
+                                    .'|(\\d+)/combinations/bulk\\-delete(?:/(\\d+))?(*:3129)'
+                                    .'|([^/]++)/attribute\\-groups(?:/(\\d+))?(*:3175)'
+                                    .'|all\\-attribute\\-groups(?:/(\\d+))?(*:3217)'
+                                    .'|generate\\-combinations/(\\d+)(?:/(\\d+))?(*:3265)'
+                                    .'|(\\d+)/images\\-for\\-shop/(\\d+)(*:3303)'
+                                    .'|(\\d+)/shopImages(*:3328)'
                                     .'|images/(?'
-                                        .'|(\\d+)/update(*:3137)'
-                                        .'|(\\d+)/delete(*:3158)'
+                                        .'|(\\d+)/update(*:3359)'
+                                        .'|(\\d+)/delete(*:3380)'
                                     .')'
-                                    .'|(\\d+)/specific\\-prices/list(*:3195)'
-                                    .'|(\\d+)/specific\\-prices/create(*:3233)'
+                                    .'|(\\d+)/specific\\-prices/list(*:3417)'
+                                    .'|(\\d+)/specific\\-prices/create(*:3455)'
                                     .'|specific\\-prices/(?'
-                                        .'|(\\d+)/edit(*:3272)'
-                                        .'|(\\d+)/delete(*:3293)'
+                                        .'|(\\d+)/edit(*:3494)'
+                                        .'|(\\d+)/delete(*:3515)'
                                     .')'
-                                    .'|(\\d+)/preview(*:3316)'
-                                    .'|(\\d+)/edit(*:3335)'
-                                    .'|virtual\\-product\\-file/(\\d+)(*:3372)'
-                                    .'|(\\d+)/delete(*:3393)'
-                                    .'|(\\d+)/duplicate(*:3417)'
-                                    .'|(\\d+)/toggle_status(*:3445)'
+                                    .'|(\\d+)/preview(?:/([^/]++))?(*:3552)'
+                                    .'|shop_previews/(\\d+)(?:/(\\d+))?(*:3591)'
+                                    .'|(\\d+)/edit(*:3610)'
+                                    .'|(\\d+)/shops(*:3630)'
+                                    .'|virtual\\-product\\-file/(\\d+)(*:3667)'
+                                    .'|(\\d+)/delete\\-from\\-all\\-shops(*:3706)'
+                                    .'|(\\d+)/delete\\-from\\-shop\\-group/(\\d+)(*:3752)'
+                                    .'|(\\d+)/delete\\-from\\-shop/(\\d+)(*:3791)'
+                                    .'|(\\d+)/duplicate\\-all\\-shops(*:3827)'
+                                    .'|(\\d+)/duplicate\\-shop/(\\d+)(*:3863)'
+                                    .'|(\\d+)/duplicate\\-shop\\-group/(\\d+)(*:3906)'
+                                    .'|(\\d+)/toggle\\-status\\-for\\-shop/(\\d+)(*:3952)'
+                                    .'|(\\d+)/enable\\-for\\-all\\-shops(*:3990)'
+                                    .'|(\\d+)/enable\\-for\\-shop\\-group/(\\d+)(*:4035)'
+                                    .'|(\\d+)/disable\\-for\\-all\\-shops(*:4074)'
+                                    .'|(\\d+)/disable\\-for\\-shop\\-group(?:/(\\d+))?(*:4125)'
+                                    .'|bulk\\-(?'
+                                        .'|enable\\-shop(?'
+                                            .'|/(\\d+)(*:4164)'
+                                            .'|\\-group/(\\d+)(*:4186)'
+                                        .')'
+                                        .'|d(?'
+                                            .'|isable\\-shop(?'
+                                                .'|/(\\d+)(*:4221)'
+                                                .'|\\-group/(\\d+)(*:4243)'
+                                            .')'
+                                            .'|uplicate\\-shop(?'
+                                                .'|/(\\d+)(*:4276)'
+                                                .'|\\-group/(\\d+)(*:4298)'
+                                            .')'
+                                            .'|elete\\-from\\-shop(?'
+                                                .'|/(\\d+)(*:4334)'
+                                                .'|\\-group/(\\d+)(*:4356)'
+                                            .')'
+                                        .')'
+                                    .')'
                                     .'|search/(?'
-                                        .'|([a-zA-Z]{2}(?:-[a-zA-Z]{2})?)(*:3494)'
-                                        .'|combination/([a-zA-Z]{2}(?:-[a-zA-Z]{2})?)(*:3545)'
+                                        .'|([a-zA-Z]{2}(?:-[a-zA-Z]{2})?)(*:4408)'
+                                        .'|combination/([a-zA-Z]{2}(?:-[a-zA-Z]{2})?)(*:4459)'
                                     .')'
+                                    .'|(\\d+)/search\\-product\\-combinations(?:/(\\d+)(?:/(\\d+))?)?(*:4526)'
+                                    .'|(\\d+)/quantity/(\\d+)(*:4555)'
                                 .')'
                             .')'
                             .'|ca(?'
                                 .'|t(?'
                                     .'|egories(?'
-                                        .'|(?:/(\\d+))?(*:3587)'
+                                        .'|(?:/(\\d+))?(*:4596)'
                                         .'|/(?'
-                                            .'|([^/]++)/toggle\\-status(*:3623)'
-                                            .'|(\\d+)/edit(*:3642)'
-                                            .'|(\\d+)/edit\\-root(*:3667)'
-                                            .'|(\\d+)/delete\\-cover\\-image(*:3702)'
-                                            .'|(\\d+)/menu\\-thumbnails/(0|1|2)/delete(*:3748)'
+                                            .'|([^/]++)/toggle\\-status(*:4632)'
+                                            .'|(\\d+)/edit(*:4651)'
+                                            .'|(\\d+)/edit\\-root(*:4676)'
+                                            .'|(\\d+)/delete\\-cover\\-image(*:4711)'
+                                            .'|(\\d+)/menu\\-thumbnails/(0|1|2)/delete(*:4757)'
+                                            .'|list(?:/(\\d+))?(*:4781)'
                                         .')'
                                     .')'
                                     .'|alog\\-price\\-rules/(?'
-                                        .'|(\\d+)/edit(*:3791)'
-                                        .'|(\\d+)/delete(*:3812)'
+                                        .'|(\\d+)/edit(*:4824)'
+                                        .'|(\\d+)/delete(*:4845)'
+                                        .'|list\\-for\\-product/([^/]++)(*:4881)'
                                     .')'
                                 .')'
                                 .'|rt\\-rules/(?'
-                                    .'|(\\d+)/toggle\\-status(*:3856)'
-                                    .'|(\\d+)/delete(*:3877)'
+                                    .'|(\\d+)/toggle\\-status(*:4925)'
+                                    .'|(\\d+)/delete(*:4946)'
                                 .')'
                             .')'
                             .'|suppliers/(?'
-                                .'|(\\d+)/products(*:3915)'
-                                .'|(\\d+)/edit(*:3934)'
-                                .'|(\\d+)/delete(*:3955)'
-                                .'|(\\d+)/toggle\\-status(*:3984)'
+                                .'|(\\d+)/products(*:4984)'
+                                .'|(\\d+)/edit(*:5003)'
+                                .'|(\\d+)/delete(*:5024)'
+                                .'|(\\d+)/toggle\\-status(*:5053)'
+                                .'|(\\d+)/delete\\-logo\\-image(*:5087)'
                             .')'
                             .'|brands/(?'
-                                .'|(\\d+)/view(*:4014)'
-                                .'|(\\d+)/edit(*:4033)'
-                                .'|(\\d+)/delete(*:4054)'
-                                .'|(\\d+)/toggle\\-status(*:4083)'
+                                .'|(\\d+)/view(*:5117)'
+                                .'|(\\d+)/edit(*:5136)'
+                                .'|(\\d+)/delete(*:5157)'
+                                .'|(\\d+)/toggle\\-status(*:5186)'
+                                .'|(\\d+)/delete\\-logo\\-image(*:5220)'
                                 .'|addresses/(?'
-                                    .'|(\\d+)/edit(*:4115)'
-                                    .'|(\\d+)/delete(*:4136)'
+                                    .'|(\\d+)/edit(*:5252)'
+                                    .'|(\\d+)/delete(*:5273)'
                                 .')'
                             .')'
+                            .'|features/(\\d+)/edit(*:5303)'
                             .'|attribute\\-groups/(?'
                                 .'|(\\d+)/attributes(?'
-                                    .'|(*:4187)'
+                                    .'|(*:5352)'
                                 .')'
-                                .'|(\\d+)/attributes/new(*:4217)'
-                                .'|(\\d+)/attributes/(\\d+)/edit(*:4253)'
-                                .'|(\\d+)/attributes/([^/]++)/delete(*:4294)'
-                                .'|(\\d+)/attributes/delete(*:4326)'
-                                .'|(\\d+)/attributes/update\\-position(*:4368)'
-                                .'|(\\d+)/view(*:4387)'
-                                .'|(\\d+)/edit(*:4406)'
-                                .'|(\\d+)/delete(*:4427)'
+                                .'|(\\d+)/attributes/new(*:5382)'
+                                .'|(\\d+)/attributes/(\\d+)/edit(*:5418)'
+                                .'|(\\d+)/attributes/([^/]++)/delete(*:5459)'
+                                .'|(\\d+)/attributes/delete(*:5491)'
+                                .'|(\\d+)/attributes/update\\-position(*:5533)'
+                                .'|(\\d+)/view(*:5552)'
+                                .'|(\\d+)/edit(*:5571)'
+                                .'|(\\d+)/delete(*:5592)'
                             .')'
                         .')'
                         .'|ustomer(?'
                             .'|s/(?'
-                                .'|(\\d+)/edit(*:4463)'
-                                .'|(\\d+)/view(*:4482)'
-                                .'|(\\d+)/set\\-private\\-note(*:4515)'
-                                .'|(\\d+)/toggle\\-status(*:4544)'
-                                .'|([^/]++)/transform\\-guest\\-to\\-customer(*:4592)'
-                                .'|(\\d+)/toggle\\-newsletter\\-subscription(*:4639)'
-                                .'|(\\d+)/toggle\\-partner\\-offer\\-subscription(*:4690)'
-                                .'|(\\d+)/carts(*:4710)'
-                                .'|(\\d+)/orders(*:4731)'
+                                .'|(\\d+)/edit(*:5628)'
+                                .'|(\\d+)/view(*:5647)'
+                                .'|(\\d+)/set\\-private\\-note(*:5680)'
+                                .'|(\\d+)/toggle\\-status(*:5709)'
+                                .'|([^/]++)/transform\\-guest\\-to\\-customer(*:5757)'
+                                .'|(\\d+)/toggle\\-newsletter\\-subscription(*:5804)'
+                                .'|(\\d+)/toggle\\-partner\\-offer\\-subscription(*:5855)'
+                                .'|(\\d+)/carts(*:5875)'
+                                .'|(\\d+)/orders(*:5896)'
                             .')'
                             .'|\\-service/(?'
                                 .'|order\\-messages/(?'
-                                    .'|(\\d+)/edit(*:4783)'
-                                    .'|(\\d+)/delete(*:4804)'
+                                    .'|(\\d+)/edit(*:5948)'
+                                    .'|(\\d+)/delete(*:5969)'
+                                .')'
+                                .'|merchandise\\-return/(?'
+                                    .'|(\\d+)/edit(*:6012)'
+                                    .'|(\\d+)/update(*:6033)'
                                 .')'
                                 .'|customer\\-threads/(?'
-                                    .'|(\\d+)/view(*:4845)'
-                                    .'|(\\d+)/reply(*:4865)'
-                                    .'|(\\d+)/update\\-status/([^/]++)(*:4903)'
-                                    .'|(\\d+)/forward(*:4925)'
+                                    .'|(\\d+)/view(*:6074)'
+                                    .'|(\\d+)/reply(*:6094)'
+                                    .'|(\\d+)/update\\-status(*:6123)'
+                                    .'|list/(\\d+)/update\\-status(*:6157)'
+                                    .'|(\\d+)/forward(*:6179)'
+                                    .'|(\\d+)/delete(*:6200)'
                                 .')'
                             .')'
                         .')'
                     .')'
                     .'|a(?'
                         .'|ddresses/(?'
-                            .'|(\\d+)/edit(*:4964)'
-                            .'|order/(\\d+)/(delivery|invoice)/edit(*:5008)'
-                            .'|cart/(\\d+)/(delivery|invoice)/edit(*:5051)'
-                            .'|(\\d+)/delete(*:5072)'
+                            .'|(\\d+)/edit(*:6239)'
+                            .'|order/(\\d+)/(delivery|invoice)/edit(*:6283)'
+                            .'|cart/(\\d+)/(delivery|invoice)/edit(*:6326)'
+                            .'|(\\d+)/delete(*:6347)'
                         .')'
                         .'|ttachments/(?'
-                            .'|(\\d+)/edit(*:5106)'
-                            .'|(\\d+)/view(*:5125)'
-                            .'|(\\d+)/delete(*:5146)'
-                            .'|(\\d+)/info(*:5165)'
-                            .'|search/([^/]++)(*:5189)'
+                            .'|(\\d+)/edit(*:6381)'
+                            .'|(\\d+)/view(*:6400)'
+                            .'|(\\d+)/delete(*:6421)'
+                            .'|(\\d+)/info(*:6440)'
+                            .'|search/([^/]++)(*:6464)'
                         .')'
                     .')'
                     .'|orders/(?'
-                        .'|invoices/(\\d+)/generate(*:5233)'
+                        .'|invoices/(\\d+)/generate(*:6508)'
                         .'|carts/(?'
-                            .'|(\\d+)/view(*:5261)'
-                            .'|(\\d+)/info(*:5280)'
-                            .'|(\\d+)/addresses(*:5304)'
-                            .'|(\\d+)/carrier(*:5326)'
-                            .'|(\\d+)/currency(*:5349)'
-                            .'|(\\d+)/language(*:5372)'
-                            .'|(\\d+)/rules/delivery\\-settings(*:5411)'
+                            .'|(\\d+)/view(*:6536)'
+                            .'|(\\d+)/info(*:6555)'
+                            .'|(\\d+)/addresses(*:6579)'
+                            .'|(\\d+)/carrier(*:6601)'
+                            .'|(\\d+)/currency(*:6624)'
+                            .'|(\\d+)/language(*:6647)'
+                            .'|(\\d+)/rules/delivery\\-settings(*:6686)'
                             .'|([^/]++)/cart\\-rules(?'
-                                .'|(*:5443)'
-                                .'|/([^/]++)/delete(*:5468)'
+                                .'|(*:6718)'
+                                .'|/([^/]++)/delete(*:6743)'
                             .')'
-                            .'|(\\d+)/products(*:5492)'
-                            .'|(\\d+)/products/(\\d+)/price(*:5527)'
-                            .'|(\\d+)/products/(\\d+)/quantity(*:5565)'
-                            .'|(\\d+)/delete\\-product(*:5595)'
+                            .'|(\\d+)/products(*:6767)'
+                            .'|(\\d+)/products/(\\d+)/price(*:6802)'
+                            .'|(\\d+)/products/(\\d+)/quantity(*:6840)'
+                            .'|(\\d+)/delete\\-product(*:6870)'
                         .')'
-                        .'|(\\d+)/generate\\-invoice\\-pdf(*:5633)'
-                        .'|(\\d+)/generate\\-delivery\\-slip\\-pdf(*:5677)'
-                        .'|(\\d+)/view(*:5696)'
-                        .'|(\\d+)/cart\\-rules(*:5722)'
-                        .'|list/(\\d+)/status(*:5748)'
-                        .'|(\\d+)/status(*:5769)'
-                        .'|(\\d+)/payment(*:5791)'
-                        .'|(\\d+)/duplicate\\-cart(*:5821)'
-                        .'|(\\d+)/currency/change(*:5851)'
-                        .'|(\\d+)/products/(\\d+)(*:5880)'
-                        .'|(\\d+)/cart\\-rules/(\\d+)/delete(*:5919)'
-                        .'|(\\d+)/history/(\\d+)/statuses/(\\d+)/resend\\-email(*:5976)'
-                        .'|(\\d+)/preview(*:5998)'
-                        .'|(\\d+)/shipping(*:6021)'
-                        .'|(\\d+)/invoice/(\\d+)/note(*:6054)'
-                        .'|(\\d+)/invoice(*:6076)'
-                        .'|([^/]++)/send\\-message(*:6107)'
-                        .'|(\\d+)/partial\\-refund(*:6137)'
-                        .'|(\\d+)/standard\\-refund(*:6168)'
-                        .'|(\\d+)/return\\-product(*:6198)'
-                        .'|(\\d+)/products(*:6221)'
-                        .'|(\\d+)/products/(\\d+)/delete(*:6257)'
-                        .'|(\\d+)/discounts(*:6281)'
-                        .'|(\\d+)/prices(*:6302)'
-                        .'|(\\d+)/payments(*:6325)'
-                        .'|(\\d+)/products(*:6348)'
-                        .'|(\\d+)/invoices(*:6371)'
-                        .'|(\\d+)/documents(*:6395)'
-                        .'|(\\d+)/shipping(*:6418)'
-                        .'|(\\d+)/cancellation(*:6445)'
-                        .'|display\\-customization\\-image/(\\d+)/(.+)(*:6494)'
-                        .'|(\\d+)/products/prices(*:6524)'
-                        .'|(\\d+)/set\\-internal\\-note(*:6558)'
-                        .'|credit\\-slips/(\\d+)/pdf(*:6590)'
+                        .'|(\\d+)/generate\\-invoice\\-pdf(*:6908)'
+                        .'|(\\d+)/generate\\-delivery\\-slip\\-pdf(*:6952)'
+                        .'|(\\d+)/view(*:6971)'
+                        .'|(\\d+)/cart\\-rules(*:6997)'
+                        .'|list/(\\d+)/status(*:7023)'
+                        .'|(\\d+)/status(*:7044)'
+                        .'|(\\d+)/payment(*:7066)'
+                        .'|(\\d+)/duplicate\\-cart(*:7096)'
+                        .'|(\\d+)/currency/change(*:7126)'
+                        .'|(\\d+)/products/(\\d+)(*:7155)'
+                        .'|(\\d+)/cart\\-rules/(\\d+)/delete(*:7194)'
+                        .'|(\\d+)/history/(\\d+)/statuses/(\\d+)/resend\\-email(*:7251)'
+                        .'|(\\d+)/preview(*:7273)'
+                        .'|(\\d+)/shipping(*:7296)'
+                        .'|(\\d+)/invoice/(\\d+)/note(*:7329)'
+                        .'|(\\d+)/invoice(*:7351)'
+                        .'|([^/]++)/send\\-message(*:7382)'
+                        .'|(\\d+)/partial\\-refund(*:7412)'
+                        .'|(\\d+)/standard\\-refund(*:7443)'
+                        .'|(\\d+)/return\\-product(*:7473)'
+                        .'|(\\d+)/products(*:7496)'
+                        .'|(\\d+)/products/(\\d+)/delete(*:7532)'
+                        .'|(\\d+)/discounts(*:7556)'
+                        .'|(\\d+)/prices(*:7577)'
+                        .'|(\\d+)/payments(*:7600)'
+                        .'|(\\d+)/products(*:7623)'
+                        .'|(\\d+)/invoices(*:7646)'
+                        .'|(\\d+)/documents(*:7670)'
+                        .'|(\\d+)/shipping(*:7693)'
+                        .'|(\\d+)/cancellation(*:7720)'
+                        .'|display\\-customization\\-image/(\\d+)/(.+)(*:7769)'
+                        .'|(\\d+)/products/prices(*:7799)'
+                        .'|(\\d+)/set\\-internal\\-note(*:7833)'
+                        .'|credit\\-slips/(\\d+)/pdf(*:7865)'
                     .')'
                 .')'
                 .'|/improve/(?'
                     .'|international/(?'
                         .'|languages/(?'
-                            .'|(\\d+)/edit(*:6653)'
-                            .'|(\\d+)/delete(*:6674)'
-                            .'|([^/]++)/toggle\\-status(*:6706)'
-                            .'|bulk\\-toggle\\-status/(enable|disable)(*:6752)'
+                            .'|(\\d+)/edit(*:7928)'
+                            .'|(\\d+)/delete(*:7949)'
+                            .'|([^/]++)/toggle\\-status(*:7981)'
+                            .'|bulk\\-toggle\\-status/(enable|disable)(*:8027)'
                         .')'
                         .'|c(?'
                             .'|urrencies/(?'
-                                .'|(\\d+)/edit(*:6789)'
-                                .'|(\\d+)/delete(*:6810)'
-                                .'|(\\d+)/toggle\\-status(*:6839)'
-                                .'|reference\\-data/([^/]++)(*:6872)'
-                                .'|bulk\\-toggle\\-status/(enable|disable)(*:6918)'
+                                .'|(\\d+)/edit(*:8064)'
+                                .'|(\\d+)/delete(*:8085)'
+                                .'|(\\d+)/toggle\\-status(*:8114)'
+                                .'|reference\\-data/([^/]++)(*:8147)'
+                                .'|bulk\\-toggle\\-status/(enable|disable)(*:8193)'
                             .')'
-                            .'|ountries/(\\d+)/edit(*:6947)'
+                            .'|ountries/(\\d+)/edit(*:8222)'
                         .')'
                         .'|tax(?'
                             .'|es/(?'
-                                .'|(\\d+)/edit(*:6979)'
-                                .'|(\\d+)/delete(*:7000)'
-                                .'|(\\d+)/toggle\\-status(*:7029)'
+                                .'|(\\d+)/edit(*:8254)'
+                                .'|(\\d+)/delete(*:8275)'
+                                .'|(\\d+)/toggle\\-status(*:8304)'
                             .')'
                             .'|_rules_groups/(?'
-                                .'|(\\d+)/edit(*:7066)'
-                                .'|(\\d+)/delete(*:7087)'
-                                .'|(\\d+)/toggle\\-status(*:7116)'
+                                .'|(\\d+)/edit(*:8341)'
+                                .'|(\\d+)/delete(*:8362)'
+                                .'|(\\d+)/toggle\\-status(*:8391)'
                             .')'
                         .')'
                         .'|states/(?'
-                            .'|(\\d+)/edit(*:7147)'
-                            .'|(\\d+)/delete(*:7168)'
-                            .'|([^/]++)/toggle\\-status(*:7200)'
+                            .'|(\\d+)/edit(*:8422)'
+                            .'|(\\d+)/delete(*:8443)'
+                            .'|([^/]++)/toggle\\-status(*:8475)'
                         .')'
                         .'|zones/(?'
-                            .'|(\\d+)/edit(*:7229)'
-                            .'|(\\d+)/delete(*:7250)'
-                            .'|(\\d+)/toggle\\-status(*:7279)'
-                            .'|bulk\\-toggle\\-status/(enable|disable)(*:7325)'
+                            .'|(\\d+)/edit(*:8504)'
+                            .'|(\\d+)/delete(*:8525)'
+                            .'|(\\d+)/toggle\\-status(*:8554)'
+                            .'|bulk\\-toggle\\-status/(enable|disable)(*:8600)'
                         .')'
                     .')'
                     .'|modules/manage(?'
-                        .'|(?:/([^/]++)(?:/([^/]++))?)?(*:7381)'
+                        .'|(?:/([^/]++)(?:/([^/]++))?)?(*:8656)'
                         .'|/(?'
                             .'|action/(?'
-                                .'|(install|uninstall|enable|disable|enableMobile|disableMobile|reset|upgrade)/([^/]++)(*:7488)'
-                                .'|configure/([^/]++)(*:7515)'
+                                .'|(install|uninstall|enable|disable|enableMobile|disableMobile|reset|upgrade|delete)/([^/]++)(*:8770)'
+                                .'|configure/([^/]++)(*:8797)'
                             .')'
-                            .'|bulk/(install|uninstall|configure|enable|disable|reset|upgrade)(*:7588)'
-                            .'|update/all(*:7607)'
+                            .'|bulk/(install|uninstall|configure|enable|disable|reset|upgrade)(*:8870)'
+                            .'|update/all(*:8889)'
                         .')'
                     .')'
                     .'|design/(?'
                         .'|themes/(?'
-                            .'|([a-zA-Z0-9_.-]+)/enable(*:7662)'
-                            .'|([a-zA-Z0-9_.-]+)/delete(*:7695)'
-                            .'|([a-zA-Z0-9_.-]+)/reset\\-layouts(*:7736)'
+                            .'|([a-zA-Z0-9_.-]+)/enable(*:8944)'
+                            .'|([a-zA-Z0-9_.-]+)/delete(*:8977)'
+                            .'|([a-zA-Z0-9_.-]+)/reset\\-layouts(*:9018)'
                         .')'
                         .'|cms\\-pages/(?'
-                            .'|(\\d+)/edit(*:7770)'
-                            .'|(\\d+)/toggle\\-status(*:7799)'
-                            .'|(\\d+)/delete(*:7820)'
+                            .'|(\\d+)/edit(*:9052)'
+                            .'|(\\d+)/toggle\\-status(*:9081)'
+                            .'|(\\d+)/delete(*:9102)'
                             .'|category/(?'
-                                .'|(\\d+)/edit(*:7851)'
-                                .'|(\\d+)/delete(*:7872)'
-                                .'|(\\d+)/toggle\\-status(*:7901)'
+                                .'|(\\d+)/edit(*:9133)'
+                                .'|(\\d+)/delete(*:9154)'
+                                .'|(\\d+)/toggle\\-status(*:9183)'
                             .')'
                         .')'
                         .'|mail_theme/(?'
                             .'|send(?'
                                 .'|TestMail/([^/]++)/([^/]++)/([^/]++)(?'
-                                    .'|(*:7971)'
-                                    .'|/([^/]++)(*:7989)'
+                                    .'|(*:9253)'
+                                    .'|/([^/]++)(*:9271)'
                                 .')'
                                 .'|\\-test\\-mail/([^/]++)/([^/]++)/([^/]++)(?'
-                                    .'|(*:8041)'
-                                    .'|/([^/]++)(*:8059)'
+                                    .'|(*:9323)'
+                                    .'|/([^/]++)(*:9341)'
                                 .')'
                             .')'
                             .'|preview/([^/]++)(?'
-                                .'|(*:8089)'
+                                .'|(*:9371)'
                                 .'|/([^/]++)/(?'
-                                    .'|([^/\\.]++)\\.([^/]++)(*:8131)'
-                                    .'|([^/]++)/([^/\\.]++)\\.([^/]++)(*:8169)'
+                                    .'|([^/\\.]++)\\.([^/]++)(*:9413)'
+                                    .'|([^/]++)/([^/\\.]++)\\.([^/]++)(*:9451)'
                                 .')'
                             .')'
                             .'|raw/([^/]++)/([^/]++)/(?'
-                                .'|([^/\\.]++)\\.([^/]++)(*:8225)'
-                                .'|([^/]++)/([^/\\.]++)\\.([^/]++)(*:8263)'
+                                .'|([^/\\.]++)\\.([^/]++)(*:9507)'
+                                .'|([^/]++)/([^/\\.]++)\\.([^/]++)(*:9545)'
                             .')'
                         .')'
                     .')'
                     .'|shipping/carriers/(?'
-                        .'|(\\d+)/edit(*:8306)'
-                        .'|(\\d+)/delete(*:8327)'
-                        .'|(\\d+)/toggle\\-status(*:8356)'
-                        .'|(\\d+)/toggle\\-is\\-free(*:8387)'
+                        .'|(\\d+)/edit(*:9588)'
+                        .'|(\\d+)/delete(*:9609)'
+                        .'|(\\d+)/toggle\\-status(*:9638)'
+                        .'|(\\d+)/toggle\\-is\\-free(*:9669)'
                     .')'
                 .')'
                 .'|/api/(?'
                     .'|stock(?'
                         .'|s/(?'
-                            .'|(\\d+)(*:8424)'
+                            .'|(\\d+)(*:9706)'
                             .'|product/(?'
-                                .'|(\\d+)(*:8449)'
-                                .'|(\\d+)/combination/(\\d+)(*:8481)'
+                                .'|(\\d+)(*:9731)'
+                                .'|(\\d+)/combination/(\\d+)(*:9763)'
                             .')'
                         .')'
-                        .'|\\-movements/product/(\\d+)(*:8517)'
+                        .'|\\-movements/product/(\\d+)(*:9799)'
                     .')'
-                    .'|i18n/(\\w+)(*:8537)'
+                    .'|i18n/(\\w+)(*:9819)'
                     .'|translations/(?'
-                        .'|tree/([^/]++)/([^/]++)(?:/([^/]++))?(*:8598)'
-                        .'|([^/]++)/([^/]++)(?:/([^/]++))?(*:8638)'
+                        .'|tree/([^/]++)/([^/]++)(?:/([^/]++))?(*:9880)'
+                        .'|([^/]++)/([^/]++)(?:/([^/]++))?(*:9920)'
                     .')'
                 .')'
-                .'|/modules/link\\-widget/(?'
-                    .'|edit/([^/]++)(?'
-                        .'|(*:8690)'
+                .'|/new\\-api/(?'
+                    .'|\\.well\\-known/genid/([^/]++)(*:9972)'
+                    .'|docs(?:\\.([^/]++))?(*:10000)'
+                    .'|contexts/([^.]+)(?:\\.(jsonld))?(*:10041)'
+                    .'|feature_flags(?'
+                        .'|/([^/\\.]++)(?:\\.([^/]++))?(*:10093)'
+                        .'|(?:\\.([^/]++))?(*:10118)'
+                        .'|/([^/\\.]++)(?:\\.([^/]++))?(*:10154)'
+                        .'|(?:\\.([^/]++))?(*:10179)'
+                        .'|/([^/\\.]++)(?:\\.([^/]++))?(*:10215)'
                     .')'
-                    .'|delete/(\\d+)(*:8712)'
-                    .'|update\\-positions/(\\d+)(*:8744)'
+                    .'|hook\\-status/(\\d+)(*:10244)'
+                .')'
+                .'|/modules/(?'
+                    .'|link\\-widget/(?'
+                        .'|edit/([^/]++)(?'
+                            .'|(*:10299)'
+                        .')'
+                        .'|delete/(\\d+)(*:10322)'
+                        .'|update\\-positions/(\\d+)(*:10355)'
+                    .')'
+                    .'|mbo/modules/catalog/see_more/(\\d+)(*:10400)'
+                    .'|psgdpr/(?'
+                        .'|api/customer/(\\d+)/invoices/link(*:10452)'
+                        .'|download/invoices/customer/(\\d+)(*:10494)'
+                    .')'
                 .')'
             .')/?$}sD',
     ],
@@ -942,250 +1035,296 @@ return [
         618 => [[['_route' => 'admin_webservice_keys_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\WebserviceController::editAction', '_legacy_controller' => 'AdminWebservice', '_legacy_link' => 'AdminWebservice:updatewebservice_account', '_legacy_parameters' => ['id_webservice_account' => 'webserviceKeyId']], ['webserviceKeyId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
         638 => [[['_route' => 'admin_webservice_keys_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\WebserviceController::deleteAction', '_legacy_controller' => 'AdminWebservice', '_legacy_link' => 'AdminWebservice:deletewebservice_account', '_legacy_parameters' => ['id_webservice_account' => 'webserviceKeyId']], ['webserviceKeyId'], ['DELETE' => 0, 'POST' => 1], null, false, false, null]],
         666 => [[['_route' => 'admin_webservice_keys_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\WebserviceController::toggleStatusAction', '_legacy_controller' => 'AdminWebservice', '_legacy_link' => 'AdminWebservice:statuswebservice_account', '_legacy_parameters' => ['id_webservice_account' => 'webserviceKeyId']], ['webserviceKeyId'], ['POST' => 0], null, false, false, null]],
-        699 => [[['_route' => 'admin_backups_download_view', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\BackupController::downloadViewAction', '_legacy_controller' => 'AdminBackup'], ['downloadFileName'], ['GET' => 0], null, false, true, null]],
-        724 => [[['_route' => 'admin_backup_download', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\BackupController::downloadContentAction', '_legacy_controller' => 'AdminBackup'], ['downloadFileName'], ['GET' => 0], null, false, true, null]],
-        740 => [[['_route' => 'admin_backups_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\BackupController::deleteAction', '_legacy_controller' => 'AdminBackup', '_legacy_link' => 'AdminBackup:delete', '_legacy_parameters' => ['filename' => 'deleteFileName']], ['deleteFileName'], ['DELETE' => 0, 'POST' => 1], null, false, true, null]],
-        760 => [[['_route' => 'admin_backups_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\BackupController::bulkDeleteAction', '_legacy_controller' => 'AdminBackup', '_legacy_link' => 'AdminBackup:submitBulkdeletebackup'], [], ['POST' => 0], null, true, false, null]],
-        791 => [[['_route' => 'admin_profiles_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\ProfileController::editAction', '_legacy_controller' => 'AdminProfiles', '_legacy_link' => 'AdminProfiles:updateprofile', '_legacy_parameters' => ['id_profile' => 'profileId']], ['profileId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        811 => [[['_route' => 'admin_profiles_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\ProfileController::deleteAction', '_legacy_controller' => 'AdminProfiles', '_legacy_link' => 'AdminProfiles:deleteprofile', '_legacy_parameters' => ['id_profile' => 'profileId']], ['profileId'], ['POST' => 0], null, false, false, null]],
-        858 => [[['_route' => 'admin_metas_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\MetaController::editAction', '_legacy_controller' => 'AdminMeta', '_legacy_link' => 'AdminMeta:updatemeta', '_legacy_parameters' => ['id_meta' => 'metaId']], ['metaId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        872 => [[['_route' => 'admin_metas_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\MetaController::deleteAction', '_legacy_controller' => 'AdminMeta', '_legacy_link' => 'AdminMeta:deletemeta', '_legacy_parameters' => ['id_meta' => 'metaId']], ['metaId'], ['DELETE' => 0], null, false, false, null]],
-        908 => [[['_route' => 'admin_search_engines_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\SearchEnginesController::editAction', '_legacy_controller' => 'AdminSearchEngines', '_legacy_link' => 'AdminSearchEngines:updatesearch_engine'], ['searchEngineId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        928 => [[['_route' => 'admin_search_engines_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\SearchEnginesController::deleteAction', '_legacy_controller' => 'AdminSearchEngines', '_legacy_link' => 'AdminSearchEngines:deletesearch_engine'], ['searchEngineId'], ['POST' => 0], null, false, false, null]],
-        960 => [[['_route' => 'admin_contacts_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\ContactsController::editAction', '_legacy_controller' => 'AdminContacts', '_legacy_link' => 'AdminContacts:updatecontact'], ['contactId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        980 => [[['_route' => 'admin_contacts_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\ContactsController::deleteAction', '_legacy_controller' => 'AdminContacts', '_legacy_link' => 'AdminContacts:deletecontact'], ['contactId'], ['POST' => 0], null, false, false, null]],
-        1022 => [[['_route' => 'admin_order_states_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\OrderStateController::editAction', '_legacy_controller' => 'AdminStatuses', '_legacy_link' => 'AdminStatuses:updateorderstate', '_legacy_parameters' => ['id_order_state' => 'orderStateId']], ['orderStateId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        1053 => [[['_route' => 'admin_order_states_toggle_delivery', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\OrderStateController::toggleDeliveryAction', '_legacy_controller' => 'AdminStatuses', '_legacy_link' => 'AdminStatuses:deliveryorderstate', '_legacy_parameters' => ['id_order_state' => 'orderStateId']], ['orderStateId'], ['POST' => 0], null, false, false, null]],
-        1083 => [[['_route' => 'admin_order_states_toggle_invoice', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\OrderStateController::toggleInvoiceAction', '_legacy_controller' => 'AdminStatuses', '_legacy_link' => 'AdminStatuses:invoiceorderstate', '_legacy_parameters' => ['id_order_state' => 'orderStateId']], ['orderStateId'], ['POST' => 0], null, false, false, null]],
-        1117 => [[['_route' => 'admin_order_states_toggle_send_email', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\OrderStateController::toggleSendEmailAction', '_legacy_controller' => 'AdminStatuses', '_legacy_link' => 'AdminStatuses:sendemailorderstate', '_legacy_parameters' => ['id_order_state' => 'orderStateId']], ['orderStateId'], ['POST' => 0], null, false, false, null]],
-        1141 => [[['_route' => 'admin_order_states_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\OrderStateController::deleteAction', '_legacy_controller' => 'AdminStatuses', '_legacy_link' => 'AdminStatuses:deleteorderstate', '_legacy_parameters' => ['id_order_state' => 'orderStateId']], ['orderStateId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
-        1182 => [[['_route' => 'admin_order_return_states_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\OrderStateController::editOrderReturnStateAction', '_legacy_controller' => 'AdminStatuses', '_legacy_link' => 'AdminStatuses:updateorderreturnstate', '_legacy_parameters' => ['id_order_return_state' => 'orderReturnStateId']], ['orderReturnStateId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        1197 => [[['_route' => 'admin_order_return_states_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\OrderStateController::deleteOrderReturnStateAction', '_legacy_controller' => 'AdminStatuses', '_legacy_link' => 'AdminStatuses:deleteorderreturnstate', '_legacy_parameters' => ['id_order_return_state' => 'orderReturnStateId']], ['orderReturnStateId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
-        1227 => [[['_route' => 'admin_title_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\TitleController::editAction', '_legacy_controller' => 'AdminGenders'], ['titleId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        1248 => [[['_route' => 'admin_title_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\TitleController::deleteAction', '_legacy_controller' => 'AdminGenders'], ['titleId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
-        1304 => [[['_route' => 'admin_product_form', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductController::formAction', '_legacy_controller' => 'AdminProducts', '_legacy_param_mapper_class' => 'PrestaShop\\PrestaShop\\Adapter\\Product\\AdminProductDataProvider', '_legacy_param_mapper_method' => 'mapLegacyParametersProductForm'], ['id'], ['GET' => 0, 'POST' => 1], null, false, true, null]],
-        1339 => [[['_route' => 'admin_product_virtual_save_action', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\VirtualProductController::saveAction', 'idProduct' => 0], ['idProduct'], ['POST' => 0], null, false, true, null]],
-        1374 => [[['_route' => 'admin_product_virtual_remove_file_action', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\VirtualProductController::removeFileAction', 'idProduct' => 0], ['idProduct'], null, null, false, true, null]],
-        1394 => [[['_route' => 'admin_product_virtual_remove_action', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\VirtualProductController::removeAction', 'idProduct' => 0], ['idProduct'], null, null, false, true, null]],
-        1429 => [[['_route' => 'admin_product_virtual_download_file_action', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\VirtualProductController::downloadFileAction', 'idProduct' => 0], ['idProduct'], null, null, false, true, null]],
-        1469 => [[['_route' => 'admin_product_attachement_add_action', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\AttachementProductController::addAction', 'idProduct' => 0], ['idProduct'], ['POST' => 0], null, false, true, null]],
-        1504 => [[['_route' => 'admin_product_image_upload', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductImageController::uploadImageAction', 'idProduct' => 0], ['idProduct'], ['POST' => 0], null, false, true, null]],
-        1528 => [[['_route' => 'admin_product_image_form', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductImageController::formAction', 'idImage' => 0], ['idImage'], null, null, false, true, null]],
-        1554 => [[['_route' => 'admin_product_image_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductImageController::deleteAction', 'idImage' => 0], ['idImage'], null, null, false, true, null]],
-        1587 => [[['_route' => 'admin_product_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductController::toggleStatusAction', '_legacy_controller' => 'AdminTracking', '_legacy_link' => 'AdminTracking:statusproduct', '_legacy_parameters' => ['id_product' => 'productId']], ['productId'], ['POST' => 0], null, false, false, null]],
-        1618 => [[['_route' => 'admin_delete_attribute', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\AttributeController::deleteAttributeAction', '_legacy_controller' => 'AdminProducts'], ['idProduct'], ['DELETE' => 0], null, false, true, null]],
-        1649 => [[['_route' => 'admin_delete_all_attributes', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\AttributeController::deleteAllAttributeAction', '_legacy_controller' => 'AdminProducts', 'idProduct' => 0], ['idProduct'], ['GET' => 0], null, false, true, null]],
-        1681 => [[['_route' => 'admin_get_form_images_combination', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\AttributeController::getFormImagesAction', '_format' => 'json', '_legacy_controller' => 'AdminProducts', 'idProduct' => 0], ['idProduct'], ['GET' => 0], null, false, true, null]],
-        1720 => [[['_route' => 'admin_get_ajax_categories', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CategoryController::getAjaxCategoriesAction', '_format' => 'json', 'limit' => 20], ['limit'], ['GET' => 0], null, false, true, null]],
-        1762 => [[['_route' => 'admin_combination_generate_form', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CombinationController::generateCombinationFormAction', 'combinationIds' => 0], ['combinationIds'], ['GET' => 0], null, false, true, null]],
-        1782 => [[['_route' => 'admin_get_product_combinations', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CombinationController::getProductCombinationsAction', '_format' => 'json', 'idProduct' => 0], ['idProduct'], ['GET' => 0], null, false, true, null]],
-        1812 => [[['_route' => 'admin_feature_get_feature_values', 'idFeature' => 0, '_controller' => 'PrestaShopBundle\\Controller\\Admin\\FeatureController::getFeatureValuesAction'], ['idFeature'], ['GET' => 0], null, false, true, null]],
-        1859 => [[['_route' => 'admin_specific_price_list', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\SpecificPriceController::listAction', '_format' => 'json', 'idProduct' => 0], ['idProduct'], ['GET' => 0], null, false, true, null]],
-        1878 => [[['_route' => 'admin_get_specific_price_update_form', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\SpecificPriceController::getUpdateFormAction', 'idSpecificPrice' => 0], ['idSpecificPrice'], ['GET' => 0], null, true, true, null]],
-        1899 => [[['_route' => 'admin_specific_price_update', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\SpecificPriceController::updateAction', 'idSpecificPrice' => 0], ['idSpecificPrice'], ['POST' => 0], null, true, true, null]],
-        1925 => [[['_route' => 'admin_delete_specific_price', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\SpecificPriceController::deleteAction', 'idSpecificPrice' => 0], ['idSpecificPrice'], ['GET' => 0], null, false, true, null]],
-        2014 => [[['_route' => 'admin_supplier_refresh_product_supplier_combination_form', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\SupplierController::refreshProductSupplierCombinationFormAction', 'supplierIds' => 0, 'idProduct' => 0], ['idProduct', 'supplierIds'], ['GET' => 0], null, false, true, null]],
-        2092 => [[['_route' => 'admin_warehouse_refresh_product_warehouse_combination_form', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\WarehouseController::refreshProductWarehouseCombinationFormAction', 'idProduct' => 0], ['idProduct'], ['GET' => 0], null, false, true, null]],
-        2267 => [[['_route' => 'admin_product_catalog', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductController::catalogAction', '_legacy_controller' => 'AdminProducts', 'limit' => 'last', 'offset' => 0, 'orderBy' => 'last', 'sortOrder' => 'last'], ['offset', 'limit', 'orderBy', 'sortOrder'], ['GET' => 0, 'POST' => 1], null, false, true, null]],
-        2337 => [[['_route' => 'admin_product_catalog_filters', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductController::catalogFiltersAction', '_legacy_controller' => 'AdminProducts', 'quantity' => 'none', 'active' => 'none'], ['quantity', 'active'], ['GET' => 0], null, false, true, null]],
-        2536 => [[['_route' => 'admin_product_list', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductController::listAction', 'limit' => 'last', 'offset' => 0, 'orderBy' => 'last', 'sortOrder' => 'last', 'view' => 'full'], ['offset', 'limit', 'orderBy', 'sortOrder', 'view'], ['GET' => 0], null, false, true, null]],
-        2604 => [[['_route' => 'admin_product_bulk_action', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductController::bulkAction'], ['action'], ['POST' => 0], null, false, true, null]],
-        2662 => [[['_route' => 'admin_product_unit_action', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductController::unitAction'], ['action', 'id'], ['POST' => 0, 'GET' => 1], null, false, true, null]],
-        2686 => [[['_route' => 'admin_product_mass_edit_action', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductController::massEditAction'], ['action'], ['POST' => 0], null, false, true, null]],
-        2713 => [[['_route' => 'admin_product_export_action', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductController::exportAction', '_format' => 'csv'], ['_format'], ['GET' => 0], null, false, true, null]],
-        2755 => [[['_route' => 'admin_products_combinations', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::getListAction', '_legacy_controller' => 'AdminProducts'], ['productId'], ['GET' => 0], null, false, false, null]],
-        2768 => [[['_route' => 'admin_products_combinations_ids', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::getCombinationIdsAction', '_legacy_controller' => 'AdminProducts'], ['productId'], ['GET' => 0], null, false, false, null]],
-        2837 => [[['_route' => 'admin_products_combinations_update_combination_from_listing', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::updateCombinationFromListingAction', '_legacy_controller' => 'AdminProducts'], ['productId'], ['PATCH' => 0], null, false, false, null]],
-        2856 => [[['_route' => 'admin_products_combinations_edit_combination', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::editAction', '_legacy_controller' => 'AdminProducts'], ['combinationId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        2898 => [[['_route' => 'admin_products_combinations_bulk_combination_form', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::bulkEditFormAction', '_legacy_controller' => 'AdminProducts', 'requirements' => ['productId' => '\\d+']], ['productId'], ['GET' => 0, 'PATCH' => 1], null, false, false, null]],
-        2936 => [[['_route' => 'admin_products_combinations_bulk_edit_combination', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::bulkEditAction', '_legacy_controller' => 'AdminProducts'], ['productId'], ['PATCH' => 0], null, false, false, null]],
-        2970 => [[['_route' => 'admin_products_combinations_delete_combination', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::deleteAction', '_legacy_controller' => 'AdminProducts'], ['combinationId'], ['DELETE' => 0], null, false, false, null]],
-        3010 => [[['_route' => 'admin_products_combinations_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::bulkDeleteAction', '_legacy_controller' => 'AdminProducts'], ['productId'], ['POST' => 0], null, false, false, null]],
-        3045 => [[['_route' => 'admin_products_attribute_groups', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::getAttributeGroupsAction', '_legacy_controller' => 'AdminProducts'], ['productId'], ['GET' => 0], null, false, false, null]],
-        3085 => [[['_route' => 'admin_products_combinations_generate', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::generateCombinationsAction', '_legacy_controller' => 'AdminProducts'], ['productId'], ['POST' => 0], null, false, true, null]],
-        3106 => [[['_route' => 'admin_products_v2_get_images', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ImageController::getImagesAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:getimages'], '_legacy_parameters' => ['id_product' => 'productId']], ['productId'], ['GET' => 0], null, false, false, null]],
-        3137 => [[['_route' => 'admin_products_v2_update_image', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ImageController::updateImageAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:editimage'], '_legacy_parameters' => ['id_product_image' => 'productImageId']], ['productImageId'], ['PATCH' => 0], null, false, false, null]],
-        3158 => [[['_route' => 'admin_products_v2_delete_image', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ImageController::deleteImageAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:deleteimage'], '_legacy_parameters' => ['id_product_image' => 'productImageId']], ['productImageId'], ['POST' => 0], null, false, false, null]],
-        3195 => [[['_route' => 'admin_products_specific_prices_list', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\SpecificPriceController::listAction', '_legacy_controller' => 'AdminProducts'], ['productId'], ['GET' => 0], null, false, false, null]],
-        3233 => [[['_route' => 'admin_products_specific_prices_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\SpecificPriceController::createAction', '_legacy_controller' => 'AdminProducts'], ['productId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        3272 => [[['_route' => 'admin_products_specific_prices_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\SpecificPriceController::editAction', '_legacy_controller' => 'AdminProducts'], ['specificPriceId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        3293 => [[['_route' => 'admin_products_specific_prices_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\SpecificPriceController::deleteAction', '_legacy_controller' => 'AdminProducts'], ['specificPriceId'], ['DELETE' => 0], null, false, false, null]],
-        3316 => [[['_route' => 'admin_products_v2_preview', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::previewAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => 'AdminProducts:preview', '_legacy_parameters' => ['id_product' => 'productId']], ['productId'], ['GET' => 0], null, false, false, null]],
-        3335 => [[['_route' => 'admin_products_v2_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::editAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:updateproduct', 'AdminProducts:update'], '_legacy_parameters' => ['id_product' => 'productId']], ['productId'], ['GET' => 0, 'POST' => 1, 'PATCH' => 2], null, false, false, null]],
-        3372 => [[['_route' => 'admin_products_v2_download_virtual_product_file', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::downloadVirtualFileAction', '_legacy_controller' => 'AdminProducts'], ['virtualProductFileId'], ['GET' => 0], null, false, true, null]],
-        3393 => [[['_route' => 'admin_products_v2_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::deleteAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:delete'], '_legacy_parameters' => ['id_product' => 'productId']], ['productId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
-        3417 => [[['_route' => 'admin_products_v2_duplicate', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::duplicateAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:duplicate'], '_legacy_parameters' => ['id_product' => 'productId']], ['productId'], ['POST' => 0], null, false, false, null]],
-        3445 => [[['_route' => 'admin_products_v2_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::toggleStatusAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:statusproduct'], '_legacy_parameters' => ['id_product' => 'productId']], ['productId'], ['POST' => 0], null, false, false, null]],
-        3494 => [[['_route' => 'admin_products_v2_search_associations', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::searchAssociationsAction', '_legacy_controller' => 'AdminProducts'], ['languageCode'], ['GET' => 0, 'POST' => 1], null, false, true, null]],
-        3545 => [[['_route' => 'admin_products_v2_search_combinations', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::searchCombinationProductsAction', '_legacy_controller' => 'AdminProducts'], ['languageCode'], ['GET' => 0, 'POST' => 1], null, false, true, null]],
-        3587 => [[['_route' => 'admin_categories_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CategoryController::indexAction', '_legacy_controller' => 'AdminCategories', '_legacy_link' => 'AdminCategories', '_legacy_parameters' => ['id_category' => 'categoryId'], 'categoryId' => null], ['categoryId'], ['GET' => 0, 'POST' => 1], null, false, true, null]],
-        3623 => [[['_route' => 'admin_categories_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CategoryController::toggleStatusAction', '_legacy_controller' => 'AdminCategories', '_legacy_link' => 'AdminCategories:statuscategory', '_legacy_parameters' => ['id_category' => 'categoryId']], ['categoryId'], ['POST' => 0], null, false, false, null]],
-        3642 => [[['_route' => 'admin_categories_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CategoryController::editAction', '_legacy_controller' => 'AdminCategories', '_legacy_link' => 'AdminCategories:updatecategory', '_legacy_parameters' => ['id_category' => 'categoryId']], ['categoryId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        3667 => [[['_route' => 'admin_categories_edit_root', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CategoryController::editRootAction', '_legacy_controller' => 'AdminCategories', '_legacy_link' => 'AdminCategories:updatecategory', '_legacy_parameters' => ['id_category' => 'categoryId']], ['categoryId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        3702 => [[['_route' => 'admin_categories_delete_cover_image', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CategoryController::deleteCoverImageAction', '_legacy_controller' => 'AdminCategories', '_legacy_link' => 'AdminCategories:deleteImage', '_legacy_parameters' => ['id_category' => 'categoryId']], ['categoryId'], ['POST' => 0], null, false, false, null]],
-        3748 => [[['_route' => 'admin_categories_delete_menu_thumbnail', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CategoryController::deleteMenuThumbnailAction', '_legacy_controller' => 'AdminCategories', '_legacy_link' => 'AdminCategories:forceDeleteThumb', '_legacy_parameters' => ['id_category' => 'categoryId']], ['categoryId', 'menuThumbnailId'], ['POST' => 0], null, false, false, null]],
-        3791 => [[['_route' => 'admin_catalog_price_rules_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CatalogPriceRuleController::editAction', '_legacy_controller' => 'AdminSpecificPriceRule', '_legacy_parameters' => ['id_specific_price_rule' => 'catalogPriceRuleId']], ['catalogPriceRuleId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        3812 => [[['_route' => 'admin_catalog_price_rules_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CatalogPriceRuleController::deleteAction', '_legacy_controller' => 'AdminSpecificPriceRule', '_legacy_parameters' => ['id_specific_price_rule' => 'catalogPriceRuleId']], ['catalogPriceRuleId'], ['POST' => 0], null, false, false, null]],
-        3856 => [[['_route' => 'admin_cart_rule_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CartRuleController::toggleStatusAction', '_legacy_controller' => 'AdminCartRules', '_legacy_parameters' => ['id_cart_rule' => 'cartRuleId']], ['cartRuleId'], ['POST' => 0], null, false, false, null]],
-        3877 => [[['_route' => 'admin_cart_rules_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CartRuleController::deleteAction', '_legacy_controller' => 'AdminCartRules', '_legacy_parameters' => ['id_cart_rule' => 'cartRuleId']], ['cartRuleId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
-        3915 => [[['_route' => 'admin_suppliers_view', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\SupplierController::viewAction', '_legacy_controller' => 'AdminSuppliers', '_legacy_link' => 'AdminSuppliers:viewsupplier', '_legacy_parameters' => ['id_supplier' => 'supplierId']], ['supplierId'], ['GET' => 0], null, false, false, null]],
-        3934 => [[['_route' => 'admin_suppliers_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\SupplierController::editAction', '_legacy_controller' => 'AdminSuppliers', '_legacy_link' => 'AdminSuppliers:updatesupplier', '_legacy_parameters' => ['id_supplier' => 'supplierId']], ['supplierId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        3955 => [[['_route' => 'admin_suppliers_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\SupplierController::deleteAction', '_legacy_controller' => 'AdminSuppliers', '_legacy_link' => 'AdminSuppliers:deletesupplier', '_legacy_parameters' => ['id_supplier' => 'supplierId']], ['supplierId'], ['DELETE' => 0], null, false, false, null]],
-        3984 => [[['_route' => 'admin_suppliers_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\SupplierController::toggleStatusAction', '_legacy_controller' => 'AdminSuppliers', '_legacy_link' => 'AdminSuppliers:statussupplier', '_legacy_parameters' => ['id_supplier' => 'supplierId']], ['supplierId'], ['POST' => 0], null, false, false, null]],
-        4014 => [[['_route' => 'admin_manufacturers_view', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\ManufacturerController::viewAction', '_legacy_controller' => 'AdminManufacturers', '_legacy_link' => 'AdminManufacturers:viewmanufacturer', '_legacy_parameters' => ['id_manufacturer' => 'manufacturerId']], ['manufacturerId'], ['GET' => 0], null, false, false, null]],
-        4033 => [[['_route' => 'admin_manufacturers_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\ManufacturerController::editAction', '_legacy_controller' => 'AdminManufacturers', '_legacy_link' => 'AdminManufacturers:updatemanufacturer', '_legacy_parameters' => ['id_manufacturer' => 'manufacturerId']], ['manufacturerId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        4054 => [[['_route' => 'admin_manufacturers_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\ManufacturerController::deleteAction', '_legacy_controller' => 'AdminManufacturers', '_legacy_link' => 'AdminManufacturers:deletemanufacturer', '_legacy_parameters' => ['id_manufacturer' => 'manufacturerId']], ['manufacturerId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
-        4083 => [[['_route' => 'admin_manufacturers_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\ManufacturerController::toggleStatusAction', '_legacy_controller' => 'AdminManufacturers', '_legacy_link' => 'AdminManufacturers:statusmanufacturer', '_legacy_parameters' => ['id_manufacturer' => 'manufacturerId']], ['manufacturerId'], ['POST' => 0], null, false, false, null]],
-        4115 => [[['_route' => 'admin_manufacturer_addresses_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\ManufacturerController::editAddressAction', '_legacy_controller' => 'AdminManufacturers', '_legacy_link' => 'AdminManufacturers:editaddresses', '_legacy_parameters' => ['id_address' => 'addressId']], ['addressId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        4136 => [[['_route' => 'admin_manufacturer_addresses_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\ManufacturerController::deleteAddressAction', '_legacy_controller' => 'AdminManufacturers', '_legacy_link' => 'AdminManufacturers:deleteaddress', '_legacy_parameters' => ['id_address' => 'addressId']], ['addressId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
-        4187 => [
+        718 => [[['_route' => 'admin_authorized_applications_view', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\AuthorizationServer\\ApplicationController::viewAction', '_legacy_controller' => 'AdminAuthorizationServer', 'categoryId' => null], ['authorizedApplicationId'], ['GET' => 0], null, false, true, null]],
+        736 => [[['_route' => 'admin_authorized_applications_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\AuthorizationServer\\ApplicationController::editAction', '_legacy_controller' => 'AdminAuthorizationServer'], ['authorizedApplicationId'], ['GET' => 0, 'POST' => 1, 'PATCH' => 2], null, false, false, null]],
+        759 => [[['_route' => 'admin_authorized_applications_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\AuthorizationServer\\ApplicationController::deleteAction', '_legacy_controller' => 'AdminAuthorizationServer'], ['authorizedApplicationId'], ['POST' => 0], null, false, false, null]],
+        792 => [[['_route' => 'admin_backups_download_view', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\BackupController::downloadViewAction', '_legacy_controller' => 'AdminBackup'], ['downloadFileName'], ['GET' => 0], null, false, true, null]],
+        817 => [[['_route' => 'admin_backup_download', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\BackupController::downloadContentAction', '_legacy_controller' => 'AdminBackup'], ['downloadFileName'], ['GET' => 0], null, false, true, null]],
+        833 => [[['_route' => 'admin_backups_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\BackupController::deleteAction', '_legacy_controller' => 'AdminBackup', '_legacy_link' => 'AdminBackup:delete', '_legacy_parameters' => ['filename' => 'deleteFileName']], ['deleteFileName'], ['DELETE' => 0, 'POST' => 1], null, false, true, null]],
+        853 => [[['_route' => 'admin_backups_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\BackupController::bulkDeleteAction', '_legacy_controller' => 'AdminBackup', '_legacy_link' => 'AdminBackup:submitBulkdeletebackup'], [], ['POST' => 0], null, true, false, null]],
+        884 => [[['_route' => 'admin_profiles_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\ProfileController::editAction', '_legacy_controller' => 'AdminProfiles', '_legacy_link' => 'AdminProfiles:updateprofile', '_legacy_parameters' => ['id_profile' => 'profileId']], ['profileId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        904 => [[['_route' => 'admin_profiles_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\AdvancedParameters\\ProfileController::deleteAction', '_legacy_controller' => 'AdminProfiles', '_legacy_link' => 'AdminProfiles:deleteprofile', '_legacy_parameters' => ['id_profile' => 'profileId']], ['profileId'], ['POST' => 0], null, false, false, null]],
+        951 => [[['_route' => 'admin_metas_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\MetaController::editAction', '_legacy_controller' => 'AdminMeta', '_legacy_link' => 'AdminMeta:updatemeta', '_legacy_parameters' => ['id_meta' => 'metaId']], ['metaId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        965 => [[['_route' => 'admin_metas_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\MetaController::deleteAction', '_legacy_controller' => 'AdminMeta', '_legacy_link' => 'AdminMeta:deletemeta', '_legacy_parameters' => ['id_meta' => 'metaId']], ['metaId'], ['DELETE' => 0], null, false, false, null]],
+        1001 => [[['_route' => 'admin_search_engines_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\SearchEnginesController::editAction', '_legacy_controller' => 'AdminSearchEngines', '_legacy_link' => 'AdminSearchEngines:updatesearch_engine'], ['searchEngineId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        1022 => [[['_route' => 'admin_search_engines_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\SearchEnginesController::deleteAction', '_legacy_controller' => 'AdminSearchEngines', '_legacy_link' => 'AdminSearchEngines:deletesearch_engine'], ['searchEngineId'], ['POST' => 0], null, false, false, null]],
+        1055 => [[['_route' => 'admin_contacts_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\ContactsController::editAction', '_legacy_controller' => 'AdminContacts', '_legacy_link' => 'AdminContacts:updatecontact'], ['contactId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        1076 => [[['_route' => 'admin_contacts_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\ContactsController::deleteAction', '_legacy_controller' => 'AdminContacts', '_legacy_link' => 'AdminContacts:deletecontact'], ['contactId'], ['POST' => 0], null, false, false, null]],
+        1119 => [[['_route' => 'admin_order_states_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\OrderStateController::editAction', '_legacy_controller' => 'AdminStatuses', '_legacy_link' => 'AdminStatuses:updateorderstate', '_legacy_parameters' => ['id_order_state' => 'orderStateId']], ['orderStateId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        1150 => [[['_route' => 'admin_order_states_toggle_delivery', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\OrderStateController::toggleDeliveryAction', '_legacy_controller' => 'AdminStatuses', '_legacy_link' => 'AdminStatuses:deliveryorderstate', '_legacy_parameters' => ['id_order_state' => 'orderStateId']], ['orderStateId'], ['POST' => 0], null, false, false, null]],
+        1180 => [[['_route' => 'admin_order_states_toggle_invoice', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\OrderStateController::toggleInvoiceAction', '_legacy_controller' => 'AdminStatuses', '_legacy_link' => 'AdminStatuses:invoiceorderstate', '_legacy_parameters' => ['id_order_state' => 'orderStateId']], ['orderStateId'], ['POST' => 0], null, false, false, null]],
+        1214 => [[['_route' => 'admin_order_states_toggle_send_email', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\OrderStateController::toggleSendEmailAction', '_legacy_controller' => 'AdminStatuses', '_legacy_link' => 'AdminStatuses:sendemailorderstate', '_legacy_parameters' => ['id_order_state' => 'orderStateId']], ['orderStateId'], ['POST' => 0], null, false, false, null]],
+        1238 => [[['_route' => 'admin_order_states_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\OrderStateController::deleteAction', '_legacy_controller' => 'AdminStatuses', '_legacy_link' => 'AdminStatuses:deleteorderstate', '_legacy_parameters' => ['id_order_state' => 'orderStateId']], ['orderStateId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
+        1279 => [[['_route' => 'admin_order_return_states_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\OrderStateController::editOrderReturnStateAction', '_legacy_controller' => 'AdminStatuses', '_legacy_link' => 'AdminStatuses:updateorderreturnstate', '_legacy_parameters' => ['id_order_return_state' => 'orderReturnStateId']], ['orderReturnStateId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        1294 => [[['_route' => 'admin_order_return_states_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\OrderStateController::deleteOrderReturnStateAction', '_legacy_controller' => 'AdminStatuses', '_legacy_link' => 'AdminStatuses:deleteorderreturnstate', '_legacy_parameters' => ['id_order_return_state' => 'orderReturnStateId']], ['orderReturnStateId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
+        1324 => [[['_route' => 'admin_title_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\TitleController::editAction', '_legacy_controller' => 'AdminGenders', '_legacy_link' => 'AdminGenders:updategender', '_legacy_feature_flag' => 'title'], ['titleId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        1345 => [[['_route' => 'admin_title_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Configure\\ShopParameters\\TitleController::deleteAction', '_legacy_controller' => 'AdminGenders', '_legacy_link' => 'AdminGenders:deletegender', '_legacy_feature_flag' => 'title'], ['titleId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
+        1401 => [[['_route' => 'admin_product_form', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductController::formAction', '_legacy_controller' => 'AdminProducts', '_legacy_param_mapper_class' => 'PrestaShop\\PrestaShop\\Adapter\\Product\\AdminProductDataProvider', '_legacy_param_mapper_method' => 'mapLegacyParametersProductForm'], ['id'], ['GET' => 0, 'POST' => 1], null, false, true, null]],
+        1436 => [[['_route' => 'admin_product_virtual_save_action', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\VirtualProductController::saveAction', '_legacy_controller' => 'AdminProducts', 'idProduct' => 0], ['idProduct'], ['POST' => 0], null, false, true, null]],
+        1471 => [[['_route' => 'admin_product_virtual_remove_file_action', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\VirtualProductController::removeFileAction', '_legacy_controller' => 'AdminProducts', 'idProduct' => 0], ['idProduct'], null, null, false, true, null]],
+        1491 => [[['_route' => 'admin_product_virtual_remove_action', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\VirtualProductController::removeAction', '_legacy_controller' => 'AdminProducts', 'idProduct' => 0], ['idProduct'], null, null, false, true, null]],
+        1526 => [[['_route' => 'admin_product_virtual_download_file_action', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\VirtualProductController::downloadFileAction', '_legacy_controller' => 'AdminProducts', 'idProduct' => 0], ['idProduct'], null, null, false, true, null]],
+        1566 => [[['_route' => 'admin_product_attachement_add_action', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\AttachementProductController::addAction', '_legacy_controller' => 'AdminProducts', 'idProduct' => 0], ['idProduct'], ['POST' => 0], null, false, true, null]],
+        1601 => [[['_route' => 'admin_product_image_upload', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductImageController::uploadImageAction', '_legacy_controller' => 'AdminProducts', 'idProduct' => 0], ['idProduct'], ['POST' => 0], null, false, true, null]],
+        1625 => [[['_route' => 'admin_product_image_form', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductImageController::formAction', '_legacy_controller' => 'AdminProducts', 'idImage' => 0], ['idImage'], null, null, false, true, null]],
+        1651 => [[['_route' => 'admin_product_image_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductImageController::deleteAction', '_legacy_controller' => 'AdminProducts', 'idImage' => 0], ['idImage'], null, null, false, true, null]],
+        1684 => [[['_route' => 'admin_product_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductController::toggleStatusAction', '_legacy_controller' => 'AdminTracking', '_legacy_link' => 'AdminTracking:statusproduct', '_legacy_parameters' => ['id_product' => 'productId']], ['productId'], ['POST' => 0], null, false, false, null]],
+        1715 => [[['_route' => 'admin_delete_attribute', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\AttributeController::deleteAttributeAction', '_legacy_controller' => 'AdminProducts'], ['idProduct'], ['DELETE' => 0], null, false, true, null]],
+        1746 => [[['_route' => 'admin_delete_all_attributes', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\AttributeController::deleteAllAttributeAction', '_legacy_controller' => 'AdminProducts', 'idProduct' => 0], ['idProduct'], ['GET' => 0], null, false, true, null]],
+        1778 => [[['_route' => 'admin_get_form_images_combination', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\AttributeController::getFormImagesAction', '_format' => 'json', '_legacy_controller' => 'AdminProducts', 'idProduct' => 0], ['idProduct'], ['GET' => 0], null, false, true, null]],
+        1817 => [[['_route' => 'admin_get_ajax_categories', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CategoryController::getAjaxCategoriesAction', '_format' => 'json', 'limit' => 20], ['limit'], ['GET' => 0], null, false, true, null]],
+        1859 => [[['_route' => 'admin_combination_generate_form', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CombinationController::generateCombinationFormAction', 'combinationIds' => 0], ['combinationIds'], ['GET' => 0], null, false, true, null]],
+        1879 => [[['_route' => 'admin_get_product_combinations', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CombinationController::getProductCombinationsAction', '_format' => 'json', 'idProduct' => 0], ['idProduct'], ['GET' => 0], null, false, true, null]],
+        1909 => [[['_route' => 'admin_feature_get_feature_values', 'idFeature' => 0, '_controller' => 'PrestaShopBundle\\Controller\\Admin\\FeatureController::getFeatureValuesAction'], ['idFeature'], ['GET' => 0], null, false, true, null]],
+        1956 => [[['_route' => 'admin_specific_price_list', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\SpecificPriceController::listAction', '_format' => 'json', 'idProduct' => 0], ['idProduct'], ['GET' => 0], null, false, true, null]],
+        1975 => [[['_route' => 'admin_get_specific_price_update_form', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\SpecificPriceController::getUpdateFormAction', 'idSpecificPrice' => 0], ['idSpecificPrice'], ['GET' => 0], null, true, true, null]],
+        1996 => [[['_route' => 'admin_specific_price_update', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\SpecificPriceController::updateAction', 'idSpecificPrice' => 0], ['idSpecificPrice'], ['POST' => 0], null, true, true, null]],
+        2022 => [[['_route' => 'admin_delete_specific_price', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\SpecificPriceController::deleteAction', 'idSpecificPrice' => 0], ['idSpecificPrice'], ['GET' => 0], null, false, true, null]],
+        2111 => [[['_route' => 'admin_supplier_refresh_product_supplier_combination_form', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\SupplierController::refreshProductSupplierCombinationFormAction', '_legacy_controller' => 'AdminProducts', 'supplierIds' => 0, 'idProduct' => 0], ['idProduct', 'supplierIds'], ['GET' => 0], null, false, true, null]],
+        2189 => [[['_route' => 'admin_warehouse_refresh_product_warehouse_combination_form', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\WarehouseController::refreshProductWarehouseCombinationFormAction', '_legacy_controller' => 'AdminProducts', 'idProduct' => 0], ['idProduct'], ['GET' => 0], null, false, true, null]],
+        2364 => [[['_route' => 'admin_product_catalog', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductController::catalogAction', '_legacy_controller' => 'AdminProducts', 'limit' => 'last', 'offset' => 0, 'orderBy' => 'last', 'sortOrder' => 'last'], ['offset', 'limit', 'orderBy', 'sortOrder'], ['GET' => 0, 'POST' => 1], null, false, true, null]],
+        2434 => [[['_route' => 'admin_product_catalog_filters', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductController::catalogFiltersAction', '_legacy_controller' => 'AdminProducts', 'quantity' => 'none', 'active' => 'none'], ['quantity', 'active'], ['GET' => 0], null, false, true, null]],
+        2633 => [[['_route' => 'admin_product_list', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductController::listAction', 'limit' => 'last', 'offset' => 0, 'orderBy' => 'last', 'sortOrder' => 'last', 'view' => 'full'], ['offset', 'limit', 'orderBy', 'sortOrder', 'view'], ['GET' => 0], null, false, true, null]],
+        2701 => [[['_route' => 'admin_product_bulk_action', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductController::bulkAction'], ['action'], ['POST' => 0], null, false, true, null]],
+        2759 => [[['_route' => 'admin_product_unit_action', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductController::unitAction'], ['action', 'id'], ['POST' => 0, 'GET' => 1], null, false, true, null]],
+        2783 => [[['_route' => 'admin_product_mass_edit_action', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductController::massEditAction'], ['action'], ['POST' => 0], null, false, true, null]],
+        2810 => [[['_route' => 'admin_product_export_action', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\ProductController::exportAction', '_legacy_controller' => 'AdminProducts', '_format' => 'csv'], ['_format'], ['GET' => 0], null, false, true, null]],
+        2852 => [[['_route' => 'admin_products_combinations', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::getListAction', '_legacy_controller' => 'AdminProducts'], ['productId'], ['GET' => 0], null, false, false, null]],
+        2865 => [[['_route' => 'admin_products_combinations_ids', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::getCombinationIdsAction', '_legacy_controller' => 'AdminProducts'], ['productId'], ['GET' => 0], null, false, false, null]],
+        2934 => [[['_route' => 'admin_products_combinations_update_combination_from_listing', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::updateCombinationFromListingAction', '_legacy_controller' => 'AdminProducts'], ['productId'], ['PATCH' => 0], null, false, false, null]],
+        2953 => [[['_route' => 'admin_products_combinations_edit_combination', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::editAction', '_legacy_controller' => 'AdminProducts'], ['combinationId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        2995 => [[['_route' => 'admin_products_combinations_bulk_combination_form', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::bulkEditFormAction', '_legacy_controller' => 'AdminProducts', 'requirements' => ['productId' => '\\d+']], ['productId'], ['GET' => 0, 'PATCH' => 1], null, false, false, null]],
+        3033 => [[['_route' => 'admin_products_combinations_bulk_edit_combination', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::bulkEditAction', '_legacy_controller' => 'AdminProducts'], ['productId'], ['PATCH' => 0], null, false, false, null]],
+        3078 => [[['_route' => 'admin_products_combinations_delete_combination', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::deleteAction', '_legacy_controller' => 'AdminProducts', 'shopId' => null], ['combinationId', 'shopId'], ['DELETE' => 0], null, false, true, null]],
+        3129 => [[['_route' => 'admin_products_combinations_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::bulkDeleteAction', '_legacy_controller' => 'AdminProducts', 'shopId' => null], ['productId', 'shopId'], ['POST' => 0], null, false, true, null]],
+        3175 => [[['_route' => 'admin_products_attribute_groups', 'shopId' => null, '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::getAttributeGroupsAction', '_legacy_controller' => 'AdminProducts'], ['productId', 'shopId'], ['GET' => 0], null, false, true, null]],
+        3217 => [[['_route' => 'admin_all_attribute_groups', 'shopId' => null, '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::getAllAttributeGroupsAction', '_legacy_controller' => 'AdminProducts'], ['shopId'], ['GET' => 0], null, false, true, null]],
+        3265 => [[['_route' => 'admin_products_combinations_generate', 'shopId' => null, '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::generateCombinationsAction', '_legacy_controller' => 'AdminProducts'], ['productId', 'shopId'], ['POST' => 0], null, false, true, null]],
+        3303 => [[['_route' => 'admin_products_images_for_shop', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ImageController::getImagesForShopAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:getimages'], '_legacy_parameters' => ['id_product' => 'productId']], ['productId', 'shopId'], ['GET' => 0], null, false, true, null]],
+        3328 => [[['_route' => 'admin_products_product_shop_images', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ImageController::productShopImagesAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:getshopimages'], '_legacy_parameters' => ['id_product' => 'productId']], ['productId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        3359 => [[['_route' => 'admin_products_update_image', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ImageController::updateImageAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:editimage'], '_legacy_parameters' => ['id_product_image' => 'productImageId']], ['productImageId'], ['PATCH' => 0], null, false, false, null]],
+        3380 => [[['_route' => 'admin_products_delete_image', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ImageController::deleteImageAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:deleteimage'], '_legacy_parameters' => ['id_product_image' => 'productImageId']], ['productImageId'], ['POST' => 0], null, false, false, null]],
+        3417 => [[['_route' => 'admin_products_specific_prices_list', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\SpecificPriceController::listAction', '_legacy_controller' => 'AdminProducts'], ['productId'], ['GET' => 0], null, false, false, null]],
+        3455 => [[['_route' => 'admin_products_specific_prices_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\SpecificPriceController::createAction', '_legacy_controller' => 'AdminProducts'], ['productId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        3494 => [[['_route' => 'admin_products_specific_prices_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\SpecificPriceController::editAction', '_legacy_controller' => 'AdminProducts'], ['specificPriceId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        3515 => [[['_route' => 'admin_products_specific_prices_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\SpecificPriceController::deleteAction', '_legacy_controller' => 'AdminProducts'], ['specificPriceId'], ['DELETE' => 0], null, false, false, null]],
+        3552 => [[['_route' => 'admin_products_preview', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::previewAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => 'AdminProducts:preview', '_legacy_parameters' => ['id_product' => 'productId'], 'shopId' => null], ['productId', 'shopId'], ['GET' => 0], null, false, true, null]],
+        3591 => [[['_route' => 'admin_products_grid_shop_previews', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::productShopPreviewsAction', '_legacy_controller' => 'AdminProducts', 'shopGroupId' => null], ['productId', 'shopGroupId'], ['GET' => 0], null, false, true, null]],
+        3610 => [[['_route' => 'admin_products_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::editAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:updateproduct', 'AdminProducts:update'], '_legacy_parameters' => ['id_product' => 'productId']], ['productId'], ['GET' => 0, 'POST' => 1, 'PATCH' => 2], null, false, false, null]],
+        3630 => [[['_route' => 'admin_products_select_shops', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::selectProductShopsAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:assignshops'], '_legacy_parameters' => ['id_product' => 'productId']], ['productId'], ['GET' => 0, 'POST' => 1, 'PATCH' => 2], null, false, false, null]],
+        3667 => [[['_route' => 'admin_products_download_virtual_product_file', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::downloadVirtualFileAction', '_legacy_controller' => 'AdminProducts'], ['virtualProductFileId'], ['GET' => 0], null, false, true, null]],
+        3706 => [[['_route' => 'admin_products_delete_from_all_shops', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::deleteFromAllShopsAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:delete'], '_legacy_parameters' => ['id_product' => 'productId']], ['productId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
+        3752 => [[['_route' => 'admin_products_delete_from_shop_group', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::deleteFromShopGroupAction', '_legacy_controller' => 'AdminProducts'], ['productId', 'shopGroupId'], ['POST' => 0, 'DELETE' => 1], null, false, true, null]],
+        3791 => [[['_route' => 'admin_products_delete_from_shop', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::deleteFromShopAction', '_legacy_controller' => 'AdminProducts'], ['productId', 'shopId'], ['POST' => 0, 'DELETE' => 1], null, false, true, null]],
+        3827 => [[['_route' => 'admin_products_duplicate_all_shops', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::duplicateAllShopsAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:duplicate'], '_legacy_parameters' => ['id_product' => 'productId']], ['productId'], ['POST' => 0], null, false, false, null]],
+        3863 => [[['_route' => 'admin_products_duplicate_shop', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::duplicateShopAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:duplicate'], '_legacy_parameters' => ['id_product' => 'productId']], ['productId', 'shopId'], ['POST' => 0], null, false, true, null]],
+        3906 => [[['_route' => 'admin_products_duplicate_shop_group', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::duplicateShopGroupAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:duplicate'], '_legacy_parameters' => ['id_product' => 'productId']], ['productId', 'shopGroupId'], ['POST' => 0], null, false, true, null]],
+        3952 => [[['_route' => 'admin_products_toggle_status_for_shop', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::toggleStatusForShopAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:statusproduct'], '_legacy_parameters' => ['id_product' => 'productId']], ['productId', 'shopId'], ['POST' => 0], null, false, true, null]],
+        3990 => [[['_route' => 'admin_products_enable_for_all_shops', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::enableForAllShopsAction', '_legacy_controller' => 'AdminProducts'], ['productId'], ['GET' => 0], null, false, false, null]],
+        4035 => [[['_route' => 'admin_products_enable_for_shop_group', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::enableForShopGroupAction', '_legacy_controller' => 'AdminProducts'], ['productId', 'shopGroupId'], ['GET' => 0], null, false, true, null]],
+        4074 => [[['_route' => 'admin_products_disable_for_all_shops', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::disableForAllShopsAction', '_legacy_controller' => 'AdminProducts'], ['productId'], ['GET' => 0], null, false, false, null]],
+        4125 => [[['_route' => 'admin_products_disable_for_shop_group', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::disableForShopGroupAction', '_legacy_controller' => 'AdminProducts', 'shopGroupId' => null], ['productId', 'shopGroupId'], ['GET' => 0], null, false, true, null]],
+        4164 => [[['_route' => 'admin_products_bulk_enable_shop', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::bulkEnableShopAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:submitBulkdisableSelectionproduct']], ['shopId'], ['POST' => 0], null, false, true, null]],
+        4186 => [[['_route' => 'admin_products_bulk_enable_shop_group', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::bulkEnableShopGroupAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:submitBulkdisableSelectionproduct']], ['shopGroupId'], ['POST' => 0], null, false, true, null]],
+        4221 => [[['_route' => 'admin_products_bulk_disable_shop', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::bulkDisableShopAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:submitBulkenableSelectionproduct']], ['shopId'], ['POST' => 0], null, false, true, null]],
+        4243 => [[['_route' => 'admin_products_bulk_disable_shop_group', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::bulkDisableShopGroupAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:submitBulkenableSelectionproduct']], ['shopGroupId'], ['POST' => 0], null, false, true, null]],
+        4276 => [[['_route' => 'admin_products_bulk_duplicate_shop', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::bulkDuplicateShopAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:submitBulkduplicateSelectionproduct'], '_legacy_parameters' => ['id_product' => 'productId']], ['shopId'], ['POST' => 0], null, false, true, null]],
+        4298 => [[['_route' => 'admin_products_bulk_duplicate_shop_group', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::bulkDuplicateShopGroupAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:submitBulkduplicateSelectionproduct'], '_legacy_parameters' => ['id_product' => 'productId']], ['shopGroupId'], ['POST' => 0], null, false, true, null]],
+        4334 => [[['_route' => 'admin_products_bulk_delete_from_shop', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::bulkDeleteFromShopAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:submitBulkdeleteproduct'], '_legacy_parameters' => ['id_product' => 'productId']], ['shopId'], ['POST' => 0, 'DELETE' => 1], null, false, true, null]],
+        4356 => [[['_route' => 'admin_products_bulk_delete_from_shop_group', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::bulkDeleteFromShopGroupAction', '_legacy_controller' => 'AdminProducts', '_legacy_link' => ['AdminProducts:submitBulkdeleteproduct'], '_legacy_parameters' => ['id_product' => 'productId']], ['shopGroupId'], ['POST' => 0, 'DELETE' => 1], null, false, true, null]],
+        4408 => [[['_route' => 'admin_products_search_products_for_association', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::searchProductsForAssociationAction', '_legacy_controller' => 'AdminProducts'], ['languageCode'], ['GET' => 0, 'POST' => 1], null, false, true, null]],
+        4459 => [[['_route' => 'admin_products_search_combinations_for_association', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::searchCombinationsForAssociationAction', '_legacy_controller' => 'AdminProducts'], ['languageCode'], ['GET' => 0, 'POST' => 1], null, false, true, null]],
+        4526 => [[['_route' => 'admin_products_search_product_combinations', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\CombinationController::searchProductCombinationsAction', '_legacy_controller' => 'AdminProducts', 'languageId' => null, 'shopId' => null], ['productId', 'shopId', 'languageId'], ['GET' => 0], null, false, true, null]],
+        4555 => [[['_route' => 'admin_products_quantity', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\Product\\ProductController::quantityAction', '_legacy_controller' => 'AdminProducts'], ['productId', 'shopId'], ['GET' => 0], null, false, true, null]],
+        4596 => [[['_route' => 'admin_categories_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CategoryController::indexAction', '_legacy_controller' => 'AdminCategories', '_legacy_link' => 'AdminCategories', '_legacy_parameters' => ['id_category' => 'categoryId'], 'categoryId' => null], ['categoryId'], ['GET' => 0, 'POST' => 1], null, false, true, null]],
+        4632 => [[['_route' => 'admin_categories_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CategoryController::toggleStatusAction', '_legacy_controller' => 'AdminCategories', '_legacy_link' => 'AdminCategories:statuscategory', '_legacy_parameters' => ['id_category' => 'categoryId']], ['categoryId'], ['POST' => 0], null, false, false, null]],
+        4651 => [[['_route' => 'admin_categories_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CategoryController::editAction', '_legacy_controller' => 'AdminCategories', '_legacy_link' => 'AdminCategories:updatecategory', '_legacy_parameters' => ['id_category' => 'categoryId']], ['categoryId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        4676 => [[['_route' => 'admin_categories_edit_root', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CategoryController::editRootAction', '_legacy_controller' => 'AdminCategories', '_legacy_link' => 'AdminCategories:updatecategory', '_legacy_parameters' => ['id_category' => 'categoryId']], ['categoryId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        4711 => [[['_route' => 'admin_categories_delete_cover_image', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CategoryController::deleteCoverImageAction', '_legacy_controller' => 'AdminCategories', '_legacy_link' => 'AdminCategories:deleteImage', '_legacy_parameters' => ['id_category' => 'categoryId']], ['categoryId'], ['POST' => 0], null, false, false, null]],
+        4757 => [[['_route' => 'admin_categories_delete_menu_thumbnail', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CategoryController::deleteMenuThumbnailAction', '_legacy_controller' => 'AdminCategories', '_legacy_link' => 'AdminCategories:forceDeleteThumb', '_legacy_parameters' => ['id_category' => 'categoryId']], ['categoryId', 'menuThumbnailId'], ['POST' => 0], null, false, false, null]],
+        4781 => [[['_route' => 'admin_categories_get_ajax_categories', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CategoryController::getAjaxCategoriesAction', '_legacy_controller' => 'AdminCategories', '_format' => 'json', 'limit' => 20], ['limit'], ['GET' => 0], null, false, true, null]],
+        4824 => [[['_route' => 'admin_catalog_price_rules_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CatalogPriceRuleController::editAction', '_legacy_controller' => 'AdminSpecificPriceRule', '_legacy_link' => 'AdminSpecificPriceRule:updatespecific_price_rule', '_legacy_feature_flag' => 'catalog_price_rule', '_legacy_parameters' => ['id_specific_price_rule' => 'catalogPriceRuleId']], ['catalogPriceRuleId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        4845 => [[['_route' => 'admin_catalog_price_rules_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CatalogPriceRuleController::deleteAction', '_legacy_controller' => 'AdminSpecificPriceRule', '_legacy_link' => 'AdminSpecificPriceRule:deletespecific_price_rule', '_legacy_feature_flag' => 'catalog_price_rule', '_legacy_parameters' => ['id_specific_price_rule' => 'catalogPriceRuleId']], ['catalogPriceRuleId'], ['POST' => 0], null, false, false, null]],
+        4881 => [[['_route' => 'admin_catalog_price_rules_list_for_product', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CatalogPriceRuleController::listForProductAction', '_legacy_controller' => 'AdminSpecificPriceRule'], ['productId'], ['GET' => 0], null, false, true, null]],
+        4925 => [[['_route' => 'admin_cart_rule_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CartRuleController::toggleStatusAction', '_legacy_controller' => 'AdminCartRules', '_legacy_link' => 'AdminCartRules:statuscart_rule', '_legacy_feature_flag' => 'cart_rule', '_legacy_parameters' => ['id_cart_rule' => 'cartRuleId']], ['cartRuleId'], ['POST' => 0], null, false, false, null]],
+        4946 => [[['_route' => 'admin_cart_rules_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\CartRuleController::deleteAction', '_legacy_controller' => 'AdminCartRules', '_legacy_link' => 'AdminCartRules:deletecart_rule', '_legacy_feature_flag' => 'cart_rule', '_legacy_parameters' => ['id_cart_rule' => 'cartRuleId']], ['cartRuleId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
+        4984 => [[['_route' => 'admin_suppliers_view', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\SupplierController::viewAction', '_legacy_controller' => 'AdminSuppliers', '_legacy_link' => 'AdminSuppliers:viewsupplier', '_legacy_parameters' => ['id_supplier' => 'supplierId']], ['supplierId'], ['GET' => 0], null, false, false, null]],
+        5003 => [[['_route' => 'admin_suppliers_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\SupplierController::editAction', '_legacy_controller' => 'AdminSuppliers', '_legacy_link' => 'AdminSuppliers:updatesupplier', '_legacy_parameters' => ['id_supplier' => 'supplierId']], ['supplierId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        5024 => [[['_route' => 'admin_suppliers_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\SupplierController::deleteAction', '_legacy_controller' => 'AdminSuppliers', '_legacy_link' => 'AdminSuppliers:deletesupplier', '_legacy_parameters' => ['id_supplier' => 'supplierId']], ['supplierId'], ['DELETE' => 0], null, false, false, null]],
+        5053 => [[['_route' => 'admin_suppliers_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\SupplierController::toggleStatusAction', '_legacy_controller' => 'AdminSuppliers', '_legacy_link' => 'AdminSuppliers:statussupplier', '_legacy_parameters' => ['id_supplier' => 'supplierId']], ['supplierId'], ['POST' => 0], null, false, false, null]],
+        5087 => [[['_route' => 'admin_suppliers_delete_logo_image', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\SupplierController::deleteLogoImageAction', '_legacy_controller' => 'AdminSuppliers', '_legacy_link' => 'AdminSuppliers:deleteImage', '_legacy_parameters' => ['id_supplier' => 'supplierId']], ['supplierId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        5117 => [[['_route' => 'admin_manufacturers_view', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\ManufacturerController::viewAction', '_legacy_controller' => 'AdminManufacturers', '_legacy_link' => 'AdminManufacturers:viewmanufacturer', '_legacy_parameters' => ['id_manufacturer' => 'manufacturerId']], ['manufacturerId'], ['GET' => 0], null, false, false, null]],
+        5136 => [[['_route' => 'admin_manufacturers_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\ManufacturerController::editAction', '_legacy_controller' => 'AdminManufacturers', '_legacy_link' => 'AdminManufacturers:updatemanufacturer', '_legacy_parameters' => ['id_manufacturer' => 'manufacturerId']], ['manufacturerId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        5157 => [[['_route' => 'admin_manufacturers_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\ManufacturerController::deleteAction', '_legacy_controller' => 'AdminManufacturers', '_legacy_link' => 'AdminManufacturers:deletemanufacturer', '_legacy_parameters' => ['id_manufacturer' => 'manufacturerId']], ['manufacturerId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
+        5186 => [[['_route' => 'admin_manufacturers_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\ManufacturerController::toggleStatusAction', '_legacy_controller' => 'AdminManufacturers', '_legacy_link' => 'AdminManufacturers:statusmanufacturer', '_legacy_parameters' => ['id_manufacturer' => 'manufacturerId']], ['manufacturerId'], ['POST' => 0], null, false, false, null]],
+        5220 => [[['_route' => 'admin_manufacturers_delete_logo_image', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\ManufacturerController::deleteLogoImageAction', '_legacy_controller' => 'AdminManufacturers', '_legacy_link' => 'AdminManufacturers:deleteImage', '_legacy_parameters' => ['id_manufacturer' => 'manufacturerId']], ['manufacturerId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        5252 => [[['_route' => 'admin_manufacturer_addresses_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\ManufacturerController::editAddressAction', '_legacy_controller' => 'AdminManufacturers', '_legacy_link' => 'AdminManufacturers:editaddresses', '_legacy_parameters' => ['id_address' => 'addressId']], ['addressId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        5273 => [[['_route' => 'admin_manufacturer_addresses_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\ManufacturerController::deleteAddressAction', '_legacy_controller' => 'AdminManufacturers', '_legacy_link' => 'AdminManufacturers:deleteaddress', '_legacy_parameters' => ['id_address' => 'addressId']], ['addressId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
+        5303 => [[['_route' => 'admin_features_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\FeatureController::editAction', '_legacy_controller' => 'AdminFeatures', '_legacy_parameters' => ['id_feature' => 'featureId']], ['featureId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        5352 => [
             [['_route' => 'admin_attributes_index', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeController::indexAction', '_legacy_controller' => 'AdminAttributesGroups', 'redirectQueryParamsToKeep' => ['attributeGroupId'], '_legacy_parameters' => ['id_attribute_group' => 'attributeGroupId'], 'requirements' => ['attributeGroupId' => '\\d+']], ['attributeGroupId'], ['GET' => 0], null, true, false, null],
             [['_route' => 'admin_attributes_search', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\CommonController::searchGridAction', '_legacy_controller' => 'AdminAttributesGroups', 'gridDefinitionFactoryServiceId' => 'prestashop.core.grid.definition.factory.attribute', 'redirectRoute' => 'admin_attributes_index', 'redirectQueryParamsToKeep' => ['attributeGroupId']], ['attributeGroupId'], ['POST' => 0], null, true, false, null],
         ],
-        4217 => [[['_route' => 'admin_attributes_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeController::createAction', '_legacy_controller' => 'AdminAttributesGroups', 'redirectQueryParamsToKeep' => ['attributeGroupId']], ['attributeGroupId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        4253 => [[['_route' => 'admin_attributes_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeController::editAction', '_legacy_controller' => 'AdminAttributesGroups', 'redirectQueryParamsToKeep' => ['attributeGroupId'], '_legacy_parameters' => ['id_attribute_group' => 'attributeGroupId', 'id_attribute' => 'attributeId']], ['attributeGroupId', 'attributeId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        4294 => [[['_route' => 'admin_attributes_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeController::deleteAction', '_legacy_controller' => 'AdminAttributesGroups', 'redirectQueryParamsToKeep' => ['attributeGroupId'], '_legacy_parameters' => ['id_attribute_group' => 'attributeGroupId', 'id_attribute' => 'attributeId']], ['attributeGroupId', 'attributeId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
-        4326 => [[['_route' => 'admin_attributes_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeController::bulkDeleteAction', '_legacy_controller' => 'AdminAttributesGroups', 'redirectQueryParamsToKeep' => ['attributeGroupId'], '_legacy_parameters' => ['id_attribute_group' => 'attributeGroupId', 'id_attribute' => 'attributeId']], ['attributeGroupId'], ['POST' => 0], null, false, false, null]],
-        4368 => [[['_route' => 'admin_attributes_update_position', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeController::updatePositionAction', '_legacy_controller' => 'AdminAttributesGroups'], ['attributeGroupId'], ['POST' => 0], null, false, false, null]],
-        4387 => [[['_route' => 'admin_attribute_groups_view', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeController::indexAction', '_legacy_controller' => 'AdminAttributesGroups', '_legacy_parameters' => ['id_attribute_group' => 'attributeGroupId']], ['attributeGroupId'], ['GET' => 0], null, false, false, null]],
-        4406 => [[['_route' => 'admin_attribute_groups_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeGroupController::editAction', '_legacy_controller' => 'AdminAttributesGroups', '_legacy_parameters' => ['id_attribute_group' => 'attributeGroupId']], ['attributeGroupId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        4427 => [[['_route' => 'admin_attribute_groups_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeGroupController::deleteAction', '_legacy_controller' => 'AdminAttributesGroups', '_legacy_parameters' => ['id_attribute_group' => 'attributeGroupId']], ['attributeGroupId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
-        4463 => [[['_route' => 'admin_customers_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Customer\\CustomerController::editAction', '_legacy_controller' => 'AdminCustomers', '_legacy_link' => 'AdminCustomers:updatecustomer', '_legacy_parameters' => ['id_customer' => 'customerId']], ['customerId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        4482 => [[['_route' => 'admin_customers_view', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Customer\\CustomerController::viewAction', '_legacy_controller' => 'AdminCustomers', '_legacy_link' => 'AdminCustomers:viewcustomer', '_legacy_parameters' => ['id_customer' => 'customerId']], ['customerId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        4515 => [[['_route' => 'admin_customers_set_private_note', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Customer\\CustomerController::setPrivateNoteAction', '_legacy_controller' => 'AdminCustomers', '_legacy_link' => 'AdminCustomers:updateCustomerNote', '_legacy_parameters' => ['id_customer' => 'customerId']], ['customerId'], ['POST' => 0], null, false, false, null]],
-        4544 => [[['_route' => 'admin_customers_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Customer\\CustomerController::toggleStatusAction', '_legacy_controller' => 'AdminCustomers', '_legacy_link' => 'AdminCustomers:statuscustomer', '_legacy_parameters' => ['id_customer' => 'customerId']], ['customerId'], ['POST' => 0], null, false, false, null]],
-        4592 => [[['_route' => 'admin_customers_transform_guest_to_customer', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Customer\\CustomerController::transformGuestToCustomerAction', '_legacy_controller' => 'AdminCustomers', '_legacy_link' => 'AdminCustomers:guesttocustomer', '_legacy_parameters' => ['id_customer' => 'customerId']], ['customerId'], ['POST' => 0], null, false, false, null]],
-        4639 => [[['_route' => 'admin_customers_toggle_newsletter_subscription', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Customer\\CustomerController::toggleNewsletterSubscriptionAction', '_legacy_controller' => 'AdminCustomers', '_legacy_link' => 'AdminCustomers:changeNewsletterVal', '_legacy_parameters' => ['id_customer' => 'customerId']], ['customerId'], ['POST' => 0], null, false, false, null]],
-        4690 => [[['_route' => 'admin_customers_toggle_partner_offer_subscription', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Customer\\CustomerController::togglePartnerOfferSubscriptionAction', '_legacy_controller' => 'AdminCustomers', '_legacy_link' => 'AdminCustomers:changeOptinVal', '_legacy_parameters' => ['id_customer' => 'customerId']], ['customerId'], ['POST' => 0], null, false, false, null]],
-        4710 => [[['_route' => 'admin_customers_carts', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Customer\\CustomerController::getCartsAction', '_legacy_controller' => 'AdminCustomers', '_legacy_link' => 'AdminCustomers'], ['customerId'], ['GET' => 0], null, false, false, null]],
-        4731 => [[['_route' => 'admin_customers_orders', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Customer\\CustomerController::getOrdersAction', '_legacy_controller' => 'AdminCustomers', '_legacy_link' => 'AdminCustomers'], ['customerId'], ['GET' => 0], null, false, false, null]],
-        4783 => [[['_route' => 'admin_order_messages_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\CustomerService\\OrderMessageController::editAction', '_legacy_controller' => 'AdminOrderMessage', '_legacy_link' => 'AdminOrderMessage:updateorder_message', 'legacy_parameters' => ['id_order_message' => 'orderMessageId']], ['orderMessageId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        4804 => [[['_route' => 'admin_order_messages_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\CustomerService\\OrderMessageController::deleteAction', '_legacy_controller' => 'AdminOrderMessage', '_legacy_link' => 'AdminOrderMessage:deleteorder_message', 'legacy_parameters' => ['id_order_message' => 'orderMessageId']], ['orderMessageId'], ['POST' => 0], null, false, false, null]],
-        4845 => [[['_route' => 'admin_customer_threads_view', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\CustomerService\\CustomerThreadController::viewAction', '_legacy_controller' => 'AdminCustomerThreads'], ['customerThreadId'], ['GET' => 0], null, false, false, null]],
-        4865 => [[['_route' => 'admin_customer_threads_reply', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\CustomerService\\CustomerThreadController::replyAction', '_legacy_controller' => 'AdminCustomerThreads'], ['customerThreadId'], ['POST' => 0], null, false, false, null]],
-        4903 => [[['_route' => 'admin_customer_threads_update_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\CustomerService\\CustomerThreadController::updateStatusAction', '_legacy_controller' => 'AdminCustomerThreads'], ['customerThreadId', 'newStatus'], ['POST' => 0], null, false, true, null]],
-        4925 => [[['_route' => 'admin_customer_threads_forward', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\CustomerService\\CustomerThreadController::forwardAction', '_legacy_controller' => 'AdminCustomerThreads'], ['customerThreadId'], ['POST' => 0], null, false, false, null]],
-        4964 => [[['_route' => 'admin_addresses_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Address\\AddressController::editAction', '_legacy_controller' => 'AdminAddresses', '_legacy_link' => 'AdminAddresses:updateaddress', '_legacy_parameters' => ['id_address' => 'addressId']], ['addressId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        5008 => [[['_route' => 'admin_order_addresses_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Address\\AddressController::editOrderAddressAction', '_legacy_controller' => 'AdminAddresses'], ['orderId', 'addressType'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        5051 => [[['_route' => 'admin_cart_addresses_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Address\\AddressController::editCartAddressAction', '_legacy_controller' => 'AdminAddresses'], ['cartId', 'addressType'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        5072 => [[['_route' => 'admin_addresses_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Address\\AddressController::deleteAction', '_legacy_controller' => 'AdminAddresses', '_legacy_link' => 'AdminAddresses:deleteaddress', '_legacy_parameters' => ['id_address' => 'addressId']], ['addressId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
-        5106 => [[['_route' => 'admin_attachments_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttachmentController::editAction', '_legacy_controller' => 'AdminAttachments', '_legacy_link' => 'AdminAttachments:updateattachment', '_legacy_parameters' => ['id_attachment' => 'attachmentId']], ['attachmentId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        5125 => [[['_route' => 'admin_attachments_view', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttachmentController::viewAction', '_legacy_controller' => 'AdminAttachments', '_legacy_link' => 'AdminAttachments:viewattachment', '_legacy_parameters' => ['id_attachment' => 'attachmentId']], ['attachmentId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        5146 => [[['_route' => 'admin_attachments_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttachmentController::deleteAction', '_legacy_controller' => 'AdminAttachments', '_legacy_link' => 'AdminAttachments:deleteattachment', '_legacy_parameters' => ['id_attachment' => 'attachmentId']], ['attachmentId'], ['POST' => 0], null, false, false, null]],
-        5165 => [[['_route' => 'admin_attachments_attachment_info', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttachmentController::getAttachmentInfoAction'], ['attachmentId'], ['GET' => 0], null, false, false, null]],
-        5189 => [[['_route' => 'admin_attachments_search', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttachmentController::searchAction', '_legacy_controller' => 'AdminAttachments', '_legacy_link' => 'AdminAttachments:search'], ['searchPhrase'], ['GET' => 0], null, false, true, null]],
-        5233 => [[['_route' => 'admin_order_invoices_generate_by_id', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\InvoicesController::generatePdfByIdAction', '_legacy_controller' => 'AdminInvoices'], ['invoiceId'], ['GET' => 0], null, false, false, null]],
-        5261 => [[['_route' => 'admin_carts_view', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::viewAction', '_legacy_controller' => 'AdminCarts', '_legacy_link' => 'AdminCarts:viewcart', '_legacy_parameters' => ['id_cart' => 'cartId']], ['cartId'], ['GET' => 0], null, false, false, null]],
-        5280 => [[['_route' => 'admin_carts_info', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::getInfoAction', '_legacy_controller' => 'AdminCarts'], ['cartId'], ['GET' => 0], null, false, false, null]],
-        5304 => [[['_route' => 'admin_carts_edit_addresses', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::editAddressesAction', '_legacy_controller' => 'AdminCarts'], ['cartId'], ['POST' => 0], null, false, false, null]],
-        5326 => [[['_route' => 'admin_carts_edit_carrier', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::editCarrierAction', '_legacy_controller' => 'AdminCarts'], ['cartId'], ['POST' => 0], null, false, false, null]],
-        5349 => [[['_route' => 'admin_carts_edit_currency', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::editCurrencyAction', '_legacy_controller' => 'AdminCarts'], ['cartId'], ['POST' => 0], null, false, false, null]],
-        5372 => [[['_route' => 'admin_carts_edit_language', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::editLanguageAction', '_legacy_controller' => 'AdminCarts'], ['cartId'], ['POST' => 0], null, false, false, null]],
-        5411 => [[['_route' => 'admin_carts_set_delivery_settings', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::updateDeliverySettingsAction', '_legacy_controller' => 'AdminCarts'], ['cartId'], ['POST' => 0], null, false, false, null]],
-        5443 => [[['_route' => 'admin_carts_add_cart_rule', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::addCartRuleAction', '_legacy_controller' => 'AdminCarts'], ['cartId'], ['POST' => 0], null, false, false, null]],
-        5468 => [[['_route' => 'admin_carts_delete_cart_rule', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::deleteCartRuleAction', '_legacy_controller' => 'AdminCarts'], ['cartId', 'cartRuleId'], ['POST' => 0], null, false, false, null]],
-        5492 => [[['_route' => 'admin_carts_add_product', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::addProductAction', '_legacy_controller' => 'AdminCarts'], ['cartId'], ['POST' => 0], null, false, false, null]],
-        5527 => [[['_route' => 'admin_carts_edit_product_price', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::editProductPriceAction', '_legacy_controller' => 'AdminCarts'], ['cartId', 'productId'], ['POST' => 0], null, false, false, null]],
-        5565 => [[['_route' => 'admin_carts_edit_product_quantity', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::editProductQuantityAction', '_legacy_controller' => 'AdminCarts'], ['cartId', 'productId'], ['POST' => 0], null, false, false, null]],
-        5595 => [[['_route' => 'admin_carts_delete_product', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::deleteProductAction', '_legacy_controller' => 'AdminCarts'], ['cartId'], ['POST' => 0], null, false, false, null]],
-        5633 => [[['_route' => 'admin_orders_generate_invoice_pdf', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::generateInvoicePdfAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['GET' => 0], null, false, false, null]],
-        5677 => [[['_route' => 'admin_orders_generate_delivery_slip_pdf', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::generateDeliverySlipPdfAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['GET' => 0], null, false, false, null]],
-        5696 => [[['_route' => 'admin_orders_view', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::viewAction', '_legacy_controller' => 'AdminOrders', '_legacy_link' => 'AdminOrders:vieworder', '_legacy_parameters' => ['id_order' => 'orderId']], ['orderId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        5722 => [[['_route' => 'admin_orders_add_cart_rule', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::addCartRuleAction'], ['orderId'], ['POST' => 0], null, false, false, null]],
-        5748 => [[['_route' => 'admin_orders_list_update_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::updateStatusFromListAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
-        5769 => [[['_route' => 'admin_orders_update_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::updateStatusAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
-        5791 => [[['_route' => 'admin_orders_add_payment', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::addPaymentAction'], ['orderId'], ['POST' => 0], null, false, false, null]],
-        5821 => [[['_route' => 'admin_orders_duplicate_cart', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::duplicateOrderCartAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
-        5851 => [[['_route' => 'admin_orders_change_currency', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::changeCurrencyAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
-        5880 => [[['_route' => 'admin_orders_update_product', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::updateProductAction', '_legacy_controller' => 'AdminOrders'], ['orderId', 'orderDetailId'], ['POST' => 0], null, false, true, null]],
-        5919 => [[['_route' => 'admin_orders_remove_cart_rule', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::removeCartRuleAction'], ['orderId', 'orderCartRuleId'], ['GET' => 0], null, false, false, null]],
-        5976 => [[['_route' => 'admin_orders_resend_email', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::resendEmailAction'], ['orderId', 'orderHistoryId', 'orderStatusId'], ['POST' => 0], null, false, false, null]],
-        5998 => [[['_route' => 'admin_orders_preview', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::previewAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['GET' => 0], null, false, false, null]],
-        6021 => [[['_route' => 'admin_orders_update_shipping', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::updateShippingAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
-        6054 => [[['_route' => 'admin_orders_update_invoice_note', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::updateInvoiceNoteAction'], ['orderId', 'orderInvoiceId'], ['POST' => 0], null, false, false, null]],
-        6076 => [[['_route' => 'admin_orders_generate_invoice', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::generateInvoiceAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
-        6107 => [[['_route' => 'admin_orders_send_message', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::sendMessageAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
-        6137 => [[['_route' => 'admin_orders_partial_refund', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::partialRefundAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
-        6168 => [[['_route' => 'admin_orders_standard_refund', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::standardRefundAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
-        6198 => [[['_route' => 'admin_orders_return_product', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::returnProductAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
-        6221 => [[['_route' => 'admin_orders_add_product', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::addProductAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
-        6257 => [[['_route' => 'admin_orders_delete_product', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::deleteProductAction', '_legacy_controller' => 'AdminOrders'], ['orderId', 'orderDetailId'], ['POST' => 0], null, false, false, null]],
-        6281 => [[['_route' => 'admin_orders_get_discounts', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::getDiscountsAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['GET' => 0], null, false, false, null]],
-        6302 => [[['_route' => 'admin_orders_get_prices', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::getPricesAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['GET' => 0], null, false, false, null]],
-        6325 => [[['_route' => 'admin_orders_get_payments', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::getPaymentsAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['GET' => 0], null, false, false, null]],
-        6348 => [[['_route' => 'admin_orders_get_products', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::getProductsListAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['GET' => 0], null, false, false, null]],
-        6371 => [[['_route' => 'admin_orders_get_invoices', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::getInvoicesAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['GET' => 0], null, false, false, null]],
-        6395 => [[['_route' => 'admin_orders_get_documents', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::getDocumentsAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['GET' => 0], null, false, false, null]],
-        6418 => [[['_route' => 'admin_orders_get_shipping', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::getShippingAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['GET' => 0], null, false, false, null]],
-        6445 => [[['_route' => 'admin_orders_cancellation', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::cancellationAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
-        6494 => [[['_route' => 'admin_orders_display_customization_image', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::displayCustomizationImageAction', '_legacy_controller' => 'AdminOrders'], ['orderId', 'value'], ['GET' => 0], null, false, true, null]],
-        6524 => [[['_route' => 'admin_orders_product_prices', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::getProductPricesAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['GET' => 0], null, false, false, null]],
-        6558 => [[['_route' => 'admin_orders_set_internal_note', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::setInternalNoteAction', '_legacy_controller' => 'AdminOrders', '_legacy_link' => 'AdminOrders:updateInternalNote', '_legacy_parameters' => ['id_order' => 'orderId']], ['orderId'], ['POST' => 0], null, false, false, null]],
-        6590 => [[['_route' => 'admin_credit_slips_generate_pdf', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CreditSlipController::generatePdfAction', '_legacy_controller' => 'AdminSlip', '_legacy_link' => 'AdminSlip:submitgenerateOrderSlipPdf', '_legacy_parameters' => ['id_order_slip' => 'creditSlipId']], ['creditSlipId'], ['GET' => 0], null, false, false, null]],
-        6653 => [[['_route' => 'admin_languages_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\LanguageController::editAction', '_legacy_controller' => 'AdminLanguages', '_legacy_link' => 'AdminLanguages:updatelang'], ['languageId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        6674 => [[['_route' => 'admin_languages_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\LanguageController::deleteAction', '_legacy_controller' => 'AdminLanguages', '_legacy_link' => 'AdminLanguages:deletelang'], ['languageId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
-        6706 => [[['_route' => 'admin_languages_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\LanguageController::toggleStatusAction', '_legacy_controller' => 'AdminLanguages', '_legacy_link' => 'AdminLanguages:statuslang'], ['languageId'], ['POST' => 0], null, false, false, null]],
-        6752 => [[['_route' => 'admin_languages_bulk_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\LanguageController::bulkToggleStatusAction', '_legacy_controller' => 'AdminLanguages', '_legacy_link' => 'AdminLanguages:submitBulkupdatelang'], ['status'], ['POST' => 0], null, false, true, null]],
-        6789 => [[['_route' => 'admin_currencies_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\CurrencyController::editAction', '_legacy_controller' => 'AdminCurrencies', '_legacy_link' => 'AdminCurrencies:updatecurrency', '_legacy_parameters' => ['id_currency' => 'currencyId']], ['currencyId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        6810 => [[['_route' => 'admin_currencies_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\CurrencyController::deleteAction', '_legacy_controller' => 'AdminCurrencies', '_legacy_link' => 'AdminCurrencies:deletecurrency', '_legacy_parameters' => ['id_currency' => 'currencyId']], ['currencyId'], ['DELETE' => 0], null, false, false, null]],
-        6839 => [[['_route' => 'admin_currencies_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\CurrencyController::toggleStatusAction', '_legacy_controller' => 'AdminCurrencies', '_legacy_link' => 'AdminCurrencies:statuscurrency', '_legacy_parameters' => ['id_currency' => 'currencyId']], ['currencyId'], ['POST' => 0], null, false, false, null]],
-        6872 => [[['_route' => 'admin_currencies_get_reference_data', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\CurrencyController::getReferenceDataAction', '_legacy_controller' => 'AdminCurrencies', '_legacy_link' => 'AdminCurrencies:getReferenceData'], ['currencyIsoCode'], ['GET' => 0], null, false, true, null]],
-        6918 => [[['_route' => 'admin_currencies_bulk_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\CurrencyController::bulkToggleStatusAction', '_legacy_controller' => 'AdminCurrencies', '_legacy_link' => 'AdminCurrencies:submitBulkupdatecurrency'], ['status'], ['POST' => 0], null, false, true, null]],
-        6947 => [[['_route' => 'admin_country_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\CountryController::editAction', '_legacy_controller' => 'AdminCountry', '_legacy_parameters' => ['id_country' => 'countryId']], ['countryId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        6979 => [[['_route' => 'admin_taxes_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxController::editAction', '_legacy_controller' => 'AdminTaxes', '_legacy_link' => 'AdminTaxes:updatetax', '_legacy_parameters' => ['id_tax' => 'taxId']], ['taxId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        7000 => [[['_route' => 'admin_taxes_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxController::deleteAction', '_legacy_controller' => 'AdminTaxes', '_legacy_link' => 'AdminTaxes:deletetax', '_legacy_parameters' => ['id_tax' => 'taxId']], ['taxId'], ['POST' => 0], null, false, false, null]],
-        7029 => [[['_route' => 'admin_taxes_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxController::toggleStatusAction', '_legacy_controller' => 'AdminTaxes', '_legacy_link' => 'AdminTaxes:statustax', '_legacy_parameters' => ['id_tax' => 'taxId']], ['taxId'], ['POST' => 0], null, false, false, null]],
-        7066 => [[['_route' => 'admin_tax_rules_groups_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxRulesGroupController::editAction', '_legacy_controller' => 'AdminTaxRulesGroup', '_legacy_parameters' => ['id_tax_rules_group' => 'taxRulesGroupId']], ['taxRulesGroupId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        7087 => [[['_route' => 'admin_tax_rules_groups_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxRulesGroupController::deleteAction', '_legacy_controller' => 'AdminTaxRulesGroup', '_legacy_parameters' => ['id_tax_rules_group' => 'taxRulesGroupId']], ['taxRulesGroupId'], ['POST' => 0], null, false, false, null]],
-        7116 => [[['_route' => 'admin_tax_rules_groups_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxRulesGroupController::toggleStatusAction', '_legacy_controller' => 'AdminTaxRulesGroup', '_legacy_parameters' => ['id_tax_rules_group' => 'taxRulesGroupId']], ['taxRulesGroupId'], ['POST' => 0], null, false, false, null]],
-        7147 => [[['_route' => 'admin_states_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\StateController::editAction', '_legacy_controller' => 'AdminStates', '_legacy_parameters' => ['id_state' => 'stateId']], ['stateId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        7168 => [[['_route' => 'admin_states_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\StateController::deleteAction', '_legacy_controller' => 'AdminStates', '_legacy_parameters' => ['id_state' => 'stateId']], ['stateId'], ['DELETE' => 0], null, false, false, null]],
-        7200 => [[['_route' => 'admin_states_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\StateController::toggleStatusAction', '_legacy_controller' => 'AdminStates', '_legacy_parameters' => ['id_state' => 'stateId']], ['stateId'], ['POST' => 0], null, false, false, null]],
-        7229 => [[['_route' => 'admin_zones_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\ZoneController::editAction', '_legacy_controller' => 'AdminZones', '_legacy_link' => 'AdminZones:updatezone', '_legacy_parameters' => ['id_zone' => 'zoneId']], ['zoneId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        7250 => [[['_route' => 'admin_zones_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\ZoneController::deleteAction', '_legacy_controller' => 'AdminZones', '_legacy_link' => 'AdminZones:deletezone', '_legacy_parameters' => ['id_zone' => 'zoneId']], ['zoneId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
-        7279 => [[['_route' => 'admin_zones_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\ZoneController::toggleStatusAction', '_legacy_controller' => 'AdminZones', '_legacy_link' => 'AdminZones:enableSelection', '_legacy_parameters' => ['id_zone' => 'zoneId']], ['zoneId'], ['POST' => 0], null, false, false, null]],
-        7325 => [[['_route' => 'admin_zones_bulk_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\ZoneController::bulkToggleStatus', '_legacy_controller' => 'AdminZones', '_legacy_link' => 'AdminZones:submitBulkupdatezone'], ['status'], ['POST' => 0], null, false, true, null]],
-        7381 => [[['_route' => 'admin_module_manage', 'category' => null, 'keyword' => null, '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\ModuleController::manageAction', '_legacy_controller' => 'AdminModulesManage', '_legacy_link' => ['AdminModulesManage', 'AdminModulesSf']], ['category', 'keyword'], ['GET' => 0], null, false, true, null]],
-        7488 => [[['_route' => 'admin_module_manage_action', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\ModuleController::moduleAction'], ['action', 'module_name'], ['POST' => 0], null, false, true, null]],
-        7515 => [[['_route' => 'admin_module_configure_action', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\ModuleController::configureModuleAction', '_legacy_controller' => 'AdminModules'], ['module_name'], ['GET' => 0, 'POST' => 1], null, false, true, null]],
-        7588 => [[['_route' => 'admin_module_manage_action_bulk', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\ModuleController::moduleAction'], ['action'], ['POST' => 0], null, false, true, null]],
-        7607 => [[['_route' => 'admin_module_manage_update_all', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\ModuleController::moduleAction'], [], ['POST' => 0], null, false, false, null]],
-        7662 => [[['_route' => 'admin_themes_enable', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\ThemeController::enableAction', '_legacy_controller' => 'AdminThemes', '_legacy_link' => 'AdminThemes:enableTheme', '_legacy_parameters' => ['theme_name' => 'themeName']], ['themeName'], ['POST' => 0], null, false, false, null]],
-        7695 => [[['_route' => 'admin_themes_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\ThemeController::deleteAction', '_legacy_controller' => 'AdminThemes', '_legacy_link' => 'AdminThemes:deleteTheme', '_legacy_parameters' => ['theme_name' => 'themeName']], ['themeName'], ['POST' => 0], null, false, false, null]],
-        7736 => [[['_route' => 'admin_themes_reset_layouts', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\ThemeController::resetLayoutsAction', '_legacy_controller' => 'AdminThemes', '_legacy_link' => 'AdminThemes:resetToDefaults', '_legacy_parameters' => ['theme_name' => 'themeName']], ['themeName'], ['POST' => 0], null, false, false, null]],
-        7770 => [[['_route' => 'admin_cms_pages_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\CmsPageController::editAction', '_legacy_controller' => 'AdminCmsContent', '_legacy_link' => 'AdminCmsContent:updatecms', '_legacy_parameters' => ['id_cms' => 'cmsPageId']], ['cmsPageId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        7799 => [[['_route' => 'admin_cms_pages_toggle', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\CmsPageController::toggleCmsAction', '_legacy_controller' => 'AdminCmsContent', '_legacy_link' => 'AdminCmsContent:statuscms', '_legacy_parameters' => ['id_cms' => 'cmsId']], ['cmsId'], ['POST' => 0], null, false, false, null]],
-        7820 => [[['_route' => 'admin_cms_pages_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\CmsPageController::deleteCmsAction', '_legacy_controller' => 'AdminCmsContent', '_legacy_link' => 'AdminCmsContent:deletecms', '_legacy_parameters' => ['id_cms' => 'cmsId']], ['cmsId'], ['DELETE' => 0], null, false, false, null]],
-        7851 => [[['_route' => 'admin_cms_pages_category_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\CmsPageController::editCmsCategoryAction', '_legacy_controller' => 'AdminCmsContent', '_legacy_link' => 'AdminCmsContent:updatecms_category', '_legacy_parameters' => ['id_cms_category' => 'cmsCategoryId']], ['cmsCategoryId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
-        7872 => [[['_route' => 'admin_cms_pages_category_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\CmsPageController::deleteCmsCategoryAction', '_legacy_controller' => 'AdminCmsContent', '_legacy_link' => 'AdminCmsContent:deletecms_category', '_legacy_parameters' => ['id_cms_category' => 'cmsCategoryId']], ['cmsCategoryId'], ['DELETE' => 0], null, false, false, null]],
-        7901 => [[['_route' => 'admin_cms_pages_category_toggle', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\CmsPageController::toggleCmsCategoryAction', '_legacy_controller' => 'AdminCmsContent', '_legacy_link' => 'AdminCmsContent:statuscms_category', '_legacy_parameters' => ['id_cms_category' => 'cmsCategoryId']], ['cmsCategoryId'], ['POST' => 0], null, false, false, null]],
-        7971 => [[['_route' => 'admin_mail_theme_send_test_mail_deprecated', '_controller' => 'Symfony\\Bundle\\FrameworkBundle\\Controller\\RedirectController::redirectAction', 'route' => 'admin_mail_theme_send_test_mail', 'permanent' => true], ['locale', 'theme', 'layout'], null, null, false, true, null]],
-        7989 => [[['_route' => 'admin_mail_theme_send_test_module_mail_deprecated', '_controller' => 'Symfony\\Bundle\\FrameworkBundle\\Controller\\RedirectController::redirectAction', 'route' => 'admin_mail_theme_send_test_module_mail', 'permanent' => true], ['locale', 'theme', 'module', 'layout'], ['GET' => 0], null, false, true, null]],
-        8041 => [[['_route' => 'admin_mail_theme_send_test_mail', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\MailThemeController::sendTestMailAction', '_legacy_link' => 'AdminMailTheme:rawModuleLayout', '_legacy_controller' => 'AdminMailTheme', 'module' => ''], ['locale', 'theme', 'layout'], ['GET' => 0], null, false, true, null]],
-        8059 => [[['_route' => 'admin_mail_theme_send_test_module_mail', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\MailThemeController::sendTestMailAction', '_legacy_link' => 'AdminMailTheme:rawModuleLayout', '_legacy_controller' => 'AdminMailTheme'], ['locale', 'theme', 'module', 'layout'], ['GET' => 0], null, false, true, null]],
-        8089 => [[['_route' => 'admin_mail_theme_preview', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\MailThemeController::previewThemeAction', '_legacy_controller' => 'AdminMailTheme', '_legacy_link' => 'AdminMailTheme:previewTheme'], ['theme'], ['GET' => 0], null, false, true, null]],
-        8131 => [[['_route' => 'admin_mail_theme_preview_layout', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\MailThemeController::previewLayoutAction', '_legacy_controller' => 'AdminMailTheme', '_legacy_link' => 'AdminMailTheme:previewLayout', 'module' => ''], ['locale', 'theme', 'layout', 'type'], ['GET' => 0], null, false, true, null]],
-        8169 => [[['_route' => 'admin_mail_theme_preview_module_layout', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\MailThemeController::previewLayoutAction', '_legacy_controller' => 'AdminMailTheme', '_legacy_link' => 'AdminMailTheme:previewModuleLayout'], ['locale', 'theme', 'module', 'layout', 'type'], ['GET' => 0], null, false, true, null]],
-        8225 => [[['_route' => 'admin_mail_theme_raw_layout', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\MailThemeController::rawLayoutAction', '_legacy_controller' => 'AdminMailTheme', '_legacy_link' => 'AdminMailTheme:rawLayout', 'module' => ''], ['locale', 'theme', 'layout', 'type'], ['GET' => 0], null, false, true, null]],
-        8263 => [[['_route' => 'admin_mail_theme_raw_module_layout', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\MailThemeController::rawLayoutAction', '_legacy_link' => 'AdminMailTheme:rawModuleLayout', '_legacy_controller' => 'AdminMailTheme'], ['locale', 'theme', 'module', 'layout', 'type'], ['GET' => 0], null, false, true, null]],
-        8306 => [[['_route' => 'admin_carriers_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Shipping\\CarriersController::editAction'], ['carrierId'], ['GET' => 0], null, false, false, null]],
-        8327 => [[['_route' => 'admin_carriers_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Shipping\\CarriersController::deleteAction', '_legacy_controller' => 'AdminCarriers', '_legacy_parameters' => ['id_carrier' => 'carrierId']], ['carrierId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
-        8356 => [[['_route' => 'admin_carriers_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Shipping\\CarriersController::toggleStatusAction', '_legacy_controller' => 'AdminCarriers', '_legacy_parameters' => ['id_carrier' => 'carrierId']], ['carrierId'], ['POST' => 0], null, false, false, null]],
-        8387 => [[['_route' => 'admin_carriers_toggle_is_free', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Shipping\\CarriersController::toggleIsFreeAction', '_legacy_controller' => 'AdminCarriers', '_legacy_parameters' => ['id_carrier' => 'carrierId']], ['carrierId'], ['POST' => 0], null, false, false, null]],
-        8424 => [[['_route' => 'api_stock_list_product_combinations', '_controller' => 'prestashop.core.api.stock.controller:listProductsAction', '_legacy_controller' => 'AdminStockManagement'], ['productId'], ['GET' => 0], null, false, true, null]],
-        8449 => [[['_route' => 'api_stock_edit_product', '_controller' => 'prestashop.core.api.stock.controller:editProductAction', '_legacy_controller' => 'AdminStockManagement'], ['productId'], ['POST' => 0], null, false, true, null]],
-        8481 => [[['_route' => 'api_stock_edit_product_combination', '_controller' => 'prestashop.core.api.stock.controller:editProductAction', '_legacy_controller' => 'AdminStockManagement'], ['productId', 'combinationId'], ['POST' => 0], null, false, true, null]],
-        8517 => [[['_route' => 'api_stock_product_list_movements', '_controller' => 'prestashop.core.api.stock_movement.controller:listMovementsAction', '_legacy_controller' => 'AdminStockManagement'], ['productId'], ['GET' => 0], null, false, true, null]],
-        8537 => [[['_route' => 'api_i18n_translations_list', '_controller' => 'prestashop.core.api.i18n.controller:listTranslationAction'], ['page'], ['GET' => 0], null, false, true, null]],
-        8598 => [[['_route' => 'api_translation_domains_tree', '_controller' => 'prestashop.core.api.translation.controller:listTreeAction', '_legacy_controller' => 'AdminTranslations', 'selected' => null], ['lang', 'type', 'selected'], ['GET' => 0], null, false, true, null]],
-        8638 => [[['_route' => 'api_translation_domain_catalog', '_controller' => 'prestashop.core.api.translation.controller:listDomainTranslationAction', '_legacy_controller' => 'AdminTranslations', 'theme' => null, 'module' => null], ['locale', 'domain', 'theme'], ['GET' => 0], null, false, true, null]],
-        8690 => [
+        5382 => [[['_route' => 'admin_attributes_create', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeController::createAction', '_legacy_controller' => 'AdminAttributesGroups', 'redirectQueryParamsToKeep' => ['attributeGroupId']], ['attributeGroupId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        5418 => [[['_route' => 'admin_attributes_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeController::editAction', '_legacy_controller' => 'AdminAttributesGroups', 'redirectQueryParamsToKeep' => ['attributeGroupId'], '_legacy_parameters' => ['id_attribute_group' => 'attributeGroupId', 'id_attribute' => 'attributeId']], ['attributeGroupId', 'attributeId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        5459 => [[['_route' => 'admin_attributes_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeController::deleteAction', '_legacy_controller' => 'AdminAttributesGroups', 'redirectQueryParamsToKeep' => ['attributeGroupId'], '_legacy_parameters' => ['id_attribute_group' => 'attributeGroupId', 'id_attribute' => 'attributeId']], ['attributeGroupId', 'attributeId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
+        5491 => [[['_route' => 'admin_attributes_bulk_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeController::bulkDeleteAction', '_legacy_controller' => 'AdminAttributesGroups', 'redirectQueryParamsToKeep' => ['attributeGroupId'], '_legacy_parameters' => ['id_attribute_group' => 'attributeGroupId', 'id_attribute' => 'attributeId']], ['attributeGroupId'], ['POST' => 0], null, false, false, null]],
+        5533 => [[['_route' => 'admin_attributes_update_position', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeController::updatePositionAction', '_legacy_controller' => 'AdminAttributesGroups'], ['attributeGroupId'], ['POST' => 0], null, false, false, null]],
+        5552 => [[['_route' => 'admin_attribute_groups_view', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeController::indexAction', '_legacy_controller' => 'AdminAttributesGroups', '_legacy_link' => 'AdminAttributesGroups:viewattribute_group', '_legacy_feature_flag' => 'attribute_group', '_legacy_parameters' => ['id_attribute_group' => 'attributeGroupId']], ['attributeGroupId'], ['GET' => 0], null, false, false, null]],
+        5571 => [[['_route' => 'admin_attribute_groups_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeGroupController::editAction', '_legacy_controller' => 'AdminAttributesGroups', '_legacy_link' => 'AdminAttributesGroups:updateattribute_group', '_legacy_feature_flag' => 'attribute_group', '_legacy_parameters' => ['id_attribute_group' => 'attributeGroupId']], ['attributeGroupId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        5592 => [[['_route' => 'admin_attribute_groups_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttributeGroupController::deleteAction', '_legacy_controller' => 'AdminAttributesGroups', '_legacy_feature_flag' => 'attribute_group', '_legacy_link' => 'AdminAttributesGroups:deleteattribute_group', '_legacy_parameters' => ['id_attribute_group' => 'attributeGroupId']], ['attributeGroupId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
+        5628 => [[['_route' => 'admin_customers_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Customer\\CustomerController::editAction', '_legacy_controller' => 'AdminCustomers', '_legacy_link' => 'AdminCustomers:updatecustomer', '_legacy_parameters' => ['id_customer' => 'customerId']], ['customerId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        5647 => [[['_route' => 'admin_customers_view', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Customer\\CustomerController::viewAction', '_legacy_controller' => 'AdminCustomers', '_legacy_link' => 'AdminCustomers:viewcustomer', '_legacy_parameters' => ['id_customer' => 'customerId']], ['customerId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        5680 => [[['_route' => 'admin_customers_set_private_note', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Customer\\CustomerController::setPrivateNoteAction', '_legacy_controller' => 'AdminCustomers', '_legacy_link' => 'AdminCustomers:updateCustomerNote', '_legacy_parameters' => ['id_customer' => 'customerId']], ['customerId'], ['POST' => 0], null, false, false, null]],
+        5709 => [[['_route' => 'admin_customers_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Customer\\CustomerController::toggleStatusAction', '_legacy_controller' => 'AdminCustomers', '_legacy_link' => 'AdminCustomers:statuscustomer', '_legacy_parameters' => ['id_customer' => 'customerId']], ['customerId'], ['POST' => 0], null, false, false, null]],
+        5757 => [[['_route' => 'admin_customers_transform_guest_to_customer', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Customer\\CustomerController::transformGuestToCustomerAction', '_legacy_controller' => 'AdminCustomers', '_legacy_link' => 'AdminCustomers:guesttocustomer', '_legacy_parameters' => ['id_customer' => 'customerId']], ['customerId'], ['POST' => 0], null, false, false, null]],
+        5804 => [[['_route' => 'admin_customers_toggle_newsletter_subscription', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Customer\\CustomerController::toggleNewsletterSubscriptionAction', '_legacy_controller' => 'AdminCustomers', '_legacy_link' => 'AdminCustomers:changeNewsletterVal', '_legacy_parameters' => ['id_customer' => 'customerId']], ['customerId'], ['POST' => 0], null, false, false, null]],
+        5855 => [[['_route' => 'admin_customers_toggle_partner_offer_subscription', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Customer\\CustomerController::togglePartnerOfferSubscriptionAction', '_legacy_controller' => 'AdminCustomers', '_legacy_link' => 'AdminCustomers:changeOptinVal', '_legacy_parameters' => ['id_customer' => 'customerId']], ['customerId'], ['POST' => 0], null, false, false, null]],
+        5875 => [[['_route' => 'admin_customers_carts', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Customer\\CustomerController::getCartsAction', '_legacy_controller' => 'AdminCustomers', '_legacy_link' => 'AdminCustomers'], ['customerId'], ['GET' => 0], null, false, false, null]],
+        5896 => [[['_route' => 'admin_customers_orders', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Customer\\CustomerController::getOrdersAction', '_legacy_controller' => 'AdminCustomers', '_legacy_link' => 'AdminCustomers'], ['customerId'], ['GET' => 0], null, false, false, null]],
+        5948 => [[['_route' => 'admin_order_messages_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\CustomerService\\OrderMessageController::editAction', '_legacy_controller' => 'AdminOrderMessage', '_legacy_link' => 'AdminOrderMessage:updateorder_message', 'legacy_parameters' => ['id_order_message' => 'orderMessageId']], ['orderMessageId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        5969 => [[['_route' => 'admin_order_messages_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\CustomerService\\OrderMessageController::deleteAction', '_legacy_controller' => 'AdminOrderMessage', '_legacy_link' => 'AdminOrderMessage:deleteorder_message', 'legacy_parameters' => ['id_order_message' => 'orderMessageId']], ['orderMessageId'], ['POST' => 0], null, false, false, null]],
+        6012 => [[['_route' => 'admin_order_returns_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\CustomerService\\MerchandiseReturnController::editAction', '_legacy_controller' => 'AdminReturn', '_legacy_parameters' => ['id_order_return' => 'orderReturnId']], ['orderReturnId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        6033 => [[['_route' => 'admin_order_returns_update', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\CustomerService\\MerchandiseReturnController::editAction', '_legacy_controller' => 'AdminReturn', '_legacy_parameters' => ['id_order_return' => 'orderReturnId']], ['orderReturnId'], ['POST' => 0], null, false, false, null]],
+        6074 => [[['_route' => 'admin_customer_threads_view', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\CustomerService\\CustomerThreadController::viewAction', '_legacy_controller' => 'AdminCustomerThreads', '_legacy_parameters' => ['id_customer_thread' => 'customerThreadId'], '_legacy_link' => 'AdminCustomerThreads:viewcustomer_thread', '_legacy_feature_flag' => 'customer_threads'], ['customerThreadId'], ['GET' => 0], null, false, false, null]],
+        6094 => [[['_route' => 'admin_customer_threads_reply', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\CustomerService\\CustomerThreadController::replyAction', '_legacy_controller' => 'AdminCustomerThreads', '_legacy_link' => 'AdminCustomerThreads', '_legacy_feature_flag' => 'customer_threads'], ['customerThreadId'], ['POST' => 0], null, false, false, null]],
+        6123 => [[['_route' => 'admin_customer_threads_view_update_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\CustomerService\\CustomerThreadController::updateStatusFromViewAction', '_legacy_controller' => 'AdminCustomerThreads', '_legacy_link' => 'AdminCustomerThreads', '_legacy_feature_flag' => 'customer_threads'], ['customerThreadId'], ['POST' => 0], null, false, false, null]],
+        6157 => [[['_route' => 'admin_customer_threads_list_update_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\CustomerService\\CustomerThreadController::updateStatusFromListAction', '_legacy_controller' => 'AdminCustomerThreads', '_legacy_link' => 'AdminCustomerThreads', '_legacy_feature_flag' => 'customer_threads'], ['customerThreadId'], ['POST' => 0], null, false, false, null]],
+        6179 => [[['_route' => 'admin_customer_threads_forward', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\CustomerService\\CustomerThreadController::forwardAction', '_legacy_controller' => 'AdminCustomerThreads', '_legacy_link' => 'AdminCustomerThreads', '_legacy_feature_flag' => 'customer_threads'], ['customerThreadId'], ['POST' => 0], null, false, false, null]],
+        6200 => [[['_route' => 'admin_customer_threads_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\CustomerService\\CustomerThreadController::deleteAction', '_legacy_controller' => 'AdminCustomerThreads', '_legacy_link' => 'AdminCustomerThreads', '_legacy_feature_flag' => 'customer_threads'], ['customerThreadId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
+        6239 => [[['_route' => 'admin_addresses_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Address\\AddressController::editAction', '_legacy_controller' => 'AdminAddresses', '_legacy_link' => 'AdminAddresses:updateaddress', '_legacy_parameters' => ['id_address' => 'addressId']], ['addressId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        6283 => [[['_route' => 'admin_order_addresses_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Address\\AddressController::editOrderAddressAction', '_legacy_controller' => 'AdminAddresses'], ['orderId', 'addressType'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        6326 => [[['_route' => 'admin_cart_addresses_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Address\\AddressController::editCartAddressAction', '_legacy_controller' => 'AdminAddresses'], ['cartId', 'addressType'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        6347 => [[['_route' => 'admin_addresses_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Address\\AddressController::deleteAction', '_legacy_controller' => 'AdminAddresses', '_legacy_link' => 'AdminAddresses:deleteaddress', '_legacy_parameters' => ['id_address' => 'addressId']], ['addressId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
+        6381 => [[['_route' => 'admin_attachments_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttachmentController::editAction', '_legacy_controller' => 'AdminAttachments', '_legacy_link' => 'AdminAttachments:updateattachment', '_legacy_parameters' => ['id_attachment' => 'attachmentId']], ['attachmentId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        6400 => [[['_route' => 'admin_attachments_view', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttachmentController::viewAction', '_legacy_controller' => 'AdminAttachments', '_legacy_link' => 'AdminAttachments:viewattachment', '_legacy_parameters' => ['id_attachment' => 'attachmentId']], ['attachmentId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        6421 => [[['_route' => 'admin_attachments_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttachmentController::deleteAction', '_legacy_controller' => 'AdminAttachments', '_legacy_link' => 'AdminAttachments:deleteattachment', '_legacy_parameters' => ['id_attachment' => 'attachmentId']], ['attachmentId'], ['POST' => 0], null, false, false, null]],
+        6440 => [[['_route' => 'admin_attachments_attachment_info', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttachmentController::getAttachmentInfoAction'], ['attachmentId'], ['GET' => 0], null, false, false, null]],
+        6464 => [[['_route' => 'admin_attachments_search', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Catalog\\AttachmentController::searchAction', '_legacy_controller' => 'AdminAttachments', '_legacy_link' => 'AdminAttachments:search'], ['searchPhrase'], ['GET' => 0], null, false, true, null]],
+        6508 => [[['_route' => 'admin_order_invoices_generate_by_id', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\InvoicesController::generatePdfByIdAction', '_legacy_controller' => 'AdminInvoices'], ['invoiceId'], ['GET' => 0], null, false, false, null]],
+        6536 => [[['_route' => 'admin_carts_view', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::viewAction', '_legacy_controller' => 'AdminCarts', '_legacy_link' => 'AdminCarts:viewcart', '_legacy_parameters' => ['id_cart' => 'cartId']], ['cartId'], ['GET' => 0], null, false, false, null]],
+        6555 => [[['_route' => 'admin_carts_info', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::getInfoAction', '_legacy_controller' => 'AdminCarts'], ['cartId'], ['GET' => 0], null, false, false, null]],
+        6579 => [[['_route' => 'admin_carts_edit_addresses', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::editAddressesAction', '_legacy_controller' => 'AdminCarts'], ['cartId'], ['POST' => 0], null, false, false, null]],
+        6601 => [[['_route' => 'admin_carts_edit_carrier', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::editCarrierAction', '_legacy_controller' => 'AdminCarts'], ['cartId'], ['POST' => 0], null, false, false, null]],
+        6624 => [[['_route' => 'admin_carts_edit_currency', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::editCurrencyAction', '_legacy_controller' => 'AdminCarts'], ['cartId'], ['POST' => 0], null, false, false, null]],
+        6647 => [[['_route' => 'admin_carts_edit_language', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::editLanguageAction', '_legacy_controller' => 'AdminCarts'], ['cartId'], ['POST' => 0], null, false, false, null]],
+        6686 => [[['_route' => 'admin_carts_set_delivery_settings', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::updateDeliverySettingsAction', '_legacy_controller' => 'AdminCarts'], ['cartId'], ['POST' => 0], null, false, false, null]],
+        6718 => [[['_route' => 'admin_carts_add_cart_rule', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::addCartRuleAction', '_legacy_controller' => 'AdminCarts'], ['cartId'], ['POST' => 0], null, false, false, null]],
+        6743 => [[['_route' => 'admin_carts_delete_cart_rule', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::deleteCartRuleAction', '_legacy_controller' => 'AdminCarts'], ['cartId', 'cartRuleId'], ['POST' => 0], null, false, false, null]],
+        6767 => [[['_route' => 'admin_carts_add_product', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::addProductAction', '_legacy_controller' => 'AdminCarts'], ['cartId'], ['POST' => 0], null, false, false, null]],
+        6802 => [[['_route' => 'admin_carts_edit_product_price', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::editProductPriceAction', '_legacy_controller' => 'AdminCarts'], ['cartId', 'productId'], ['POST' => 0], null, false, false, null]],
+        6840 => [[['_route' => 'admin_carts_edit_product_quantity', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::editProductQuantityAction', '_legacy_controller' => 'AdminCarts'], ['cartId', 'productId'], ['POST' => 0], null, false, false, null]],
+        6870 => [[['_route' => 'admin_carts_delete_product', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CartController::deleteProductAction', '_legacy_controller' => 'AdminCarts'], ['cartId'], ['POST' => 0], null, false, false, null]],
+        6908 => [[['_route' => 'admin_orders_generate_invoice_pdf', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::generateInvoicePdfAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['GET' => 0], null, false, false, null]],
+        6952 => [[['_route' => 'admin_orders_generate_delivery_slip_pdf', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::generateDeliverySlipPdfAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['GET' => 0], null, false, false, null]],
+        6971 => [[['_route' => 'admin_orders_view', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::viewAction', '_legacy_controller' => 'AdminOrders', '_legacy_link' => 'AdminOrders:vieworder', '_legacy_parameters' => ['id_order' => 'orderId']], ['orderId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        6997 => [[['_route' => 'admin_orders_add_cart_rule', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::addCartRuleAction'], ['orderId'], ['POST' => 0], null, false, false, null]],
+        7023 => [[['_route' => 'admin_orders_list_update_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::updateStatusFromListAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
+        7044 => [[['_route' => 'admin_orders_update_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::updateStatusAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
+        7066 => [[['_route' => 'admin_orders_add_payment', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::addPaymentAction'], ['orderId'], ['POST' => 0], null, false, false, null]],
+        7096 => [[['_route' => 'admin_orders_duplicate_cart', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::duplicateOrderCartAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
+        7126 => [[['_route' => 'admin_orders_change_currency', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::changeCurrencyAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
+        7155 => [[['_route' => 'admin_orders_update_product', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::updateProductAction', '_legacy_controller' => 'AdminOrders'], ['orderId', 'orderDetailId'], ['POST' => 0], null, false, true, null]],
+        7194 => [[['_route' => 'admin_orders_remove_cart_rule', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::removeCartRuleAction'], ['orderId', 'orderCartRuleId'], ['GET' => 0], null, false, false, null]],
+        7251 => [[['_route' => 'admin_orders_resend_email', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::resendEmailAction'], ['orderId', 'orderHistoryId', 'orderStatusId'], ['POST' => 0], null, false, false, null]],
+        7273 => [[['_route' => 'admin_orders_preview', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::previewAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['GET' => 0], null, false, false, null]],
+        7296 => [[['_route' => 'admin_orders_update_shipping', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::updateShippingAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
+        7329 => [[['_route' => 'admin_orders_update_invoice_note', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::updateInvoiceNoteAction'], ['orderId', 'orderInvoiceId'], ['POST' => 0], null, false, false, null]],
+        7351 => [[['_route' => 'admin_orders_generate_invoice', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::generateInvoiceAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
+        7382 => [[['_route' => 'admin_orders_send_message', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::sendMessageAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
+        7412 => [[['_route' => 'admin_orders_partial_refund', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::partialRefundAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
+        7443 => [[['_route' => 'admin_orders_standard_refund', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::standardRefundAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
+        7473 => [[['_route' => 'admin_orders_return_product', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::returnProductAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
+        7496 => [[['_route' => 'admin_orders_add_product', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::addProductAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
+        7532 => [[['_route' => 'admin_orders_delete_product', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::deleteProductAction', '_legacy_controller' => 'AdminOrders'], ['orderId', 'orderDetailId'], ['POST' => 0], null, false, false, null]],
+        7556 => [[['_route' => 'admin_orders_get_discounts', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::getDiscountsAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['GET' => 0], null, false, false, null]],
+        7577 => [[['_route' => 'admin_orders_get_prices', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::getPricesAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['GET' => 0], null, false, false, null]],
+        7600 => [[['_route' => 'admin_orders_get_payments', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::getPaymentsAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['GET' => 0], null, false, false, null]],
+        7623 => [[['_route' => 'admin_orders_get_products', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::getProductsListAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['GET' => 0], null, false, false, null]],
+        7646 => [[['_route' => 'admin_orders_get_invoices', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::getInvoicesAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['GET' => 0], null, false, false, null]],
+        7670 => [[['_route' => 'admin_orders_get_documents', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::getDocumentsAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['GET' => 0], null, false, false, null]],
+        7693 => [[['_route' => 'admin_orders_get_shipping', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::getShippingAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['GET' => 0], null, false, false, null]],
+        7720 => [[['_route' => 'admin_orders_cancellation', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::cancellationAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['POST' => 0], null, false, false, null]],
+        7769 => [[['_route' => 'admin_orders_display_customization_image', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::displayCustomizationImageAction', '_legacy_controller' => 'AdminOrders'], ['orderId', 'value'], ['GET' => 0], null, false, true, null]],
+        7799 => [[['_route' => 'admin_orders_product_prices', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::getProductPricesAction', '_legacy_controller' => 'AdminOrders'], ['orderId'], ['GET' => 0], null, false, false, null]],
+        7833 => [[['_route' => 'admin_orders_set_internal_note', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\OrderController::setInternalNoteAction', '_legacy_controller' => 'AdminOrders', '_legacy_link' => 'AdminOrders:updateInternalNote', '_legacy_parameters' => ['id_order' => 'orderId']], ['orderId'], ['POST' => 0], null, false, false, null]],
+        7865 => [[['_route' => 'admin_credit_slips_generate_pdf', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Sell\\Order\\CreditSlipController::generatePdfAction', '_legacy_controller' => 'AdminSlip', '_legacy_link' => 'AdminSlip:submitgenerateOrderSlipPdf', '_legacy_parameters' => ['id_order_slip' => 'creditSlipId']], ['creditSlipId'], ['GET' => 0], null, false, false, null]],
+        7928 => [[['_route' => 'admin_languages_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\LanguageController::editAction', '_legacy_controller' => 'AdminLanguages', '_legacy_link' => 'AdminLanguages:updatelang'], ['languageId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        7949 => [[['_route' => 'admin_languages_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\LanguageController::deleteAction', '_legacy_controller' => 'AdminLanguages', '_legacy_link' => 'AdminLanguages:deletelang'], ['languageId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
+        7981 => [[['_route' => 'admin_languages_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\LanguageController::toggleStatusAction', '_legacy_controller' => 'AdminLanguages', '_legacy_link' => 'AdminLanguages:statuslang'], ['languageId'], ['POST' => 0], null, false, false, null]],
+        8027 => [[['_route' => 'admin_languages_bulk_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\LanguageController::bulkToggleStatusAction', '_legacy_controller' => 'AdminLanguages', '_legacy_link' => 'AdminLanguages:submitBulkupdatelang'], ['status'], ['POST' => 0], null, false, true, null]],
+        8064 => [[['_route' => 'admin_currencies_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\CurrencyController::editAction', '_legacy_controller' => 'AdminCurrencies', '_legacy_link' => 'AdminCurrencies:updatecurrency', '_legacy_parameters' => ['id_currency' => 'currencyId']], ['currencyId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        8085 => [[['_route' => 'admin_currencies_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\CurrencyController::deleteAction', '_legacy_controller' => 'AdminCurrencies', '_legacy_link' => 'AdminCurrencies:deletecurrency', '_legacy_parameters' => ['id_currency' => 'currencyId']], ['currencyId'], ['DELETE' => 0], null, false, false, null]],
+        8114 => [[['_route' => 'admin_currencies_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\CurrencyController::toggleStatusAction', '_legacy_controller' => 'AdminCurrencies', '_legacy_link' => 'AdminCurrencies:statuscurrency', '_legacy_parameters' => ['id_currency' => 'currencyId']], ['currencyId'], ['POST' => 0], null, false, false, null]],
+        8147 => [[['_route' => 'admin_currencies_get_reference_data', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\CurrencyController::getReferenceDataAction', '_legacy_controller' => 'AdminCurrencies', '_legacy_link' => 'AdminCurrencies:getReferenceData'], ['currencyIsoCode'], ['GET' => 0], null, false, true, null]],
+        8193 => [[['_route' => 'admin_currencies_bulk_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\CurrencyController::bulkToggleStatusAction', '_legacy_controller' => 'AdminCurrencies', '_legacy_link' => 'AdminCurrencies:submitBulkupdatecurrency'], ['status'], ['POST' => 0], null, false, true, null]],
+        8222 => [[['_route' => 'admin_countries_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\CountryController::editAction', '_legacy_controller' => 'AdminCountry', '_legacy_link' => 'AdminCountry:updateCountry', '_legacy_feature_flag' => 'country', '_legacy_parameters' => ['id_country' => 'countryId']], ['countryId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        8254 => [[['_route' => 'admin_taxes_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxController::editAction', '_legacy_controller' => 'AdminTaxes', '_legacy_link' => 'AdminTaxes:updatetax', '_legacy_parameters' => ['id_tax' => 'taxId']], ['taxId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        8275 => [[['_route' => 'admin_taxes_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxController::deleteAction', '_legacy_controller' => 'AdminTaxes', '_legacy_link' => 'AdminTaxes:deletetax', '_legacy_parameters' => ['id_tax' => 'taxId']], ['taxId'], ['POST' => 0], null, false, false, null]],
+        8304 => [[['_route' => 'admin_taxes_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxController::toggleStatusAction', '_legacy_controller' => 'AdminTaxes', '_legacy_link' => 'AdminTaxes:statustax', '_legacy_parameters' => ['id_tax' => 'taxId']], ['taxId'], ['POST' => 0], null, false, false, null]],
+        8341 => [[['_route' => 'admin_tax_rules_groups_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxRulesGroupController::editAction', '_legacy_controller' => 'AdminTaxRulesGroup', '_legacy_link' => 'AdminTaxRulesGroup:updatetax_rules_group', '_legacy_feature_flag' => 'tax_rules_group', '_legacy_parameters' => ['id_tax_rules_group' => 'taxRulesGroupId']], ['taxRulesGroupId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        8362 => [[['_route' => 'admin_tax_rules_groups_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxRulesGroupController::deleteAction', '_legacy_controller' => 'AdminTaxRulesGroup', '_legacy_link' => 'AdminTaxRulesGroup:deletetax_rules_group', '_legacy_feature_flag' => 'tax_rules_group', '_legacy_parameters' => ['id_tax_rules_group' => 'taxRulesGroupId']], ['taxRulesGroupId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
+        8391 => [[['_route' => 'admin_tax_rules_groups_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\TaxRulesGroupController::toggleStatusAction', '_legacy_controller' => 'AdminTaxRulesGroup', '_legacy_link' => 'AdminTaxRulesGroup:statustax_rules_group', '_legacy_feature_flag' => 'tax_rules_group', '_legacy_parameters' => ['id_tax_rules_group' => 'taxRulesGroupId']], ['taxRulesGroupId'], ['POST' => 0], null, false, false, null]],
+        8422 => [[['_route' => 'admin_states_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\StateController::editAction', '_legacy_controller' => 'AdminStates', '_legacy_link' => 'AdminStates:updatestate', '_legacy_feature_flag' => 'state', '_legacy_parameters' => ['id_state' => 'stateId']], ['stateId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        8443 => [[['_route' => 'admin_states_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\StateController::deleteAction', '_legacy_controller' => 'AdminStates', '_legacy_link' => 'AdminStates:deletestate', '_legacy_feature_flag' => 'state', '_legacy_parameters' => ['id_state' => 'stateId']], ['stateId'], ['DELETE' => 0], null, false, false, null]],
+        8475 => [[['_route' => 'admin_states_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\StateController::toggleStatusAction', '_legacy_controller' => 'AdminStates', '_legacy_link' => 'AdminStates:statusstate', '_legacy_feature_flag' => 'state', '_legacy_parameters' => ['id_state' => 'stateId']], ['stateId'], ['POST' => 0], null, false, false, null]],
+        8504 => [[['_route' => 'admin_zones_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\ZoneController::editAction', '_legacy_controller' => 'AdminZones', '_legacy_link' => 'AdminZones:updatezone', '_legacy_parameters' => ['id_zone' => 'zoneId']], ['zoneId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        8525 => [[['_route' => 'admin_zones_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\ZoneController::deleteAction', '_legacy_controller' => 'AdminZones', '_legacy_link' => 'AdminZones:deletezone', '_legacy_parameters' => ['id_zone' => 'zoneId']], ['zoneId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
+        8554 => [[['_route' => 'admin_zones_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\ZoneController::toggleStatusAction', '_legacy_controller' => 'AdminZones', '_legacy_link' => 'AdminZones:enableSelection', '_legacy_parameters' => ['id_zone' => 'zoneId']], ['zoneId'], ['POST' => 0], null, false, false, null]],
+        8600 => [[['_route' => 'admin_zones_bulk_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\International\\ZoneController::bulkToggleStatus', '_legacy_controller' => 'AdminZones', '_legacy_link' => 'AdminZones:submitBulkupdatezone'], ['status'], ['POST' => 0], null, false, true, null]],
+        8656 => [[['_route' => 'admin_module_manage', 'category' => null, 'keyword' => null, '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\ModuleController::manageAction', '_legacy_controller' => 'AdminModulesManage', '_legacy_link' => ['AdminModulesManage', 'AdminModulesSf']], ['category', 'keyword'], ['GET' => 0], null, false, true, null]],
+        8770 => [[['_route' => 'admin_module_manage_action', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\ModuleController::moduleAction'], ['action', 'module_name'], ['POST' => 0], null, false, true, null]],
+        8797 => [[['_route' => 'admin_module_configure_action', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\ModuleController::configureModuleAction', '_legacy_controller' => 'AdminModules'], ['module_name'], ['GET' => 0, 'POST' => 1], null, false, true, null]],
+        8870 => [[['_route' => 'admin_module_manage_action_bulk', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\ModuleController::moduleAction'], ['action'], ['POST' => 0], null, false, true, null]],
+        8889 => [[['_route' => 'admin_module_manage_update_all', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\ModuleController::moduleAction'], [], ['POST' => 0], null, false, false, null]],
+        8944 => [[['_route' => 'admin_themes_enable', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\ThemeController::enableAction', '_legacy_controller' => 'AdminThemes', '_legacy_link' => 'AdminThemes:enableTheme', '_legacy_parameters' => ['theme_name' => 'themeName']], ['themeName'], ['POST' => 0], null, false, false, null]],
+        8977 => [[['_route' => 'admin_themes_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\ThemeController::deleteAction', '_legacy_controller' => 'AdminThemes', '_legacy_link' => 'AdminThemes:deleteTheme', '_legacy_parameters' => ['theme_name' => 'themeName']], ['themeName'], ['POST' => 0], null, false, false, null]],
+        9018 => [[['_route' => 'admin_themes_reset_layouts', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\ThemeController::resetLayoutsAction', '_legacy_controller' => 'AdminThemes', '_legacy_link' => 'AdminThemes:resetToDefaults', '_legacy_parameters' => ['theme_name' => 'themeName']], ['themeName'], ['POST' => 0], null, false, false, null]],
+        9052 => [[['_route' => 'admin_cms_pages_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\CmsPageController::editAction', '_legacy_controller' => 'AdminCmsContent', '_legacy_link' => 'AdminCmsContent:updatecms', '_legacy_parameters' => ['id_cms' => 'cmsPageId']], ['cmsPageId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        9081 => [[['_route' => 'admin_cms_pages_toggle', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\CmsPageController::toggleCmsAction', '_legacy_controller' => 'AdminCmsContent', '_legacy_link' => 'AdminCmsContent:statuscms', '_legacy_parameters' => ['id_cms' => 'cmsId']], ['cmsId'], ['POST' => 0], null, false, false, null]],
+        9102 => [[['_route' => 'admin_cms_pages_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\CmsPageController::deleteCmsAction', '_legacy_controller' => 'AdminCmsContent', '_legacy_link' => 'AdminCmsContent:deletecms', '_legacy_parameters' => ['id_cms' => 'cmsId']], ['cmsId'], ['DELETE' => 0], null, false, false, null]],
+        9133 => [[['_route' => 'admin_cms_pages_category_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\CmsPageController::editCmsCategoryAction', '_legacy_controller' => 'AdminCmsContent', '_legacy_link' => 'AdminCmsContent:updatecms_category', '_legacy_parameters' => ['id_cms_category' => 'cmsCategoryId']], ['cmsCategoryId'], ['GET' => 0, 'POST' => 1], null, false, false, null]],
+        9154 => [[['_route' => 'admin_cms_pages_category_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\CmsPageController::deleteCmsCategoryAction', '_legacy_controller' => 'AdminCmsContent', '_legacy_link' => 'AdminCmsContent:deletecms_category', '_legacy_parameters' => ['id_cms_category' => 'cmsCategoryId']], ['cmsCategoryId'], ['DELETE' => 0], null, false, false, null]],
+        9183 => [[['_route' => 'admin_cms_pages_category_toggle', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\CmsPageController::toggleCmsCategoryAction', '_legacy_controller' => 'AdminCmsContent', '_legacy_link' => 'AdminCmsContent:statuscms_category', '_legacy_parameters' => ['id_cms_category' => 'cmsCategoryId']], ['cmsCategoryId'], ['POST' => 0], null, false, false, null]],
+        9253 => [[['_route' => 'admin_mail_theme_send_test_mail_deprecated', '_controller' => 'Symfony\\Bundle\\FrameworkBundle\\Controller\\RedirectController::redirectAction', 'route' => 'admin_mail_theme_send_test_mail', 'permanent' => true], ['locale', 'theme', 'layout'], null, null, false, true, null]],
+        9271 => [[['_route' => 'admin_mail_theme_send_test_module_mail_deprecated', '_controller' => 'Symfony\\Bundle\\FrameworkBundle\\Controller\\RedirectController::redirectAction', 'route' => 'admin_mail_theme_send_test_module_mail', 'permanent' => true], ['locale', 'theme', 'module', 'layout'], ['GET' => 0], null, false, true, null]],
+        9323 => [[['_route' => 'admin_mail_theme_send_test_mail', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\MailThemeController::sendTestMailAction', '_legacy_link' => 'AdminMailTheme:rawModuleLayout', '_legacy_controller' => 'AdminMailTheme', 'module' => ''], ['locale', 'theme', 'layout'], ['GET' => 0], null, false, true, null]],
+        9341 => [[['_route' => 'admin_mail_theme_send_test_module_mail', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\MailThemeController::sendTestMailAction', '_legacy_link' => 'AdminMailTheme:rawModuleLayout', '_legacy_controller' => 'AdminMailTheme'], ['locale', 'theme', 'module', 'layout'], ['GET' => 0], null, false, true, null]],
+        9371 => [[['_route' => 'admin_mail_theme_preview', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\MailThemeController::previewThemeAction', '_legacy_controller' => 'AdminMailTheme', '_legacy_link' => 'AdminMailTheme:previewTheme'], ['theme'], ['GET' => 0], null, false, true, null]],
+        9413 => [[['_route' => 'admin_mail_theme_preview_layout', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\MailThemeController::previewLayoutAction', '_legacy_controller' => 'AdminMailTheme', '_legacy_link' => 'AdminMailTheme:previewLayout', 'module' => ''], ['locale', 'theme', 'layout', 'type'], ['GET' => 0], null, false, true, null]],
+        9451 => [[['_route' => 'admin_mail_theme_preview_module_layout', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\MailThemeController::previewLayoutAction', '_legacy_controller' => 'AdminMailTheme', '_legacy_link' => 'AdminMailTheme:previewModuleLayout'], ['locale', 'theme', 'module', 'layout', 'type'], ['GET' => 0], null, false, true, null]],
+        9507 => [[['_route' => 'admin_mail_theme_raw_layout', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\MailThemeController::rawLayoutAction', '_legacy_controller' => 'AdminMailTheme', '_legacy_link' => 'AdminMailTheme:rawLayout', 'module' => ''], ['locale', 'theme', 'layout', 'type'], ['GET' => 0], null, false, true, null]],
+        9545 => [[['_route' => 'admin_mail_theme_raw_module_layout', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Design\\MailThemeController::rawLayoutAction', '_legacy_link' => 'AdminMailTheme:rawModuleLayout', '_legacy_controller' => 'AdminMailTheme'], ['locale', 'theme', 'module', 'layout', 'type'], ['GET' => 0], null, false, true, null]],
+        9588 => [[['_route' => 'admin_carriers_edit', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Shipping\\CarriersController::editAction', '_legacy_controller' => 'AdminCarriers'], ['carrierId'], ['GET' => 0], null, false, false, null]],
+        9609 => [[['_route' => 'admin_carriers_delete', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Shipping\\CarriersController::deleteAction', '_legacy_controller' => 'AdminCarriers', '_legacy_link' => 'AdminCarriers:deletecarrier', '_legacy_feature_flag' => 'carrier', '_legacy_parameters' => ['id_carrier' => 'carrierId']], ['carrierId'], ['POST' => 0, 'DELETE' => 1], null, false, false, null]],
+        9638 => [[['_route' => 'admin_carriers_toggle_status', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Shipping\\CarriersController::toggleStatusAction', '_legacy_controller' => 'AdminCarriers', '_legacy_link' => 'AdminCarriers:statuscarrier', '_legacy_feature_flag' => 'carrier', '_legacy_parameters' => ['id_carrier' => 'carrierId']], ['carrierId'], ['POST' => 0], null, false, false, null]],
+        9669 => [[['_route' => 'admin_carriers_toggle_is_free', '_controller' => 'PrestaShopBundle\\Controller\\Admin\\Improve\\Shipping\\CarriersController::toggleIsFreeAction', '_legacy_controller' => 'AdminCarriers', '_legacy_link' => 'AdminCarriers:isFreecarrier', '_legacy_feature_flag' => 'carrier', '_legacy_parameters' => ['id_carrier' => 'carrierId']], ['carrierId'], ['POST' => 0], null, false, false, null]],
+        9706 => [[['_route' => 'api_stock_list_product_combinations', '_controller' => 'prestashop.core.api.stock.controller:listProductsAction', '_legacy_controller' => 'AdminStockManagement'], ['productId'], ['GET' => 0], null, false, true, null]],
+        9731 => [[['_route' => 'api_stock_edit_product', '_controller' => 'prestashop.core.api.stock.controller:editProductAction', '_legacy_controller' => 'AdminStockManagement'], ['productId'], ['POST' => 0], null, false, true, null]],
+        9763 => [[['_route' => 'api_stock_edit_product_combination', '_controller' => 'prestashop.core.api.stock.controller:editProductAction', '_legacy_controller' => 'AdminStockManagement'], ['productId', 'combinationId'], ['POST' => 0], null, false, true, null]],
+        9799 => [[['_route' => 'api_stock_product_list_movements', '_controller' => 'prestashop.core.api.stock_movement.controller:listMovementsAction', '_legacy_controller' => 'AdminStockManagement'], ['productId'], ['GET' => 0], null, false, true, null]],
+        9819 => [[['_route' => 'api_i18n_translations_list', '_controller' => 'prestashop.core.api.i18n.controller:listTranslationAction'], ['page'], ['GET' => 0], null, false, true, null]],
+        9880 => [[['_route' => 'api_translation_domains_tree', '_controller' => 'prestashop.core.api.translation.controller:listTreeAction', '_legacy_controller' => 'AdminTranslations', 'selected' => null], ['lang', 'type', 'selected'], ['GET' => 0], null, false, true, null]],
+        9920 => [[['_route' => 'api_translation_domain_catalog', '_controller' => 'prestashop.core.api.translation.controller:listDomainTranslationAction', '_legacy_controller' => 'AdminTranslations', 'theme' => null, 'module' => null], ['locale', 'domain', 'theme'], ['GET' => 0], null, false, true, null]],
+        9972 => [[['_route' => 'api_genid', '_controller' => 'api_platform.action.not_exposed', '_api_respond' => 'true'], ['id'], null, null, false, true, null]],
+        10000 => [[['_route' => 'api_doc', '_controller' => 'api_platform.action.documentation', '_format' => '', '_api_respond' => 'true'], ['_format'], null, null, false, true, null]],
+        10041 => [[['_route' => 'api_jsonld_context', '_controller' => 'api_platform.jsonld.action.context', '_format' => 'jsonld', '_api_respond' => 'true'], ['shortName', '_format'], null, null, false, true, null]],
+        10093 => [[['_route' => 'api_feature_flags_get_item', '_api_item_operation_name' => 'api_feature_flags_get_item', '_api_identifiers' => ['id'], '_api_has_composite_identifier' => false, '_controller' => 'api_platform.action.placeholder', '_format' => null, '_stateless' => null, '_api_resource_class' => 'PrestaShopBundle\\Entity\\FeatureFlag', '_api_operation_name' => 'api_feature_flags_get_item'], ['id', '_format'], ['GET' => 0], null, false, true, null]],
+        10118 => [[['_route' => 'api_feature_flags_get_collection', '_api_collection_operation_name' => 'api_feature_flags_get_collection', '_api_identifiers' => [], '_api_has_composite_identifier' => false, '_controller' => 'api_platform.action.placeholder', '_format' => null, '_stateless' => null, '_api_resource_class' => 'PrestaShopBundle\\Entity\\FeatureFlag', '_api_operation_name' => 'api_feature_flags_get_collection'], ['_format'], ['GET' => 0], null, false, true, null]],
+        10154 => [[['_route' => 'api_feature_flags_delete_item', '_api_item_operation_name' => 'api_feature_flags_delete_item', '_api_identifiers' => ['id'], '_api_has_composite_identifier' => false, '_controller' => 'api_platform.action.placeholder', '_format' => null, '_stateless' => null, '_api_resource_class' => 'PrestaShopBundle\\Entity\\FeatureFlag', '_api_operation_name' => 'api_feature_flags_delete_item'], ['id', '_format'], ['DELETE' => 0], null, false, true, null]],
+        10179 => [[['_route' => 'api_feature_flags_post_collection', '_api_item_operation_name' => 'api_feature_flags_post_collection', '_api_identifiers' => [], '_api_has_composite_identifier' => false, '_controller' => 'api_platform.action.placeholder', '_format' => null, '_stateless' => null, '_api_resource_class' => 'PrestaShopBundle\\Entity\\FeatureFlag', '_api_operation_name' => 'api_feature_flags_post_collection'], ['_format'], ['POST' => 0], null, false, true, null]],
+        10215 => [[['_route' => 'api_feature_flags_put_item', '_api_item_operation_name' => 'api_feature_flags_put_item', '_api_identifiers' => ['id'], '_api_has_composite_identifier' => false, '_controller' => 'api_platform.action.placeholder', '_format' => null, '_stateless' => null, '_api_resource_class' => 'PrestaShopBundle\\Entity\\FeatureFlag', '_api_operation_name' => 'api_feature_flags_put_item'], ['id', '_format'], ['PUT' => 0], null, false, true, null]],
+        10244 => [[['_route' => '_api_/hook-status/{id}_get', '_controller' => 'api_platform.action.placeholder', '_format' => null, '_stateless' => null, '_api_resource_class' => 'PrestaShopBundle\\Api\\Resource\\HookStatus', '_api_operation_name' => '_api_/hook-status/{id}_get'], ['id'], ['GET' => 0], null, false, true, null]],
+        10299 => [
             [['_route' => 'admin_link_block_edit', '_controller' => 'PrestaShop\\Module\\LinkList\\Controller\\Admin\\Improve\\Design\\LinkBlockController::editAction', '_legacy_controller' => 'AdminLinkWidget'], ['linkBlockId'], ['GET' => 0], null, false, true, null],
             [['_route' => 'admin_link_block_edit_process', '_controller' => 'PrestaShop\\Module\\LinkList\\Controller\\Admin\\Improve\\Design\\LinkBlockController::editProcessAction', '_legacy_controller' => 'AdminLinkWidget'], ['linkBlockId'], ['POST' => 0], null, false, true, null],
         ],
-        8712 => [[['_route' => 'admin_link_block_delete', '_controller' => 'PrestaShop\\Module\\LinkList\\Controller\\Admin\\Improve\\Design\\LinkBlockController::deleteAction', '_legacy_controller' => 'AdminLinkWidget'], ['linkBlockId'], ['POST' => 0], null, false, true, null]],
-        8744 => [
-            [['_route' => 'admin_link_block_update_positions', '_controller' => 'PrestaShop\\Module\\LinkList\\Controller\\Admin\\Improve\\Design\\LinkBlockController::updatePositionsAction', '_legacy_controller' => 'AdminLinkWidget'], ['hookId'], ['POST' => 0], null, false, true, null],
+        10322 => [[['_route' => 'admin_link_block_delete', '_controller' => 'PrestaShop\\Module\\LinkList\\Controller\\Admin\\Improve\\Design\\LinkBlockController::deleteAction', '_legacy_controller' => 'AdminLinkWidget'], ['linkBlockId'], ['POST' => 0], null, false, true, null]],
+        10355 => [[['_route' => 'admin_link_block_update_positions', '_controller' => 'PrestaShop\\Module\\LinkList\\Controller\\Admin\\Improve\\Design\\LinkBlockController::updatePositionsAction', '_legacy_controller' => 'AdminLinkWidget'], ['hookId'], ['POST' => 0], null, false, true, null]],
+        10400 => [[['_route' => 'admin_mbo_module_see_more', '_controller' => 'mbo.controller.modules.catalog:seeMoreAction'], ['moduleId'], ['GET' => 0], null, false, true, null]],
+        10452 => [[['_route' => 'psgdpr_api_download_invoices_link', '_controller' => 'PrestaShop\\Module\\Psgdpr\\Controller\\Admin\\CustomerController::getDownloadInvoicesLinkByCustomerId'], ['customerId'], ['GET' => 0], null, false, false, null]],
+        10494 => [
+            [['_route' => 'psgdpr_api_download_customer_invoices', '_controller' => 'PrestaShop\\Module\\Psgdpr\\Controller\\Admin\\DownloadCustomerInvoicesController::downloadInvoicesByCustomerId'], ['customerId'], ['GET' => 0], null, false, true, null],
             [null, null, null, null, false, false, 0],
         ],
     ],

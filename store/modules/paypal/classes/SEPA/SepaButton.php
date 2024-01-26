@@ -32,6 +32,10 @@ use Module;
 use PaypalAddons\classes\AbstractMethodPaypal;
 use PaypalAddons\classes\Constants\PaypalConfigurations;
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 class SepaButton
 {
     /** @var Context */
@@ -68,7 +72,7 @@ class SepaButton
     protected function getJSvars()
     {
         return [
-            $vars[PaypalConfigurations::MOVE_BUTTON_AT_END] = (int) Configuration::get(PaypalConfigurations::MOVE_BUTTON_AT_END),
+            PaypalConfigurations::MOVE_BUTTON_AT_END => (int) Configuration::get(PaypalConfigurations::MOVE_BUTTON_AT_END),
         ];
     }
 

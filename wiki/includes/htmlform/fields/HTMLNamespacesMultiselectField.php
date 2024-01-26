@@ -17,7 +17,7 @@ use MediaWiki\Widget\NamespacesMultiselectWidget;
  */
 class HTMLNamespacesMultiselectField extends HTMLSelectNamespace {
 	public function loadDataFromRequest( $request ) {
-		$value = $request->getText( $this->mName, $this->getDefault() );
+		$value = $request->getText( $this->mName, $this->getDefault() ?? '' );
 
 		$namespaces = explode( "\n", $value );
 		// Remove empty lines
@@ -67,6 +67,8 @@ class HTMLNamespacesMultiselectField extends HTMLSelectNamespace {
 	}
 
 	public function getInputOOUI( $value ) {
+		$this->mParent->getOutput()->addModuleStyles( 'mediawiki.widgets.TagMultiselectWidget.styles' );
+
 		$params = [
 			'id' => $this->mID,
 			'name' => $this->mName,

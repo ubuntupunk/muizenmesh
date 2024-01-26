@@ -1,18 +1,18 @@
 <?php
-/* Smarty version 4.2.1, created on 2023-03-30 14:04:05
+/* Smarty version 4.3.1, created on 2023-12-21 13:08:56
   from '/home/sexthera/public_html/muizenmesh.co.za/store/admin963hiaiywinz0astpu8/themes/new-theme/template/header.tpl' */
 
 /* @var Smarty_Internal_Template $_smarty_tpl */
 if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
-  'version' => '4.2.1',
-  'unifunc' => 'content_64257ab5c7abe8_33568793',
+  'version' => '4.3.1',
+  'unifunc' => 'content_65841cc879dae2_82585998',
   'has_nocache_code' => false,
   'file_dependency' => 
   array (
     'dd1386107521dc822e36336e2f853e637e52c626' => 
     array (
       0 => '/home/sexthera/public_html/muizenmesh.co.za/store/admin963hiaiywinz0astpu8/themes/new-theme/template/header.tpl',
-      1 => 1678447298,
+      1 => 1694187249,
       2 => 'file',
     ),
   ),
@@ -20,7 +20,7 @@ if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
   array (
   ),
 ),false)) {
-function content_64257ab5c7abe8_33568793 (Smarty_Internal_Template $_smarty_tpl) {
+function content_65841cc879dae2_82585998 (Smarty_Internal_Template $_smarty_tpl) {
 ?><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=<?php echo (isset($_smarty_tpl->tpl_vars['viewport_scale']->value)) ? $_smarty_tpl->tpl_vars['viewport_scale']->value : '1';?>
 ">
@@ -41,21 +41,21 @@ echo $_smarty_tpl->tpl_vars['shop_name']->value;?>
 <?php if (!(isset($_smarty_tpl->tpl_vars['display_header_javascript']->value)) || $_smarty_tpl->tpl_vars['display_header_javascript']->value) {?>
   <?php echo '<script'; ?>
  type="text/javascript">
-    var help_class_name = '<?php echo addcslashes($_smarty_tpl->tpl_vars['controller_name']->value,'\'');?>
+    var help_class_name = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addcslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['controller_name']->value,'\'' ));?>
 ';
-    var iso_user = '<?php echo addcslashes($_smarty_tpl->tpl_vars['iso_user']->value,'\'');?>
+    var iso_user = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addcslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['iso_user']->value,'\'' ));?>
 ';
-    var lang_is_rtl = '<?php echo intval($_smarty_tpl->tpl_vars['lang_is_rtl']->value);?>
+    var lang_is_rtl = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'intval' ][ 0 ], array( $_smarty_tpl->tpl_vars['lang_is_rtl']->value ));?>
 ';
-    var full_language_code = '<?php echo addcslashes($_smarty_tpl->tpl_vars['full_language_code']->value,'\'');?>
+    var full_language_code = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addcslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['full_language_code']->value,'\'' ));?>
 ';
-    var full_cldr_language_code = '<?php echo addcslashes($_smarty_tpl->tpl_vars['full_cldr_language_code']->value,'\'');?>
+    var full_cldr_language_code = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addcslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['full_cldr_language_code']->value,'\'' ));?>
 ';
-    var country_iso_code = '<?php echo addcslashes($_smarty_tpl->tpl_vars['country_iso_code']->value,'\'');?>
+    var country_iso_code = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addcslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['country_iso_code']->value,'\'' ));?>
 ';
-    var _PS_VERSION_ = '<?php echo addcslashes((defined('_PS_VERSION_') ? constant('_PS_VERSION_') : null),'\'');?>
+    var _PS_VERSION_ = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addcslashes' ][ 0 ], array( (defined('_PS_VERSION_') ? constant('_PS_VERSION_') : null),'\'' ));?>
 ';
-    var roundMode = <?php echo intval($_smarty_tpl->tpl_vars['round_mode']->value);?>
+    var roundMode = <?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'intval' ][ 0 ], array( $_smarty_tpl->tpl_vars['round_mode']->value ));?>
 ;
     var youEditFieldFor = '';
     <?php if ((isset($_smarty_tpl->tpl_vars['shop_context']->value))) {?>
@@ -64,15 +64,15 @@ echo $_smarty_tpl->tpl_vars['shop_name']->value;?>
 ';
     <?php } elseif ($_smarty_tpl->tpl_vars['shop_context']->value == Shop::CONTEXT_GROUP) {?>
     youEditFieldFor = '<?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'This field will be modified for all shops in this shop group:','js'=>1,'d'=>'Admin.Notifications.Info'),$_smarty_tpl ) );?>
- <b><?php echo addcslashes($_smarty_tpl->tpl_vars['shop_name']->value,'\'');?>
+ <b><?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addcslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['shop_name']->value,'\'' ));?>
 </b>';
     <?php } else { ?>
     youEditFieldFor = '<?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'This field will be modified for this shop:','js'=>1,'d'=>'Admin.Notifications.Info'),$_smarty_tpl ) );?>
- <b><?php echo addcslashes($_smarty_tpl->tpl_vars['shop_name']->value,'\'');?>
+ <b><?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addcslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['shop_name']->value,'\'' ));?>
 </b>';
     <?php }?>
     <?php }?>
-    var new_order_msg = '<?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'A new order has been placed on your shop.','js'=>1,'d'=>'Admin.Navigation.Header'),$_smarty_tpl ) );?>
+    var new_order_msg = '<?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'A new order has been placed on your store.','js'=>1,'d'=>'Admin.Navigation.Header'),$_smarty_tpl ) );?>
 ';
     var order_number_msg = '<?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Order number:','js'=>1,'d'=>'Admin.Navigation.Header'),$_smarty_tpl ) );?>
  ';
@@ -82,38 +82,32 @@ echo $_smarty_tpl->tpl_vars['shop_name']->value;?>
  ';
     var see_order_msg = '<?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'View this order','js'=>1,'d'=>'Admin.Orderscustomers.Feature'),$_smarty_tpl ) );?>
 ';
-    var new_customer_msg = '<?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'A new customer registered on your shop.','js'=>1,'d'=>'Admin.Navigation.Header'),$_smarty_tpl ) );?>
+    var new_customer_msg = '<?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'A new customer registered on your store.','js'=>1,'d'=>'Admin.Navigation.Header'),$_smarty_tpl ) );?>
 ';
     var customer_name_msg = '<?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Customer name:','js'=>1,'d'=>'Admin.Navigation.Header'),$_smarty_tpl ) );?>
  ';
-    var new_msg = '<?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'A new message was posted on your shop.','js'=>1,'d'=>'Admin.Navigation.Header'),$_smarty_tpl ) );?>
+    var new_msg = '<?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'A new message was posted on your store.','js'=>1,'d'=>'Admin.Navigation.Header'),$_smarty_tpl ) );?>
 ';
     var see_msg = '<?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Read this message','js'=>1,'d'=>'Admin.Navigation.Header'),$_smarty_tpl ) );?>
 ';
-    var token = '<?php echo addslashes($_smarty_tpl->tpl_vars['token']->value);?>
+    var token = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['token']->value ));?>
 ';
-    var token_admin_orders = tokenAdminOrders = '<?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['getAdminToken'][0], array( array('tab'=>'AdminOrders'),$_smarty_tpl ) );?>
-';
-    var token_admin_customers = '<?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['getAdminToken'][0], array( array('tab'=>'AdminCustomers'),$_smarty_tpl ) );?>
-';
-    var token_admin_customer_threads = tokenAdminCustomerThreads = '<?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['getAdminToken'][0], array( array('tab'=>'AdminCustomerThreads'),$_smarty_tpl ) );?>
-';
-    var currentIndex = '<?php echo addcslashes($_smarty_tpl->tpl_vars['currentIndex']->value,'\'');?>
+    var currentIndex = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addcslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['currentIndex']->value,'\'' ));?>
 ';
     var employee_token = '<?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['getAdminToken'][0], array( array('tab'=>'AdminEmployees'),$_smarty_tpl ) );?>
 ';
     var choose_language_translate = '<?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Choose language:','js'=>1,'d'=>'Admin.Actions'),$_smarty_tpl ) );?>
 ';
-    var default_language = '<?php echo intval($_smarty_tpl->tpl_vars['default_language']->value);?>
+    var default_language = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'intval' ][ 0 ], array( $_smarty_tpl->tpl_vars['default_language']->value ));?>
 ';
-    var admin_modules_link = '<?php echo addslashes($_smarty_tpl->tpl_vars['link']->value->getAdminLink("AdminModulesSf",true,array('route'=>"admin_module_manage")));?>
+    var admin_modules_link = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['link']->value->getAdminLink("AdminModulesSf",true,array('route'=>"admin_module_manage")) ));?>
 ';
-    var admin_notification_get_link = '<?php echo addslashes($_smarty_tpl->tpl_vars['link']->value->getAdminLink("AdminCommon"));?>
+    var admin_notification_get_link = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['link']->value->getAdminLink("AdminCommon") ));?>
 ';
-    var admin_notification_push_link = adminNotificationPushLink = '<?php echo addslashes($_smarty_tpl->tpl_vars['link']->value->getAdminLink("AdminCommon",true,array('route'=>'admin_common_notifications_ack')));?>
+    var admin_notification_push_link = adminNotificationPushLink = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['link']->value->getAdminLink("AdminCommon",true,array('route'=>'admin_common_notifications_ack')) ));?>
 ';
     var tab_modules_list = '<?php if ((isset($_smarty_tpl->tpl_vars['tab_modules_list']->value)) && $_smarty_tpl->tpl_vars['tab_modules_list']->value) {
-echo addslashes($_smarty_tpl->tpl_vars['tab_modules_list']->value);
+echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['tab_modules_list']->value ));
 }?>';
     var update_success_msg = '<?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Update successful','js'=>1,'d'=>'Admin.Notifications.Success'),$_smarty_tpl ) );?>
 ';

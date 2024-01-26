@@ -27,12 +27,16 @@
 use PaypalAddons\services\ServicePaypalLog;
 use PaypalPPBTlib\Extensions\ProcessLogger\Classes\ProcessLoggerObjectModel;
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 /**
  * Class PaypalLog.
  */
 class PaypalLog extends ProcessLoggerObjectModel
 {
-    /* @var object object service*/
+    /* @var object */
     protected $serviceLog;
 
     public function __construct($id = null, $id_lang = null, $id_shop = null)

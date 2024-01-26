@@ -35,6 +35,10 @@ use PayPalCheckoutSdk\Payments\AuthorizationsCaptureRequest;
 use PayPalHttp\HttpException;
 use Throwable;
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 class PaypalCaptureAuthorizeRequest extends RequestAbstract
 {
     /** @var \PaypalOrder */
@@ -92,6 +96,10 @@ class PaypalCaptureAuthorizeRequest extends RequestAbstract
     protected function getDateTransaction(\PayPalHttp\HttpResponse $exec)
     {
         $date = \DateTime::createFromFormat(\DateTime::ATOM, $exec->result->create_time);
+
+        if (!$date) {
+            $date = new \DateTime();
+        }
 
         return $date->format('Y-m-d H:i:s');
     }

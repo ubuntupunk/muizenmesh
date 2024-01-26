@@ -26,20 +26,19 @@
 
 namespace PaypalAddons\classes\Form;
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 interface FormInterface
 {
     /**
      * @return array
      */
-    public function getFields();
-
-    /**
-     * @return array
-     */
-    public function getValues();
+    public function getDescription();
 
     /**
      * @return bool
      */
-    public function save();
+    public function save($data = null);
 }

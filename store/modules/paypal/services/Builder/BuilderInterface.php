@@ -26,6 +26,10 @@
 
 namespace PaypalAddons\services\Builder;
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 interface BuilderInterface
 {
     public function build();

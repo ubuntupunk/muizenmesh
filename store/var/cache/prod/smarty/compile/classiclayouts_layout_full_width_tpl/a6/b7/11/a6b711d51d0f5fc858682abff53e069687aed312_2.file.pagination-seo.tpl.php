@@ -1,18 +1,18 @@
 <?php
-/* Smarty version 4.2.1, created on 2023-03-30 14:09:21
+/* Smarty version 4.3.1, created on 2023-12-21 13:10:29
   from '/home/sexthera/public_html/muizenmesh.co.za/store/themes/classic/templates/_partials/pagination-seo.tpl' */
 
 /* @var Smarty_Internal_Template $_smarty_tpl */
 if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
-  'version' => '4.2.1',
-  'unifunc' => 'content_64257bf19096f9_33594336',
+  'version' => '4.3.1',
+  'unifunc' => 'content_65841d25afd227_92456025',
   'has_nocache_code' => false,
   'file_dependency' => 
   array (
     'a6b711d51d0f5fc858682abff53e069687aed312' => 
     array (
       0 => '/home/sexthera/public_html/muizenmesh.co.za/store/themes/classic/templates/_partials/pagination-seo.tpl',
-      1 => 1671890850,
+      1 => 1694187264,
       2 => 'file',
     ),
   ),
@@ -20,14 +20,14 @@ if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
   array (
   ),
 ),false)) {
-function content_64257bf19096f9_33594336 (Smarty_Internal_Template $_smarty_tpl) {
+function content_65841d25afd227_92456025 (Smarty_Internal_Template $_smarty_tpl) {
 $_smarty_tpl->_checkPlugins(array(0=>array('file'=>'/home/sexthera/public_html/muizenmesh.co.za/store/vendor/smarty/smarty/libs/plugins/modifier.replace.php','function'=>'smarty_modifier_replace',),));
 ?>
 
 <?php if ((isset($_smarty_tpl->tpl_vars['listing']->value['pagination'])) && $_smarty_tpl->tpl_vars['listing']->value['pagination']['should_be_displayed']) {?>
     <?php $_smarty_tpl->_assignInScope('page_nb', 1);?>
     <?php if ((isset($_GET['page']))) {?>
-        <?php $_smarty_tpl->_assignInScope('page_nb', (($tmp = intval($_GET['page']) ?? null)===null||$tmp==='' ? 1 ?? null : $tmp));?>
+        <?php $_smarty_tpl->_assignInScope('page_nb', (($tmp = call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'intval' ][ 0 ], array( $_GET['page'] )) ?? null)===null||$tmp==='' ? 1 ?? null : $tmp));?>
     <?php }?>
     <?php $_smarty_tpl->_assignInScope('queryPage', ('?page=').($_smarty_tpl->tpl_vars['page_nb']->value));?>
     <?php $_tmp_array = isset($_smarty_tpl->tpl_vars['page']) ? $_smarty_tpl->tpl_vars['page']->value : array();

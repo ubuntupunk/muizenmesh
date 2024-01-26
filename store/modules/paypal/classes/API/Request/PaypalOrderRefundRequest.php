@@ -40,6 +40,10 @@ use PayPalHttp\HttpException;
 use Throwable;
 use Validate;
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 class PaypalOrderRefundRequest extends RequestAbstract
 {
     protected $paypalOrder;
@@ -105,6 +109,10 @@ class PaypalOrderRefundRequest extends RequestAbstract
     protected function getDateTransaction($exec)
     {
         $date = \DateTime::createFromFormat(\DateTime::ATOM, $exec->result->create_time);
+
+        if (!$date instanceof \DateTime) {
+            $date = new \DateTime();
+        }
 
         return $date->format('Y-m-d H:i:s');
     }

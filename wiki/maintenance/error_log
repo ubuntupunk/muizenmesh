@@ -34,3 +34,75 @@ Stack trace:
 #8 /home/sexthera/public_html/muizenmesh.co.za/wiki/maintenance/update.php(312): require_once('/home/sexthera/...')
 #9 {main}
   thrown in /home/sexthera/public_html/muizenmesh.co.za/wiki/extensions/SemanticMediaWiki/src/DataValues/PropertyValue.php on line 45
+[19-Dec-2023 12:26:54 UTC] PHP Warning:  Undefined variable $wfLoadExtension in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php on line 221
+[19-Dec-2023 12:26:54 UTC] PHP Fatal error:  Uncaught Error: Value of type null is not callable in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php:221
+Stack trace:
+#0 /home/sexthera/public_html/muizenmesh.co.za/wiki/includes/Setup.php(218): require_once()
+#1 /home/sexthera/public_html/muizenmesh.co.za/wiki/maintenance/doMaintenance.php(83): require_once('/home/sexthera/...')
+#2 /home/sexthera/public_html/muizenmesh.co.za/wiki/maintenance/update.php(312): require_once('/home/sexthera/...')
+#3 {main}
+  thrown in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php on line 221
+[19-Dec-2023 12:27:43 UTC] PHP Warning:  Undefined variable $wfLoadExtension in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php on line 221
+[19-Dec-2023 12:27:43 UTC] PHP Fatal error:  Uncaught Error: Value of type null is not callable in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php:221
+Stack trace:
+#0 /home/sexthera/public_html/muizenmesh.co.za/wiki/includes/Setup.php(218): require_once()
+#1 /home/sexthera/public_html/muizenmesh.co.za/wiki/maintenance/doMaintenance.php(83): require_once('/home/sexthera/...')
+#2 /home/sexthera/public_html/muizenmesh.co.za/wiki/maintenance/update.php(312): require_once('/home/sexthera/...')
+#3 {main}
+  thrown in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php on line 221
+[19-Dec-2023 12:29:16 UTC] PHP Warning:  Undefined variable $wfLoadExtension in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php on line 221
+[19-Dec-2023 12:29:16 UTC] PHP Fatal error:  Uncaught Error: Value of type null is not callable in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php:221
+Stack trace:
+#0 /home/sexthera/public_html/muizenmesh.co.za/wiki/includes/Setup.php(218): require_once()
+#1 /home/sexthera/public_html/muizenmesh.co.za/wiki/maintenance/doMaintenance.php(83): require_once('/home/sexthera/...')
+#2 /home/sexthera/public_html/muizenmesh.co.za/wiki/maintenance/update.php(312): require_once('/home/sexthera/...')
+#3 {main}
+  thrown in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php on line 221
+[19-Dec-2023 12:29:55 UTC] PHP Warning:  Undefined variable $wfLoadExtension in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php on line 221
+[19-Dec-2023 12:29:55 UTC] PHP Fatal error:  Uncaught Error: Value of type null is not callable in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php:221
+Stack trace:
+#0 /home/sexthera/public_html/muizenmesh.co.za/wiki/includes/Setup.php(218): require_once()
+#1 /home/sexthera/public_html/muizenmesh.co.za/wiki/maintenance/doMaintenance.php(83): require_once('/home/sexthera/...')
+#2 /home/sexthera/public_html/muizenmesh.co.za/wiki/maintenance/update.php(312): require_once('/home/sexthera/...')
+#3 {main}
+  thrown in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php on line 221
+[19-Dec-2023 12:32:09 UTC] PHP Warning:  Undefined variable $wfLoadExtension in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php on line 233
+[19-Dec-2023 12:32:09 UTC] PHP Fatal error:  Uncaught Error: Value of type null is not callable in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php:233
+Stack trace:
+#0 /home/sexthera/public_html/muizenmesh.co.za/wiki/includes/Setup.php(218): require_once()
+#1 /home/sexthera/public_html/muizenmesh.co.za/wiki/maintenance/doMaintenance.php(83): require_once('/home/sexthera/...')
+#2 /home/sexthera/public_html/muizenmesh.co.za/wiki/maintenance/update.php(312): require_once('/home/sexthera/...')
+#3 {main}
+  thrown in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php on line 233
+[19-Dec-2023 12:36:09 UTC] PHP Warning:  Undefined variable $wfLoadExtension in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php on line 233
+[19-Dec-2023 12:36:09 UTC] PHP Fatal error:  Uncaught Error: Value of type null is not callable in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php:233
+Stack trace:
+#0 /home/sexthera/public_html/muizenmesh.co.za/wiki/includes/Setup.php(218): require_once()
+#1 /home/sexthera/public_html/muizenmesh.co.za/wiki/maintenance/doMaintenance.php(83): require_once('/home/sexthera/...')
+#2 /home/sexthera/public_html/muizenmesh.co.za/wiki/maintenance/update.php(312): require_once('/home/sexthera/...')
+#3 {main}
+  thrown in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php on line 233
+[19-Dec-2023 13:05:53 UTC] PHP Warning:  Undefined variable $wfLoadExtension in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php on line 233
+[19-Dec-2023 13:05:53 UTC] PHP Fatal error:  Uncaught Error: Value of type null is not callable in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php:233
+Stack trace:
+#0 /home/sexthera/public_html/muizenmesh.co.za/wiki/includes/Setup.php(218): require_once()
+#1 /home/sexthera/public_html/muizenmesh.co.za/wiki/maintenance/doMaintenance.php(83): require_once('/home/sexthera/...')
+#2 /home/sexthera/public_html/muizenmesh.co.za/wiki/maintenance/update.php(312): require_once('/home/sexthera/...')
+#3 {main}
+  thrown in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php on line 233
+[19-Dec-2023 13:10:05 UTC] PHP Warning:  Undefined variable $wfLoadExtension in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php on line 233
+[19-Dec-2023 13:10:05 UTC] PHP Fatal error:  Uncaught Error: Value of type null is not callable in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php:233
+Stack trace:
+#0 /home/sexthera/public_html/muizenmesh.co.za/wiki/includes/Setup.php(218): require_once()
+#1 /home/sexthera/public_html/muizenmesh.co.za/wiki/maintenance/doMaintenance.php(83): require_once('/home/sexthera/...')
+#2 /home/sexthera/public_html/muizenmesh.co.za/wiki/maintenance/update.php(312): require_once('/home/sexthera/...')
+#3 {main}
+  thrown in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php on line 233
+[19-Dec-2023 13:34:23 UTC] PHP Warning:  Undefined variable $wfLoadExtension in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php on line 233
+[19-Dec-2023 13:34:23 UTC] PHP Fatal error:  Uncaught Error: Value of type null is not callable in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php:233
+Stack trace:
+#0 /home/sexthera/public_html/muizenmesh.co.za/wiki/includes/Setup.php(218): require_once()
+#1 /home/sexthera/public_html/muizenmesh.co.za/wiki/maintenance/doMaintenance.php(83): require_once('/home/sexthera/...')
+#2 /home/sexthera/public_html/muizenmesh.co.za/wiki/maintenance/update.php(312): require_once('/home/sexthera/...')
+#3 {main}
+  thrown in /home/sexthera/public_html/muizenmesh.co.za/wiki/LocalSettings.php on line 233

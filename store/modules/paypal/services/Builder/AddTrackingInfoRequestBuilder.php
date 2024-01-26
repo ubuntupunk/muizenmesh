@@ -26,6 +26,10 @@
 
 namespace PaypalAddons\services\Builder;
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 class AddTrackingInfoRequestBuilder extends TrackingInfoBuilder
 {
     public function __construct(\PaypalOrder $paypalOrder)

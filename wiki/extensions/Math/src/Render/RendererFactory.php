@@ -7,7 +7,7 @@ use MediaWiki\Extension\Math\MathConfig;
 use MediaWiki\Extension\Math\MathLaTeXML;
 use MediaWiki\Extension\Math\MathMathML;
 use MediaWiki\Extension\Math\MathMathMLCli;
-use MediaWiki\Extension\Math\MathPng;
+use MediaWiki\Extension\Math\MathNativeMML;
 use MediaWiki\Extension\Math\MathRenderer;
 use MediaWiki\Extension\Math\MathSource;
 use MediaWiki\User\UserOptionsLookup;
@@ -64,7 +64,7 @@ class RendererFactory {
 	public function getRenderer(
 		string $tex,
 		array $params = [],
-		string $mode = MathConfig::MODE_PNG
+		string $mode = MathConfig::MODE_MATHML
 	): MathRenderer {
 		if ( isset( $params['forcemathmode'] ) ) {
 			$mode = $params['forcemathmode'];
@@ -90,8 +90,8 @@ class RendererFactory {
 			case MathConfig::MODE_SOURCE:
 				$renderer = new MathSource( $tex, $params );
 				break;
-			case MathConfig::MODE_PNG:
-				$renderer = new MathPng( $tex, $params );
+			case MathConfig::MODE_NATIVE_MML:
+				$renderer = new MathNativeMML( $tex, $params );
 				break;
 			case MathConfig::MODE_LATEXML:
 				$renderer = new MathLaTeXML( $tex, $params );

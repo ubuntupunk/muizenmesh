@@ -40,6 +40,10 @@ use PaypalAddons\classes\API\Response\ResponseOrderRefund;
 use PaypalOrder;
 use Throwable;
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 class PaypalOrderRefundRequest extends RequestAbstractMB
 {
     /** @var PaypalOrder */
@@ -96,6 +100,10 @@ class PaypalOrderRefundRequest extends RequestAbstractMB
     protected function getDateTransaction(DetailedRefund $detailedRefund)
     {
         $date = DateTime::createFromFormat(DateTime::ISO8601, $detailedRefund->update_time);
+
+        if (!$date) {
+            $date = new DateTime();
+        }
 
         return $date->format('Y-m-d TH:i:s');
     }

@@ -23,71 +23,28 @@
  *  @copyright PayPal
  *
  *}
+{include file='module:paypal/views/templates/_partials/javascript.tpl'}
 
-{include file='../_partials/javascript.tpl'}
-
-<div installment-container>
-  <div banner-container>
-    <div paypal-banner-message></div>
-  </div>
+<div paypal-messaging-banner class="{if in_array($paypalmessenging.placement, ['category', 'home'])}container{/if}"
+ data-pp-message
+ {if $paypalmessenging.placement != 'home' && $paypalmessenging.placement != 'category'}
+    data-pp-style-layout="{$paypalmessenging.layout|escape:'htmlall':'UTF-8'}"
+    data-pp-style-logo-type="{$paypalmessenging.logo_type|escape:'htmlall':'UTF-8'}"
+   {if isset($paypalmessenging.logo_position)}
+     data-pp-style-logo-position="{$paypalmessenging.logo_position|escape:'htmlall':'UTF-8'}"
+   {/if}
+    data-pp-style-text-color="{$paypalmessenging.text_color|escape:'htmlall':'UTF-8'}"
+    data-pp-style-text-size="{$paypalmessenging.text_size|escape:'htmlall':'UTF-8'}"
+ {else}
+    data-pp-style-color="{$paypalmessenging.color|escape:'htmlall':'UTF-8'}"
+    data-pp-style-layout="{$paypalmessenging.layout|escape:'htmlall':'UTF-8'}"
+    data-pp-style-ratio="{$paypalmessenging.ratio|escape:'htmlall':'UTF-8'}"
+ {/if}
+ data-pp-amount="{$paypalmessenging.amount|escape:'htmlall':'UTF-8'}"
+ {if ($paypalmessenging.placement) == 'home'}
+   data-pp-placement="homepage"
+ {else}
+   data-pp-placement="{$paypalmessenging.placement|escape:'htmlall':'UTF-8'}"
+ {/if}
+ data-pp-locale="{$paypalmessenging.locale|escape:'htmlall':'UTF-8'}">
 </div>
-
-<script>
-  window.Banner = function (conf) {
-
-      this.placement = typeof conf.placement != 'undefined' ? conf.placement : null;
-
-      this.amount = typeof conf.amount != 'undefined' ? conf.amount : null;
-
-      this.layout = typeof conf.layout != 'undefined' ? conf.layout : null;
-
-      this.color = typeof conf.color != 'undefined' ? conf.color : null;
-
-      this.container = typeof conf.container != 'undefined' ? conf.container : null;
-
-      this.textAlign = typeof conf.textAlign != 'undefined' ? conf.textAlign : null;
-
-      this.currency = typeof conf.currency != 'undefined' ? conf.currency : null;
-  };
-
-  Banner.prototype.initBanner = function() {
-      if (typeof totPaypalSdk == 'undefined') {
-          setTimeout(this.initBanner.bind(this), 200);
-          return;
-      }
-
-      var conf = {
-          style: {
-              ratio: '20x1'
-          }
-      };
-
-      if (this.currency) {
-          conf['currency'] = this.currency;
-      }
-
-      if (this.textAlign) {
-          conf['style']['text'] = {
-              'align': this.textAlign
-          }
-      }
-
-      if (this.placement) {
-          conf.placement = this.placement;
-      }
-
-      if (this.amount) {
-          conf.amount = this.amount;
-      }
-
-      if (this.layout) {
-          conf.style.layout = this.layout;
-      }
-
-      if (this.color && this.layout == 'flex') {
-          conf.style.color = this.color;
-      }
-
-      totPaypalSdk.Messages(conf).render(this.container);
-  };
-</script>

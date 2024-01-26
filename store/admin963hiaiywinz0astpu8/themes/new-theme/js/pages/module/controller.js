@@ -38,6 +38,7 @@ class AdminModuleController {
    * @memberof AdminModule
    */
   constructor(moduleCardController) {
+    this.eventEmitter = window.prestashop.component.EventEmitter;
     this.moduleCardController = moduleCardController;
 
     this.DEFAULT_MAX_RECENTLY_USED = 10;
@@ -221,10 +222,11 @@ class AdminModuleController {
   }
 
   initBOEventRegistering() {
-    window.BOEvent.on('Module Enabled', this.onModuleDisabled, this);
-    window.BOEvent.on('Module Disabled', this.onModuleDisabled, this);
-    window.BOEvent.on('Module Uninstalled', this.installHandler, this);
-    window.BOEvent.on('Module Installed', this.installHandler, this);
+    this.eventEmitter.on('Module Enabled', (context) => this.onModuleDisabled(context));
+    this.eventEmitter.on('Module Disabled', (context) => this.onModuleDisabled(context));
+    this.eventEmitter.on('Module Uninstalled', (context) => this.installHandler(context));
+    this.eventEmitter.on('Module Delete', (context) => this.onModuleDelete(context));
+    this.eventEmitter.on('Module Installed', (context) => this.installHandler(context));
   }
 
   installHandler(event) {
@@ -234,7 +236,7 @@ class AdminModuleController {
 
   updateModuleStatus(event) {
     this.modulesList = this.modulesList.map((module) => {
-      const moduleElement = $(event.detail[0]);
+      const moduleElement = $(event);
 
       if (moduleElement.data('tech-name') === module.techName) {
         const newModule = {
@@ -273,6 +275,11 @@ class AdminModuleController {
     $('.modules-list').each(() => {
       self.updateModuleVisibility();
     });
+  }
+
+  onModuleDelete(event) {
+    this.modulesList = this.modulesList.filter((value) => value.techName !== $(event).data('tech-name'));
+    this.installHandler(event);
   }
 
   initPlaceholderMechanism() {
@@ -719,6 +726,7 @@ class AdminModuleController {
        */
       timeout: 0,
       addedfile: () => {
+        $(`${self.moduleImportSuccessSelector}, ${self.moduleImportFailureSelector}`).hide();
         self.animateStartUpload();
       },
       processing: () => {
@@ -735,6 +743,9 @@ class AdminModuleController {
           if (typeof responseObject.module_name === 'undefined') responseObject.module_name = null;
 
           self.displayOnUploadDone(responseObject);
+
+          const elem = $(`<div data-tech-name="${responseObject.module_name}"></div>`);
+          this.eventEmitter.emit((responseObject.upgraded ? 'Module Upgraded' : 'Module Installed'), elem);
         }
         // State that we have finish the process to unlock some actions
         self.isUploadStarted = false;
@@ -904,6 +915,7 @@ class AdminModuleController {
       'bulk-disable-mobile': 'disableMobile',
       'bulk-enable-mobile': 'enableMobile',
       'bulk-reset': 'reset',
+      'bulk-delete': 'delete',
     };
 
     // Note no grid selector used yet since we do not needed it at dev time
@@ -956,52 +968,30 @@ class AdminModuleController {
       return;
     }
 
-    let modulesRequestedCountdown = actionMenuLinks.length - 1;
-    let spinnerObj = $('<button class="btn-primary-reverse onclick unbind spinner "></button>');
+    // Begin actions one after another
+    unstackModulesActions();
 
-    if (actionMenuLinks.length > 1) {
-      // Loop through all the modules except the last one which waits for other
-      // requests and then call its request with cache clear enabled
-      $.each(actionMenuLinks, (index, actionMenuLink) => {
-        if (index >= actionMenuLinks.length - 1) {
-          return;
-        }
-        requestModuleAction(actionMenuLink, true, countdownModulesRequest);
-      });
-      // Display a spinner for the last module
-      const lastMenuLink = actionMenuLinks[actionMenuLinks.length - 1];
-      const actionMenuObj = lastMenuLink.closest(self.moduleCardController.moduleItemActionsSelector);
-      actionMenuObj.hide();
-      actionMenuObj.after(spinnerObj);
-    } else {
-      requestModuleAction(actionMenuLinks[0]);
-    }
+    function requestModuleAction(actionMenuLink) {
+      if (self.moduleCardController.hasPendingRequest()) {
+        actionMenuLinks.push(actionMenuLink);
+        return;
+      }
 
-    function requestModuleAction(actionMenuLink, disableCacheClear, requestEndCallback) {
       self.moduleCardController.requestToController(
         bulkModuleAction,
         actionMenuLink,
         forceDeletion,
-        disableCacheClear,
-        requestEndCallback,
+        unstackModulesActions,
       );
     }
 
-    function countdownModulesRequest() {
-      modulesRequestedCountdown -= 1;
-      // Now that all other modules have performed their action WITHOUT cache clear, we
-      // can request the last module request WITH cache clear
-      if (modulesRequestedCountdown <= 0) {
-        if (spinnerObj) {
-          spinnerObj.remove();
-          spinnerObj = null;
-        }
-
-        const lastMenuLink = actionMenuLinks[actionMenuLinks.length - 1];
-        const actionMenuObj = lastMenuLink.closest(self.moduleCardController.moduleItemActionsSelector);
-        actionMenuObj.fadeIn();
-        requestModuleAction(lastMenuLink);
+    function unstackModulesActions() {
+      if (actionMenuLinks.length <= 0) {
+        return;
       }
+
+      const actionMenuLink = actionMenuLinks.shift();
+      requestModuleAction(actionMenuLink);
     }
 
     function filterAllowedActions(actions) {

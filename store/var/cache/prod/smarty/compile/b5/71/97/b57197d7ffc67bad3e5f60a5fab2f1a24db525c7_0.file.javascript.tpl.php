@@ -1,18 +1,18 @@
 <?php
-/* Smarty version 4.2.1, created on 2023-03-30 14:08:33
+/* Smarty version 4.3.1, created on 2023-12-21 13:08:26
   from '/home/sexthera/public_html/muizenmesh.co.za/store/themes/javascript.tpl' */
 
 /* @var Smarty_Internal_Template $_smarty_tpl */
 if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
-  'version' => '4.2.1',
-  'unifunc' => 'content_64257bc129e9a1_70688042',
+  'version' => '4.3.1',
+  'unifunc' => 'content_65841caaf3a8d0_90431525',
   'has_nocache_code' => false,
   'file_dependency' => 
   array (
     'b57197d7ffc67bad3e5f60a5fab2f1a24db525c7' => 
     array (
       0 => '/home/sexthera/public_html/muizenmesh.co.za/store/themes/javascript.tpl',
-      1 => 1678447298,
+      1 => 1694187264,
       2 => 'file',
     ),
   ),
@@ -20,8 +20,9 @@ if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
   array (
   ),
 ),false)) {
-function content_64257bc129e9a1_70688042 (Smarty_Internal_Template $_smarty_tpl) {
-if ((isset($_smarty_tpl->tpl_vars['js_def']->value)) && is_array($_smarty_tpl->tpl_vars['js_def']->value) && count($_smarty_tpl->tpl_vars['js_def']->value)) {
+function content_65841caaf3a8d0_90431525 (Smarty_Internal_Template $_smarty_tpl) {
+$_smarty_tpl->_checkPlugins(array(0=>array('file'=>'/home/sexthera/public_html/muizenmesh.co.za/store/vendor/smarty/smarty/libs/plugins/modifier.count.php','function'=>'smarty_modifier_count',),));
+if ((isset($_smarty_tpl->tpl_vars['js_def']->value)) && is_array($_smarty_tpl->tpl_vars['js_def']->value) && smarty_modifier_count($_smarty_tpl->tpl_vars['js_def']->value)) {
 echo '<script'; ?>
  type="text/javascript">
 <?php
@@ -39,7 +40,7 @@ $_smarty_tpl->smarty->ext->_foreach->restore($_smarty_tpl, 1);
 echo '</script'; ?>
 >
 <?php }
-if ((isset($_smarty_tpl->tpl_vars['js_files']->value)) && count($_smarty_tpl->tpl_vars['js_files']->value)) {
+if ((isset($_smarty_tpl->tpl_vars['js_files']->value)) && smarty_modifier_count($_smarty_tpl->tpl_vars['js_files']->value)) {
 $_from = $_smarty_tpl->smarty->ext->_foreach->init($_smarty_tpl, $_smarty_tpl->tpl_vars['js_files']->value, 'js_uri', false, 'k');
 $_smarty_tpl->tpl_vars['js_uri']->do_else = true;
 if ($_from !== null) foreach ($_from as $_smarty_tpl->tpl_vars['k']->value => $_smarty_tpl->tpl_vars['js_uri']->value) {
@@ -52,7 +53,7 @@ echo '<script'; ?>
 }
 $_smarty_tpl->smarty->ext->_foreach->restore($_smarty_tpl, 1);
 }
-if ((isset($_smarty_tpl->tpl_vars['js_inline']->value)) && count($_smarty_tpl->tpl_vars['js_inline']->value)) {
+if ((isset($_smarty_tpl->tpl_vars['js_inline']->value)) && smarty_modifier_count($_smarty_tpl->tpl_vars['js_inline']->value)) {
 echo '<script'; ?>
  type="text/javascript">
 <?php

@@ -1,18 +1,18 @@
 <?php
-/* Smarty version 4.2.1, created on 2023-03-30 14:04:05
+/* Smarty version 4.3.1, created on 2023-12-21 13:08:56
   from '/home/sexthera/public_html/muizenmesh.co.za/store/admin963hiaiywinz0astpu8/themes/new-theme/template/components/layout/quick_access.tpl' */
 
 /* @var Smarty_Internal_Template $_smarty_tpl */
 if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
-  'version' => '4.2.1',
-  'unifunc' => 'content_64257ab5cdde52_67691850',
+  'version' => '4.3.1',
+  'unifunc' => 'content_65841cc881d311_49456063',
   'has_nocache_code' => false,
   'file_dependency' => 
   array (
     '561f0d21d99dd8d339ff19c64f702126a017a5c1' => 
     array (
       0 => '/home/sexthera/public_html/muizenmesh.co.za/store/admin963hiaiywinz0astpu8/themes/new-theme/template/components/layout/quick_access.tpl',
-      1 => 1678447298,
+      1 => 1694187249,
       2 => 'file',
     ),
   ),
@@ -20,7 +20,7 @@ if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
   array (
   ),
 ),false)) {
-function content_64257ab5cdde52_67691850 (Smarty_Internal_Template $_smarty_tpl) {
+function content_65841cc881d311_49456063 (Smarty_Internal_Template $_smarty_tpl) {
 ?>
 <div class="dropdown quick-accesses">
   <button class="btn btn-link btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="quick_select">
@@ -34,7 +34,10 @@ $_smarty_tpl->tpl_vars['quick']->do_else = true;
 if ($_from !== null) foreach ($_from as $_smarty_tpl->tpl_vars['quick']->value) {
 $_smarty_tpl->tpl_vars['quick']->do_else = false;
 ?>
-      <a class="dropdown-item quick-row-link<?php ob_start();
+      <a class="dropdown-item quick-row-link <?php if ((isset($_smarty_tpl->tpl_vars['quick']->value['class']))) {
+echo $_smarty_tpl->tpl_vars['quick']->value['class'];
+}
+ob_start();
 echo $_smarty_tpl->tpl_vars['quick']->value['link'];
 $_prefixVariable4 = ob_get_clean();
 if ($_smarty_tpl->tpl_vars['link']->value->matchQuickLink($_prefixVariable4)) {
@@ -57,7 +60,7 @@ $_smarty_tpl->smarty->ext->_foreach->restore($_smarty_tpl, 1);?>
         data-method="remove"
         data-quicklink-id="<?php echo $_smarty_tpl->tpl_vars['matchQuickLink']->value;?>
 "
-        data-rand="<?php echo rand(1,200);?>
+        data-rand="<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'rand' ][ 0 ], array( 1,200 ));?>
 "
         data-icon="<?php echo $_smarty_tpl->tpl_vars['quick_access_current_link_icon']->value;?>
 "
@@ -78,7 +81,7 @@ $_smarty_tpl->smarty->ext->_foreach->restore($_smarty_tpl, 1);?>
       <a id="quick-add-link"
         class="dropdown-item js-quick-link"
         href="#"
-        data-rand="<?php echo rand(1,200);?>
+        data-rand="<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'rand' ][ 0 ], array( 1,200 ));?>
 "
         data-icon="<?php echo $_smarty_tpl->tpl_vars['quick_access_current_link_icon']->value;?>
 "
@@ -97,7 +100,7 @@ $_smarty_tpl->smarty->ext->_foreach->restore($_smarty_tpl, 1);?>
 
       </a>
     <?php }?>
-    <a id="quick-manage-link" class="dropdown-item" href="<?php echo addslashes($_smarty_tpl->tpl_vars['link']->value->getAdminLink("AdminQuickAccesses"));?>
+    <a id="quick-manage-link" class="dropdown-item" href="<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['link']->value->getAdminLink("AdminQuickAccesses") ));?>
 ">
       <i class="material-icons">settings</i>
       <?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Manage your quick accesses','d'=>'Admin.Navigation.Header'),$_smarty_tpl ) );?>

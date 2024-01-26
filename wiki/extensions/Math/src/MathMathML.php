@@ -8,7 +8,6 @@
 
 namespace MediaWiki\Extension\Math;
 
-use Exception;
 use Hooks;
 use Html;
 use MediaWiki\Logger\LoggerFactory;
@@ -17,6 +16,7 @@ use Psr\Log\LoggerInterface;
 use SpecialPage;
 use StatusValue;
 use stdClass;
+use Throwable;
 use Title;
 use Xml;
 use XmlTypeCheck;
@@ -31,7 +31,7 @@ class MathMathML extends MathRenderer {
 	/** @var string[] */
 	protected $restbaseInputTypes = [ 'tex', 'inline-tex', 'chem' ];
 	/** @var string[] */
-	protected $restbaseRenderingModes = [ MathConfig::MODE_MATHML, MathConfig::MODE_PNG ];
+	protected $restbaseRenderingModes = [ MathConfig::MODE_MATHML ];
 	/** @var string[] */
 	protected $allowedRootElements = [];
 	/** @var string */
@@ -100,7 +100,7 @@ class MathMathML extends MathRenderer {
 	 */
 	public static function batchEvaluate( array $renderers ) {
 		$rbis = [];
-		foreach ( $renderers as $key => $renderer ) {
+		foreach ( $renderers as $renderer ) {
 			$rbi = new MathRestbaseInterface( $renderer->getTex(), $renderer->getInputType() );
 			$renderer->setRestbaseInterface( $rbi );
 			$rbis[] = $rbi;
@@ -173,7 +173,7 @@ class MathMathML extends MathRenderer {
 				return $renderResult->isGood();
 			}
 			return true;
-		} catch ( Exception $e ) {
+		} catch ( Throwable $e ) {
 			$this->lastError = $this->getError( 'math_mathoid_error',
 				$wgMathFullRestbaseURL, $e->getMessage() );
 			$this->logger->error( $e->getMessage(), [ $e, $this ] );
@@ -354,9 +354,6 @@ class MathMathML extends MathRenderer {
 	 * @return Title|string
 	 */
 	private function getFallbackImageUrl( $noRender = false ) {
-		if ( $this->getMode() === MathConfig::MODE_PNG && $this->pngPath ) {
-			return $this->pngPath;
-		}
 		if ( $this->svgPath ) {
 			return $this->svgPath;
 		}
@@ -407,18 +404,11 @@ class MathMathML extends MathRenderer {
 	 */
 	protected function getFallbackImage( $noRender = false, $classOverride = false ) {
 		$attribs = [
-			'src' => $this->getFallbackImageUrl( $noRender )
+			'src' => $this->getFallbackImageUrl( $noRender ),
+			'class' => $classOverride === false ? $this->getClassName( true ) : $classOverride,
 		];
-		if ( $classOverride === false ) { // $class = '' suppresses class attribute
-			$class = $this->getClassName( true );
-		} else {
-			$class = $classOverride;
-		}
 		if ( !$this->mathoidStyle ) {
 			$this->correctSvgStyle( $this->mathoidStyle );
-		}
-		if ( $class ) {
-			$attribs['class'] = $class;
 		}
 
 		return Html::element( 'img', $this->getAttributes( 'span', $attribs, [
@@ -534,7 +524,7 @@ class MathMathML extends MathRenderer {
 	}
 
 	/**
-	 * @param stdClass $jsonResult json result
+	 * @param stdClass $jsonResult
 	 * @param string $host name
 	 *
 	 * @return StatusValue

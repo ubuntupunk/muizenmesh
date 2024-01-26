@@ -26,6 +26,12 @@
 
 namespace PaypalAddons\classes\API\Response;
 
+use PaypalAddons\classes\API\Model\VaultInfo;
+
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 class ResponseOrderCapture extends Response
 {
     /** @var string */
@@ -57,6 +63,9 @@ class ResponseOrderCapture extends Response
 
     /** @var string */
     protected $method;
+
+    /** @var VaultInfo|null */
+    protected $vaultInfo;
 
     /**
      * @return string
@@ -234,6 +243,21 @@ class ResponseOrderCapture extends Response
     public function setCapture($capture)
     {
         $this->capture = $capture;
+
+        return $this;
+    }
+
+    /**
+     * @return VaultInfo|null
+     */
+    public function getVaultInfo()
+    {
+        return $this->vaultInfo;
+    }
+
+    public function setVaultInfo(VaultInfo $vaultInfo)
+    {
+        $this->vaultInfo = $vaultInfo;
 
         return $this;
     }

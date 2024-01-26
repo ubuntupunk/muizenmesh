@@ -39,13 +39,13 @@ class ps_themecusto extends Module
     public $img_path;
     public $logo_path;
     public $module_path;
-    public $ready;
     public $ps_uri;
 
     public function __construct()
     {
         $this->name = 'ps_themecusto';
-        $this->version = '1.2.1';
+        $this->tab = 'front_office_features';
+        $this->version = '1.2.3';
         $this->author = 'PrestaShop';
         $this->module_key = 'af0983815ad8c8a193b5dc9168e8372e';
         $this->author_address = '0x64aa3c1e4034d07015f639b0e171b0d7b27d01aa';
@@ -65,8 +65,8 @@ class ps_themecusto extends Module
 
         $this->ps_versions_compliancy = ['min' => '1.7', 'max' => _PS_VERSION_];
 
-        $this->displayName = $this->l('Theme Customization');
-        $this->description = $this->l('Easily build your homepage: access the main front office modules and quickly configure them. Feature available on Design > Theme & Logo page.');
+        $this->displayName = $this->trans('Theme Customization');
+        $this->description = $this->trans('Easily build your homepage: access the main front office modules and quickly configure them. Feature available on Design > Theme & Logo page.');
         $this->template_dir = '../../../../modules/' . $this->name . '/views/templates/admin/';
         $this->ps_uri = (Tools::usingSecureMode() ? Tools::getShopDomainSsl(true) : Tools::getShopDomain(true)) . __PS_BASE_URI__;
 
@@ -76,7 +76,6 @@ class ps_themecusto extends Module
         $this->img_path = $this->_path . 'views/img/';
         $this->logo_path = $this->_path . 'logo.png';
         $this->module_path = $this->local_path;
-        $this->ready = (getenv('PLATEFORM') === 'PSREADY') ? true : false;
     }
 
     /**
@@ -88,7 +87,7 @@ class ps_themecusto extends Module
             return true;
         }
 
-        $this->_errors[] = $this->l('There was an error during the installation. Please contact us through Addons website');
+        $this->_errors[] = $this->trans('There was an error during the installation. Please contact us through Addons website');
 
         return false;
     }
@@ -103,7 +102,7 @@ class ps_themecusto extends Module
             return true;
         }
 
-        $this->_errors[] = $this->l('There was an error during the uninstall. Please contact us through Addons website');
+        $this->_errors[] = $this->trans('There was an error during the uninstall. Please contact us through Addons website');
 
         return false;
     }

@@ -26,6 +26,10 @@
 
 namespace PaypalAddons\classes\API;
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 use PaypalAddons\classes\API\Request\RequestInteface;
 
 interface PaypalApiManagerInterface

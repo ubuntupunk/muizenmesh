@@ -1,18 +1,18 @@
 <?php
-/* Smarty version 4.2.1, created on 2023-03-30 14:04:05
+/* Smarty version 4.3.1, created on 2023-12-21 13:08:56
   from '/home/sexthera/public_html/muizenmesh.co.za/store/admin963hiaiywinz0astpu8/themes/new-theme/public/preload.tpl' */
 
 /* @var Smarty_Internal_Template $_smarty_tpl */
 if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
-  'version' => '4.2.1',
-  'unifunc' => 'content_64257ab5c84517_31651883',
+  'version' => '4.3.1',
+  'unifunc' => 'content_65841cc87a8778_38971164',
   'has_nocache_code' => false,
   'file_dependency' => 
   array (
     '23f0cb6ef965c095f468d931a0f40361bfd58b8d' => 
     array (
       0 => '/home/sexthera/public_html/muizenmesh.co.za/store/admin963hiaiywinz0astpu8/themes/new-theme/public/preload.tpl',
-      1 => 1678447792,
+      1 => 1694187249,
       2 => 'file',
     ),
   ),
@@ -20,11 +20,11 @@ if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
   array (
   ),
 ),false)) {
-function content_64257ab5c84517_31651883 (Smarty_Internal_Template $_smarty_tpl) {
+function content_65841cc87a8778_38971164 (Smarty_Internal_Template $_smarty_tpl) {
 ?><link
       rel="preload"
       href="<?php echo $_smarty_tpl->tpl_vars['admin_dir']->value;?>
-703cf8f274fbb265d49c6262825780e1.preload.woff2"
+2d8017489da689caedc1.preload..woff2"
       as="font"
       crossorigin
     ><?php }

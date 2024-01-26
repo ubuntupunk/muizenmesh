@@ -25,7 +25,7 @@
 <template>
   <div
     class="ps-sortable-column"
-    data-sort-col-name="id_product"
+    :data-sort-col-name="this.order"
     :data-sort-is-current="isCurrent"
     :data-sort-direction="sortDirection"
     @click="sortToggle"
@@ -40,9 +40,9 @@
 </template>
 
 <script lang="ts">
-  import Vue from 'vue';
+  import {defineComponent} from 'vue';
 
-  export default Vue.extend({
+  export default defineComponent({
     props: {
       // column name
       order: {

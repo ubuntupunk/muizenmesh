@@ -1,8 +1,12 @@
 <?php
 
+use MediaWiki\Html\Html;
+use MediaWiki\Linker\Linker;
 use MediaWiki\Linker\LinkRenderer;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Title\Title;
+use Wikimedia\Assert\Assert;
 
 /**
  * Image gallery.
@@ -98,7 +102,7 @@ class TraditionalImageGallery extends ImageGalleryBase {
 						// @phan-suppress-next-line PhanTypeMismatchArgument Type mismatch on pass-by-ref args
 						$this->mParser, $nt, $options, $descQuery );
 					# Fetch and register the file (file title may be different via hooks)
-					list( $img, $nt ) = $this->mParser->fetchFileAndTitle( $nt, $options );
+					[ $img, $nt ] = $this->mParser->fetchFileAndTitle( $nt, $options );
 				} else {
 					$img = $repoGroup->findFile( $nt );
 				}
@@ -114,7 +118,7 @@ class TraditionalImageGallery extends ImageGalleryBase {
 			$isBadFile = $img && $thumb && $this->mHideBadImages &&
 				$badFileLookup->isBadFile( $nt->getDBkey(), $this->getContextTitle() );
 
-			if ( !$img || !$thumb || $isBadFile ) {
+			if ( !$img || !$thumb || ( !$enableLegacyMediaDOM && $thumb->isError() ) || $isBadFile ) {
 				$rdfaType = 'mw:Error ' . $rdfaType;
 
 				if ( $enableLegacyMediaDOM ) {
@@ -124,9 +128,20 @@ class TraditionalImageGallery extends ImageGalleryBase {
 						$thumbhtml = htmlspecialchars( $img ? $img->getLastError() : $nt->getText() );
 					}
 				} else {
-					// FIXME: BadFile is known
+					$currentExists = $img && $img->exists();
+					if ( $currentExists && !$thumb ) {
+						$label = wfMessage( 'thumbnail_error', '' )->text();
+					} elseif ( $thumb && $thumb->isError() ) {
+						Assert::invariant(
+							$thumb instanceof MediaTransformError,
+							'Unknown MediaTransformOutput: ' . get_class( $thumb )
+						);
+						$label = $thumb->toText();
+					} else {
+						$label = $alt ?? '';
+					}
 					$thumbhtml = Linker::makeBrokenImageLinkObj(
-						$nt, '', '', '', '', false, $transformOptions
+						$nt, $label, '', '', '', false, $transformOptions, $currentExists
 					);
 					$thumbhtml = Html::rawElement( 'span', [ 'typeof' => $rdfaType ], $thumbhtml );
 				}
@@ -147,14 +162,19 @@ class TraditionalImageGallery extends ImageGalleryBase {
 					$imageParameters = [
 						'desc-link' => true,
 						'desc-query' => $descQuery,
-						'alt' => $alt,
+						'alt' => $alt ?? '',
 						'custom-url-link' => $link
 					];
 				} else {
-					$params = [
-						'alt' => $alt,
-						'title' => $imageOptions['title'],
-					];
+					$params = [];
+					// An empty alt indicates an image is not a key part of the
+					// content and that non-visual browsers may omit it from
+					// rendering.  Only set the parameter if it's explicitly
+					// requested.
+					if ( $alt !== null ) {
+						$params['alt'] = $alt;
+					}
+					$params['title'] = $imageOptions['title'];
 					$imageParameters = Linker::getImageLinkMTOParams(
 						$imageOptions, $descQuery, $this->mParser
 					) + $params;

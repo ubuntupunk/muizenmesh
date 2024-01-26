@@ -23,6 +23,9 @@
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
  */
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
 
 /**
  * Class PaypalOrder.
@@ -47,6 +50,15 @@ class PaypalVaulting extends ObjectModel
     /** @var string */
     public $profile_key;
 
+    /** @var string */
+    public $payment_source;
+
+    /** @var string */
+    public $vault_id;
+
+    /** @var string */
+    public $paypal_customer_id;
+
     /**
      * @see ObjectModel::$definition
      */
@@ -56,9 +68,12 @@ class PaypalVaulting extends ObjectModel
         'multilang' => false,
         'fields' => [
             'id_customer' => ['type' => self::TYPE_INT, 'validate' => 'isUnsignedId'],
-            'rememberedCards' => ['type' => self::TYPE_STRING, 'validate' => 'isString'],
-            'profile_key' => ['type' => self::TYPE_STRING, 'validate' => 'isString'],
+            'rememberedCards' => ['type' => self::TYPE_STRING, 'validate' => 'isCleanHtml'],
+            'vault_id' => ['type' => self::TYPE_STRING, 'validate' => 'isCleanHtml'],
+            'paypal_customer_id' => ['type' => self::TYPE_STRING, 'validate' => 'isCleanHtml'],
+            'profile_key' => ['type' => self::TYPE_STRING, 'validate' => 'isCleanHtml'],
             'sandbox' => ['type' => self::TYPE_BOOL, 'validate' => 'isBool'],
+            'payment_source' => ['type' => self::TYPE_STRING, 'validate' => 'isCleanHtml', 'size' => 50],
             'date_add' => ['type' => self::TYPE_DATE, 'validate' => 'isDateFormat'],
             'date_upd' => ['type' => self::TYPE_DATE, 'validate' => 'isDateFormat'],
         ],

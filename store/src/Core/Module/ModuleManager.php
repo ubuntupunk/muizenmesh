@@ -65,9 +65,6 @@ class ModuleManager implements ModuleManagerInterface
     /** @var Filesystem */
     private $filesystem;
 
-    /** @var bool */
-    private $systemClearCache = true;
-
     public function __construct(
         ModuleRepository $moduleRepository,
         ModuleDataProvider $moduleDataProvider,
@@ -163,6 +160,26 @@ class ModuleManager implements ModuleManagerInterface
         $this->dispatch(ModuleManagementEvent::UNINSTALL, $module);
 
         return $uninstalled;
+    }
+
+    public function delete(string $name): bool
+    {
+        if (!$this->adminModuleDataProvider->isAllowedAccess(__FUNCTION__, $name)) {
+            throw new Exception($this->translator->trans(
+                'You are not allowed to delete the module %module%.',
+                ['%module%' => $name],
+                'Admin.Modules.Notification'
+            ));
+        }
+
+        $module = $this->moduleRepository->getModule($name);
+
+        $path = $this->moduleRepository->getModulePath($name);
+        $this->filesystem->remove($path);
+
+        $this->dispatch(ModuleManagementEvent::DELETE, $module);
+
+        return true;
     }
 
     public function upgrade(string $name, $source = null): bool
@@ -383,11 +400,6 @@ class ModuleManager implements ModuleManagerInterface
 
     private function dispatch(string $event, ModuleInterface $module): void
     {
-        $this->eventDispatcher->dispatch(new ModuleManagementEvent($module, $this->systemClearCache), $event);
-    }
-
-    public function disableSystemClearCache(): void
-    {
-        $this->systemClearCache = false;
+        $this->eventDispatcher->dispatch(new ModuleManagementEvent($module), $event);
     }
 }

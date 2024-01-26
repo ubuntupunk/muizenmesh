@@ -3,8 +3,8 @@
 		"authors": [
 			"Amire80",
 			"Bfpage",
-			"Tisave",
-			"Kitanago"
+			"Kitanago",
+			"Tisave"
 		]
 	},
 	"tooltip-ca-createsource": "Kreye kòd sous paj sa a",
@@ -14,7 +14,7 @@
 	"visualeditor-ca-editsource": "Modifye kòd",
 	"visualeditor-ca-editsource-section": "modifye kòd",
 	"visualeditor-categories-tool": "Kategori yo",
-	"visualeditor-descriptionpagelink": "Pwojè:EditèVizyèl",
+	"visualeditor-descriptionpagelink": "Project:EditèVizyèl",
 	"visualeditor-dialog-media-change-image": "Chanje imaj",
 	"visualeditor-dialog-media-choose-image": "Sèvi imaj sa a",
 	"visualeditor-dialog-media-content-description-link": "(paj deskripsyon)",
@@ -57,7 +57,7 @@
 	"visualeditor-dialog-transclusion-confirmation-reject": "Kontinye modifikasyon",
 	"visualeditor-dialog-transclusion-param-default": "Defo : $1",
 	"visualeditor-dialog-transclusion-param-example-long": "Egzanp : $1",
-	"visualeditor-dialog-transclusion-placeholder": "Ajoute yon modèl",
+	"visualeditor-dialog-transclusion-param-undocumented": "(Paramèt san dokimantasyon)",
 	"visualeditor-dialog-transclusion-placeholder-input-placeholder": "Jwenn yon modèl",
 	"visualeditor-dialogbutton-template-tooltip": "Modèl",
 	"visualeditor-expandable-less": "Mwens",

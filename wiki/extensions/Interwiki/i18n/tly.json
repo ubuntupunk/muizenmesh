@@ -1,10 +1,11 @@
 {
 	"@metadata": {
 		"authors": [
-			"Patriot Kur",
-			"Patriot Kor"
+			"Patriot Kor",
+			"Patriot Kur"
 		]
 	},
 	"interwiki_0": "ne",
-	"interwiki_edit": "Redaktə kardə"
+	"interwiki_edit": "Sərosti bıkə",
+	"interwiki_addbutton": "Əlovə"
 }

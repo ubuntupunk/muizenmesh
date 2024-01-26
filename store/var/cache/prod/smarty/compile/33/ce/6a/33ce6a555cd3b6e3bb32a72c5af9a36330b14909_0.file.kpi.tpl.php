@@ -1,18 +1,18 @@
 <?php
-/* Smarty version 4.2.1, created on 2023-03-30 14:04:28
+/* Smarty version 4.3.1, created on 2023-12-21 13:17:38
   from '/home/sexthera/public_html/muizenmesh.co.za/store/admin963hiaiywinz0astpu8/themes/new-theme/template/helpers/kpi/kpi.tpl' */
 
 /* @var Smarty_Internal_Template $_smarty_tpl */
 if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
-  'version' => '4.2.1',
-  'unifunc' => 'content_64257acc0971f9_33955138',
+  'version' => '4.3.1',
+  'unifunc' => 'content_65841ed2a88f55_04054724',
   'has_nocache_code' => false,
   'file_dependency' => 
   array (
     '33ce6a555cd3b6e3bb32a72c5af9a36330b14909' => 
     array (
       0 => '/home/sexthera/public_html/muizenmesh.co.za/store/admin963hiaiywinz0astpu8/themes/new-theme/template/helpers/kpi/kpi.tpl',
-      1 => 1678447298,
+      1 => 1694187249,
       2 => 'file',
     ),
   ),
@@ -20,13 +20,13 @@ if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
   array (
   ),
 ),false)) {
-function content_64257acc0971f9_33955138 (Smarty_Internal_Template $_smarty_tpl) {
+function content_65841ed2a88f55_04054724 (Smarty_Internal_Template $_smarty_tpl) {
 $_smarty_tpl->_checkPlugins(array(0=>array('file'=>'/home/sexthera/public_html/muizenmesh.co.za/store/vendor/smarty/smarty/libs/plugins/modifier.replace.php','function'=>'smarty_modifier_replace',),));
 ?>
 
 <?php echo '<script'; ?>
 >
-  function refresh_<?php echo addslashes(smarty_modifier_replace($_smarty_tpl->tpl_vars['id']->value,'-','_'));?>
+  function refresh_<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addslashes' ][ 0 ], array( smarty_modifier_replace($_smarty_tpl->tpl_vars['id']->value,'-','_') ));?>
 ()
   {
     <?php if (!(isset($_smarty_tpl->tpl_vars['source']->value)) || $_smarty_tpl->tpl_vars['source']->value == '' || !(isset($_smarty_tpl->tpl_vars['refresh']->value)) || $_smarty_tpl->tpl_vars['refresh']->value == '') {?>
@@ -36,7 +36,7 @@ $_smarty_tpl->_checkPlugins(array(0=>array('file'=>'/home/sexthera/public_html/m
     }
     <?php }?>
     $.ajax({
-      url: '<?php echo addslashes($_smarty_tpl->tpl_vars['source']->value);?>
+      url: '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['source']->value ));?>
 ' + '&rand=' + new Date().getTime(),
       dataType: 'json',
       type: 'GET',
@@ -47,16 +47,16 @@ $_smarty_tpl->_checkPlugins(array(0=>array('file'=>'/home/sexthera/public_html/m
         {
           if (jsonData.value != undefined)
           {
-            $('#<?php echo addslashes($_smarty_tpl->tpl_vars['id']->value);?>
+            $('#<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['id']->value ));?>
  .value').html(jsonData.value);
-            $('#<?php echo addslashes($_smarty_tpl->tpl_vars['id']->value);?>
+            $('#<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['id']->value ));?>
 ').attr('data-original-title', jsonData.tooltip);
           }
           if (jsonData.data != undefined)
           {
-            $("#<?php echo addslashes($_smarty_tpl->tpl_vars['id']->value);?>
+            $("#<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['id']->value ));?>
  .boxchart svg").remove();
-            set_d3_<?php echo addslashes(smarty_modifier_replace($_smarty_tpl->tpl_vars['id']->value,'-','_'));?>
+            set_d3_<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addslashes' ][ 0 ], array( smarty_modifier_replace($_smarty_tpl->tpl_vars['id']->value,'-','_') ));?>
 (jsonData.data);
           }
         }
@@ -69,7 +69,7 @@ $_smarty_tpl->_checkPlugins(array(0=>array('file'=>'/home/sexthera/public_html/m
 <?php if ($_smarty_tpl->tpl_vars['chart']->value) {?>
   <?php echo '<script'; ?>
 >
-    function set_d3_<?php echo addslashes(str_replace($_smarty_tpl->tpl_vars['id']->value,'-','_'));?>
+    function set_d3_<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addslashes' ][ 0 ], array( call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'str_replace' ][ 0 ], array( $_smarty_tpl->tpl_vars['id']->value,'-','_' )) ));?>
 (jsonObject)
     {
       var data = new Array;
@@ -78,7 +78,7 @@ $_smarty_tpl->_checkPlugins(array(0=>array('file'=>'/home/sexthera/public_html/m
       });
       var data_max = d3.max(data);
 
-      var chart = d3.select("#<?php echo addslashes($_smarty_tpl->tpl_vars['id']->value);?>
+      var chart = d3.select("#<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['id']->value ));?>
  .boxchart").append("svg")
               .attr("class", "data_chart")
               .attr("width", data.length * 6)
@@ -98,8 +98,8 @@ $_smarty_tpl->_checkPlugins(array(0=>array('file'=>'/home/sexthera/public_html/m
     }
 
     <?php if ($_smarty_tpl->tpl_vars['data']->value) {?>
-    set_d3_<?php echo addslashes(smarty_modifier_replace($_smarty_tpl->tpl_vars['id']->value,'-','_'));?>
-($.parseJSON("<?php echo addslashes($_smarty_tpl->tpl_vars['data']->value);?>
+    set_d3_<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addslashes' ][ 0 ], array( smarty_modifier_replace($_smarty_tpl->tpl_vars['id']->value,'-','_') ));?>
+($.parseJSON("<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['data']->value ));?>
 "));
     <?php }?>
   <?php echo '</script'; ?>

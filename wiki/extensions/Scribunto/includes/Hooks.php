@@ -393,9 +393,9 @@ class Hooks {
 
 		$status->merge( $validateStatus );
 
-		if ( isset( $validateStatus->scribunto_error->params['module'] ) ) {
-			$module = $validateStatus->scribunto_error->params['module'];
-			$line = $validateStatus->scribunto_error->params['line'];
+		if ( isset( $validateStatus->value->params['module'] ) ) {
+			$module = $validateStatus->value->params['module'];
+			$line = $validateStatus->value->params['line'];
 			if ( $module === $title->getPrefixedDBkey() && preg_match( '/^\d+$/', $line ) ) {
 				$out = $context->getOutput();
 				$out->addInlineScript( 'window.location.hash = ' . Xml::encodeJsVar( "#mw-ce-l$line" ) );
@@ -412,7 +412,7 @@ class Hooks {
 
 	/**
 	 * @param Article $article
-	 * @param bool &$outputDone
+	 * @param bool|ParserOutput|null &$outputDone
 	 * @param bool &$pcache
 	 * @return bool
 	 */

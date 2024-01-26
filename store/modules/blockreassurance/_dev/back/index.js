@@ -1,32 +1,24 @@
 /**
- * 2007-2019 PrestaShop.
+ * Copyright since 2007 PrestaShop SA and Contributors
+ * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
  *
  * NOTICE OF LICENSE
  *
- * This source file is subject to the Academic Free License 3.0 (AFL-3.0)
- * that is bundled with this package in the file LICENSE.txt.
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
  * It is also available through the world-wide-web at this URL:
  * https://opensource.org/licenses/AFL-3.0
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to license@prestashop.com so we can send you a copy immediately.
  *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
- * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to http://www.prestashop.com for more information.
- *
- * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2019 PrestaShop SA
- * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License 3.0 (AFL-3.0)
- * International Registered Trademark & Property of PrestaShop SA
+ * @author    PrestaShop SA and Contributors <contact@prestashop.com>
+ * @copyright Since 2007 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
  */
-import Pickr from '@simonwep/pickr';
+import Sortable from 'sortablejs';
 import Vue from 'vue/dist/vue.min';
 
-import 'material-design-icons/iconfont/material-icons.css';
-import '@simonwep/pickr/dist/themes/classic.min.css';
 import './back.scss';
 
 window.Vue = Vue;
@@ -35,10 +27,12 @@ $(window).ready(() => {
   // Tab Content
   let imgSelected;
   // Tab Content : Change position
-  $('.listing-body').sortable({
-    update() {
+  new Sortable(document.getElementById('list-blockreassurance'), {
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    onUpdate() {
       const blocks = [];
-      $('.listing-general-rol').each(function () {
+      $('.listing-general-rol').each(function blockPush() {
         blocks.push($(this).attr('data-block'));
       });
 
@@ -494,53 +488,6 @@ $(window).ready(() => {
       },
     });
   }
-
-  // Tab Appearance
-  const pickrComponents = {
-    // Main components
-    preview: true,
-    opacity: false,
-    hue: true,
-
-    // Input / output Options
-    interaction: {
-      hex: false,
-      rgba: false,
-      hsla: false,
-      hsva: false,
-      cmyk: false,
-      input: true,
-      clear: false,
-      save: true,
-    },
-  };
-  const pickr1 = Pickr.create({
-    el: '.ps_colorpicker1',
-    default: window.psr_icon_color,
-    defaultRepresentation: 'HEX',
-    closeWithKey: 'Escape',
-    adjustableNumbers: true,
-    components: pickrComponents,
-  });
-  pickr1.on('change', () => {
-    const pickrColor = pickr1.getColor();
-    const hexaColor = pickrColor.toHEXA().toString();
-    $('.psr_icon_color').val(hexaColor);
-  });
-
-  const pickr2 = Pickr.create({
-    el: '.ps_colorpicker2',
-    default: window.psr_text_color,
-    defaultRepresentation: 'HEX',
-    closeWithKey: 'Escape',
-    adjustableNumbers: true,
-    components: pickrComponents,
-  });
-  pickr2.on('change', () => {
-    const pickrColor = pickr2.getColor();
-    const hexaColor = pickrColor.toHEXA().toString();
-    $('.psr_text_color').val(hexaColor);
-  });
 
   // Tab Appearance : Save Color
   $(document).on('click', '#saveConfiguration', () => {

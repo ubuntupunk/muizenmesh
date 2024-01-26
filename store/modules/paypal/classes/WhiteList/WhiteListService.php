@@ -32,6 +32,10 @@ use PaypalAddons\classes\Constants\WhiteList;
 use Symfony\Component\HttpFoundation\Request;
 use Throwable;
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 class WhiteListService
 {
     public function isEnabled()
@@ -55,12 +59,14 @@ class WhiteListService
         }
 
         try {
-            return json_decode($list, true);
+            $list = json_decode($list, true);
         } catch (Throwable $e) {
             return [];
         } catch (Exception $e) {
             return [];
         }
+
+        return array_filter($list, function ($ip) { return false === empty($ip); });
     }
 
     public function setListIP($list)
@@ -76,6 +82,10 @@ class WhiteListService
 
     public function isEligibleContext()
     {
+        if (empty($this->getListIP())) {
+            return true;
+        }
+
         $request = Request::createFromGlobals();
 
         return in_array($request->getClientIp(), $this->getListIP()) || defined('_PS_ADMIN_DIR_');

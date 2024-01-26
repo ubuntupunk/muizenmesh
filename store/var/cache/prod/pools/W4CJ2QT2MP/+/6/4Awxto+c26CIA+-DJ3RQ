@@ -14,7 +14,7 @@ return [PHP_INT_MAX, static function () { return \Symfony\Component\VarExporter\
                 'string',
             ],
             'length' => [
-                32,
+                255,
             ],
             'precision' => [
                 null,

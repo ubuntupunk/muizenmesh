@@ -1,18 +1,18 @@
 <?php
-/* Smarty version 4.2.1, created on 2023-03-30 14:08:33
+/* Smarty version 4.3.1, created on 2023-12-21 13:08:27
   from '/home/sexthera/public_html/muizenmesh.co.za/store/admin963hiaiywinz0astpu8/themes/default/template/layout.tpl' */
 
 /* @var Smarty_Internal_Template $_smarty_tpl */
 if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
-  'version' => '4.2.1',
-  'unifunc' => 'content_64257bc136ecc4_02248897',
+  'version' => '4.3.1',
+  'unifunc' => 'content_65841cab17e475_63160002',
   'has_nocache_code' => false,
   'file_dependency' => 
   array (
     '04cda248178ade4a6388c144785dc6d6428f7b95' => 
     array (
       0 => '/home/sexthera/public_html/muizenmesh.co.za/store/admin963hiaiywinz0astpu8/themes/default/template/layout.tpl',
-      1 => 1678447298,
+      1 => 1694187248,
       2 => 'file',
     ),
   ),
@@ -20,7 +20,8 @@ if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
   array (
   ),
 ),false)) {
-function content_64257bc136ecc4_02248897 (Smarty_Internal_Template $_smarty_tpl) {
+function content_65841cab17e475_63160002 (Smarty_Internal_Template $_smarty_tpl) {
+$_smarty_tpl->_checkPlugins(array(0=>array('file'=>'/home/sexthera/public_html/muizenmesh.co.za/store/vendor/smarty/smarty/libs/plugins/modifier.count.php','function'=>'smarty_modifier_count',),));
 echo $_smarty_tpl->tpl_vars['header']->value;?>
 
 <?php if ((isset($_smarty_tpl->tpl_vars['conf']->value))) {?>
@@ -50,7 +51,7 @@ if (count($_smarty_tpl->tpl_vars['errors']->value) && current($_smarty_tpl->tpl_
 			<?php echo reset($_smarty_tpl->tpl_vars['errors']->value);?>
 
 		<?php } else { ?>
-			<?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'There are %d errors.','sprintf'=>array(count($_smarty_tpl->tpl_vars['errors']->value)),'d'=>'Admin.Notifications.Error'),$_smarty_tpl ) );?>
+			<?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'There are %d errors.','sprintf'=>array(smarty_modifier_count($_smarty_tpl->tpl_vars['errors']->value)),'d'=>'Admin.Notifications.Error'),$_smarty_tpl ) );?>
 
 			<br/>
 			<ol>
@@ -112,7 +113,7 @@ if (count($_smarty_tpl->tpl_vars['warnings']->value)) {?>
 		<div class="alert alert-warning">
 			<button type="button" class="close" data-dismiss="alert">&times;</button>
 			<?php if (count($_smarty_tpl->tpl_vars['warnings']->value) > 1) {?>
-				<h4><?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'There are %d warnings:','sprintf'=>array(count($_smarty_tpl->tpl_vars['warnings']->value))),$_smarty_tpl ) );?>
+				<h4><?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'There are %d warnings:','sprintf'=>array(smarty_modifier_count($_smarty_tpl->tpl_vars['warnings']->value))),$_smarty_tpl ) );?>
 </h4>
 			<?php }?>
 			<ul class="list-unstyled">

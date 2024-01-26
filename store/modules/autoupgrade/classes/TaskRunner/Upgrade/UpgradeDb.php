@@ -29,10 +29,9 @@ namespace PrestaShop\Module\AutoUpgrade\TaskRunner\Upgrade;
 
 use PrestaShop\Module\AutoUpgrade\TaskRunner\AbstractTask;
 use PrestaShop\Module\AutoUpgrade\UpgradeException;
-use PrestaShop\Module\AutoUpgrade\UpgradeTools\CoreUpgrader\CoreUpgrader16;
 use PrestaShop\Module\AutoUpgrade\UpgradeTools\CoreUpgrader\CoreUpgrader17;
 use PrestaShop\Module\AutoUpgrade\UpgradeTools\CoreUpgrader\CoreUpgrader80;
-use PrestaShop\Module\AutoUpgrade\UpgradeTools\SettingsFileWriter;
+use PrestaShop\Module\AutoUpgrade\UpgradeTools\CoreUpgrader\CoreUpgrader81;
 
 class UpgradeDb extends AbstractTask
 {
@@ -60,24 +59,26 @@ class UpgradeDb extends AbstractTask
 
     public function getCoreUpgrader()
     {
-        if (version_compare($this->container->getState()->getInstallVersion(), '1.7', '<')) {
-            return new CoreUpgrader16($this->container, $this->logger);
-        }
-
         if (version_compare($this->container->getState()->getInstallVersion(), '8', '<')) {
             return new CoreUpgrader17($this->container, $this->logger);
         }
 
-        return new CoreUpgrader80($this->container, $this->logger);
+        if (version_compare($this->container->getState()->getInstallVersion(), '8.1', '<')) {
+            return new CoreUpgrader80($this->container, $this->logger);
+        }
+
+        return new CoreUpgrader81($this->container, $this->logger);
     }
 
     public function init()
     {
+        $this->logger->info($this->translator->trans('Cleaning file cache', [], 'Modules.Autoupgrade.Admin'));
         $this->container->getCacheCleaner()->cleanFolders();
+        $this->logger->info($this->translator->trans('Running opcache_reset', [], 'Modules.Autoupgrade.Admin'));
+        $this->container->resetOpcache();
 
         // Migrating settings file
         $this->container->initPrestaShopAutoloader();
-        (new SettingsFileWriter($this->translator))->migrateSettingsFile($this->logger);
         parent::init();
     }
 }

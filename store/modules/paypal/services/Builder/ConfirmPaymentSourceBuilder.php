@@ -26,6 +26,10 @@
 
 namespace PaypalAddons\services\Builder;
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 use Address;
 use Context;
 use Country;

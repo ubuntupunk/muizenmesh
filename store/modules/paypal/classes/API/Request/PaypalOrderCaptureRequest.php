@@ -28,11 +28,18 @@ namespace PaypalAddons\classes\API\Request;
 
 use Exception;
 use PaypalAddons\classes\AbstractMethodPaypal;
+use PaypalAddons\classes\API\Model\VaultInfo;
 use PaypalAddons\classes\API\Response\Error;
 use PaypalAddons\classes\API\Response\ResponseOrderCapture;
+use PaypalAddons\classes\Constants\Vaulting;
 use PayPalCheckoutSdk\Orders\OrdersCaptureRequest;
 use PayPalHttp\HttpException;
+use PayPalHttp\HttpResponse;
 use Throwable;
+
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
 
 class PaypalOrderCaptureRequest extends RequestAbstract
 {
@@ -67,6 +74,12 @@ class PaypalOrderCaptureRequest extends RequestAbstract
                     ->setPaymentTool($this->getPaymentTool())
                     ->setMethod($this->getMethodTransaction())
                     ->setDateTransaction($this->getDateTransaction($exec));
+
+                $vaultInfo = $this->getVaultInfo($exec);
+
+                if ($vaultInfo instanceof VaultInfo) {
+                    $response->setVaultInfo($vaultInfo);
+                }
             } elseif ($exec->statusCode == 204) {
                 $response->setSuccess(true);
             } else {
@@ -130,6 +143,10 @@ class PaypalOrderCaptureRequest extends RequestAbstract
         $transaction = $payemnts->captures[0];
         $date = \DateTime::createFromFormat(\DateTime::ATOM, $transaction->create_time);
 
+        if (!$date) {
+            $date = new \DateTime();
+        }
+
         return $date;
     }
 
@@ -150,5 +167,30 @@ class PaypalOrderCaptureRequest extends RequestAbstract
         }
 
         return $method;
+    }
+
+    protected function getVaultInfo(HttpResponse $response)
+    {
+        if (false === empty($response->result->payment_source->paypal->attributes->vault)) {
+            $vaultInfo = new VaultInfo();
+            $vaultInfo->setPaymentSource(Vaulting::PAYMENT_SOURCE_PAYPAL);
+
+            if (false === empty($response->result->payment_source->paypal->attributes->vault->id)) {
+                $vaultInfo->setVaultId((string) $response->result->payment_source->paypal->attributes->vault->id);
+            }
+            if (false === empty($response->result->payment_source->paypal->attributes->vault->customer->id)) {
+                $vaultInfo->setCustomerId((string) $response->result->payment_source->paypal->attributes->vault->customer->id);
+            }
+            if (false === empty($response->result->payment_source->paypal->attributes->vault->status)) {
+                $vaultInfo->setStatus((string) $response->result->payment_source->paypal->attributes->vault->status);
+            }
+            if (false === empty($response->result->payment_source->paypal->attributes->vault->setup_token)) {
+                $vaultInfo->setSetupToken((string) $response->result->payment_source->paypal->attributes->vault->setup_token);
+            }
+
+            return $vaultInfo;
+        }
+
+        return null;
     }
 }

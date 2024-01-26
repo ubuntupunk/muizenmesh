@@ -26,6 +26,10 @@
 
 namespace PaypalAddons\classes\Shortcut;
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 class ShortcutPreview extends ShortcutAbstract
 {
     /** @var string */
@@ -195,5 +199,14 @@ class ShortcutPreview extends ShortcutAbstract
         $this->shape = $shape;
 
         return $this;
+    }
+
+    public function render()
+    {
+        if ($this->method->isConfigured() === false) {
+            return '';
+        }
+
+        return parent::render();
     }
 }

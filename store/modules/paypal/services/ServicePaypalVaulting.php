@@ -26,13 +26,36 @@
 
 namespace PaypalAddons\services;
 
+use Db;
+use DbQuery;
 use Exception;
+use PaypalAddons\classes\AbstractMethodPaypal;
+use PaypalAddons\classes\API\Model\VaultInfo;
 use Throwable;
 
 require_once dirname(__FILE__) . '/../classes/PaypalVaulting.php';
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 class ServicePaypalVaulting
 {
+    protected $db;
+
+    protected $method;
+
+    public function __construct($method = null)
+    {
+        $this->db = Db::getInstance();
+
+        if ($method instanceof AbstractMethodPaypal) {
+            $this->method = $method;
+        } else {
+            $this->method = AbstractMethodPaypal::load();
+        }
+    }
+
     /**
      * @param $idCustomer integer id of the Prestashop Customer object
      * @param $rememberedCards string hash of the remembered card ids
@@ -40,7 +63,7 @@ class ServicePaypalVaulting
      *
      * @return bool
      */
-    public function createOrUpdatePaypalVaulting($idCustomer, $rememberedCards, $mode = null)
+    public function saveRememberedCards($idCustomer, $rememberedCards, $mode = null)
     {
         if ($mode === null) {
             $mode = (int) \Configuration::get('PAYPAL_SANDBOX');
@@ -52,14 +75,7 @@ class ServicePaypalVaulting
             $paypalVaultingObject = new \PaypalVaulting();
             $paypalVaultingObject->id_customer = $idCustomer;
             $paypalVaultingObject->sandbox = (int) $mode;
-
-            if ((int) $mode) {
-                $profileKey = md5(\Configuration::get('PAYPAL_MB_SANDBOX_CLIENTID'));
-            } else {
-                $profileKey = md5(\Configuration::get('PAYPAL_MB_LIVE_CLIENTID'));
-            }
-
-            $paypalVaultingObject->profile_key = $profileKey;
+            $paypalVaultingObject->profile_key = $this->getProfileKey((int) $mode);
         }
 
         $paypalVaultingObject->rememberedCards = $rememberedCards;
@@ -70,6 +86,41 @@ class ServicePaypalVaulting
         } catch (Exception $e) {
             return false;
         }
+    }
+
+    /**
+     * @return \PaypalVaulting|null
+     */
+    public function addVault($idCustomer, VaultInfo $vaultInfo, $mode = null)
+    {
+        if ($mode === null) {
+            $mode = (int) \Configuration::get('PAYPAL_SANDBOX');
+        }
+
+        $idPaypalVaulting = (int) $this->db->getValue(
+            (new DbQuery())
+                ->from(\PaypalVaulting::$definition['table'])
+                ->where(sprintf('vault_id = "%s"', pSQL($vaultInfo->getVaultId())))
+                ->where(sprintf('paypal_customer_id = "%s"', pSQL($vaultInfo->getCustomerId())))
+        );
+
+        $paypalVaultingObject = new \PaypalVaulting($idPaypalVaulting);
+        $paypalVaultingObject->id_customer = (int) $idCustomer;
+        $paypalVaultingObject->sandbox = (int) $mode;
+        $paypalVaultingObject->profile_key = $this->getProfileKey((int) $mode);
+        $paypalVaultingObject->vault_id = $vaultInfo->getVaultId();
+        $paypalVaultingObject->paypal_customer_id = $vaultInfo->getCustomerId();
+        $paypalVaultingObject->payment_source = $vaultInfo->getPaymentSource();
+
+        try {
+            $paypalVaultingObject->save();
+        } catch (Throwable $e) {
+            return null;
+        } catch (Exception $e) {
+            return null;
+        }
+
+        return $paypalVaultingObject;
     }
 
     /**
@@ -105,17 +156,46 @@ class ServicePaypalVaulting
             $mode = (int) \Configuration::get('PAYPAL_SANDBOX');
         }
 
-        if ((int) $mode) {
-            $profileKey = md5(\Configuration::get('PAYPAL_MB_SANDBOX_CLIENTID'));
-        } else {
-            $profileKey = md5(\Configuration::get('PAYPAL_MB_LIVE_CLIENTID'));
-        }
-
         $collection = new \PrestaShopCollection(\PaypalVaulting::class);
         $collection->where('id_customer', '=', (int) $idCustomer);
         $collection->where('sandbox', '=', (int) $mode);
-        $collection->where('profile_key', '=', $profileKey);
+        $collection->where('profile_key', '=', $this->getProfileKey((int) $mode));
 
         return $collection->getFirst();
+    }
+
+    public function getVaultListByCustomer($idCustomer, $mode = null)
+    {
+        if ($mode === null) {
+            $mode = (int) \Configuration::get('PAYPAL_SANDBOX');
+        }
+
+        $query = new DbQuery();
+        $query->from(\PaypalVaulting::$definition['table']);
+        $query->where('id_customer = ' . (int) $idCustomer);
+        $query->where('sandbox = ' . (int) $mode);
+        $query->where(sprintf('profile_key = "%s"', pSQL($this->getProfileKey((int) $mode))));
+        $query->where('vault_id <> ""');
+        $query->where('vault_id IS NOT NULL');
+
+        $result = $this->db->executeS($query);
+        $vaultList = [];
+
+        if (empty($result)) {
+            return $vaultList;
+        }
+
+        foreach ($result as $row) {
+            $obj = new \PaypalVaulting();
+            $obj->hydrate($row);
+            $vaultList[] = $obj;
+        }
+
+        return $vaultList;
+    }
+
+    protected function getProfileKey($mode)
+    {
+        return md5($this->method->getClientId((int) $mode));
     }
 }

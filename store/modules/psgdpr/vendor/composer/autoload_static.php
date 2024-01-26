@@ -4,26 +4,74 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInitce3840de7ef33ff564d4a0364dc9c4f5
+class ComposerStaticInit7b605a2f044c753dca2d38b36f5f2f71
 {
+    public static $prefixLengthsPsr4 = array (
+        'P' => 
+        array (
+            'PrestaShop\\Module\\Psgdpr\\' => 25,
+        ),
+    );
+
+    public static $prefixDirsPsr4 = array (
+        'PrestaShop\\Module\\Psgdpr\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/src',
+        ),
+    );
+
     public static $classMap = array (
-        'AdminAjaxPsgdprController' => __DIR__ . '/../..' . '/controllers/admin/AdminAjaxPsgdprController.php',
-        'AdminDownloadInvoicesPsgdprController' => __DIR__ . '/../..' . '/controllers/admin/AdminDownloadInvoicesPsgdprController.php',
-        'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
-        'GDPRConsent' => __DIR__ . '/../..' . '/classes/GDPRConsent.php',
-        'GDPRLog' => __DIR__ . '/../..' . '/classes/GDPRLog.php',
-        'HTMLTemplatePSGDPRModule' => __DIR__ . '/../..' . '/classes/HTMLTemplatePSGDPRModule.php',
+        'PrestaShop\\Module\\Psgdpr\\Controller\\Admin\\CustomerController' => __DIR__ . '/../..' . '/src/Controller/Admin/CustomerController.php',
+        'PrestaShop\\Module\\Psgdpr\\Controller\\Admin\\DownloadCustomerInvoicesController' => __DIR__ . '/../..' . '/src/Controller/Admin/DownloadCustomerInvoicesController.php',
+        'PrestaShop\\Module\\Psgdpr\\Entity\\PsgdprConsent' => __DIR__ . '/../..' . '/src/Entity/PsgdprConsent.php',
+        'PrestaShop\\Module\\Psgdpr\\Entity\\PsgdprConsentLang' => __DIR__ . '/../..' . '/src/Entity/PsgdprConsentLang.php',
+        'PrestaShop\\Module\\Psgdpr\\Entity\\PsgdprLog' => __DIR__ . '/../..' . '/src/Entity/PsgdprLog.php',
+        'PrestaShop\\Module\\Psgdpr\\Exception\\CannotLoadAssetsException' => __DIR__ . '/../..' . '/src/Exception/CannotLoadAssetsException.php',
+        'PrestaShop\\Module\\Psgdpr\\Exception\\CustomerHasNotInvoicesException' => __DIR__ . '/../..' . '/src/Exception/CustomerHasNotInvoicesException.php',
+        'PrestaShop\\Module\\Psgdpr\\Exception\\Customer\\DeleteException' => __DIR__ . '/../..' . '/src/Exception/Customer/DeleteException.php',
+        'PrestaShop\\Module\\Psgdpr\\Exception\\Customer\\ExportException' => __DIR__ . '/../..' . '/src/Exception/Customer/ExportException.php',
+        'PrestaShop\\Module\\Psgdpr\\Exception\\DownloadInvoicesFailedException' => __DIR__ . '/../..' . '/src/Exception/DownloadInvoicesFailedException.php',
+        'PrestaShop\\Module\\Psgdpr\\Exception\\Logger\\AddLogException' => __DIR__ . '/../..' . '/src/Exception/Logger/AddLogException.php',
+        'PrestaShop\\Module\\Psgdpr\\Exception\\Logger\\LoggerException' => __DIR__ . '/../..' . '/src/Exception/Logger/LoggerException.php',
+        'PrestaShop\\Module\\Psgdpr\\Exception\\Logger\\RequestTypeValidityException' => __DIR__ . '/../..' . '/src/Exception/Logger/RequestTypeValidityException.php',
+        'PrestaShop\\Module\\Psgdpr\\Exception\\PsgdprModuleException' => __DIR__ . '/../..' . '/src/Exception/PsgdprModuleException.php',
+        'PrestaShop\\Module\\Psgdpr\\Repository\\CartRepository' => __DIR__ . '/../..' . '/src/Repository/CartRepository.php',
+        'PrestaShop\\Module\\Psgdpr\\Repository\\CartRuleRepository' => __DIR__ . '/../..' . '/src/Repository/CartRuleRepository.php',
+        'PrestaShop\\Module\\Psgdpr\\Repository\\ConsentRepository' => __DIR__ . '/../..' . '/src/Repository/ConsentRepository.php',
+        'PrestaShop\\Module\\Psgdpr\\Repository\\CustomerRepository' => __DIR__ . '/../..' . '/src/Repository/CustomerRepository.php',
+        'PrestaShop\\Module\\Psgdpr\\Repository\\LoggerRepository' => __DIR__ . '/../..' . '/src/Repository/LoggerRepository.php',
+        'PrestaShop\\Module\\Psgdpr\\Repository\\OrderInvoiceRepository' => __DIR__ . '/../..' . '/src/Repository/OrderInvoiceRepository.php',
+        'PrestaShop\\Module\\Psgdpr\\Repository\\OrderRepository' => __DIR__ . '/../..' . '/src/Repository/OrderRepository.php',
+        'PrestaShop\\Module\\Psgdpr\\Service\\BackResponder\\BackResponderContext' => __DIR__ . '/../..' . '/src/Service/BackResponder/BackResponderContext.php',
+        'PrestaShop\\Module\\Psgdpr\\Service\\BackResponder\\BackResponderFactory' => __DIR__ . '/../..' . '/src/Service/BackResponder/BackResponderFactory.php',
+        'PrestaShop\\Module\\Psgdpr\\Service\\BackResponder\\BackResponderInterface' => __DIR__ . '/../..' . '/src/Service/BackResponder/BackResponderInterface.php',
+        'PrestaShop\\Module\\Psgdpr\\Service\\BackResponder\\Strategy\\BackResponderByCustomerId' => __DIR__ . '/../..' . '/src/Service/BackResponder/Strategy/BackResponderByCustomerId.php',
+        'PrestaShop\\Module\\Psgdpr\\Service\\BackResponder\\Strategy\\BackResponderByEmail' => __DIR__ . '/../..' . '/src/Service/BackResponder/Strategy/BackResponderByEmail.php',
+        'PrestaShop\\Module\\Psgdpr\\Service\\BackResponder\\Strategy\\BackResponderByPhone' => __DIR__ . '/../..' . '/src/Service/BackResponder/Strategy/BackResponderByPhone.php',
+        'PrestaShop\\Module\\Psgdpr\\Service\\CustomerService' => __DIR__ . '/../..' . '/src/Service/CustomerService.php',
+        'PrestaShop\\Module\\Psgdpr\\Service\\ExportService' => __DIR__ . '/../..' . '/src/Service/ExportService.php',
+        'PrestaShop\\Module\\Psgdpr\\Service\\Export\\ExportContext' => __DIR__ . '/../..' . '/src/Service/Export/ExportContext.php',
+        'PrestaShop\\Module\\Psgdpr\\Service\\Export\\ExportFactory' => __DIR__ . '/../..' . '/src/Service/Export/ExportFactory.php',
+        'PrestaShop\\Module\\Psgdpr\\Service\\Export\\ExportInterface' => __DIR__ . '/../..' . '/src/Service/Export/ExportInterface.php',
+        'PrestaShop\\Module\\Psgdpr\\Service\\Export\\Strategy\\ExportToCsv' => __DIR__ . '/../..' . '/src/Service/Export/Strategy/ExportToCsv.php',
+        'PrestaShop\\Module\\Psgdpr\\Service\\Export\\Strategy\\ExportToJson' => __DIR__ . '/../..' . '/src/Service/Export/Strategy/ExportToJson.php',
+        'PrestaShop\\Module\\Psgdpr\\Service\\Export\\Strategy\\ExportToPdf' => __DIR__ . '/../..' . '/src/Service/Export/Strategy/ExportToPdf.php',
+        'PrestaShop\\Module\\Psgdpr\\Service\\FrontResponder\\FrontResponderContext' => __DIR__ . '/../..' . '/src/Service/FrontResponder/FrontResponderContext.php',
+        'PrestaShop\\Module\\Psgdpr\\Service\\FrontResponder\\FrontResponderFactory' => __DIR__ . '/../..' . '/src/Service/FrontResponder/FrontResponderFactory.php',
+        'PrestaShop\\Module\\Psgdpr\\Service\\FrontResponder\\FrontResponderInterface' => __DIR__ . '/../..' . '/src/Service/FrontResponder/FrontResponderInterface.php',
+        'PrestaShop\\Module\\Psgdpr\\Service\\FrontResponder\\Strategy\\FrontResponderForCsv' => __DIR__ . '/../..' . '/src/Service/FrontResponder/Strategy/FrontResponderForCsv.php',
+        'PrestaShop\\Module\\Psgdpr\\Service\\FrontResponder\\Strategy\\FrontResponderForPdf' => __DIR__ . '/../..' . '/src/Service/FrontResponder/Strategy/FrontResponderForPdf.php',
+        'PrestaShop\\Module\\Psgdpr\\Service\\LoggerService' => __DIR__ . '/../..' . '/src/Service/LoggerService.php',
+        'PrestaShop\\Module\\Psgdpr\\Service\\PdfGeneratorService' => __DIR__ . '/../..' . '/src/Service/PdfGeneratorService.php',
         'Psgdpr' => __DIR__ . '/../..' . '/psgdpr.php',
-        'psgdprExportDataToCsvModuleFrontController' => __DIR__ . '/../..' . '/controllers/front/ExportDataToCsv.php',
-        'psgdprExportDataToPdfModuleFrontController' => __DIR__ . '/../..' . '/controllers/front/ExportDataToPdf.php',
-        'psgdprFrontAjaxGdprModuleFrontController' => __DIR__ . '/../..' . '/controllers/front/FrontAjaxGdpr.php',
-        'psgdprgdprModuleFrontController' => __DIR__ . '/../..' . '/controllers/front/gdpr.php',
     );
 
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->classMap = ComposerStaticInitce3840de7ef33ff564d4a0364dc9c4f5::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit7b605a2f044c753dca2d38b36f5f2f71::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit7b605a2f044c753dca2d38b36f5f2f71::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInit7b605a2f044c753dca2d38b36f5f2f71::$classMap;
 
         }, null, ClassLoader::class);
     }

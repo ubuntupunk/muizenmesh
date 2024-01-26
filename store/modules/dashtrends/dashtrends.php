@@ -43,13 +43,13 @@ class dashtrends extends Module
     public function __construct()
     {
         $this->name = 'dashtrends';
-        $this->tab = 'dashboard';
-        $this->version = '2.1.0';
+        $this->tab = 'administration';
+        $this->version = '2.1.3';
         $this->author = 'PrestaShop';
 
         parent::__construct();
         $this->displayName = $this->trans('Dashboard Trends', [], 'Modules.Dashtrends.Admin');
-        $this->description = $this->trans('Enrich your dashboard, display a graphical representation of your store’s development.', [], 'Modules.Dashtrends.Admin');
+        $this->description = $this->trans('Enrich your dashboard: display a graphical representation of your store’s development.', [], 'Modules.Dashtrends.Admin');
         $this->ps_versions_compliancy = ['min' => '1.7.6.0', 'max' => _PS_VERSION_];
     }
 
@@ -73,7 +73,6 @@ class dashtrends extends Module
     {
         $this->context->smarty->assign([
             'currency' => $this->context->currency,
-            '_PS_PRICE_DISPLAY_PRECISION_' => _PS_PRICE_DISPLAY_PRECISION_,
         ]);
 
         return $this->display(__FILE__, 'dashboard_zone_two.tpl');
@@ -237,9 +236,9 @@ class dashtrends extends Module
         return [
             'data_value' => [
                 'sales_score' => $sales_score,
-                'orders_score' => Tools::displayNumber($this->dashboard_data_sum['orders']),
+                'orders_score' => $this->context->getCurrentLocale()->formatNumber($this->dashboard_data_sum['orders']),
                 'cart_value_score' => $cart_value_score,
-                'visits_score' => Tools::displayNumber($this->dashboard_data_sum['visits']),
+                'visits_score' => $this->context->getCurrentLocale()->formatNumber($this->dashboard_data_sum['visits']),
                 'conversion_rate_score' => round(100 * $this->dashboard_data_sum['conversion_rate'], 2) . '%',
                 'net_profits_score' => $net_profit_score,
             ],
@@ -271,7 +270,7 @@ class dashtrends extends Module
 
             $translated_array[$key] = [];
             foreach ($date_array as $compare_date => $value) {
-                $translation = $normal_min + ($compare_date - $compare_min) * ($normal_size / $compare_size);
+                $translation = $compare_size == 0 ? 0 : $normal_min + ($compare_date - $compare_min) * ($normal_size / $compare_size);
                 $translated_array[$key][number_format($translation, 0, '', '')] = $value;
             }
         }

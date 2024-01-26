@@ -33,6 +33,10 @@ use PaypalAddons\classes\API\Response\Error;
 use PaypalAddons\classes\API\Response\ResponseGetAuthToken;
 use Throwable;
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 class PaypalGetAuthToken
 {
     /** @var */
@@ -88,11 +92,15 @@ class PaypalGetAuthToken
                 ->setNonce($responseDecode->nonce);
         } catch (Throwable $e) {
             $error = new Error();
-            $error->setMessage($e->getMessage())->setErrorCode($e->getCode());
+            $error
+                ->setMessage($e->getMessage())
+                ->setErrorCode(empty($e->statusCode) ? $e->getCode() : $e->statusCode);
             $returnResponse->setError($error)->setSuccess(false);
         } catch (Exception $e) {
             $error = new Error();
-            $error->setMessage($e->getMessage())->setErrorCode($e->getCode());
+            $error
+                ->setMessage($e->getMessage())
+                ->setErrorCode(empty($e->statusCode) ? $e->getCode() : $e->statusCode);
             $returnResponse->setError($error)->setSuccess(false);
         }
 

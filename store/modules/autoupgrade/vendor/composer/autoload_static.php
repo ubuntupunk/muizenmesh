@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInitf51f6fb260d47c40793c581b535cd8ef
+class ComposerStaticInitbeb64079e0e73f2e2c753046a8c0fbc9
 {
     public static $files = array (
         '320cde22f66dd4f5d3fd621d3e88b98f' => __DIR__ . '/..' . '/symfony/polyfill-ctype/bootstrap.php',
@@ -68,7 +68,6 @@ class ComposerStaticInitf51f6fb260d47c40793c581b535cd8ef
     );
 
     public static $classMap = array (
-        'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
         'Doctrine\\Common\\Collections\\AbstractLazyCollection' => __DIR__ . '/..' . '/doctrine/collections/lib/Doctrine/Common/Collections/AbstractLazyCollection.php',
         'Doctrine\\Common\\Collections\\ArrayCollection' => __DIR__ . '/..' . '/doctrine/collections/lib/Doctrine/Common/Collections/ArrayCollection.php',
         'Doctrine\\Common\\Collections\\Collection' => __DIR__ . '/..' . '/doctrine/collections/lib/Doctrine/Common/Collections/Collection.php',
@@ -139,14 +138,13 @@ class ComposerStaticInitf51f6fb260d47c40793c581b535cd8ef
         'PrestaShop\\Module\\AutoUpgrade\\UpgradeSelfCheck' => __DIR__ . '/../..' . '/classes/UpgradeSelfCheck.php',
         'PrestaShop\\Module\\AutoUpgrade\\UpgradeTools\\CacheCleaner' => __DIR__ . '/../..' . '/classes/UpgradeTools/CacheCleaner.php',
         'PrestaShop\\Module\\AutoUpgrade\\UpgradeTools\\CoreUpgrader\\CoreUpgrader' => __DIR__ . '/../..' . '/classes/UpgradeTools/CoreUpgrader/CoreUpgrader.php',
-        'PrestaShop\\Module\\AutoUpgrade\\UpgradeTools\\CoreUpgrader\\CoreUpgrader16' => __DIR__ . '/../..' . '/classes/UpgradeTools/CoreUpgrader/CoreUpgrader16.php',
         'PrestaShop\\Module\\AutoUpgrade\\UpgradeTools\\CoreUpgrader\\CoreUpgrader17' => __DIR__ . '/../..' . '/classes/UpgradeTools/CoreUpgrader/CoreUpgrader17.php',
         'PrestaShop\\Module\\AutoUpgrade\\UpgradeTools\\CoreUpgrader\\CoreUpgrader80' => __DIR__ . '/../..' . '/classes/UpgradeTools/CoreUpgrader/CoreUpgrader80.php',
+        'PrestaShop\\Module\\AutoUpgrade\\UpgradeTools\\CoreUpgrader\\CoreUpgrader81' => __DIR__ . '/../..' . '/classes/UpgradeTools/CoreUpgrader/CoreUpgrader81.php',
         'PrestaShop\\Module\\AutoUpgrade\\UpgradeTools\\Database' => __DIR__ . '/../..' . '/classes/UpgradeTools/Database.php',
         'PrestaShop\\Module\\AutoUpgrade\\UpgradeTools\\FileFilter' => __DIR__ . '/../..' . '/classes/UpgradeTools/FileFilter.php',
         'PrestaShop\\Module\\AutoUpgrade\\UpgradeTools\\FilesystemAdapter' => __DIR__ . '/../..' . '/classes/UpgradeTools/FilesystemAdapter.php',
         'PrestaShop\\Module\\AutoUpgrade\\UpgradeTools\\ModuleAdapter' => __DIR__ . '/../..' . '/classes/UpgradeTools/ModuleAdapter.php',
-        'PrestaShop\\Module\\AutoUpgrade\\UpgradeTools\\SettingsFileWriter' => __DIR__ . '/../..' . '/classes/UpgradeTools/SettingsFileWriter.php',
         'PrestaShop\\Module\\AutoUpgrade\\UpgradeTools\\SymfonyAdapter' => __DIR__ . '/../..' . '/classes/UpgradeTools/SymfonyAdapter.php',
         'PrestaShop\\Module\\AutoUpgrade\\UpgradeTools\\TaskRepository' => __DIR__ . '/../..' . '/classes/UpgradeTools/TaskRepository.php',
         'PrestaShop\\Module\\AutoUpgrade\\UpgradeTools\\ThemeAdapter' => __DIR__ . '/../..' . '/classes/UpgradeTools/ThemeAdapter.php',
@@ -544,10 +542,10 @@ class ComposerStaticInitf51f6fb260d47c40793c581b535cd8ef
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInitf51f6fb260d47c40793c581b535cd8ef::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInitf51f6fb260d47c40793c581b535cd8ef::$prefixDirsPsr4;
-            $loader->prefixesPsr0 = ComposerStaticInitf51f6fb260d47c40793c581b535cd8ef::$prefixesPsr0;
-            $loader->classMap = ComposerStaticInitf51f6fb260d47c40793c581b535cd8ef::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInitbeb64079e0e73f2e2c753046a8c0fbc9::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInitbeb64079e0e73f2e2c753046a8c0fbc9::$prefixDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInitbeb64079e0e73f2e2c753046a8c0fbc9::$prefixesPsr0;
+            $loader->classMap = ComposerStaticInitbeb64079e0e73f2e2c753046a8c0fbc9::$classMap;
 
         }, null, ClassLoader::class);
     }

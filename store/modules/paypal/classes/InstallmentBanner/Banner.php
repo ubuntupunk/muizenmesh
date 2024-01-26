@@ -31,6 +31,10 @@ use Context;
 use Module;
 use PaypalAddons\classes\AbstractMethodPaypal;
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 class Banner
 {
     /** @var \PayPal */
@@ -63,43 +67,58 @@ class Banner
     public function __construct()
     {
         $this->module = Module::getInstanceByName('paypal');
-        $this->setTemplate(_PS_MODULE_DIR_ . $this->module->name . '/views/templates/installmentBanner/banner.tpl');
+        $this->setTemplate('module:paypal/views/templates/installmentBanner/banner.tpl');
         $this->method = AbstractMethodPaypal::load();
     }
 
     public function render()
     {
-        return Context::getContext()->smarty
-            ->assign('JSvars', $this->getJsVars())
+        $render = Context::getContext()->smarty
+            ->assign('paypalmessenging', $this->getConfig())
             ->assign($this->getTplVars())
             ->assign('JSscripts', $this->getJS())
             ->fetch($this->getTemplate());
+
+        return $render;
     }
 
-    protected function getJsVars()
+    public function getConfig()
     {
-        $vars = [];
-
-        if ((int) Configuration::get(ConfigurationMap::ADVANCED_OPTIONS_INSTALLMENT)) {
-            $vars['color'] = Configuration::get(ConfigurationMap::COLOR);
-        } else {
-            $vars['color'] = ConfigurationMap::COLOR_GRAY;
+        $config = json_decode(str_replace('-', '_', Configuration::get(ConfigurationMap::MESSENGING_CONFIG)), true);
+        $placement = $this->getPlacement();
+        if (isset($config['homepage'])) {
+            $config['home'] = $config['homepage'];
+            $config['home']['placement'] = 'home';
         }
-
-        $vars['placement'] = $this->getPlacement();
-        $vars['layout'] = $this->getLayout();
-
-        if ($this->getAmount()) {
-            $vars['amount'] = $this->getAmount();
-        }
-
-        if (empty($this->jsVars) === false) {
-            foreach ($this->jsVars as $name => $value) {
-                $vars[$name] = $value;
+        if (isset($config[$placement]) === false) {
+            switch ($placement) {
+                case 'cart':
+                case 'product':
+                case 'checkout':
+                    $config[$placement] = [
+                        'layout' => 'text',
+                        'logo_type' => 'primary',
+                        'logo_position' => 'left',
+                        'placement' => $placement,
+                        'text_color' => 'black',
+                        'text_size' => '12',
+                    ];
+                    break;
+                default:
+                    $config[$placement] = [
+                        'layout' => 'flex',
+                        'color' => 'blue',
+                        'placement' => $placement,
+                        'ratio' => '20x1',
+                    ];
             }
         }
 
-        return $vars;
+        $configReturn = $config[$placement];
+        $configReturn['amount'] = $this->amount;
+        $configReturn['locale'] = str_replace('-', '_', \Context::getContext()->language->locale);
+
+        return $configReturn;
     }
 
     protected function getJS()

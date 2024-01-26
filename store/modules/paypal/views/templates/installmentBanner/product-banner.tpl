@@ -35,10 +35,11 @@
 </style>
 
 <div style="padding: 5px 0">
-    {include file='./banner.tpl'}
+    {include file='module:paypal/views/templates/installmentBanner/banner.tpl'}
 </div>
 
 <script>
+    window.Banner = function() {};
     Banner.prototype.updateAmount = function() {
         var quantity = parseFloat(document.querySelector('input[name="qty"]').value);
         var productPrice = 0;
@@ -53,6 +54,8 @@
         }
 
         this.amount = quantity * productPrice;
+        var bannerContainer = document.querySelector('[paypal-messaging-banner]');
+        bannerContainer.setAttribute('data-pp-amount', this.amount);
     };
 
     Banner.prototype.getProductInfo = function() {
@@ -115,18 +118,12 @@
     };
 
     window.addEventListener('load', function() {
-        var paypalBanner = new Banner({
-            layout: layout,
-            placement: placement,
-            container: '[paypal-banner-message]'
-        });
+        var paypalBanner = new Banner();
         paypalBanner.updateAmount();
-        paypalBanner.initBanner();
         paypalBanner.checkProductAvailability();
 
         prestashop.on('updatedProduct', function() {
             paypalBanner.updateAmount();
-            paypalBanner.initBanner();
             paypalBanner.checkProductAvailability();
         });
     });

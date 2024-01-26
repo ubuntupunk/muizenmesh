@@ -5,8 +5,8 @@
 			"AnakngAraw",
 			"GinawaSaHapon",
 			"Ianlopez1115",
-			"Sky Harbor",
-			"Jojit fb"
+			"Jojit fb",
+			"Sky Harbor"
 		]
 	},
 	"skinname-vector": "Legacy na Vector (2010)",
@@ -22,7 +22,7 @@
 	"vector-action-toggle-sidebar": "Ipakita/itago ang sidebar",
 	"vector-languages": "Mga wika",
 	"vector-language-button-aria-label": "Pumunta sa isang artikulo na nakasulat sa ibang wika. Mayroon ito sa $1 (na) wika",
-	"vector-language-button-label": "$1 (na) wika",
+	"vector-language-button-label": "{{PLURAL:$1|$1 wika|$1 (na) wika}}",
 	"vector-no-language-button-label": "Magdagdag ng wika",
 	"vector-no-language-button-aria-label": "Mayroon lamang ang artikulong ito sa wikang ito. Idagdag ang artikulo sa ibang mga wika",
 	"vector-language-redirect-to-top": "Sa {{SITENAME}} na ito, ang mga link ng wika ay nasa itaas ng pahina sa may bandang pamagat ng artikulo. [[#p-lang-btn|Pumunta sa itaas]].",
@@ -45,6 +45,7 @@
 	"vector-search-loader": "Kinakarga ang mga minunungkahing mahahanap",
 	"vector-searchsuggest-containing": "Maghanap ng mga pahinang may <strong class=\"cdx-typeahead-search__search-footer__query\">$1</strong>",
 	"vector-intro-page": "Wikipedia:Maligayang pagdating!",
+	"vector-toc-label": "Mga nilalaman",
 	"vector-toc-beginning": "Simula",
 	"vector-toc-toggle-button-label": "Ipakita/Itago ang subseksyon na $1",
 	"vector-anon-user-menu-pages": "Mga pahina para sa naka-logout na mga patnugot o editor",
@@ -54,6 +55,14 @@
 	"vector-toc-menu-tooltip": "Talaan ng mga Nilalaman",
 	"vector-toc-collapsible-button-label": "Itago/Ipakita ang talaan ng mga nilalaman",
 	"vector-site-nav-label": "Sayt",
+	"vector-main-menu-label": "Pangunahing pagpipilian",
+	"vector-page-tools-label": "Mga kagamitan",
+	"vector-page-tools-general-label": "Pangkalahatan",
+	"vector-page-tools-actions-label": "Mga aksyon",
+	"vector-pin-element-label": "ilipat sa gilid",
+	"vector-unpin-element-label": "itago",
 	"vector-2022-prefs-talkpage": "[[mw:Talk:Reading/Web/Desktop_Improvements|Usapan]]",
-	"tooltip-vector-anon-user-menu-title": "Marami pang pagpipilian"
+	"tooltip-vector-anon-user-menu-title": "Marami pang pagpipilian",
+	"vector-prefs-limited-width": "Paganahin ang limitadong lapad",
+	"vector-prefs-limited-width-help": "Paganahin ang limitadong lapad para sa pinabuting karanasan sa pagbabasa."
 }

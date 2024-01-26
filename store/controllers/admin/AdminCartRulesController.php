@@ -277,6 +277,13 @@ class AdminCartRulesControllerCore extends AdminController
         return $res;
     }
 
+    /**
+     * @param $current_object
+     *
+     * @return bool|void
+     *
+     * @throws PrestaShopDatabaseException
+     */
     protected function afterUpdate($current_object)
     {
         // All the associations are deleted for an update, then recreated when we call the "afterAdd" method
@@ -314,6 +321,8 @@ class AdminCartRulesControllerCore extends AdminController
      * @TODO Move this function into CartRule
      *
      * @param ObjectModel $currentObject
+     *
+     * @return bool|void
      *
      * @throws PrestaShopDatabaseException
      */
@@ -735,7 +744,7 @@ class AdminCartRulesControllerCore extends AdminController
                             $value = $carrier['id_carrier'] . ' - ' . Configuration::get('PS_SHOP_NAME');
                         } else {
                             $value = $carrier['id_carrier'] . ' - ' . $carrier['name'];
-                            if ($carrier['name']) {
+                            if (!empty($carrier['delay'])) {
                                 $value .= ' (' . $carrier['delay'] . ')';
                             }
                         }
@@ -777,7 +786,7 @@ class AdminCartRulesControllerCore extends AdminController
                 'show_toolbar' => true,
                 'toolbar_btn' => $this->toolbar_btn,
                 'toolbar_scroll' => $this->toolbar_scroll,
-                'title' => [$this->trans('Payment:', [], 'Admin.Catalog.Feature'), $this->trans('Cart Rules', [], 'Admin.Catalog.Feature')],
+                'title' => $this->trans('Cart Rules', [], 'Admin.Catalog.Feature'),
                 'defaultDateFrom' => date('Y-m-d H:00:00'),
                 'defaultDateTo' => date('Y-m-d H:00:00', strtotime('+1 month')),
                 'customerFilter' => $customer_filter,
@@ -785,7 +794,7 @@ class AdminCartRulesControllerCore extends AdminController
                 'gift_product_select' => $gift_product_select,
                 'gift_product_attribute_select' => $gift_product_attribute_select,
                 'reductionProductFilter' => $reduction_product_filter,
-                'defaultCurrency' => Configuration::get('PS_CURRENCY_DEFAULT'),
+                'defaultCurrency' => Currency::getDefaultCurrencyId(),
                 'id_lang_default' => Configuration::get('PS_LANG_DEFAULT'),
                 'languages' => $languages,
                 'currencies' => $currencies,

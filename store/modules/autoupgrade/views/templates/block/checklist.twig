@@ -88,6 +88,7 @@
                         {% endif %}
                     </td>
                 </tr>
+                {% if not isLocalEnvironment %}
                 <tr>
                     <td>
                         {% if storeIsInMaintenance %}
@@ -107,6 +108,7 @@
                         {% endif %}
                     </td>
                 </tr>
+                {% endif %}
                 <tr>
                     <td>{{ 'PrestaShop\'s caching features are disabled'|trans({}, 'Modules.Autoupgrade.Admin') }}</td>
                     <td>
@@ -184,6 +186,12 @@
                 {% if not checkPhpSessions %}
                   <tr>
                     <td>{{ 'It\'s not possible to create a PHP session.'|trans({}, 'Modules.Autoupgrade.Admin') }}</td>
+                    <td>{{ icons.nok }}</td>
+                  </tr>
+                {% endif %}
+                {% if not checkKeyGeneration %}
+                  <tr>
+                    <td>{{ 'Unable to generate private keys using openssl_pkey_new. Check your OpenSSL configuration, especially the path to openssl.cafile.'|trans({}, 'Modules.Autoupgrade.Admin') }}</td>
                     <td>{{ icons.nok }}</td>
                   </tr>
                 {% endif %}

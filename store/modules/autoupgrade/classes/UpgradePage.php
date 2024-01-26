@@ -327,6 +327,7 @@ class UpgradePage
                     $translator->trans('Please check that your front-office theme is functional (try to create an account, place an order...)', [], 'Modules.Autoupgrade.Admin'),
                     $translator->trans('Product images do not appear in the front-office? Try regenerating the thumbnails in Preferences > Images', [], 'Modules.Autoupgrade.Admin'),
                     $translator->trans('Do not forget to reactivate your shop once you have checked everything!', [], 'Modules.Autoupgrade.Admin'),
+                    $translator->trans('If you can\'t access the back-office and need to see what\'s wrong, manually enable debug mode in config/defines.inc.php by changing _PS_MODE_DEV_ to true.', [], 'Modules.Autoupgrade.Admin'),
                 ],
                 'todoListTitle' => $translator->trans('ToDo list:', [], 'Modules.Autoupgrade.Admin'),
                 'startingRestore' => $translator->trans('Starting restoration...', [], 'Modules.Autoupgrade.Admin'),
@@ -356,6 +357,7 @@ class UpgradePage
                 'moreOptions' => $translator->trans('More options (Expert mode)', [], 'Modules.Autoupgrade.Admin'),
                 'filesWillBeDeleted' => $translator->trans('These files will be deleted', [], 'Modules.Autoupgrade.Admin'),
                 'filesWillBeReplaced' => $translator->trans('These files will be replaced', [], 'Modules.Autoupgrade.Admin'),
+                'noXmlSelected' => $translator->trans('No XML file has been selected.', [], 'Modules.Autoupgrade.Admin'),
             ],
         ];
 
@@ -378,7 +380,7 @@ class UpgradePage
             5 => $translator->trans('Cannot create settings file, if /app/config/parameters.php exists, please give the public write permissions to this file, else please create a file named parameters.php in config directory.', [], 'Modules.Autoupgrade.Admin'),
             6 => $translator->trans('Cannot write settings file, please create a file named settings.inc.php in the "config" directory.', [], 'Modules.Autoupgrade.Admin'),
             7 => $translator->trans('Impossible to upload the file!', [], 'Modules.Autoupgrade.Admin'),
-            8 => $translator->trans('Data integrity is not valid. Hack attempt?', [], 'Modules.Autoupgrade.Admin'),
+            8 => $translator->trans('Data integrity is not valid, the files might have been corrupted, or a hack attempt might have occured.', [], 'Modules.Autoupgrade.Admin'),
             9 => $translator->trans('Impossible to read the content of a MySQL content file.', [], 'Modules.Autoupgrade.Admin'),
             10 => $translator->trans('Cannot access a MySQL content file.', [], 'Modules.Autoupgrade.Admin'),
             11 => $translator->trans('Error while inserting data in the database:', [], 'Modules.Autoupgrade.Admin'),

@@ -4,10 +4,9 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit4505c7f1f96142b5a794b106bdb03311
+class ComposerStaticInitf15e35090f7c67d21a35c2bfe9fcdf6e
 {
     public static $classMap = array (
-        'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
         'Ps_Shoppingcart' => __DIR__ . '/../..' . '/ps_shoppingcart.php',
         'Ps_ShoppingcartAjaxModuleFrontController' => __DIR__ . '/../..' . '/controllers/front/ajax.php',
     );
@@ -15,7 +14,7 @@ class ComposerStaticInit4505c7f1f96142b5a794b106bdb03311
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->classMap = ComposerStaticInit4505c7f1f96142b5a794b106bdb03311::$classMap;
+            $loader->classMap = ComposerStaticInitf15e35090f7c67d21a35c2bfe9fcdf6e::$classMap;
 
         }, null, ClassLoader::class);
     }

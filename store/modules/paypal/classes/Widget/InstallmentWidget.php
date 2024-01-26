@@ -33,6 +33,10 @@ use OrderController;
 use PaypalAddons\classes\InstallmentBanner\BannerManager;
 use ProductController;
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 class InstallmentWidget extends AbstractWidget
 {
     /**
@@ -51,7 +55,7 @@ class InstallmentWidget extends AbstractWidget
         }
 
         if ($this->context->controller instanceof CategoryController) {
-            return $bannerMaganager->renderForHomePage();
+            return $bannerMaganager->renderBanner('category');
         }
 
         if ($this->context->controller instanceof CartController) {

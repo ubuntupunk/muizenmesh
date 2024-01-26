@@ -37,6 +37,10 @@ use PayPalCheckoutSdk\Orders\OrdersCreateRequest;
 use PayPalHttp\HttpException;
 use Throwable;
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 class PaypalOrderCreateRequest extends RequestAbstract
 {
     /** @var BuilderInterface */
@@ -76,10 +80,16 @@ class PaypalOrderCreateRequest extends RequestAbstract
             }
         } catch (HttpException $e) {
             $error = new Error();
-            $resultDecoded = json_decode($e->getMessage());
-            $error->setMessage($resultDecoded->details[0]->description)->setErrorCode($e->getCode());
-            $response->setSuccess(false)
-                ->setError($error);
+            $resultDecoded = json_decode($e->getMessage(), true);
+
+            if (empty($resultDecoded['details'][0]['description'])) {
+                $error->setMessage($e->getMessage());
+            } else {
+                $error->setMessage($resultDecoded['details'][0]['description']);
+            }
+
+            $error->setErrorCode($e->getCode());
+            $response->setSuccess(false)->setError($error);
         } catch (Throwable $e) {
             $error = new Error();
             $error->setMessage($e->getMessage())

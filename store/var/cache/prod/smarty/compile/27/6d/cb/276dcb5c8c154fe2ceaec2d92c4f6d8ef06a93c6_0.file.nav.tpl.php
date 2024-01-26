@@ -1,18 +1,18 @@
 <?php
-/* Smarty version 4.2.1, created on 2023-03-30 14:08:33
+/* Smarty version 4.3.1, created on 2023-12-21 13:08:27
   from '/home/sexthera/public_html/muizenmesh.co.za/store/admin963hiaiywinz0astpu8/themes/default/template/nav.tpl' */
 
 /* @var Smarty_Internal_Template $_smarty_tpl */
 if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
-  'version' => '4.2.1',
-  'unifunc' => 'content_64257bc1320a14_80115062',
+  'version' => '4.3.1',
+  'unifunc' => 'content_65841cab06d273_51842376',
   'has_nocache_code' => false,
   'file_dependency' => 
   array (
     '276dcb5c8c154fe2ceaec2d92c4f6d8ef06a93c6' => 
     array (
       0 => '/home/sexthera/public_html/muizenmesh.co.za/store/admin963hiaiywinz0astpu8/themes/default/template/nav.tpl',
-      1 => 1678447298,
+      1 => 1694187248,
       2 => 'file',
     ),
   ),
@@ -20,8 +20,10 @@ if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
   array (
   ),
 ),false)) {
-function content_64257bc1320a14_80115062 (Smarty_Internal_Template $_smarty_tpl) {
-?><nav class="nav-bar" role="navigation" id="nav-sidebar">
+function content_65841cab06d273_51842376 (Smarty_Internal_Template $_smarty_tpl) {
+$_smarty_tpl->_checkPlugins(array(0=>array('file'=>'/home/sexthera/public_html/muizenmesh.co.za/store/vendor/smarty/smarty/libs/plugins/modifier.count.php','function'=>'smarty_modifier_count',),));
+?>
+<nav class="nav-bar" role="navigation" id="nav-sidebar">
 	<span class="menu-collapse" data-toggle-url="<?php echo $_smarty_tpl->tpl_vars['toggle_navigation_url']->value;?>
 ">
 		<i class="material-icons rtl-flip">chevron_left</i>
@@ -41,7 +43,7 @@ $_smarty_tpl->tpl_vars['level_1']->do_else = false;
             <li class="link-levelone<?php if ($_smarty_tpl->tpl_vars['level_1']->value['current']) {?> link-active<?php }?>" id="tab-<?php echo $_smarty_tpl->tpl_vars['level_1']->value['class_name'];?>
 " data-submenu="<?php echo $_smarty_tpl->tpl_vars['level_1']->value['id_tab'];?>
 ">
-              <a href="<?php if (count($_smarty_tpl->tpl_vars['level_1']->value['sub_tabs']) && (isset($_smarty_tpl->tpl_vars['level_1']->value['sub_tabs'][0]['href']))) {
+              <a href="<?php if (smarty_modifier_count($_smarty_tpl->tpl_vars['level_1']->value['sub_tabs']) && (isset($_smarty_tpl->tpl_vars['level_1']->value['sub_tabs'][0]['href']))) {
 echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( $_smarty_tpl->tpl_vars['level_1']->value['sub_tabs'][0]['href'],'html','UTF-8' ));
 } else {
 echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( $_smarty_tpl->tpl_vars['level_1']->value['href'],'html','UTF-8' ));
@@ -68,7 +70,7 @@ echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escap
               </span>
             </li>
 
-            <?php if (count($_smarty_tpl->tpl_vars['level_1']->value['sub_tabs'])) {?>
+            <?php if (smarty_modifier_count($_smarty_tpl->tpl_vars['level_1']->value['sub_tabs'])) {?>
               <?php
 $_from = $_smarty_tpl->smarty->ext->_foreach->init($_smarty_tpl, $_smarty_tpl->tpl_vars['level_1']->value['sub_tabs'], 'level_2');
 $_smarty_tpl->tpl_vars['level_2']->do_else = true;
@@ -83,7 +85,7 @@ $_smarty_tpl->tpl_vars['level_2']->do_else = false;
                   <?php } elseif ($_smarty_tpl->tpl_vars['level_2']->value['current'] && $_smarty_tpl->tpl_vars['collapse_menu']->value) {?>
                     <?php $_smarty_tpl->_assignInScope('mainTabClass', " link-active");?>
                   <?php }?>
-                  <li class="link-levelone<?php if (count($_smarty_tpl->tpl_vars['level_2']->value['sub_tabs'])) {?> has_submenu<?php }
+                  <li class="link-levelone<?php if (smarty_modifier_count($_smarty_tpl->tpl_vars['level_2']->value['sub_tabs'])) {?> has_submenu<?php }
 echo $_smarty_tpl->tpl_vars['mainTabClass']->value;?>
 " id="subtab-<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( $_smarty_tpl->tpl_vars['level_2']->value['class_name'],'html','UTF-8' ));?>
 " data-submenu="<?php echo $_smarty_tpl->tpl_vars['level_2']->value['id_tab'];?>
@@ -100,7 +102,7 @@ echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escap
 echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( $_smarty_tpl->tpl_vars['level_2']->value['name'],'html','UTF-8' ));
 }?>
                       </span>
-                      <?php if (count($_smarty_tpl->tpl_vars['level_2']->value['sub_tabs'])) {?>
+                      <?php if (smarty_modifier_count($_smarty_tpl->tpl_vars['level_2']->value['sub_tabs'])) {?>
                         <i class="material-icons sub-tabs-arrow">
                           <?php if ($_smarty_tpl->tpl_vars['level_2']->value['current']) {?>
                             keyboard_arrow_up
@@ -111,7 +113,7 @@ echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escap
                       <?php }?>
                     </a>
 
-                    <?php if (count($_smarty_tpl->tpl_vars['level_2']->value['sub_tabs'])) {?>
+                    <?php if (smarty_modifier_count($_smarty_tpl->tpl_vars['level_2']->value['sub_tabs'])) {?>
                       <ul id="collapse-<?php echo $_smarty_tpl->tpl_vars['level_2']->value['id_tab'];?>
 " class="submenu panel-collapse">
 

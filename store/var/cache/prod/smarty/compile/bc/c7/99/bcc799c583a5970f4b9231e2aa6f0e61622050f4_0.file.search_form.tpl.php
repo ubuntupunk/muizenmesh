@@ -1,18 +1,18 @@
 <?php
-/* Smarty version 4.2.1, created on 2023-03-30 14:04:05
+/* Smarty version 4.3.1, created on 2023-12-21 13:08:56
   from '/home/sexthera/public_html/muizenmesh.co.za/store/admin963hiaiywinz0astpu8/themes/new-theme/template/components/layout/search_form.tpl' */
 
 /* @var Smarty_Internal_Template $_smarty_tpl */
 if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
-  'version' => '4.2.1',
-  'unifunc' => 'content_64257ab5cfa3b3_66631431',
+  'version' => '4.3.1',
+  'unifunc' => 'content_65841cc883d022_09859666',
   'has_nocache_code' => false,
   'file_dependency' => 
   array (
     'bcc799c583a5970f4b9231e2aa6f0e61622050f4' => 
     array (
       0 => '/home/sexthera/public_html/muizenmesh.co.za/store/admin963hiaiywinz0astpu8/themes/new-theme/template/components/layout/search_form.tpl',
-      1 => 1678447298,
+      1 => 1694187249,
       2 => 'file',
     ),
   ),
@@ -20,7 +20,7 @@ if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
   array (
   ),
 ),false)) {
-function content_64257ab5cfa3b3_66631431 (Smarty_Internal_Template $_smarty_tpl) {
+function content_65841cc883d022_09859666 (Smarty_Internal_Template $_smarty_tpl) {
 ?>
 <form id="header_search"
       class="bo_search_form dropdown-form js-dropdown-form collapsed"
@@ -92,7 +92,7 @@ index.php?controller=AdminSearch&amp;token=<?php echo call_user_func_array( $_sm
  type="text/javascript">
  $(document).ready(function(){
   <?php if ((isset($_smarty_tpl->tpl_vars['search_type']->value)) && $_smarty_tpl->tpl_vars['search_type']->value) {?>
-    $('.search-option a[data-value='+<?php echo intval($_smarty_tpl->tpl_vars['search_type']->value);?>
+    $('.search-option a[data-value='+<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'intval' ][ 0 ], array( $_smarty_tpl->tpl_vars['search_type']->value ));?>
 +']').click();
   <?php }?>
   $('#bo_query').one('click', function() {

@@ -2,7 +2,18 @@
 <html lang="en-ZA">
 
 <head>
-    <meta charset="utf-8" />
+  
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9X5DSV451K"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-9X5DSV451K');
+</script>
+
+  <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
   	<meta property="og:title" content="MuizenMesh" />
@@ -22,12 +33,11 @@
     
     <link rel="stylesheet" type="text/css" href="https://muizenmesh.co.za/css/screen.css" />
     <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Arvo:300,700,700italic,300italic|Open+Sans:700,400|Inconsolata" />
- 
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css">
     <link href="https://muizenmesh.co.za/index.xml" rel="alternate" type="application/rss+xml" title="MuizenMesh" />
-      
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js"></script>  
     <meta name="flattr:id" content="q5q00p">
     <link rel="canonical" href="https://muizenmesh.co.za/" />
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
      
     <script type="text/javascript" src="https://muizenmesh.co.za/js/jquery.js"></script>
     <script type="text/javascript" src="https://muizenmesh.co.za/js/jquery.fitvids.js"></script>
@@ -49,15 +59,6 @@ s0.parentNode.insertBefore(s1,s0);
      </script>
      <!--End of Tawk.to Script-->
    
-     <!-- Google tag (gtag.js) -->
-     <script async src="https://www.googletagmanager.com/gtag/js?id=G-VKTHY8VT3S"></script>
-    <script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-VKTHY8VT3S');
-     </script>
  
 </head>
 
@@ -73,6 +74,9 @@ s0.parentNode.insertBefore(s1,s0);
              <li class="nav-opened" role="presentation">
 	        <a href="https//webmail.muizenmesh.co.za">Mail</a>
 	     </li>
+            <li class="nav-opened" role="presentation">
+		<a href="https://muizenmesh.co.za/info.html">Info</a>
+            </li>
 	     <li class="nav-opened" role="presentation">
                 <a href="https://muizenmesh.co.za/bbs/">BBS</a>
             </li>
@@ -107,12 +111,14 @@ s0.parentNode.insertBefore(s1,s0);
 <header class="main-header" style="background-image: url(https://muizenmesh.co.za/images/screen.jpg)">
     
 
-    <nav class="main-nav overlay clearfix">
+   <nav class="main-nav overlay clearfix">
         
         <a class="blog-logo" id="div-desktop" href="https://muizenmesh.co.za/"><img src="https://muizenmesh.co.za/images/logo.gif" alt="Blog Logo"></a>
         
-        <a class="menu-button" href="#"><span class="burger">&#9776;</span><span class="word">Menu</span></a>
+      <a class="menu-button" href="#"><span class="burger">&#9776;</span><span class="word">Menu</span></a>
+
         <a class="menu-button" href="https://webmail.muizenmesh.co.za">Mail</a>
+        <a class="menu-button" href="https://muizenmesh.co.za/info.html">Info</a>
         <a class="menu-button" href="https://muizenmesh.co.za/lab">Lab</a>
 	<a class="menu-button" href="https://muizenmesh.co.za/wiki">Wiki</a>
         <a class="menu-button" href="https://muizenmesh.co.za/bbs/">BBS</a>
@@ -128,7 +134,7 @@ s0.parentNode.insertBefore(s1,s0);
 <div class="vertical">
         <div class="main-header-content inner">
             <h1 class="page-title">
-              <a class="btn-bootstrap-2 title-scroll" href="#content">MuizenMesh</a>
+              <a class="btn-bootstrap-2 arctic-scroll" data-offset="100" href="#content">MuizenMesh</a>
           </h1>
           <h2 class="page-description">online community network</h2>
         </div>

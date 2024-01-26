@@ -31,9 +31,13 @@
   <style>
     [data-container-express-checkout] {
       margin: 10px 0;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
+      width: 200px;
+    }
+
+    @media (max-width: 480px) {
+      [paypal-mark-container] {
+        display: none !important;
+      }
     }
 
   </style>

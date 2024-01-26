@@ -1,18 +1,18 @@
 <?php
-/* Smarty version 4.2.1, created on 2023-03-30 14:04:05
+/* Smarty version 4.3.1, created on 2023-12-21 13:08:56
   from '/home/sexthera/public_html/muizenmesh.co.za/store/admin963hiaiywinz0astpu8/themes/new-theme/template/layout.tpl' */
 
 /* @var Smarty_Internal_Template $_smarty_tpl */
 if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
-  'version' => '4.2.1',
-  'unifunc' => 'content_64257ab5cc28e6_41113191',
+  'version' => '4.3.1',
+  'unifunc' => 'content_65841cc87fc4e5_25295376',
   'has_nocache_code' => false,
   'file_dependency' => 
   array (
     '1127565321881e539eadb2dd64cc763e69e4b8aa' => 
     array (
       0 => '/home/sexthera/public_html/muizenmesh.co.za/store/admin963hiaiywinz0astpu8/themes/new-theme/template/layout.tpl',
-      1 => 1678447298,
+      1 => 1694187249,
       2 => 'file',
     ),
   ),
@@ -34,7 +34,7 @@ if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
     'file:error.tpl' => 1,
   ),
 ),false)) {
-function content_64257ab5cc28e6_41113191 (Smarty_Internal_Template $_smarty_tpl) {
+function content_65841cc87fc4e5_25295376 (Smarty_Internal_Template $_smarty_tpl) {
 ?><!DOCTYPE html>
 <html lang="<?php echo $_smarty_tpl->tpl_vars['iso']->value;?>
 ">
@@ -45,10 +45,11 @@ function content_64257ab5cc28e6_41113191 (Smarty_Internal_Template $_smarty_tpl)
 
 <body
   class="lang-<?php echo $_smarty_tpl->tpl_vars['iso_user']->value;
-if ($_smarty_tpl->tpl_vars['lang_is_rtl']->value) {?> lang-rtl<?php }?> <?php echo strtolower(call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( $_smarty_tpl->tpl_vars['controller_name']->value )));
+if ($_smarty_tpl->tpl_vars['lang_is_rtl']->value) {?> lang-rtl<?php }?> <?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'strtolower' ][ 0 ], array( call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( $_smarty_tpl->tpl_vars['controller_name']->value )) ));
 if ($_smarty_tpl->tpl_vars['collapse_menu']->value) {?> page-sidebar-closed<?php }
 if ((isset($_smarty_tpl->tpl_vars['is_multishop']->value)) && $_smarty_tpl->tpl_vars['is_multishop']->value) {?> multishop-enabled<?php }
-if ((isset($_smarty_tpl->tpl_vars['lite_display']->value)) && $_smarty_tpl->tpl_vars['lite_display']->value) {?> light_display_layout<?php }?>"
+if ((isset($_smarty_tpl->tpl_vars['lite_display']->value)) && $_smarty_tpl->tpl_vars['lite_display']->value) {?> light_display_layout<?php }
+if (!empty($_smarty_tpl->tpl_vars['debug_mode']->value)) {?> developer-mode<?php }?>"
   <?php if ((isset($_smarty_tpl->tpl_vars['js_router_metadata']->value['base_url']))) {?>data-base-url="<?php echo $_smarty_tpl->tpl_vars['js_router_metadata']->value['base_url'];?>
 "<?php }?>
   <?php if ((isset($_smarty_tpl->tpl_vars['js_router_metadata']->value['token']))) {?>data-token="<?php echo $_smarty_tpl->tpl_vars['js_router_metadata']->value['token'];?>
@@ -94,7 +95,7 @@ if ((isset($_smarty_tpl->tpl_vars['lite_display']->value)) && $_smarty_tpl->tpl_
              data-toggle="pstooltip"
              data-placement="bottom"
              data-html="true"
-             title="<p class=&quot;text-left&quot;><strong><?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Your shop is in debug mode.','d'=>'Admin.Navigation.Notification'),$_smarty_tpl ) ) ));?>
+             title="<p class=&quot;text-left&quot;><strong><?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Your store is in debug mode.','d'=>'Admin.Navigation.Notification'),$_smarty_tpl ) ) ));?>
 </strong></p><p class=&quot;text-left&quot;><?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'All the PHP errors and messages are displayed. When you no longer need it, [1]turn off[/1] this mode.','html'=>true,'sprintf'=>array('[1]'=>'<strong>','[/1]'=>'</strong>'),'d'=>'Admin.Navigation.Notification'),$_smarty_tpl ) ) ));?>
 </p>"
              href="<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( $_smarty_tpl->tpl_vars['link']->value->getAdminLink('AdminPerformance'),'html','UTF-8' ));?>
@@ -108,18 +109,40 @@ if ((isset($_smarty_tpl->tpl_vars['lite_display']->value)) && $_smarty_tpl->tpl_
       <?php }?>
 
       <?php if ((isset($_smarty_tpl->tpl_vars['maintenance_mode']->value)) && $_smarty_tpl->tpl_vars['maintenance_mode']->value == true) {?>
+        <?php $_smarty_tpl->smarty->ext->_capture->open($_smarty_tpl, "title", null, null);?>
+          <p class="text-left text-nowrap">
+            <strong><?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Your store is in maintenance mode.','d'=>'Admin.Navigation.Notification'),$_smarty_tpl ) );?>
+</strong>
+          </p>
+          <p class="text-left">
+              <?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Your visitors and customers cannot access your store while in maintenance mode.','d'=>'Admin.Navigation.Notification'),$_smarty_tpl ) );?>
+
+          </p>
+          <p class="text-left">
+              <?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'To manage the maintenance settings, go to Shop Parameters > General > Maintenance tab.','d'=>'Admin.Navigation.Notification'),$_smarty_tpl ) );?>
+
+          </p>
+          <?php if ((isset($_smarty_tpl->tpl_vars['maintenance_allow_admins']->value)) && $_smarty_tpl->tpl_vars['maintenance_allow_admins']->value) {?>
+            <p class="text-left">
+              <?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Admins can access the store front office without storing their IP.','d'=>'Admin.Navigation.Notification'),$_smarty_tpl ) );?>
+
+            </p>
+          <?php }?>
+        <?php $_smarty_tpl->smarty->ext->_capture->close($_smarty_tpl);?>
         <div class="component hide-mobile-sm" id="header-maintenance-mode-container">
           <a class="link shop-state"
              id="maintenance-mode"
              data-toggle="pstooltip"
              data-placement="bottom"
              data-html="true"
-             title="<p class=&quot;text-left&quot;><strong><?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Your shop is in maintenance.','d'=>'Admin.Navigation.Notification'),$_smarty_tpl ) ) ));?>
-</strong></p><p class=&quot;text-left&quot;><?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Your visitors and customers cannot access your shop while in maintenance mode.%s To manage the maintenance settings, go to Shop Parameters > Maintenance tab.','sprintf'=>array('<br />'),'d'=>'Admin.Navigation.Notification'),$_smarty_tpl ) ) ));?>
-</p>" href="<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( $_smarty_tpl->tpl_vars['link']->value->getAdminLink('AdminMaintenance'),'html','UTF-8' ));?>
+             title="<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'htmlspecialchars' ][ 0 ], array( $_smarty_tpl->smarty->ext->_capture->getBuffer($_smarty_tpl, 'title') ));?>
+"
+             href="<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( $_smarty_tpl->tpl_vars['link']->value->getAdminLink('AdminMaintenance'),'html','UTF-8' ));?>
 "
           >
-            <i class="material-icons">build</i>
+            <i class="material-icons"
+              style="<?php if ((isset($_smarty_tpl->tpl_vars['maintenance_allow_admins']->value)) && $_smarty_tpl->tpl_vars['maintenance_allow_admins']->value) {?>color: var(--green);<?php }?>"
+            >build</i>
             <span><?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Maintenance mode','d'=>'Admin.Navigation.Header'),$_smarty_tpl ) ) ));?>
 </span>
           </a>

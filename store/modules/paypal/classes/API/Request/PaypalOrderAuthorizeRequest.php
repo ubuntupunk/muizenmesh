@@ -35,6 +35,10 @@ use PayPalCheckoutSdk\Orders\OrdersAuthorizeRequest;
 use PayPalHttp\HttpException;
 use Throwable;
 
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
 class PaypalOrderAuthorizeRequest extends RequestAbstract
 {
     /** @var string */
@@ -130,6 +134,10 @@ class PaypalOrderAuthorizeRequest extends RequestAbstract
         $payemnts = $exec->result->purchase_units[0]->payments;
         $transaction = $payemnts->authorizations[0];
         $date = \DateTime::createFromFormat(\DateTime::ATOM, $transaction->create_time);
+
+        if (!$date) {
+            $date = new \DateTime();
+        }
 
         return $date;
     }

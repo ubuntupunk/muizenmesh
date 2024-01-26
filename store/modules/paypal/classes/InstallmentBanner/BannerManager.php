@@ -30,8 +30,11 @@ use Configuration;
 use Context;
 use Country;
 use PaypalAddons\services\CurrencyConverter;
-use ProductController;
 use Validate;
+
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
 
 class BannerManager
 {
@@ -70,7 +73,7 @@ class BannerManager
     public function isEligiblePage()
     {
         foreach (ConfigurationMap::getPageConfMap() as $page => $conf) {
-            if (is_a($this->context->controller, $page) && (int) Configuration::get($conf)) {
+            if (is_a($this->context->controller, $page) && (bool) Configuration::get($conf)) {
                 return true;
             }
         }
@@ -83,10 +86,6 @@ class BannerManager
      */
     public function isEligibleConf()
     {
-        if (false === (bool) Configuration::get(ConfigurationMap::ENABLE_INSTALLMENT)) {
-            return false;
-        }
-
         if (false === $this->isEligibleCountry()) {
             return false;
         }
@@ -133,15 +132,38 @@ class BannerManager
     }
 
     /**
+     * @param string $placement Placement expected for the message
+     *
+     * @return string
+     */
+    public function renderBanner($placement = 'home')
+    {
+        $banner = $this->banner
+            ->setPlacement($placement)
+            ->setTemplate('module:paypal/views/templates/installmentBanner/banner.tpl');
+
+        if ($this->context->controller instanceof \ProductController && $placement == 'product') {
+            if (Validate::isLoadedObject($this->context->controller->getProduct())) {
+                /** @var \Product $product */
+                $product = $this->context->controller->getProduct();
+                $banner->setAmount($product->getPrice());
+                $banner->setTemplate('module:paypal/views/templates/installmentBanner/product-banner.tpl');
+            }
+        }
+
+        if (in_array($placement, ['cart', 'checkout'])) {
+            $banner->setAmount($this->getCurrencyConverter()->convert($this->context->cart->getOrderTotal(true)));
+        }
+
+        return $banner->render();
+    }
+
+    /**
      * @return string
      */
     public function renderForHomePage()
     {
-        return $this->banner
-            ->setPlacement('home')
-            ->setLayout('flex')
-            ->setTemplate(_PS_MODULE_DIR_ . 'paypal/views/templates/installmentBanner/home-banner.tpl')
-            ->render();
+        return $this->renderBanner('home');
     }
 
     /**
@@ -149,15 +171,7 @@ class BannerManager
      */
     public function renderForCartPage()
     {
-        $amount = $this->getCurrencyConverter()->convert($this->context->cart->getOrderTotal(true));
-
-        return $this->banner
-            ->setPlacement('cart')
-            ->setLayout('text')
-            ->setAmount($amount)
-            ->setPageTypeAttribute(ConfigurationMap::PAGE_TYPE_CART)
-            ->setTemplate(_PS_MODULE_DIR_ . 'paypal/views/templates/installmentBanner/cart-banner.tpl')
-            ->render();
+        return $this->renderBanner('cart');
     }
 
     /** @return CurrencyConverter*/
@@ -171,16 +185,7 @@ class BannerManager
      */
     public function renderForCheckoutPage()
     {
-        $amount = $this->getCurrencyConverter()->convert($this->context->cart->getOrderTotal(true));
-
-        return $this->banner
-            ->setPlacement('payment')
-            ->setLayout('text')
-            ->setAmount($amount)
-            ->setPageTypeAttribute(ConfigurationMap::PAGE_TYPE_CHECKOUT)
-            ->addJsVar('paypalInstallmentController', $this->context->link->getModuleLink('paypal', 'installment'))
-            ->setTemplate(_PS_MODULE_DIR_ . 'paypal/views/templates/installmentBanner/checkout-banner.tpl')
-            ->render();
+        return $this->renderBanner('checkout');
     }
 
     /**
@@ -188,21 +193,6 @@ class BannerManager
      */
     public function renderForProductPage()
     {
-        $idProduct = 0;
-
-        if ($this->context->controller instanceof ProductController) {
-            if (Validate::isLoadedObject($this->context->controller->getProduct())) {
-                $idProduct = (int) $this->context->controller->getProduct()->id;
-            }
-        }
-
-        return $this->banner
-            ->setPlacement('product')
-            ->setLayout('text')
-            ->addJsVar('paypalBanner_IdProduct', $idProduct)
-            ->addJsVar('paypalBanner_scInitController', $this->context->link->getModuleLink('paypal', 'ScInit'))
-            ->setPageTypeAttribute(ConfigurationMap::PAGE_TYPE_PRODUCT)
-            ->setTemplate(_PS_MODULE_DIR_ . 'paypal/views/templates/installmentBanner/product-banner.tpl')
-            ->render();
+        return $this->renderBanner('product');
     }
 }

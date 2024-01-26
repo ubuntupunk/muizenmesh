@@ -1,18 +1,18 @@
 <?php
-/* Smarty version 4.2.1, created on 2023-03-30 14:08:33
+/* Smarty version 4.3.1, created on 2023-12-21 13:08:26
   from '/home/sexthera/public_html/muizenmesh.co.za/store/admin963hiaiywinz0astpu8/themes/default/template/header.tpl' */
 
 /* @var Smarty_Internal_Template $_smarty_tpl */
 if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
-  'version' => '4.2.1',
-  'unifunc' => 'content_64257bc124b1c3_04727520',
+  'version' => '4.3.1',
+  'unifunc' => 'content_65841caaf11ab8_66176642',
   'has_nocache_code' => false,
   'file_dependency' => 
   array (
     '0262c3b1005279ffadd86d1e84458d8f311549c3' => 
     array (
       0 => '/home/sexthera/public_html/muizenmesh.co.za/store/admin963hiaiywinz0astpu8/themes/default/template/header.tpl',
-      1 => 1678447298,
+      1 => 1694187247,
       2 => 'file',
     ),
   ),
@@ -22,10 +22,8 @@ if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
     'file:nav.tpl' => 1,
   ),
 ),false)) {
-function content_64257bc124b1c3_04727520 (Smarty_Internal_Template $_smarty_tpl) {
-$_smarty_tpl->_checkPlugins(array(0=>array('file'=>'/home/sexthera/public_html/muizenmesh.co.za/store/vendor/smarty/smarty/libs/plugins/modifier.explode.php','function'=>'smarty_modifier_explode',),));
-?>
-<!DOCTYPE html>
+function content_65841caaf11ab8_66176642 (Smarty_Internal_Template $_smarty_tpl) {
+?><!DOCTYPE html>
 <!--[if lt IE 7]> <html lang="<?php echo $_smarty_tpl->tpl_vars['iso']->value;?>
 " class="no-js lt-ie9 lt-ie8 lt-ie7 lt-ie6"> <![endif]-->
 <!--[if IE 7]>    <html lang="<?php echo $_smarty_tpl->tpl_vars['iso']->value;?>
@@ -55,21 +53,21 @@ echo $_smarty_tpl->tpl_vars['shop_name']->value;?>
   <?php if (!(isset($_smarty_tpl->tpl_vars['display_header_javascript']->value)) || $_smarty_tpl->tpl_vars['display_header_javascript']->value) {?>
   <?php echo '<script'; ?>
  type="text/javascript">
-    var help_class_name = '<?php echo addcslashes($_smarty_tpl->tpl_vars['controller_name']->value,'\'');?>
+    var help_class_name = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addcslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['controller_name']->value,'\'' ));?>
 ';
-    var iso_user = '<?php echo addcslashes($_smarty_tpl->tpl_vars['iso_user']->value,'\'');?>
+    var iso_user = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addcslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['iso_user']->value,'\'' ));?>
 ';
-    var lang_is_rtl = '<?php echo intval($_smarty_tpl->tpl_vars['lang_is_rtl']->value);?>
+    var lang_is_rtl = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'intval' ][ 0 ], array( $_smarty_tpl->tpl_vars['lang_is_rtl']->value ));?>
 ';
-    var full_language_code = '<?php echo addcslashes($_smarty_tpl->tpl_vars['full_language_code']->value,'\'');?>
+    var full_language_code = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addcslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['full_language_code']->value,'\'' ));?>
 ';
-    var full_cldr_language_code = '<?php echo addcslashes($_smarty_tpl->tpl_vars['full_cldr_language_code']->value,'\'');?>
+    var full_cldr_language_code = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addcslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['full_cldr_language_code']->value,'\'' ));?>
 ';
-    var country_iso_code = '<?php echo addcslashes($_smarty_tpl->tpl_vars['country_iso_code']->value,'\'');?>
+    var country_iso_code = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addcslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['country_iso_code']->value,'\'' ));?>
 ';
-    var _PS_VERSION_ = '<?php echo addcslashes((defined('_PS_VERSION_') ? constant('_PS_VERSION_') : null),'\'');?>
+    var _PS_VERSION_ = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addcslashes' ][ 0 ], array( (defined('_PS_VERSION_') ? constant('_PS_VERSION_') : null),'\'' ));?>
 ';
-    var roundMode = <?php echo intval($_smarty_tpl->tpl_vars['round_mode']->value);?>
+    var roundMode = <?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'intval' ][ 0 ], array( $_smarty_tpl->tpl_vars['round_mode']->value ));?>
 ;
 <?php if ((isset($_smarty_tpl->tpl_vars['shop_context']->value))) {?>
   <?php if ($_smarty_tpl->tpl_vars['shop_context']->value == Shop::CONTEXT_ALL) {?>
@@ -77,17 +75,17 @@ echo $_smarty_tpl->tpl_vars['shop_name']->value;?>
 ';
   <?php } elseif ($_smarty_tpl->tpl_vars['shop_context']->value == Shop::CONTEXT_GROUP) {?>
     var youEditFieldFor = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'This field will be modified for all shops in this shop group:','js'=>1,'d'=>'Admin.Notifications.Info'),$_smarty_tpl ) ) ));?>
- <b><?php echo addcslashes($_smarty_tpl->tpl_vars['shop_name']->value,'\'');?>
+ <b><?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addcslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['shop_name']->value,'\'' ));?>
 </b>';
   <?php } else { ?>
     var youEditFieldFor = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'This field will be modified for this shop:','js'=>1,'d'=>'Admin.Notifications.Info'),$_smarty_tpl ) ) ));?>
- <b><?php echo addcslashes($_smarty_tpl->tpl_vars['shop_name']->value,'\'');?>
+ <b><?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addcslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['shop_name']->value,'\'' ));?>
 </b>';
   <?php }
 } else { ?>
     var youEditFieldFor = '';
 <?php }?>
-		var new_order_msg = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'A new order has been placed on your shop.','js'=>1,'d'=>'Admin.Navigation.Header'),$_smarty_tpl ) ) ));?>
+		var new_order_msg = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'A new order has been placed on your store.','js'=>1,'d'=>'Admin.Navigation.Header'),$_smarty_tpl ) ) ));?>
 ';
 		var order_number_msg = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Order number:','js'=>1,'d'=>'Admin.Navigation.Header'),$_smarty_tpl ) ) ));?>
  ';
@@ -97,15 +95,15 @@ echo $_smarty_tpl->tpl_vars['shop_name']->value;?>
  ';
 		var see_order_msg = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'View this order','js'=>1,'d'=>'Admin.Orderscustomers.Feature'),$_smarty_tpl ) ) ));?>
 ';
-		var new_customer_msg = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'A new customer registered on your shop.','js'=>1,'d'=>'Admin.Navigation.Header'),$_smarty_tpl ) ) ));?>
+		var new_customer_msg = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'A new customer registered on your store.','js'=>1,'d'=>'Admin.Navigation.Header'),$_smarty_tpl ) ) ));?>
 ';
         var customer_name_msg = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'registered','js'=>1,'d'=>'Admin.Navigation.Notification'),$_smarty_tpl ) ) ));?>
  ';
-		var new_msg = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'A new message was posted on your shop.','js'=>1,'d'=>'Admin.Navigation.Header'),$_smarty_tpl ) ) ));?>
+		var new_msg = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'A new message was posted on your store.','js'=>1,'d'=>'Admin.Navigation.Header'),$_smarty_tpl ) ) ));?>
 ';
 		var see_msg = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Read this message','js'=>1,'d'=>'Admin.Navigation.Header'),$_smarty_tpl ) ) ));?>
 ';
-		var token = '<?php echo addslashes($_smarty_tpl->tpl_vars['token']->value);?>
+		var token = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['token']->value ));?>
 ';
 		var token_admin_orders = tokenAdminOrders = '<?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['getAdminToken'][0], array( array('tab'=>'AdminOrders'),$_smarty_tpl ) );?>
 ';
@@ -119,14 +117,14 @@ echo $_smarty_tpl->tpl_vars['shop_name']->value;?>
 ';
 		var choose_language_translate = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Choose language:','js'=>1,'d'=>'Admin.Actions'),$_smarty_tpl ) ) ));?>
 ';
-		var default_language = '<?php echo intval($_smarty_tpl->tpl_vars['default_language']->value);?>
+		var default_language = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'intval' ][ 0 ], array( $_smarty_tpl->tpl_vars['default_language']->value ));?>
 ';
-		var admin_notification_get_link = adminNotificationGetLink = '<?php echo addslashes($_smarty_tpl->tpl_vars['link']->value->getAdminLink("AdminCommon"));?>
+		var admin_notification_get_link = adminNotificationGetLink = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['link']->value->getAdminLink("AdminCommon") ));?>
 ';
-		var admin_notification_push_link = adminNotificationPushLink ='<?php echo addslashes($_smarty_tpl->tpl_vars['link']->value->getAdminLink("AdminCommon",true,array('route'=>'admin_common_notifications_ack')));?>
+		var admin_notification_push_link = adminNotificationPushLink ='<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['link']->value->getAdminLink("AdminCommon",true,array('route'=>'admin_common_notifications_ack')) ));?>
 ';
 		var tab_modules_list = '<?php if ((isset($_smarty_tpl->tpl_vars['tab_modules_list']->value)) && $_smarty_tpl->tpl_vars['tab_modules_list']->value) {
-echo addslashes($_smarty_tpl->tpl_vars['tab_modules_list']->value);
+echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['tab_modules_list']->value ));
 }?>';
 		var update_success_msg = '<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Successful update','js'=>1,'d'=>'Admin.Notifications.Success'),$_smarty_tpl ) ) ));?>
 ';
@@ -181,10 +179,14 @@ $_smarty_tpl->smarty->ext->_foreach->restore($_smarty_tpl, 1);
 </head>
 
 <?php if ($_smarty_tpl->tpl_vars['display_header']->value) {?>
-  <body class="lang-<?php echo $_smarty_tpl->tpl_vars['iso_user']->value;
+<body class="lang-<?php echo $_smarty_tpl->tpl_vars['iso_user']->value;
 if ($_smarty_tpl->tpl_vars['lang_is_rtl']->value) {?> lang-rtl<?php }?> ps_back-office<?php if ($_smarty_tpl->tpl_vars['employee']->value->bo_menu) {?> page-sidebar<?php if ($_smarty_tpl->tpl_vars['collapse_menu']->value) {?> page-sidebar-closed<?php }
-} else { ?> page-topbar<?php }?> <?php echo strtolower(call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( $_smarty_tpl->tpl_vars['controller_name']->value )));?>
-">
+} else { ?> page-topbar<?php }?> <?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'strtolower' ][ 0 ], array( call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( $_smarty_tpl->tpl_vars['controller_name']->value )) ));
+if (!empty($_smarty_tpl->tpl_vars['debug_mode']->value)) {?> developer-mode<?php }?>"
+      <?php if ((isset($_smarty_tpl->tpl_vars['js_router_metadata']->value['base_url']))) {?>data-base-url="<?php echo $_smarty_tpl->tpl_vars['js_router_metadata']->value['base_url'];?>
+"<?php }?>
+      <?php if ((isset($_smarty_tpl->tpl_vars['js_router_metadata']->value['token']))) {?>data-token="<?php echo $_smarty_tpl->tpl_vars['js_router_metadata']->value['token'];?>
+"<?php }?>>
     <header id="header" class="bootstrap">
     <nav id="header_infos" role="navigation">
       <i class="material-icons js-mobile-menu">menu</i>
@@ -216,9 +218,10 @@ echo $_smarty_tpl->tpl_vars['quick']->value['link'];
 $_prefixVariable3 = ob_get_clean();
 if ($_smarty_tpl->tpl_vars['link']->value->matchQuickLink($_prefixVariable3)) {
 $_smarty_tpl->_assignInScope('matchQuickLink', $_smarty_tpl->tpl_vars['quick']->value['id_quick_access']);?> active<?php }?>">
-                  <a href="<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( $_smarty_tpl->tpl_vars['quick']->value['link'],'html','UTF-8' ));?>
+                  <a <?php if ((isset($_smarty_tpl->tpl_vars['quick']->value['class']))) {?>class="<?php echo $_smarty_tpl->tpl_vars['quick']->value['class'];?>
+"<?php }?> href="<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( $_smarty_tpl->tpl_vars['quick']->value['link'],'html','UTF-8' ));?>
 " <?php if ($_smarty_tpl->tpl_vars['quick']->value['new_window']) {?>target="_blank"<?php }?>>
-                    <?php echo $_smarty_tpl->tpl_vars['quick']->value['name'];?>
+                      <?php echo $_smarty_tpl->tpl_vars['quick']->value['name'];?>
 
                   </a>
                 </li>
@@ -247,7 +250,7 @@ $_smarty_tpl->smarty->ext->_foreach->restore($_smarty_tpl, 1);?>
               </li>
             <?php }?>
             <li>
-              <a id="quick-manage-link" href="<?php echo addslashes($_smarty_tpl->tpl_vars['link']->value->getAdminLink("AdminQuickAccesses"));?>
+              <a id="quick-manage-link" href="<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'addslashes' ][ 0 ], array( $_smarty_tpl->tpl_vars['link']->value->getAdminLink("AdminQuickAccesses") ));?>
 ">
                 <i class="material-icons">settings</i>
                 <?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Manage quick accesses','d'=>'Admin.Navigation.Header'),$_smarty_tpl ) ) ));?>
@@ -257,7 +260,7 @@ $_smarty_tpl->smarty->ext->_foreach->restore($_smarty_tpl, 1);?>
           </ul>
         </div>
       </div>
-      <?php $_smarty_tpl->_assignInScope('quick_access_current_link_name', smarty_modifier_explode(" - ",$_smarty_tpl->tpl_vars['quick_access_current_link_name']->value));?>
+      <?php $_smarty_tpl->_assignInScope('quick_access_current_link_name', call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'explode' ][ 0 ], array( " - ",$_smarty_tpl->tpl_vars['quick_access_current_link_name']->value )));?>
       <?php echo '<script'; ?>
 >
         $(function() {
@@ -277,7 +280,7 @@ $_smarty_tpl->smarty->ext->_foreach->restore($_smarty_tpl, 1);?>
                 type: 'POST',
                 headers: { "cache-control": "no-cache" },
                 async: false,
-                url: "<?php echo $_smarty_tpl->tpl_vars['link']->value->getAdminLink('AdminQuickAccesses',true,array(),array('action'=>'GetUrl','rand'=>(rand(1,200)),'ajax'=>1));?>
+                url: "<?php echo $_smarty_tpl->tpl_vars['link']->value->getAdminLink('AdminQuickAccesses',true,array(),array('action'=>'GetUrl','rand'=>(call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'rand' ][ 0 ], array( 1,200 ))),'ajax'=>1));?>
 " + "&method=" + method + ( $(this).data('quicklink-id') ? "&id_quick_access=" + $(this).data('quicklink-id') : ""),
                 data: {
                   "url": "<?php echo $_smarty_tpl->tpl_vars['link']->value->getQuickLink(call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( $_SERVER['REQUEST_URI'],'javascript' )));?>
@@ -324,7 +327,7 @@ $_smarty_tpl->smarty->ext->_foreach->restore($_smarty_tpl, 1);?>
            data-toggle="tooltip"
            data-placement="bottom"
            data-html="true"
-           title="<p class=&quot;text-left&quot;><strong><?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Your shop is in debug mode.','d'=>'Admin.Navigation.Notification'),$_smarty_tpl ) ) ));?>
+           title="<p class=&quot;text-left&quot;><strong><?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Your store is in debug mode.','d'=>'Admin.Navigation.Notification'),$_smarty_tpl ) ) ));?>
 </strong></p><p class=&quot;text-left&quot;><?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'All the PHP errors and messages are displayed. When you no longer need it, [1]turn off[/1] this mode.','html'=>true,'sprintf'=>array('[1]'=>'<strong>','[/1]'=>'</strong>'),'d'=>'Admin.Navigation.Notification'),$_smarty_tpl ) ) ));?>
 </p>"
              href="<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( $_smarty_tpl->tpl_vars['link']->value->getAdminLink('AdminPerformance'),'html','UTF-8' ));?>
@@ -338,22 +341,43 @@ $_smarty_tpl->smarty->ext->_foreach->restore($_smarty_tpl, 1);?>
       <?php }?>
 
       <?php if ((isset($_smarty_tpl->tpl_vars['maintenance_mode']->value)) && $_smarty_tpl->tpl_vars['maintenance_mode']->value == true) {?>
-      <div class="component hide-mobile-sm">
-        <a class="shop-state label-tooltip" id="maintenance-mode"
-           href="<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( $_smarty_tpl->tpl_vars['link']->value->getAdminLink('AdminMaintenance'),'html','UTF-8' ));?>
+        <?php $_smarty_tpl->smarty->ext->_capture->open($_smarty_tpl, "title", null, null);?>
+          <p class="text-left text-nowrap">
+            <strong><?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Your store is in maintenance mode.','d'=>'Admin.Navigation.Notification'),$_smarty_tpl ) );?>
+</strong>
+          </p>
+          <p class="text-left">
+              <?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Your visitors and customers cannot access your store while in maintenance mode.','d'=>'Admin.Navigation.Notification'),$_smarty_tpl ) );?>
+
+          </p>
+          <p class="text-left">
+            <?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'To manage the maintenance settings, go to Shop Parameters > General > Maintenance tab.','d'=>'Admin.Navigation.Notification'),$_smarty_tpl ) );?>
+
+          </p>
+          <?php if ((isset($_smarty_tpl->tpl_vars['maintenance_allow_admins']->value)) && $_smarty_tpl->tpl_vars['maintenance_allow_admins']->value) {?>
+            <p class="text-left">
+                <?php echo call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Admins can access the store front office without storing their IP.','d'=>'Admin.Navigation.Notification'),$_smarty_tpl ) );?>
+
+            </p>
+          <?php }?>
+        <?php $_smarty_tpl->smarty->ext->_capture->close($_smarty_tpl);?>
+        <div class="component hide-mobile-sm">
+          <a class="shop-state label-tooltip" id="maintenance-mode"
+             href="<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( $_smarty_tpl->tpl_vars['link']->value->getAdminLink('AdminMaintenance'),'html','UTF-8' ));?>
 "
-           data-toggle="tooltip"
-           data-placement="bottom"
-           data-html="true"
-           title="<p class=&quot;text-left text-nowrap&quot;><strong><?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Your shop is in maintenance.','d'=>'Admin.Navigation.Notification'),$_smarty_tpl ) ) ));?>
-</strong></p><p class=&quot;text-left&quot;><?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Your visitors and customers cannot access your shop while in maintenance mode.%s To manage the maintenance settings, go to Shop Parameters > Maintenance tab.','sprintf'=>array('<br />'),'d'=>'Admin.Navigation.Notification'),$_smarty_tpl ) ) ));?>
-</p>"
-        >
-          <i class="material-icons">build</i>
-          <span><?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Maintenance mode','d'=>'Admin.Navigation.Header'),$_smarty_tpl ) ) ));?>
+             data-toggle="tooltip"
+             data-placement="bottom"
+             data-html="true"
+             title="<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'htmlspecialchars' ][ 0 ], array( $_smarty_tpl->smarty->ext->_capture->getBuffer($_smarty_tpl, 'title') ));?>
+"
+          >
+            <i class="material-icons"
+               style="<?php if ((isset($_smarty_tpl->tpl_vars['maintenance_allow_admins']->value))) {?>color: #72c279;<?php }?>"
+            >build</i>
+            <span><?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Maintenance mode','d'=>'Admin.Navigation.Header'),$_smarty_tpl ) ) ));?>
 </span>
-        </a>
-      </div>
+          </a>
+        </div>
       <?php }?>
 
             <?php ob_start();
@@ -374,7 +398,7 @@ if ($_prefixVariable4) {?>
               <a id="header_shopname" class="shop-state" href="<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( $_smarty_tpl->tpl_vars['base_url']->value,'html','UTF-8' ));?>
 " target="_blank">
                 <i class="material-icons">visibility</i>
-                <span><?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'View my shop','d'=>'Admin.Navigation.Header'),$_smarty_tpl ) ) ));?>
+                <span><?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'View my store','d'=>'Admin.Navigation.Header'),$_smarty_tpl ) ) ));?>
 </span>
               </a>
             <?php }?>
@@ -472,7 +496,7 @@ if ($_prefixVariable4) {?>
 
             <ul id="header_employee_box" class="component">
         <li id="employee_infos" class="dropdown">
-          <a href="<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( $_smarty_tpl->tpl_vars['link']->value->getAdminLink('AdminEmployees',true,array(),array('id_employee'=>intval($_smarty_tpl->tpl_vars['employee']->value->id),'updateemployee'=>1)),'html','UTF-8' ));?>
+          <a href="<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( $_smarty_tpl->tpl_vars['link']->value->getAdminLink('AdminEmployees',true,array(),array('id_employee'=>call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'intval' ][ 0 ], array( $_smarty_tpl->tpl_vars['employee']->value->id )),'updateemployee'=>1)),'html','UTF-8' ));?>
 "
              class="employee_name dropdown-toggle"
              data-toggle="dropdown"
@@ -488,7 +512,7 @@ if ($_prefixVariable4) {?>
             </li>
             <li class="text-left text-nowrap username" data-mobile="true" data-from="employee_links" data-target="menu"><?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Welcome back %name%','sprintf'=>array('%name%'=>$_smarty_tpl->tpl_vars['employee']->value->firstname),'d'=>'Admin.Navigation.Header'),$_smarty_tpl ) ) ));?>
 </li>
-            <li class="employee-wrapper-profile"><a class="admin-link" href="<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( $_smarty_tpl->tpl_vars['link']->value->getAdminLink('AdminEmployees',true,array(),array('id_employee'=>intval($_smarty_tpl->tpl_vars['employee']->value->id),'updateemployee'=>1)),'html','UTF-8' ));?>
+            <li class="employee-wrapper-profile"><a class="admin-link" href="<?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( $_smarty_tpl->tpl_vars['link']->value->getAdminLink('AdminEmployees',true,array(),array('id_employee'=>call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'intval' ][ 0 ], array( $_smarty_tpl->tpl_vars['employee']->value->id )),'updateemployee'=>1)),'html','UTF-8' ));?>
 "><i class="material-icons">edit</i> <?php echo call_user_func_array($_smarty_tpl->registered_plugins[ 'modifier' ][ 'escape' ][ 0 ], array( call_user_func_array( $_smarty_tpl->smarty->registered_plugins[Smarty::PLUGIN_FUNCTION]['l'][0], array( array('s'=>'Your profile','d'=>'Admin.Navigation.Header'),$_smarty_tpl ) ) ));?>
 </a></li>
             <li class="divider"></li>
@@ -501,7 +525,7 @@ if ($_from !== null) foreach ($_from as $_smarty_tpl->tpl_vars['menuItem']->valu
 $_smarty_tpl->tpl_vars['menuItem']->do_else = false;
 $_smarty_tpl->tpl_vars['menuItem']->iteration++;
 $_smarty_tpl->tpl_vars['menuItem']->last = $_smarty_tpl->tpl_vars['menuItem']->iteration === $_smarty_tpl->tpl_vars['menuItem']->total;
-$__foreach_menuItem_7_saved = $_smarty_tpl->tpl_vars['menuItem'];
+$__foreach_menuItem_41_saved = $_smarty_tpl->tpl_vars['menuItem'];
 ?>
               <?php $_smarty_tpl->_assignInScope('menuItemProperties', $_smarty_tpl->tpl_vars['menuItem']->value->getProperties());?>
               <li class="<?php echo $_smarty_tpl->tpl_vars['menuItem']->value->getClass();?>
@@ -518,7 +542,7 @@ echo $_smarty_tpl->tpl_vars['menuItem']->value->getContent();?>
                 <p class="divider"></p>
               <?php }?>
             <?php
-$_smarty_tpl->tpl_vars['menuItem'] = $__foreach_menuItem_7_saved;
+$_smarty_tpl->tpl_vars['menuItem'] = $__foreach_menuItem_41_saved;
 }
 $_smarty_tpl->smarty->ext->_foreach->restore($_smarty_tpl, 1);?>
 
