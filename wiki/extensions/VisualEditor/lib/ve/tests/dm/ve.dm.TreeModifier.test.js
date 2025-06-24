@@ -1,7 +1,7 @@
 /*!
  * VisualEditor DataModel TreeModifier tests.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
 
 ve.dm.TreeModifier.prototype.dump = function () {
@@ -328,6 +328,19 @@ QUnit.test( 'bare content', function ( assert ) {
 	assert.throws( function () {
 		doc.commit( tx );
 	}, /Error: Cannot insert text into a document node/, 'bare content' );
+} );
+
+QUnit.test( 'unbalanced insertion', function ( assert ) {
+	var data = [ { type: 'div' }, { type: '/div' } ];
+	var doc = ve.dm.example.createExampleDocumentFromData( data );
+	var tx = new ve.dm.Transaction( [
+		{ type: 'retain', length: 1 },
+		{ type: 'replace', remove: [], insert: [ { type: 'paragraph' }, { type: '/heading' } ] },
+		{ type: 'retain', length: 1 }
+	] );
+	assert.throws( function () {
+		doc.commit( tx );
+	}, /Expected closing for paragraph but got closing for heading/, 'unbalanced insertion' );
 } );
 
 QUnit.test( 'applyTreeOperation: ensureNotText', function ( assert ) {

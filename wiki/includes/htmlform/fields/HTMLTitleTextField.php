@@ -1,5 +1,11 @@
 <?php
 
+namespace MediaWiki\HTMLForm\Field;
+
+use FormatJson;
+use InvalidArgumentException;
+use MediaWiki\MediaWikiServices;
+use MediaWiki\Title\MalformedTitleException;
 use MediaWiki\Title\Title;
 use MediaWiki\Widget\TitleInputWidget;
 
@@ -54,12 +60,13 @@ class HTMLTitleTextField extends HTMLTextField {
 			return parent::validate( $value, $alldata );
 		}
 
+		$titleFactory = MediaWikiServices::getInstance()->getTitleFactory();
 		try {
 			if ( !$this->mParams['relative'] ) {
-				$title = Title::newFromTextThrow( $value );
+				$title = $titleFactory->newFromTextThrow( $value );
 			} else {
-				// Can't use Title::makeTitleSafe(), because it doesn't throw useful exceptions
-				$title = Title::newFromTextThrow( Title::makeName( $this->mParams['namespace'], $value ) );
+				// Can't use makeTitleSafe(), because it doesn't throw useful exceptions
+				$title = $titleFactory->newFromTextThrow( Title::makeName( $this->mParams['namespace'], $value ) );
 			}
 		} catch ( MalformedTitleException $e ) {
 			return $this->msg( $e->getErrorMessage(), $e->getErrorMessageParameters() );
@@ -125,3 +132,6 @@ class HTMLTitleTextField extends HTMLTextField {
 		];
 	}
 }
+
+/** @deprecated class alias since 1.42 */
+class_alias( HTMLTitleTextField::class, 'HTMLTitleTextField' );

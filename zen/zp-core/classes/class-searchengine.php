@@ -1,8 +1,7 @@
 <?php
 /**
  * search class
- * @package core
- * @subpackage classes\objects
+ * @package zpcore\classes\objects
  */
 class SearchEngine {
 
@@ -48,7 +47,8 @@ class SearchEngine {
 	 * @return SearchEngine
 	 */
 	function __construct($dynamic_album = false) {
-		global $_zp_exifvars, $_zp_gallery;
+		global $_zp_exifvars, $_zp_gallery, $_zp_db;
+		$regexboundaries = $_zp_db->getRegexWordBoundaryChars();
 		switch ((int) getOption('exact_tag_match')) {
 			case 0:
 				// partial
@@ -60,7 +60,7 @@ class SearchEngine {
 				break;
 			case 2:
 				//word
-				$this->tagPattern = array('type' => 'regexp', 'open' => '[[:<:]]', 'close' => '[[:>:]]');
+				$this->tagPattern = array('type' => 'regexp', 'open' => $regexboundaries['open'], 'close' => $regexboundaries['close']);
 				break;
 		}
 
@@ -71,14 +71,13 @@ class SearchEngine {
 				break;
 			case 1:
 				// partial start
-				$this->pattern = array('type' => 'regexp', 'open' => '[[:<:]]', 'close' => '');
+				$this->pattern = array('type' => 'regexp', 'open' => $regexboundaries['open'], 'close' => '');
 				break;
 			case 2:
 				//word
-				$this->pattern = array('type' => 'regexp', 'open' => '[[:<:]]', 'close' => '[[:>:]]');
+				$this->pattern = array('type' => 'regexp', 'open' => $regexboundaries['open'], 'close' => $regexboundaries['close']);
 				break;
 		}
-
 		$this->extraparams['albumssorttype'] = getOption('search_album_sort_type');
 		$this->extraparams['albumssortdirection'] = getOption('search_album_sort_direction') ? 'DESC' : '';
 		$this->extraparams['imagessorttype'] = getOption('search_image_sort_type');
@@ -119,8 +118,8 @@ class SearchEngine {
 			}
 		}
 		$this->search_structure = zp_apply_filter('searchable_fields', $this->search_structure);
-		if (isset($_REQUEST['search'])) {
-			$this->words = removeTrailingSlash(strtr(sanitize($_REQUEST['search'], 4), array('__23__' => '#', '__25__' => '%', '__26__' => '&', '__2F__' => '/')));
+		if (isset($_REQUEST['s'])) {
+			$this->words = removeTrailingSlash(strtr(sanitize($_REQUEST['s'], 4), array('__23__' => '#', '__25__' => '%', '__26__' => '&', '__2F__' => '/')));
 		} else {
 			$this->words = '';
 			if (isset($_REQUEST['date'])) { // words & dates are mutually exclusive
@@ -258,16 +257,21 @@ class SearchEngine {
 	 * @return array
 	 */
 	protected function numericFields($fields) {
-		if ($fields == 0)
+		if ($fields == 0) {
 			$fields = 0x0fff;
-		if ($fields & 0x01)
+		}
+		if ($fields & 0x01) {
 			$list[$this->search_structure['title']] = 'title';
-		if ($fields & 0x02)
+		}
+		if ($fields & 0x02) {
 			$list[$this->search_structure['desc']] = 'desc';
-		if ($fields & 0x04)
+		}
+		if ($fields & 0x04) {
 			$list[$this->search_structure['tags']] = 'tags';
-		if ($fields & 0x08)
+		}
+		if ($fields & 0x08) {
 			$list[$this->search_structure['filename']] = 'filename';
+		}
 		return $list;
 	}
 
@@ -283,7 +287,7 @@ class SearchEngine {
 		$r = '';
 		$w = urlencode(trim($this->codifySearchString()));
 		if (!empty($w)) {
-			$r .= '&search=' . $w;
+			$r .= '&s=' . $w;
 		}
 		$d = trim(strval($this->dates));
 		if (!empty($d)) {
@@ -390,13 +394,15 @@ class SearchEngine {
 	 * @return string
 	 */
 	function getSearchFieldsText($fields, $param = '&searchfields=') {
-		$default = $this->allowedSearchFields();
-		$diff = array_diff($default, $fields);
-		if (count($diff) > 0) {
-			foreach ($fields as $field) {
-				$param .= $field . ',';
+		$fields_allowed = $this->allowedSearchFields();
+		$fields_final = array();
+		foreach ($fields as $field) {
+			if (in_array($field, $fields_allowed)) {
+				$fields_final[] = $field;
 			}
-			return substr($param, 0, -1);
+		}
+		if (!empty($fields_final)) {
+			return $param . implode(',', $fields_final);
 		}
 		return '';
 	}
@@ -414,7 +420,7 @@ class SearchEngine {
 			$p = substr($param, 0, $e);
 			$v = substr($param, $e + 1);
 			switch ($p) {
-				case 'search':
+				case 's':
 					$this->words = urldecode($v);
 					break;
 				case 'date':
@@ -531,8 +537,9 @@ class SearchEngine {
 	 * @return mixed
 	 */
 	function getSearchFields($array = false) {
-		if ($array)
+		if ($array) {
 			return $this->fieldList;
+		}
 		return implode(',', $this->fieldList);
 	}
 
@@ -799,8 +806,10 @@ class SearchEngine {
 			$fs = sanitize($_REQUEST['searchfields']);
 			if (is_numeric($fs)) {
 				$fields = array_flip($this->numericFields($fs));
-			} else {
+			} else if (is_string($fs)) {
 				$fields = explode(',', $fs);
+			} else if (is_array($fs)) {
+				$fields = $fs;
 			}
 		} else {
 			foreach ($_REQUEST as $key => $value) {
@@ -818,8 +827,9 @@ class SearchEngine {
 	 */
 	protected function subsetNewsCategories() {
 		global $_zp_zenpage, $_zp_db;
-		if (!is_array($this->category_list))
+		if (!is_array($this->category_list)) {
 			return false;
+		}
 		$cat = '';
 		$list = $_zp_zenpage->getAllCategories();
 		if (!empty($list)) {
@@ -1418,20 +1428,22 @@ class SearchEngine {
 						if ($albumname != $this->dynalbumname) {
 							if (file_exists(ALBUM_FOLDER_SERVERPATH . internalToFilesystem($albumname))) {
 								$album = AlbumBase::newAlbum($albumname);
-								$uralbum = $album->getUrAlbum();
-								$viewUnpublished = ($this->search_unpublished || zp_loggedin() && $uralbum->albumSubRights() & (MANAGED_OBJECT_RIGHTS_EDIT | MANAGED_OBJECT_RIGHTS_VIEW));
 								switch (themeObject::checkScheduledPublishing($row)) {
 									case 1:
+										// permanent as expired
 										$album->setPublished(0);
 										$album->save();
+										break;
 									case 2:
-										$row['show'] = 0;
+										// temporary as future published
+										$album->setPublished(0);
+										break;
 								}
-								if ($mine || (is_null($mine) && $album->isMyItem(LIST_RIGHTS)) || (checkAlbumPassword($albumname) && (($album->checkAccess() && $album->isPublic()) || $viewUnpublished))) {
+								if ($mine || (is_null($mine) && $album->isVisible())) {		
 									if ((empty($this->album_list) || in_array($albumname, $this->album_list)) && !$this->excludeAlbum($albumname)) {
 										$result[] = array('title' => $row['title'], 'name' => $albumname, 'weight' => $weights[$row['id']]);
 									}
-								}
+								} 
 							}
 						}
 					}
@@ -1482,7 +1494,7 @@ class SearchEngine {
 	 * Checks if the album should be excluded from results
 	 * Subalbums and their contents inherit the exclusion.
 	 * 
-	 * @since ZenphotoCMS 1.5.8
+	 * @since 1.5.8
 	 * 
 	 * @param string $albumname
 	 * @return boolean
@@ -1608,19 +1620,12 @@ class SearchEngine {
 						if ($row2) {
 							$albumname = $row2['folder'];
 							$allow = false;
-							$album = AlbumBase::newAlbum($albumname);
-							$uralbum = $album->getUrAlbum();
-							$viewUnpublished = ($this->search_unpublished || zp_loggedin() && $uralbum->albumSubRights() & (MANAGED_OBJECT_RIGHTS_EDIT | MANAGED_OBJECT_RIGHTS_VIEW));
-							switch (themeObject::checkScheduledPublishing($row)) {
-								case 1:
-									$imageobj = Image::newImage($album, $row['filename']);
-									$imageobj->setPublished(0);
-									$imageobj->save();
-								case 2:
-									$row['show'] = 0;
-									break;
+							$album = AlbumBase::newAlbum($albumname);		
+							$imageobj = Image::newImage($album, $row['filename']);
+							if ($imageobj->hasPublishSchedule()) {
+								$row['show'] = 0;
 							}
-							$viewUnpublished = ($mine || is_null($mine)) && ($album->isMyItem(LIST_RIGHTS) || checkAlbumPassword($albumname) && ($album->isPublic() || $viewUnpublished));
+							$viewUnpublished = ($mine || $this->search_unpublished || (is_null($mine)) && ($imageobj->isVisible()));
 							if ($viewUnpublished) {
 								$allow = (empty($this->album_list) || in_array($albumname, $this->album_list)) && !$this->excludeAlbum($albumname);
 							} 
@@ -1807,13 +1812,13 @@ class SearchEngine {
 			if ($search_result) {
 				while ($row = $_zp_db->fetchAssoc($search_result)) {
 					$pageobj = new ZenpagePage($row['titlelink']);
-					if((zp_loggedin() && $pageobj->isMyItem(LIST_RIGHTS)) || ($pageobj->isPublic() || $this->search_unpublished)) {
+					if ($this->search_unpublished || $pageobj->isVisible()) {
 						$data = array('title' => $row['title'], 'titlelink' => $row['titlelink']);
 						if (isset($weights)) {
 							$data['weight'] = $weights[$row['id']];
 						}
 						$result[] = $data;
-					}
+					} 
 				}
 				$_zp_db->freeResult($search_result);
 			}
@@ -1897,7 +1902,7 @@ class SearchEngine {
 			if ($search_result) {
 				while ($row = $_zp_db->fetchAssoc($search_result)) {
 					$articleobj = new ZenpageNews($row['titlelink']);
-					if((zp_loggedin() && $articleobj->isMyItem(LIST_RIGHTS)) || ($articleobj->isPublic() || $this->search_unpublished)) {
+					if ($this->search_unpublished || $articleobj->isVisible()) {
 						$data = array('title' => $row['title'], 'titlelink' => $row['titlelink']);
 						if (isset($weights)) {
 							$data['weight'] = $weights[$row['id']];
@@ -1939,7 +1944,7 @@ class SearchEngine {
 		if (!empty($authCookies)) { // some sort of password exists, play it safe and make the tag unique
 			$user = getUserIP();
 		}
-		$array = array('item' => $table, 'fields' => implode(', ', $this->fieldList), 'search' => $search, 'sort' => $sort, 'user' => $user);
+		$array = array('item' => $table, 'fields' => implode(', ', $this->fieldList), 's' => $search, 'sort' => $sort, 'user' => $user);
 		$dynalbum = $this->getDynamicAlbum();
 		if($dynalbum) {
 			$array['dynalbum'] = $dynalbum->name;
@@ -1956,7 +1961,7 @@ class SearchEngine {
 	private function cacheSearch($criteria, $found) {
 		global $_zp_db;
 		if (SEARCH_CACHE_DURATION) {
-			$criteria = serialize($criteria);
+			$criteria = serialize(serialize($criteria));
 			$sql = 'SELECT `id`, `data`, `date` FROM ' . $_zp_db->prefix('search_cache') . ' WHERE `criteria` = ' . $_zp_db->quote($criteria);
 			$result = $_zp_db->querySingleRow($sql);
 			if ($result) {
@@ -1977,7 +1982,8 @@ class SearchEngine {
 	private function getCachedSearch($criteria) {
 		global $_zp_db;
 		if (SEARCH_CACHE_DURATION) {
-			$sql = 'SELECT `id`, `date`, `data` FROM ' . $_zp_db->prefix('search_cache') . ' WHERE `criteria` = ' . $_zp_db->quote(serialize($criteria));
+			$criteria = serialize(serialize($criteria));
+			$sql = 'SELECT `id`, `date`, `data` FROM ' . $_zp_db->prefix('search_cache') . ' WHERE `criteria` = ' . $_zp_db->quote($criteria);
 			$result = $_zp_db->querySingleRow($sql);
 			if ($result) {
 				if ((time() - strtotime($result['date'])) > SEARCH_CACHE_DURATION * 60) {
@@ -2007,7 +2013,7 @@ class SearchEngine {
 	 * Returns true if $sortdir is set to "DESC", otherwise false, for use with sorting functions
 	 * @param string $sortdirection Traditional speaking values "ASC" or "DESC"
 	 * 
-	 * @since ZenphotoCMS 1.5.8
+	 * @since 1.5.8
 	 * 
 	 * @return boolean
 	 */
@@ -2023,7 +2029,7 @@ class SearchEngine {
 	 *
 	 * encloses search word in quotes if needed
 	 * 
-	 * @since ZenphotoCMS 1.6 - Move to Search class as static method
+	 * @since 1.6 - Move to Search class as static method
 	 * @param string $word
 	 * @return string
 	 */
@@ -2047,9 +2053,9 @@ class SearchEngine {
 	/**
 	 * Returns the formatted date of the search
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * 
-	 * @param string $format formatting of the date, default 'F Y'
+	 * @param string $format A datetime format, if using localized dates an ICU dateformat
 	 * @return string
 	 */
 	function getSearchDateFormatted($format = 'F Y') {
@@ -2068,7 +2074,7 @@ class SearchEngine {
 	 * 
 	 * Gets the number of album pages
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * 
 	 * @param string $type 'total" total pages rounded, "full" number of pages that exactly match the per page value, 
 	 *		"plain" number of pages as float value
@@ -2089,7 +2095,7 @@ class SearchEngine {
 	/**
 	 * Gets the number of image pages
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * 
 	 * @param string $type 'total" total pages rounded, "full" number of pages that exactly match the per page value, 
 	 *							"plain" number of pages as float value
@@ -2111,7 +2117,7 @@ class SearchEngine {
 	/**
 	 * Gets the number of total pages of albums and images
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * 
 	 * @param bool $one_image_page set to true if your theme collapses all image thumbs
 	 * or their equivalent to one page. This is typical with flash viewer themes
@@ -2130,7 +2136,7 @@ class SearchEngine {
 	/**
 	 * Gets the albums per page value
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * 
 	 * @return int
 	 */
@@ -2142,7 +2148,7 @@ class SearchEngine {
 	 * 
 	 * Gets the images per page value
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * 
 	 * @return int
 	 */
@@ -2153,7 +2159,7 @@ class SearchEngine {
 		/**
 	 * Gets the number of images if the thumb transintion page for sharing thunbs on the last album and the first image page
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * 
 	 * @param bool $one_image_page 
 	 * @return int
@@ -2173,10 +2179,63 @@ class SearchEngine {
 	}
 	
 	/**
+	 * Gets the mode of the current search: 
+	 * 
+	 * - 'search' (general results)
+	 * - 'archive' (Date archive results - albums and images only - News article date archives are no searches!)
+	 * - 'tag' (specific tag results);
+	 * 
+	 * @since 1.6.3
+	 * @return string
+	 */
+	function getMode() {
+		$fields = $this->getSearchFields(true);
+		$dates = $this->getSearchDate();
+		if (empty($dates)) {
+			$mode = 'search';
+		} else {
+			$mode = 'archive';
+		}
+		return self::getSearchMode($fields, $dates);
+	}
+	
+	/**
+	 * Static method to get the search mode based on fields and dates: 
+	 * 
+	 * - 'search' (general results)
+	 * - 'archive' (Date archive results - albums and images only - News article date archives are no searches!)
+	 * - 'tag' (specific tag results);
+	 * 
+	 * This is a helper for e.g. searchengine::getSearchURL() before an actual search is performed. 
+	 * Within actual searchengine class object context use the method getMode() instead
+	 * 
+	 * @since 1.6.3 
+	 * @param array $fields The search fields
+	 * @param string|array $dates dates to limit the search
+	 * @return string
+	 */
+	static function getSearchMode($fields, $dates) {
+		if (!is_array($fields)) {
+			$fields = explode(',', $fields);
+		}
+		if (empty($dates)) {
+			$mode = 'search';
+		} else {
+			$mode = 'archive';
+		}
+		if (!empty($fields) && empty($dates)) {
+			if (count($fields) == 1 && array_shift($fields) == 'tags') {
+				$mode = 'tag';
+			}
+		}
+		return $mode;
+	}
+	
+	/**
 	 * Returns a search URL
 	 * 
 	 * @since 1.1.3
-	 * @since ZenphotoCMS 1.6 - Move to SearchEngine class as static method
+	 * @since 1.6 - Move to SearchEngine class as static method
 	 *
 	 * @param mixed $words the search words target
 	 * @param mixed $dates the dates that limit the search
@@ -2187,7 +2246,7 @@ class SearchEngine {
 	 */
 	static function getSearchURL($words = '', $dates = '', $fields = '', $page = '', $object_list = NULL) {
 		$baseurl = '';
-		$query = array('search' => '');
+		$query = array('s' => '');
 		$rewrite = $searchurl_mode = 	$searchfields = '';
 		if (MOD_REWRITE) {
 			$rewrite = true;
@@ -2203,19 +2262,7 @@ class SearchEngine {
 		if (!is_array($fields)) {
 			$fields = explode(',', $fields);
 		}
-		
-		//setuü search url mode
-		if (empty($dates)) {
-			$searchurl_mode = 'search';
-		} else {
-			$searchurl_mode = 'archive';
-		}
-		if (!empty($fields) && empty($dates)) {
-			$temp = $fields;
-			if (count($fields) == 1 && array_shift($temp) == 'tags') {
-				$searchurl_mode = 'tags';
-			}
-		}
+		$searchurl_mode = self::getSearchMode($fields, $dates);
 
 		//$rewrite = false;
 		if ($rewrite) {
@@ -2227,15 +2274,15 @@ class SearchEngine {
 				case 'archive':
 					$baseurl = SEO_WEBPATH . '/' . _ARCHIVE_ . '/';
 					break;
-				case 'tags':
+				case 'tag':
 					$baseurl = SEO_WEBPATH . '/' . _TAGS_ . '/';
 					break;
 			}			
 		} else {
 			$baseurl = SEO_WEBPATH . "/index.php?p=search";
-			$search = new SearchEngine();
-			$searchfields = $search->getSearchFieldsText($fields, 'searchfields=');
 		}
+		$search = new SearchEngine();
+		$searchfields = $search->getSearchFieldsText($fields, 'searchfields=');
 		if (!empty($words)) {
 			if (is_array($words)) {
 				foreach ($words as $key => $word) {
@@ -2244,14 +2291,14 @@ class SearchEngine {
 				$words = implode(',', $words);
 			}
 			$words = strtr($words, array('%' => '__25__', '&' => '__26__', '#' => '__23__', '/' => '__2F__'));
-			$query['search'] = urlencode($words);
+			$query['s'] = urlencode($words);
 		}
 		if ($searchurl_mode == 'archive') {
 			if (is_array($dates)) {
 				$dates = implode(',', $dates);
 			}
 			$query['date'] = $dates;
-			unset($query['search']); // date archive actually invalidates normal search term
+			unset($query['s']); // date archive actually invalidates normal search term
 		}
 		if ($page > 1) {
 			$query['page'] = $page;
@@ -2266,28 +2313,37 @@ class SearchEngine {
 		if ($rewrite) {
 			switch ($searchurl_mode) {
 				case 'search':
-					if (isset($query['search'])) {
-						$searchwords = $query['search'];
-						unset($query['search']);
+					if (isset($query['s'])) {
+						$searchwords = $query['s'];
+						unset($query['s']);
 						$url = $baseurl . implode('/', $query);
 						if ($page > 1) {
 							$url .= '/';
 						}
-						$url .= '?search=' . $searchwords;
+						$url .= '?s=' . $searchwords;
+						if (!empty($searchfields)) {
+							$url .= '&' . $searchfields;
+						}
 					}
 					break;
 				case 'archive':
-				case 'tags':
+				case 'tag':
 					$url = $baseurl . implode('/', $query) . '/';
 					break;
 			}
 		} else {
+			if(empty($query['s'])) {
+				unset($query['s']);
+			}
 			$url = $baseurl . '&' . urldecode(http_build_query($query));
-		}
-		if (!empty($searchfields)) {
-			$url .= '&' . $searchfields;
+			if (!empty($searchfields)) {
+				$url .= '&' . $searchfields;
+			}
+			
 		}
 		return $url;
 	}
+	
+	
 
 }

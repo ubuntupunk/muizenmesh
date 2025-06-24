@@ -86,10 +86,6 @@ class DOMRangeBuilder {
 	/** @var string */
 	protected $traceType;
 
-	/**
-	 * @param Document $document
-	 * @param Frame $frame
-	 */
 	public function __construct(
 		Document $document, Frame $frame
 	) {
@@ -100,10 +96,6 @@ class DOMRangeBuilder {
 		$this->traceType = "tplwrap";
 	}
 
-	/**
-	 * @param Element $target
-	 * @param Element $source
-	 */
 	protected function updateDSRForFirstRangeNode( Element $target, Element $source ): void {
 		$srcDP = DOMDataUtils::getDataParsoid( $source );
 		$tgtDP = DOMDataUtils::getDataParsoid( $target );
@@ -178,7 +170,7 @@ class DOMRangeBuilder {
 	 * @return string
 	 */
 	protected function getRangeId( Element $node ): string {
-		return $node->getAttribute( "about" ) ?? '';
+		return DOMCompat::getAttribute( $node, "about" );
 	}
 
 	/**
@@ -192,32 +184,9 @@ class DOMRangeBuilder {
 	private function getDOMRange(
 		Element $startElem, Element $endMeta, Element $endElem
 	) {
-		$range = new DOMRangeInfo;
+		$range = $this->findEnclosingRange( $startElem, $endElem );
 		$range->startElem = $startElem;
 		$range->endElem = $endMeta;
-		$range->id = Utils::stripParsoidIdPrefix( $this->getRangeId( $startElem ) );
-		$range->startOffset = DOMDataUtils::getDataParsoid( $startElem )->tsr->start;
-
-		// Find common ancestor of startElem and endElem
-		$startAncestors = DOMUtils::pathToRoot( $startElem );
-		$elem = $endElem;
-		$parentNode = $endElem->parentNode;
-		while ( $parentNode && $parentNode->nodeType !== XML_DOCUMENT_NODE ) {
-			$i = array_search( $parentNode, $startAncestors, true );
-			if ( $i === 0 ) {
-				// the common ancestor is startElem
-				// widen the scope to include the full subtree
-				$range->start = $startElem->firstChild;
-				$range->end = $startElem->lastChild;
-				break;
-			} elseif ( $i > 0 ) {
-				$range->start = $startAncestors[$i - 1];
-				$range->end = $elem;
-				break;
-			}
-			$elem = $parentNode;
-			$parentNode = $elem->parentNode;
-		}
 
 		$startsInFosterablePosn = DOMUtils::isFosterablePosition( $range->start );
 		$next = $range->start->nextSibling;
@@ -373,25 +342,19 @@ class DOMRangeBuilder {
 		return $node;
 	}
 
-/**
- * @param Element $meta
- */
 	private static function stripStartMeta( Element $meta ): void {
 		if ( DOMCompat::nodeName( $meta ) === 'meta' ) {
 			$meta->parentNode->removeChild( $meta );
 		} else {
 			// Remove mw:* from the typeof.
-			$type = $meta->getAttribute( 'typeof' ) ?? '';
-			$type = preg_replace( '/(?:^|\s)mw:[^\/]*(\/[^\s]+|(?=$|\s))/D', '', $type );
-			$meta->setAttribute( 'typeof', $type );
+			$type = DOMCompat::getAttribute( $meta, 'typeof' );
+			if ( $type !== null ) {
+				$type = preg_replace( '/(?:^|\s)mw:[^\/]*(\/\S+|(?=$|\s))/D', '', $type );
+				$meta->setAttribute( 'typeof', $type );
+			}
 		}
 	}
 
-	/**
-	 * @param array $nestingInfo
-	 * @param ?string $startId
-	 * @return ?string
-	 */
 	private static function findToplevelEnclosingRange(
 		array $nestingInfo, ?string $startId
 	): ?string {
@@ -420,9 +383,7 @@ class DOMRangeBuilder {
 	private function recordTemplateInfo(
 		string $compoundTplId, DOMRangeInfo $range, TemplateInfo $templateInfo
 	): void {
-		if ( !isset( $this->compoundTpls[$compoundTplId] ) ) {
-			$this->compoundTpls[$compoundTplId] = [];
-		}
+		$this->compoundTpls[$compoundTplId] ??= [];
 
 		// Record template args info along with any intervening wikitext
 		// between templates that are part of the same compound structure.
@@ -783,7 +744,7 @@ class DOMRangeBuilder {
 	private function ensureElementsInRange( DOMRangeInfo $range ): void {
 		$n = $range->start;
 		$e = $range->end;
-		$about = $range->startElem->getAttribute( 'about' ) ?? '';
+		$about = DOMCompat::getAttribute( $range->startElem, 'about' );
 		while ( $n ) {
 			$next = $n->nextSibling;
 			if ( !( $n instanceof Element ) ) {
@@ -893,7 +854,9 @@ class DOMRangeBuilder {
 
 			$this->ensureElementsInRange( $range );
 
-			$tplArray = $this->compoundTpls[$range->id];
+			$tplArray = $this->compoundTpls[$range->id] ?? null;
+			Assert::invariant( (bool)$tplArray, 'No parts for template range!' );
+
 			$encapTgt = self::findEncapTarget( $range );
 			$encapValid = false;
 			$encapDP = DOMDataUtils::getDataParsoid( $encapTgt );
@@ -903,9 +866,12 @@ class DOMRangeBuilder {
 			// and not allow its content to be edited directly.
 			$startElem = $range->startElem;
 			if ( $startElem !== $encapTgt ) {
-				$t1 = $startElem->getAttribute( 'typeof' ) ?? '';
-				$t2 = $encapTgt->getAttribute( 'typeof' ) ?? '';
-				$encapTgt->setAttribute( 'typeof', $t2 ? $t1 . ' ' . $t2 : $t1 );
+				$t1 = DOMCompat::getAttribute( $startElem, 'typeof' );
+				if ( $t1 !== null ) {
+					foreach ( array_reverse( explode( ' ', $t1 ) ) as $t ) {
+						DOMUtils::addTypeOf( $encapTgt, $t, true );
+					}
+				}
 			}
 
 			/* ----------------------------------------------------------------
@@ -951,7 +917,6 @@ class DOMRangeBuilder {
 					$dp1DSR->end >= $dp1DSR->start;
 			}
 
-			Assert::invariant( (bool)$tplArray, 'No parts for template range!' );
 			if ( $encapValid ) {
 				// Find transclusion info from the array (skip past a wikitext element)
 				/** @var CompoundTemplateInfo $firstTplInfo */
@@ -1008,8 +973,9 @@ class DOMRangeBuilder {
 				}
 
 				// Set up dsr->start, dsr->end, and data-mw on the target node
-				$encapDataMw = (object)[ 'parts' => $parts ];
-				// FIXME: This is going to clobber any data-mw on $encapTgt, see T214241
+				// Avoid clobbering existing (ex: extension) data-mw information (T214241)
+				$encapDataMw = DOMDataUtils::getDataMw( $encapTgt );
+				$encapDataMw->parts = $parts;
 				DOMDataUtils::setDataMw( $encapTgt, $encapDataMw );
 				$encapDP->pi = $pi;
 
@@ -1131,7 +1097,6 @@ class DOMRangeBuilder {
 	 * @param Node $rootNode
 	 * @param ElementRange[] &$tpls Template start and end elements by ID
 	 * @param DOMRangeInfo[] &$tplRanges Template range info
-	 * @return void
 	 */
 	private function findWrappableTemplateRangesRecursive(
 		Node $rootNode, array &$tpls, array &$tplRanges
@@ -1281,10 +1246,6 @@ class DOMRangeBuilder {
 		return WTUtils::matchTplType( $elem );
 	}
 
-	/**
-	 * @param ?TemplateInfo $templateInfo
-	 * @param TempData $tmp
-	 */
 	protected function verifyTplInfoExpectation( ?TemplateInfo $templateInfo, TempData $tmp ): void {
 		if ( !$templateInfo ) {
 			// An assertion here is probably an indication that we're
@@ -1293,14 +1254,46 @@ class DOMRangeBuilder {
 		}
 	}
 
-	/**
-	 * @param Node $root
-	 */
 	public function execute( Node $root ): void {
 		$tplRanges = $this->findWrappableMetaRanges( $root );
 		if ( count( $tplRanges ) > 0 ) {
 			$nonOverlappingRanges = $this->findTopLevelNonOverlappingRanges( $root, $tplRanges );
 			$this->encapsulateTemplates( $nonOverlappingRanges );
 		}
+	}
+
+	/**
+	 * Creates a range that encloses $startElem and $endElem
+	 * @param Element $startElem
+	 * @param Element $endElem
+	 * @return DOMRangeInfo
+	 */
+	protected function findEnclosingRange( Element $startElem, Element $endElem ): DOMRangeInfo {
+		$range = new DOMRangeInfo;
+		$range->id = Utils::stripParsoidIdPrefix( $this->getRangeId( $startElem ) );
+		$range->startOffset = DOMDataUtils::getDataParsoid( $startElem )->tsr->start;
+
+		// Find common ancestor of startElem and endElem
+		$startAncestors = DOMUtils::pathToRoot( $startElem );
+		$elem = $endElem;
+		$parentNode = $endElem->parentNode;
+		while ( $parentNode && $parentNode->nodeType !== XML_DOCUMENT_NODE ) {
+			$i = array_search( $parentNode, $startAncestors, true );
+			if ( $i === 0 ) {
+				// the common ancestor is startElem
+				// widen the scope to include the full subtree
+				$range->start = $startElem->firstChild;
+				$range->end = $startElem->lastChild;
+				break;
+			} elseif ( $i > 0 ) {
+				$range->start = $startAncestors[$i - 1];
+				$range->end = $elem;
+				break;
+			}
+			$elem = $parentNode;
+			$parentNode = $elem->parentNode;
+		}
+
+		return $range;
 	}
 }

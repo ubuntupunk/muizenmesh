@@ -6,7 +6,12 @@
 
 .overlay.search-overlay {
 	.spinner-container {
-		top: @siteHeaderHeight;
+		top: @height-site-header;
+	}
+
+	.with-results,
+	.without-results {
+		margin: 0;
 	}
 
 	.clear {
@@ -24,26 +29,26 @@
 
 @media all and ( min-width: @width-breakpoint-tablet ) {
 	.overlay.search-overlay {
-		// TODO: update @iconSize and @iconGutterWidth to reflect new icon button specs
-		@updatedIconSize: 1.25em; // 20px icon width
-		@updatedIconGutterWidth: 0.75em; // 12px padding width
-		@iconBorder: 0.125em; // 1px border width * 2
+		// TODO: update @size-icon and @width-icon-gutter to reflect new icon button specs
+		@size-icon-updated: 1.25em; // 20px icon width
+		@width-icon-gutter-updated: 0.75em; // 12px padding width
+		@border-width-icon: 0.125em; // 1px border width * 2
 		// Calculate padding based off icon and branding box widths, accounting for `box-sizing: border-box` on the icon
-		@searchPadding: (@updatedIconSize + @updatedIconGutterWidth + @iconBorder) + @brandingBoxWidth;
+		@searchPadding: (@size-icon-updated + @width-icon-gutter-updated + @border-width-icon) + @width-branding-box;
 
 		.search-box,
 		.search-content,
 		.spinner-container,
 		.results {
-			width: @searchBoxWidth;
+			width: @width-search-box;
 			margin-left: @searchPadding;
 		}
 
 		// Ensure search overlay content is aligned with .heading-container
 		.overlay-header-container,
 		.overlay-content {
-			padding-left: @contentPadding;
-			padding-right: @contentPadding;
+			padding-left: @padding-content;
+			padding-right: @padding-content;
 			box-sizing: border-box;
 		}
 
@@ -74,7 +79,7 @@
 			margin-left: auto;
 			margin-right: auto;
 			width: 90%;
-			max-width: @contentMaxWidthTablet;
+			max-width: @max-width-content-tablet;
 		}
 	}
 }

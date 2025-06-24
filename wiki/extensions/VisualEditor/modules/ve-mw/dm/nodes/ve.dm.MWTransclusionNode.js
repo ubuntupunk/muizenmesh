@@ -1,7 +1,7 @@
 /*!
  * VisualEditor DataModel MWTransclusionNode class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see AUTHORS.txt
+ * @copyright See AUTHORS.txt
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
@@ -318,53 +318,60 @@ ve.dm.MWTransclusionNode.static.escapeParameter = function ( param ) {
 		linkStack = 0;
 
 	while ( input.length > 0 ) {
-		var match = input.match( /(?:\[\[)|(?:\]\])|(?:\{\{)|(?:\}\})|\|+|<\/?nowiki>|<nowiki\s*\/>/ );
+		var match = input.match( /\[\[|]]|{{|}}|\|+|<\/?nowiki>|<nowiki\s*\/>/ );
 		if ( !match ) {
 			output += input;
 			break;
 		}
 		output += input.slice( 0, match.index );
 		input = input.slice( match.index + match[ 0 ].length );
+
 		if ( inNowiki ) {
 			if ( match[ 0 ] === '</nowiki>' ) {
 				inNowiki = false;
 			}
 			output += match[ 0 ];
-		} else {
-			var needsNowiki = true;
-			if ( match[ 0 ] === '<nowiki>' ) {
-				inNowiki = true;
+			continue;
+		}
+
+		var needsNowiki = true;
+		switch ( match[ 0 ].charAt( 0 ) ) {
+			case '<':
+				if ( match[ 0 ] === '<nowiki>' ) {
+					inNowiki = true;
+				}
 				needsNowiki = false;
-			} else if ( match[ 0 ] === '</nowiki>' || /<nowiki\s*\/>/.test( match[ 0 ] ) ) {
-				needsNowiki = false;
-			} else if ( /(?:\[\[)/.test( match[ 0 ] ) ) {
+				break;
+			case '[':
 				linkStack++;
 				needsNowiki = false;
-			} else if ( /(?:\]\])/.test( match[ 0 ] ) ) {
+				break;
+			case ']':
 				if ( linkStack > 0 ) {
 					linkStack--;
 					needsNowiki = false;
 				}
-			} else if ( /(?:\{\{)/.test( match[ 0 ] ) ) {
+				break;
+			case '{':
 				bracketStack++;
 				needsNowiki = false;
-			} else if ( /(?:\}\})/.test( match[ 0 ] ) ) {
+				break;
+			case '}':
 				if ( bracketStack > 0 ) {
 					bracketStack--;
 					needsNowiki = false;
 				}
-			} else if ( /\|+/.test( match[ 0 ] ) ) {
+				break;
+			case '|':
 				if ( bracketStack > 0 || linkStack > 0 ) {
 					needsNowiki = false;
 				}
-			}
-
-			if ( needsNowiki ) {
-				output += '<nowiki>' + match[ 0 ] + '</nowiki>';
-			} else {
-				output += match[ 0 ];
-			}
+				break;
 		}
+
+		output += needsNowiki ?
+			'<nowiki>' + match[ 0 ] + '</nowiki>' :
+			match[ 0 ];
 	}
 	return output;
 };

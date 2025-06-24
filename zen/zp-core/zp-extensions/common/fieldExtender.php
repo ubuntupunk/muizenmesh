@@ -1,6 +1,6 @@
 <?php
 
-/*
+/**
  * This  is the root class for use by plugins to extend the Zenphoto database
  * table fields. The administrative tabs for the objects will have input items
  * for these new fields. They will be placed in the proximate location of the
@@ -35,11 +35,9 @@
  * it adds the fields, if not it removes any previously added fields.
  *
  * @author Stephen Billard (sbillard)
- * @package plugins
- * @subpackage fieldextender
- *
+ * @package zpcore\plugins\fieldextender
+ * @deprecated 2.0
  */
-
 class fieldExtender {
 
 	/**
@@ -48,7 +46,7 @@ class fieldExtender {
 	 * fields to the database if they are not already present. Fields from previous
 	 * constructor calls that are no longer in the list will be removed from the
 	 * database (along with any data associated with them.)
-	 *
+	 * @deprecated 2.0
 	 * @param array $newfields
 	 */
 	function constructor($me, $newfields) {
@@ -91,6 +89,7 @@ class fieldExtender {
 
 	/**
 	 * Updates the list of search fields to include the new fields
+	 * @deprecated 2.0
 	 * @param array $list the list of fields as known to the search engine
 	 * @return array
 	 */
@@ -105,7 +104,7 @@ class fieldExtender {
 
 	/**
 	 * Process the save of user object type elements
-	 *
+	 * @deprecated 2.0
 	 * @param boolean $updated
 	 * @param object $userobj
 	 * @param int $i
@@ -131,7 +130,7 @@ class fieldExtender {
 
 	/**
 	 * Displays the edit fields for user type objects
-	 *
+	 * @deprecated 2.0
 	 * @param string $html
 	 * @param object $userobj
 	 * @param int $i
@@ -177,6 +176,7 @@ class fieldExtender {
 
 	/**
 	 * Processes the save of image and album objects
+	 * @deprecated 2.0 
 	 * @param object $object
 	 * @param int $i
 	 */
@@ -194,7 +194,7 @@ class fieldExtender {
 
 	/**
 	 * Displays the edit fields for image and album objects
-	 *
+	* @deprecated 2.0
 	 * @param string $html
 	 * @param object $object
 	 * @param int $i
@@ -218,7 +218,7 @@ class fieldExtender {
 
 	/**
 	 * Processes the save of zenpage objects
-	 *
+	 * @deprecated 2.0
 	 * @param string $custom
 	 * @param object $object
 	 * @return string
@@ -238,7 +238,7 @@ class fieldExtender {
 
 	/**
 	 * Displays the edit fields for zenpage objects
-	 *
+	 * @deprecated 2.0
 	 * @param string $html
 	 * @param object $object
 	 * @return string
@@ -260,6 +260,7 @@ value="' . html_encode($object->get($field['name'])) . '" />';
 
 	/**
 	 * registers filters for handling display and edit of objects as appropriate
+	 * @deprecated 2.0 
 	 */
 	static function _register($me, $fields) {
 		zp_register_filter('searchable_fields', "$me::addToSearch");
@@ -298,6 +299,7 @@ value="' . html_encode($object->get($field['name'])) . '" />';
 
 	/**
 	 * Notification of need to run setup
+	* @deprecated 2.0 
 	 * @param type $tab
 	 * @param type $subtab
 	 * @param type $me
@@ -310,6 +312,7 @@ value="' . html_encode($object->get($field['name'])) . '" />';
 
 	/**
 	 * Returns an array with the content of the custom fields for the object
+	 * @deprecated 2.0 
 	 * @param object $obj
 	 * @param array $fields
 	 * @return array
@@ -324,6 +327,11 @@ value="' . html_encode($object->get($field['name'])) . '" />';
 		return $result;
 	}
 
+	/**
+	 * @deprecated 2.0
+	 * @param type $obj
+	 * @param type $values
+	 */
 	static function _setCustomData($obj, $values) {
 		foreach ($values as $field => $value) {
 			$obj->set($field, $value);

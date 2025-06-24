@@ -24,10 +24,11 @@ class DoctrineSchemaChangeBuilder implements SchemaChangeBuilder {
 		$this->platform = $platform;
 	}
 
-	/**
-	 * @inheritDoc
-	 */
 	private function getTableSchema( array $tableSpec ): Schema {
+		if ( !$tableSpec ) {
+			// Used for not yet created tables.
+			return new Schema();
+		}
 		return $this->addTableToSchema( new Schema(), $tableSpec );
 	}
 

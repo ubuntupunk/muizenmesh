@@ -22,8 +22,10 @@
 use MediaWiki\Feed\ChannelFeed;
 use MediaWiki\MainConfigNames;
 use MediaWiki\Request\DerivativeRequest;
+use MediaWiki\SpecialPage\SpecialPage;
 use MediaWiki\SpecialPage\SpecialPageFactory;
 use MediaWiki\Title\Title;
+use MediaWiki\User\TempUser\TempUserConfig;
 use Wikimedia\ParamValidator\ParamValidator;
 use Wikimedia\ParamValidator\TypeDef\IntegerDef;
 
@@ -36,21 +38,24 @@ class ApiFeedRecentChanges extends ApiBase {
 
 	private $params;
 
-	/** @var SpecialPageFactory */
-	private $specialPageFactory;
+	private SpecialPageFactory $specialPageFactory;
+	private TempUserConfig $tempUserConfig;
 
 	/**
 	 * @param ApiMain $mainModule
 	 * @param string $moduleName
 	 * @param SpecialPageFactory $specialPageFactory
+	 * @param TempUserConfig $tempUserConfig
 	 */
 	public function __construct(
 		ApiMain $mainModule,
 		string $moduleName,
-		SpecialPageFactory $specialPageFactory
+		SpecialPageFactory $specialPageFactory,
+		TempUserConfig $tempUserConfig
 	) {
 		parent::__construct( $mainModule, $moduleName );
 		$this->specialPageFactory = $specialPageFactory;
+		$this->tempUserConfig = $tempUserConfig;
 	}
 
 	/**
@@ -106,7 +111,7 @@ class ApiFeedRecentChanges extends ApiBase {
 		if ( $rc === null ) {
 			throw new RuntimeException( __METHOD__ . ' not able to instance special page ' . $specialPageName );
 		}
-		'@phan-var ChangesListSpecialPage $rc';
+		'@phan-var \MediaWiki\SpecialPage\ChangesListSpecialPage $rc';
 		$rc->setContext( $context );
 		$rows = $rc->getRows();
 
@@ -183,7 +188,12 @@ class ApiFeedRecentChanges extends ApiBase {
 
 			'hideminor' => false,
 			'hidebots' => false,
-			'hideanons' => false,
+			'hideanons' => [
+				ParamValidator::PARAM_DEFAULT => false,
+				ApiBase::PARAM_HELP_MSG => $this->tempUserConfig->isEnabled() ?
+					'apihelp-feedrecentchanges-param-hideanons-temp' :
+					'apihelp-feedrecentchanges-param-hideanons',
+			],
 			'hideliu' => false,
 			'hidepatrolled' => false,
 			'hidemyself' => false,
@@ -208,5 +218,9 @@ class ApiFeedRecentChanges extends ApiBase {
 			'action=feedrecentchanges&days=30'
 				=> 'apihelp-feedrecentchanges-example-30days',
 		];
+	}
+
+	public function getHelpUrls() {
+		return 'https://www.mediawiki.org/wiki/Special:MyLanguage/API:Feedrecentchanges';
 	}
 }

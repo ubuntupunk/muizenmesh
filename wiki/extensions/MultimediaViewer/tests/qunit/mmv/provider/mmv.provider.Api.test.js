@@ -15,23 +15,25 @@
  * along with MultimediaViewer.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+const { Api } = require( 'mmv' );
+
 ( function () {
 	QUnit.module( 'mmv.provider.Api', QUnit.newMwEnvironment() );
 
 	QUnit.test( 'Api constructor sense check', function ( assert ) {
-		var api = { get: function () {} },
-			options = {},
-			apiProvider = new mw.mmv.provider.Api( api, options ),
-			ApiProviderWithNoOptions = new mw.mmv.provider.Api( api );
+		const api = { get: function () {} };
+		const options = {};
+		const apiProvider = new Api( api, options );
+		const ApiProviderWithNoOptions = new Api( api );
 
-		assert.true( apiProvider instanceof mw.mmv.provider.Api );
-		assert.true( ApiProviderWithNoOptions instanceof mw.mmv.provider.Api );
+		assert.true( apiProvider instanceof Api );
+		assert.true( ApiProviderWithNoOptions instanceof Api );
 	} );
 
 	QUnit.test( 'apiGetWithMaxAge()', function ( assert ) {
-		var api = {},
-			options = {},
-			apiProvider = new mw.mmv.provider.Api( api, options );
+		const api = {};
+		let options = {};
+		let apiProvider = new Api( api, options );
 
 		api.get = this.sandbox.stub();
 		apiProvider.apiGetWithMaxAge( {} );
@@ -39,7 +41,7 @@
 		assert.false( 'smaxage' in api.get.getCall( 0 ).args[ 0 ], 'smaxage is not set by default' );
 
 		options = { maxage: 123 };
-		apiProvider = new mw.mmv.provider.Api( api, options );
+		apiProvider = new Api( api, options );
 
 		api.get = this.sandbox.stub();
 		apiProvider.apiGetWithMaxAge( {} );
@@ -58,17 +60,16 @@
 	} );
 
 	QUnit.test( 'getCachedPromise success', function ( assert ) {
-		var api = { get: function () {} },
-			apiProvider = new mw.mmv.provider.Api( api ),
-			oldMwLog = mw.log,
-			promiseSource,
-			promiseShouldBeCached = false;
+		const api = { get: function () {} };
+		const apiProvider = new Api( api );
+		const oldMwLog = mw.log;
+		let promiseShouldBeCached = false;
 
 		mw.log = function () {
 			assert.true( false, 'mw.log should not have been called' );
 		};
 
-		promiseSource = function ( result ) {
+		const promiseSource = function ( result ) {
 			return function () {
 				assert.strictEqual( promiseShouldBeCached, false, 'promise was not cached' );
 				return $.Deferred().resolve( result );
@@ -92,17 +93,16 @@
 	} );
 
 	QUnit.test( 'getCachedPromise failure', function ( assert ) {
-		var api = { get: function () {} },
-			apiProvider = new mw.mmv.provider.Api( api ),
-			oldMwLog = mw.log,
-			promiseSource,
-			promiseShouldBeCached = false;
+		const api = { get: function () {} };
+		const apiProvider = new Api( api );
+		const oldMwLog = mw.log;
+		let promiseShouldBeCached = false;
 
 		mw.log = function () {
 			assert.true( true, 'mw.log was called' );
 		};
 
-		promiseSource = function ( result ) {
+		const promiseSource = function ( result ) {
 			return function () {
 				assert.strictEqual( promiseShouldBeCached, false, 'promise was not cached' );
 				return $.Deferred().reject( result );
@@ -126,11 +126,10 @@
 	} );
 
 	QUnit.test( 'getErrorMessage', function ( assert ) {
-		var api = { get: function () {} },
-			apiProvider = new mw.mmv.provider.Api( api ),
-			errorMessage;
+		const api = { get: function () {} };
+		const apiProvider = new Api( api );
 
-		errorMessage = apiProvider.getErrorMessage( {
+		const errorMessage = apiProvider.getErrorMessage( {
 			servedby: 'mw1194',
 			error: {
 				code: 'unknown_action',
@@ -144,47 +143,12 @@
 		assert.strictEqual( apiProvider.getErrorMessage( {} ), 'unknown error', 'missing error message is handled' );
 	} );
 
-	QUnit.test( 'getNormalizedTitle', function ( assert ) {
-		var api = { get: function () {} },
-			apiProvider = new mw.mmv.provider.Api( api ),
-			title = new mw.Title( 'Image:Stuff.jpg' ),
-			normalizedTitle;
-
-		normalizedTitle = apiProvider.getNormalizedTitle( title, {} );
-		assert.strictEqual( normalizedTitle, title, 'missing normalization block is handled' );
-
-		normalizedTitle = apiProvider.getNormalizedTitle( title, {
-			query: {
-				normalized: [
-					{
-						from: 'Image:Foo.jpg',
-						to: 'File:Foo.jpg'
-					}
-				]
-			}
-		} );
-		assert.strictEqual( normalizedTitle, title, 'irrelevant normalization info is skipped' );
-
-		normalizedTitle = apiProvider.getNormalizedTitle( title, {
-			query: {
-				normalized: [
-					{
-						from: 'Image:Stuff.jpg',
-						to: 'File:Stuff.jpg'
-					}
-				]
-			}
-		} );
-		assert.strictEqual( normalizedTitle.getPrefixedDb(), 'File:Stuff.jpg', 'normalization happens' );
-	} );
-
 	QUnit.test( 'getQueryField', function ( assert ) {
-		var api = { get: function () {} },
-			apiProvider = new mw.mmv.provider.Api( api ),
-			done = assert.async( 3 ),
-			data;
+		const api = { get: function () {} };
+		const apiProvider = new Api( api );
+		const done = assert.async( 3 );
 
-		data = {
+		const data = {
 			query: {
 				imageusage: [
 					{
@@ -212,59 +176,55 @@
 	} );
 
 	QUnit.test( 'getQueryPage', function ( assert ) {
-		var api = { get: function () {} },
-			apiProvider = new mw.mmv.provider.Api( api ),
-			title = new mw.Title( 'File:Stuff.jpg' ),
-			titleWithNamespaceAlias = new mw.Title( 'Image:Stuff.jpg' ),
-			otherTitle = new mw.Title( 'File:Foo.jpg' ),
-			done = assert.async( 6 ),
-			data;
+		const api = { get: function () {} };
+		const apiProvider = new Api( api );
+		const done = assert.async( 5 );
 
-		data = {
-			normalized: [
-				{
-					from: 'Image:Stuff.jpg',
-					to: 'File:Stuff.jpg'
-				}
-			],
+		const data = {
 			query: {
-				pages: {
-					'-1': {
+				pages: [
+					{
 						title: 'File:Stuff.jpg'
 					}
-				}
+				]
 			}
 		};
 
-		apiProvider.getQueryPage( title, data ).then( function ( field ) {
-			assert.strictEqual( field, data.query.pages[ '-1' ], 'specified page is found' );
+		apiProvider.getQueryPage( data ).then( function ( field ) {
+			assert.strictEqual( field, data.query.pages[ 0 ], 'specified page is found' );
 			done();
 		} );
 
-		apiProvider.getQueryPage( titleWithNamespaceAlias, data ).then( function ( field ) {
-			assert.strictEqual( field, data.query.pages[ '-1' ],
-				'specified page is found even if its title was normalized' );
-			done();
-		} );
-
-		apiProvider.getQueryPage( otherTitle, {} ).fail( function () {
-			assert.true( true, 'promise rejected when page has different title' );
-			done();
-		} );
-
-		apiProvider.getQueryPage( title, {} ).fail( function () {
+		apiProvider.getQueryPage( {} ).fail( function () {
 			assert.true( true, 'promise rejected when data is missing' );
 			done();
 		} );
 
-		apiProvider.getQueryPage( title, { data: { query: {} } } ).fail( function () {
+		apiProvider.getQueryPage( { data: { query: {} } } ).fail( function () {
 			assert.true( true, 'promise rejected when pages are missing' );
 			done();
 		} );
 
-		apiProvider.getQueryPage( title, { data: { query: { pages: {} } } } ).fail( function () {
+		apiProvider.getQueryPage( { data: { query: { pages: [] } } } ).fail( function () {
 			assert.true( true, 'promise rejected when pages are empty' );
 			done();
 		} );
+
+		apiProvider.getQueryPage( {
+			query: {
+				pages: [
+					{
+						title: 'File:Stuff.jpg'
+					},
+					{
+						title: 'File:OtherStuff.jpg'
+					}
+				]
+			}
+		} ).fail( function () {
+			assert.true( true, 'promise rejected when data contains two entries' );
+			done();
+		} );
+
 	} );
 }() );

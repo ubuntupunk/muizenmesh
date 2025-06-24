@@ -1,12 +1,12 @@
 <?php
 /**
  * 
- * @package plugins
- * @subpackage deprecated-functions
-*/
+ * @package zpcore\plugins\dprecatedfunctions
+ * @deprecated 2.0
+ */
 
 /**
- * 
+ * @deprecated 2.0
  * @global type $files
  * @param type $folder
  * @param type $exclude
@@ -31,8 +31,9 @@ function getPHPFiles($folder, $exclude) {
 	closedir($dir);
 	return $files;
 }
+
 /**
- * 
+ * @deprecated 2.0 
  * @global type $deprecated
  * @param type $title
  * @param type $subject
@@ -90,8 +91,9 @@ function formatList($title, $subject, $pattern) {
 
 	return $started;
 }
+
 /**
- * 
+ * @deprecated 2.0
  * @param type $files
  * @param type $base
  * @param type $pattern
@@ -117,7 +119,7 @@ function listUses($files, $base, $pattern) {
 				$script_location = $base . '/' . $location . '/';
 				$script = str_replace($script_location, '', $file);
 				$open = $output = formatList($script, $subject, $pattern);
-			} 
+			}
 		}
 		if ($open) {
 			echo '</ul>';
@@ -130,8 +132,9 @@ function listUses($files, $base, $pattern) {
 		return $output;
 	}
 }
+
 /**
- * 
+ * @deprecated 2.0 
  * @param type $pattern
  * @return boolean
  */

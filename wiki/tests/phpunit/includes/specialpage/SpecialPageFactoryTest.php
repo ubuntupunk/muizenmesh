@@ -1,11 +1,20 @@
 <?php
 
+namespace MediaWiki\Tests\SpecialPage;
+
+use Exception;
+use MediaWiki\Context\RequestContext;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MainConfigSchema;
+use MediaWiki\Output\OutputPage;
 use MediaWiki\Page\PageReferenceValue;
 use MediaWiki\Request\FauxRequest;
+use MediaWiki\SpecialPage\SpecialPage;
 use MediaWiki\SpecialPage\SpecialPageFactory;
+use MediaWiki\Specials\SpecialAllPages;
 use MediaWiki\Title\Title;
+use MediaWikiIntegrationTestCase;
+use RuntimeException;
 use Wikimedia\ScopedCallback;
 use Wikimedia\TestingAccessWrapper;
 
@@ -62,13 +71,13 @@ class SpecialPageFactoryTest extends MediaWikiIntegrationTestCase {
 				return new SpecialAllPages();
 			}, false ],
 			'function' => [ [ $this, 'newSpecialAllPages' ], false ],
-			'callback string' => [ 'SpecialPageTestHelper::newSpecialAllPages', false ],
+			'callback string' => [ SpecialPageTestHelper::class . '::newSpecialAllPages', false ],
 			'callback with object' => [
 				[ $specialPageTestHelper, 'newSpecialAllPages' ],
 				false
 			],
 			'callback array' => [
-				[ 'SpecialPageTestHelper', 'newSpecialAllPages' ],
+				[ SpecialPageTestHelper::class, 'newSpecialAllPages' ],
 				false
 			],
 			'object factory spec' => [
@@ -143,7 +152,7 @@ class SpecialPageFactoryTest extends MediaWikiIntegrationTestCase {
 		$this->assertEquals( NS_SPECIAL, $title->getNamespace() );
 	}
 
-	public function provideExecutePath() {
+	public static function provideExecutePath() {
 		yield [ 'BlankPage', 'intentionallyblankpage' ];
 
 		$path = new PageReferenceValue( NS_SPECIAL, 'BlankPage', PageReferenceValue::LOCAL );
@@ -176,15 +185,15 @@ class SpecialPageFactoryTest extends MediaWikiIntegrationTestCase {
 		$lang = clone $this->getServiceContainer()->getContentLanguage();
 		$wrappedLang = TestingAccessWrapper::newFromObject( $lang );
 		$wrappedLang->mExtendedSpecialPageAliases = $aliasesList;
-		$this->overrideConfigValue(
-			MainConfigNames::SpecialPages,
+		$this->overrideConfigValues( [
+			MainConfigNames::DevelopmentWarnings => true,
+			MainConfigNames::SpecialPages =>
 				array_combine( array_keys( $aliasesList ), array_keys( $aliasesList ) )
-		);
+		] );
 		$this->setContentLang( $lang );
 
 		// Catch the warnings we expect to be raised
 		$warnings = [];
-		$this->overrideConfigValue( MainConfigNames::DevelopmentWarnings, true );
 		set_error_handler( static function ( $errno, $errstr ) use ( &$warnings ) {
 			if ( preg_match( '/First alias \'[^\']*\' for .*/', $errstr ) ||
 				preg_match( '/Did not find a usable alias for special page .*/', $errstr )
@@ -217,12 +226,12 @@ class SpecialPageFactoryTest extends MediaWikiIntegrationTestCase {
 	) {
 		// Make sure order doesn't matter by reversing the list
 		$aliasesList = array_reverse( $aliasesList );
-		return $this->testConflictResolution(
+		$this->testConflictResolution(
 			$test, $aliasesList, $alias, $expectedName, $expectedAlias, $expectWarnings
 		);
 	}
 
-	public function provideTestConflictResolution() {
+	public static function provideTestConflictResolution() {
 		return [
 			[
 				'Canonical name wins',
@@ -343,12 +352,20 @@ class SpecialPageFactoryTest extends MediaWikiIntegrationTestCase {
 	 * @covers \MediaWiki\SpecialPage\SpecialPageFactory::capturePath
 	 */
 	public function testSpecialPageCapturePathExceptions() {
+		$expectedException = new RuntimeException( 'Uh-oh!' );
 		$this->overrideConfigValue( MainConfigNames::SpecialPages, [
 			'ExceptionPage' => [
-				'factory' => static function () {
-					return new class() extends SpecialPage {
+				'factory' => static function () use ( $expectedException ) {
+					return new class( $expectedException ) extends SpecialPage {
+						private Exception $expectedException;
+
+						public function __construct( $expectedException ) {
+							parent::__construct();
+							$this->expectedException = $expectedException;
+						}
+
 						public function execute( $par ) {
-							throw new MWException( 'for testing' );
+							throw $this->expectedException;
 						}
 
 						public function isIncludable() {
@@ -362,7 +379,7 @@ class SpecialPageFactoryTest extends MediaWikiIntegrationTestCase {
 		$factory = $this->getFactory();
 		$factory->getPage( 'ExceptionPage' );
 
-		$this->expectException( MWException::class );
+		$this->expectExceptionObject( $expectedException );
 		$factory->capturePath(
 			Title::makeTitle( NS_SPECIAL, 'ExceptionPage' ),
 			RequestContext::getMain()

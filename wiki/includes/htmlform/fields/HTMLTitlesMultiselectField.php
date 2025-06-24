@@ -1,5 +1,7 @@
 <?php
 
+namespace MediaWiki\HTMLForm\Field;
+
 use MediaWiki\Widget\TitlesMultiselectWidget;
 
 /**
@@ -107,6 +109,9 @@ class HTMLTitlesMultiselectField extends HTMLTitleTextField {
 		if ( isset( $this->mParams['excludeDynamicNamespaces'] ) ) {
 			$params['excludeDynamicNamespaces'] = $this->mParams['excludeDynamicNamespaces'];
 		}
+		if ( isset( $this->mParams['allowEditTags'] ) ) {
+			$params['allowEditTags'] = $this->mParams['allowEditTags'];
+		}
 
 		if ( isset( $this->mParams['input'] ) ) {
 			$params['input'] = $this->mParams['input'];
@@ -141,4 +146,14 @@ class HTMLTitlesMultiselectField extends HTMLTitleTextField {
 		return [ 'mediawiki.widgets.TitlesMultiselectWidget' ];
 	}
 
+	public function getInputCodex( $value, $hasErrors ) {
+		// HTMLTextAreaField defaults to 'rows' => 25, which is too big for this field
+		// Use 10 instead (but allow $this->mParams to override that value)
+		$textAreaField = new HTMLTextAreaField( $this->mParams + [ 'rows' => 10 ] );
+		return $textAreaField->getInputCodex( $value, $hasErrors );
+	}
+
 }
+
+/** @deprecated class alias since 1.42 */
+class_alias( HTMLTitlesMultiselectField::class, 'HTMLTitlesMultiselectField' );

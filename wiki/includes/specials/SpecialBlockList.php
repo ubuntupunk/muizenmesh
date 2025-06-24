@@ -21,17 +21,26 @@
  * @ingroup SpecialPage
  */
 
+namespace MediaWiki\Specials;
+
 use MediaWiki\Block\BlockActionInfo;
 use MediaWiki\Block\BlockRestrictionStore;
 use MediaWiki\Block\BlockUtils;
 use MediaWiki\Block\DatabaseBlock;
+use MediaWiki\Block\DatabaseBlockStore;
+use MediaWiki\Block\HideUserUtils;
 use MediaWiki\Cache\LinkBatchFactory;
 use MediaWiki\CommentFormatter\RowCommentFormatter;
 use MediaWiki\CommentStore\CommentStore;
+use MediaWiki\Config\ConfigException;
 use MediaWiki\Html\Html;
+use MediaWiki\HTMLForm\HTMLForm;
+use MediaWiki\MainConfigNames;
+use MediaWiki\Pager\BlockListPager;
+use MediaWiki\SpecialPage\SpecialPage;
 use Wikimedia\IPUtils;
-use Wikimedia\Rdbms\IDatabase;
-use Wikimedia\Rdbms\ILoadBalancer;
+use Wikimedia\Rdbms\IConnectionProvider;
+use Wikimedia\Rdbms\IReadableDatabase;
 
 /**
  * A special page that lists existing blocks
@@ -45,43 +54,36 @@ class SpecialBlockList extends SpecialPage {
 
 	protected $blockType;
 
-	/** @var LinkBatchFactory */
-	private $linkBatchFactory;
-
-	/** @var BlockRestrictionStore */
-	private $blockRestrictionStore;
-
-	/** @var ILoadBalancer */
-	private $loadBalancer;
-
-	/** @var CommentStore */
-	private $commentStore;
-
-	/** @var BlockUtils */
-	private $blockUtils;
-
-	/** @var BlockActionInfo */
-	private $blockActionInfo;
-
-	/** @var RowCommentFormatter */
-	private $rowCommentFormatter;
+	private LinkBatchFactory $linkBatchFactory;
+	private DatabaseBlockStore $blockStore;
+	private BlockRestrictionStore $blockRestrictionStore;
+	private IConnectionProvider $dbProvider;
+	private CommentStore $commentStore;
+	private BlockUtils $blockUtils;
+	private HideUserUtils $hideUserUtils;
+	private BlockActionInfo $blockActionInfo;
+	private RowCommentFormatter $rowCommentFormatter;
 
 	public function __construct(
 		LinkBatchFactory $linkBatchFactory,
+		DatabaseBlockStore $blockStore,
 		BlockRestrictionStore $blockRestrictionStore,
-		ILoadBalancer $loadBalancer,
+		IConnectionProvider $dbProvider,
 		CommentStore $commentStore,
 		BlockUtils $blockUtils,
+		HideUserUtils $hideUserUtils,
 		BlockActionInfo $blockActionInfo,
 		RowCommentFormatter $rowCommentFormatter
 	) {
 		parent::__construct( 'BlockList' );
 
 		$this->linkBatchFactory = $linkBatchFactory;
+		$this->blockStore = $blockStore;
 		$this->blockRestrictionStore = $blockRestrictionStore;
-		$this->loadBalancer = $loadBalancer;
+		$this->dbProvider = $dbProvider;
 		$this->commentStore = $commentStore;
 		$this->blockUtils = $blockUtils;
+		$this->hideUserUtils = $hideUserUtils;
 		$this->blockActionInfo = $blockActionInfo;
 		$this->rowCommentFormatter = $rowCommentFormatter;
 	}
@@ -94,7 +96,7 @@ class SpecialBlockList extends SpecialPage {
 		$this->outputHeader();
 		$this->addHelpLink( 'Help:Blocking_users' );
 		$out = $this->getOutput();
-		$out->setPageTitle( $this->msg( 'ipblocklist' ) );
+		$out->setPageTitleMsg( $this->msg( 'ipblocklist' ) );
 		$out->addModuleStyles( [ 'mediawiki.special' ] );
 
 		$request = $this->getRequest();
@@ -106,18 +108,18 @@ class SpecialBlockList extends SpecialPage {
 
 		$action = $request->getText( 'action' );
 
-		if ( $action == 'unblock' || $action == 'submit' && $request->wasPosted() ) {
-			# B/C @since 1.18: Unblock interface is now at Special:Unblock
+		if ( $action == 'unblock' || ( $action == 'submit' && $request->wasPosted() ) ) {
+			// B/C @since 1.18: Unblock interface is now at Special:Unblock
 			$title = $this->getSpecialPageFactory()->getTitleForAlias( 'Unblock/' . $this->target );
 			$out->redirect( $title->getFullURL() );
 
 			return;
 		}
 
-		# setup BlockListPager here to get the actual default Limit
+		// Setup BlockListPager here to get the actual default Limit
 		$pager = $this->getBlockListPager();
 
-		# Just show the block list
+		// Just show the block list
 		$fields = [
 			'Target' => [
 				'type' => 'user',
@@ -179,12 +181,29 @@ class SpecialBlockList extends SpecialPage {
 	 * @return BlockListPager
 	 */
 	protected function getBlockListPager() {
+		$readStage = $this->getConfig()
+				->get( MainConfigNames::BlockTargetMigrationStage ) & SCHEMA_COMPAT_READ_MASK;
+		if ( $readStage === SCHEMA_COMPAT_READ_OLD ) {
+			$bl_deleted = 'ipb_deleted';
+			$bl_id = 'ipb_id';
+			$bt_auto = 'ipb_auto';
+			$bt_user = 'ipb_user';
+			$bl_expiry = 'ipb_expiry';
+			$bl_sitewide = 'ipb_sitewide';
+		} elseif ( $readStage === SCHEMA_COMPAT_READ_NEW ) {
+			$bl_deleted = 'bl_deleted';
+			$bl_id = 'bl_id';
+			$bt_auto = 'bt_auto';
+			$bt_user = 'bt_user';
+			$bl_expiry = 'bl_expiry';
+			$bl_sitewide = 'bl_sitewide';
+		} else {
+			throw new ConfigException(
+				'$wgBlockTargetMigrationStage has an invalid read stage' );
+		}
+
 		$conds = [];
 		$db = $this->getDB();
-		# Is the user allowed to see hidden blocks?
-		if ( !$this->getAuthority()->isAllowed( 'hideuser' ) ) {
-			$conds['ipb_deleted'] = 0;
-		}
 
 		if ( $this->target !== '' ) {
 			[ $target, $type ] = $this->blockUtils->parseBlockTarget( $this->target );
@@ -192,42 +211,66 @@ class SpecialBlockList extends SpecialPage {
 			switch ( $type ) {
 				case DatabaseBlock::TYPE_ID:
 				case DatabaseBlock::TYPE_AUTO:
-					$conds['ipb_id'] = $target;
+					$conds[$bl_id] = $target;
 					break;
 
 				case DatabaseBlock::TYPE_IP:
 				case DatabaseBlock::TYPE_RANGE:
 					[ $start, $end ] = IPUtils::parseRange( $target );
-					$conds[] = $db->makeList(
-						[
-							'ipb_address' => $target,
-							DatabaseBlock::getRangeCond( $start, $end )
-						],
-						LIST_OR
-					);
-					$conds['ipb_auto'] = 0;
+					$conds[] = $this->blockStore->getRangeCond( $start, $end,
+						DatabaseBlockStore::SCHEMA_CURRENT );
+					$conds[$bt_auto] = 0;
 					break;
 
 				case DatabaseBlock::TYPE_USER:
-					$conds['ipb_address'] = $target->getName();
-					$conds['ipb_auto'] = 0;
+					if ( $target->getId() ) {
+						$conds[$bt_user] = $target->getId();
+						$conds[$bt_auto] = 0;
+					} else {
+						// No such user
+						$conds[] = '1=0';
+					}
 					break;
 			}
 		}
 
-		# Apply filters
+		// Apply filters
 		if ( in_array( 'userblocks', $this->options ) ) {
-			$conds['ipb_user'] = 0;
+			if ( $readStage === SCHEMA_COMPAT_READ_OLD ) {
+				$conds['ipb_user'] = 0;
+			} else {
+				$conds['bt_user'] = null;
+			}
 		}
 		if ( in_array( 'autoblocks', $this->options ) ) {
-			// ipb_parent_block_id = 0 because of T282890
-			$conds[] = "ipb_parent_block_id IS NULL OR ipb_parent_block_id = 0";
+			if ( $readStage === SCHEMA_COMPAT_READ_OLD ) {
+				// ipb_parent_block_id = 0 because of T282890
+				$conds['ipb_parent_block_id'] = [ null, 0 ];
+			} else {
+				$conds['bl_parent_block_id'] = null;
+			}
 		}
-		if ( in_array( 'addressblocks', $this->options ) ) {
-			$conds[] = "ipb_user != 0 OR ipb_range_end > ipb_range_start";
-		}
-		if ( in_array( 'rangeblocks', $this->options ) ) {
-			$conds[] = "ipb_range_end = ipb_range_start";
+		if ( in_array( 'addressblocks', $this->options )
+			&& in_array( 'rangeblocks', $this->options )
+		) {
+			// Simpler conditions for only user blocks (T360864)
+			if ( $readStage === SCHEMA_COMPAT_READ_OLD ) {
+				$conds[] = "ipb_user != 0";
+			} else {
+				$conds[] = "bt_user IS NOT NULL";
+			}
+		} elseif ( in_array( 'addressblocks', $this->options ) ) {
+			if ( $readStage === SCHEMA_COMPAT_READ_OLD ) {
+				$conds[] = "ipb_user != 0 OR ipb_range_end > ipb_range_start";
+			} else {
+				$conds[] = "bt_user IS NOT NULL OR bt_range_start IS NOT NULL";
+			}
+		} elseif ( in_array( 'rangeblocks', $this->options ) ) {
+			if ( $readStage === SCHEMA_COMPAT_READ_OLD ) {
+				$conds[] = "ipb_range_end = ipb_range_start";
+			} else {
+				$conds['bt_range_start'] = null;
+			}
 		}
 
 		$hideTemp = in_array( 'tempblocks', $this->options );
@@ -236,15 +279,15 @@ class SpecialBlockList extends SpecialPage {
 			// If both types are hidden, ensure query doesn't produce any results
 			$conds[] = '1=0';
 		} elseif ( $hideTemp ) {
-			$conds['ipb_expiry'] = $db->getInfinity();
+			$conds[$bl_expiry] = $db->getInfinity();
 		} elseif ( $hideIndef ) {
-			$conds[] = "ipb_expiry != " . $db->addQuotes( $db->getInfinity() );
+			$conds[] = $db->expr( $bl_expiry, '!=', $db->getInfinity() );
 		}
 
 		if ( $this->blockType === 'sitewide' ) {
-			$conds['ipb_sitewide'] = 1;
+			$conds[$bl_sitewide] = 1;
 		} elseif ( $this->blockType === 'partial' ) {
-			$conds['ipb_sitewide'] = 0;
+			$conds[$bl_sitewide] = 0;
 		}
 
 		return new BlockListPager(
@@ -252,10 +295,11 @@ class SpecialBlockList extends SpecialPage {
 			$this->blockActionInfo,
 			$this->blockRestrictionStore,
 			$this->blockUtils,
+			$this->hideUserUtils,
 			$this->commentStore,
 			$this->linkBatchFactory,
 			$this->getLinkRenderer(),
-			$this->loadBalancer,
+			$this->dbProvider,
 			$this->rowCommentFormatter,
 			$this->getSpecialPageFactory(),
 			$conds
@@ -269,12 +313,12 @@ class SpecialBlockList extends SpecialPage {
 	protected function showList( BlockListPager $pager ) {
 		$out = $this->getOutput();
 
-		# Check for other blocks, i.e. global/tor blocks
+		// Check for other blocks, i.e. global/tor blocks
 		$otherBlockLink = [];
 		$this->getHookRunner()->onOtherBlockLogLink( $otherBlockLink, $this->target );
 
-		# Show additional header for the local block only when other blocks exists.
-		# Not necessary in a standard installation without such extensions enabled
+		// Show additional header for the local block only when other blocks exists.
+		// Not necessary in a standard installation without such extensions enabled
 		if ( count( $otherBlockLink ) ) {
 			$out->addHTML(
 				Html::element( 'h2', [], $this->msg( 'ipblocklist-localblock' )->text() ) . "\n"
@@ -316,9 +360,12 @@ class SpecialBlockList extends SpecialPage {
 	/**
 	 * Return a IDatabase object for reading
 	 *
-	 * @return IDatabase
+	 * @return IReadableDatabase
 	 */
 	protected function getDB() {
-		return $this->loadBalancer->getConnectionRef( ILoadBalancer::DB_REPLICA );
+		return $this->dbProvider->getReplicaDatabase();
 	}
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( SpecialBlockList::class, 'SpecialBlockList' );

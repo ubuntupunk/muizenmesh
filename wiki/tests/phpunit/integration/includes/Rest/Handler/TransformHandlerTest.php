@@ -2,8 +2,6 @@
 
 namespace MediaWiki\Tests\Rest\Handler;
 
-use MediaWiki\MainConfigNames;
-use MediaWiki\MainConfigSchema;
 use MediaWiki\Rest\Handler\Helper\ParsoidFormatHelper;
 use MediaWiki\Rest\Handler\TransformHandler;
 use MediaWiki\Rest\RequestData;
@@ -17,7 +15,7 @@ use Wikimedia\Parsoid\Parsoid;
 class TransformHandlerTest extends MediaWikiIntegrationTestCase {
 	use HandlerTestTrait;
 
-	public function provideRequest() {
+	public static function provideRequest() {
 		$profileVersion = Parsoid::AVAILABLE_VERSIONS[0];
 		$htmlProfileUri = 'https://www.mediawiki.org/wiki/Specs/HTML/' . $profileVersion;
 		$htmlContentType = "text/html; charset=utf-8; profile=\"$htmlProfileUri\"";
@@ -106,7 +104,7 @@ class TransformHandlerTest extends MediaWikiIntegrationTestCase {
 				'>esttay anguagelay onversioncay<',
 				// NOTE: quotes are escaped because this is embedded in JSON
 				'<meta http-equiv=\"content-language\" content=\"en-x-piglatin\"/>'
-			] ,
+			],
 			200,
 			// NOTE: Parsoid returns a content-language header in the page bundle,
 			// but that header is not applied to the HTTP response, which is JSON.
@@ -124,14 +122,15 @@ class TransformHandlerTest extends MediaWikiIntegrationTestCase {
 		$expectedStatus = 200,
 		$expectedHeaders = []
 	) {
-		$parsoidSettings = MainConfigSchema::getDefaultValue( MainConfigNames::ParsoidSettings );
+		$this->overrideConfigValue( 'UsePigLatinVariant', true );
 
+		$revisionLookup = $this->getServiceContainer()->getRevisionLookup();
 		$dataAccess = $this->getServiceContainer()->getParsoidDataAccess();
 		$siteConfig = $this->getServiceContainer()->getParsoidSiteConfig();
 		$pageConfigFactory = $this->getServiceContainer()->getParsoidPageConfigFactory();
 
 		$handler = new TransformHandler(
-			$parsoidSettings,
+			$revisionLookup,
 			$siteConfig,
 			$pageConfigFactory,
 			$dataAccess

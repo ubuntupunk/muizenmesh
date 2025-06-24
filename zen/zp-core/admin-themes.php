@@ -1,7 +1,7 @@
 <?php
 /**
  * provides the Themes tab of admin
- * @package admin
+ * @package zpcore\admin
  */
 
 // force UTF-8 Ø
@@ -71,9 +71,8 @@ printAdminHeader('themes');
 // Script for the "Duplicate theme" feature
 ?>
 
-<script type="text/javascript" src="<?php echo WEBPATH.'/'.ZENFOLDER;?>/js/sprintf.js"></script>
-<script type="text/javascript">
-	//<!-- <![CDATA[
+<script src="<?php echo WEBPATH.'/'.ZENFOLDER;?>/js/sprintf.js"></script>
+<script>
 	function copyClick(source) {
 		var targetname = prompt('<?php echo gettext('New theme name?'); ?>', sprintf('<?php echo gettext('Copy of %s');?>',source));
 		if (targetname) {
@@ -85,7 +84,6 @@ printAdminHeader('themes');
 		}
 		return false;
 	}
-	// ]]> -->
 </script>
 
 <?php

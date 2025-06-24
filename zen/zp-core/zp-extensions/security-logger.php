@@ -13,8 +13,7 @@
  * </ul>
  *
  * @author Stephen Billard (sbillard)
- * @package plugins
- * @subpackage security-logger
+ * @package zpcore\plugins\securitylogger
  */
 $plugin_is_filter = 100 | CLASS_PLUGIN;
 $plugin_description = gettext('Logs selected security events.');
@@ -282,6 +281,8 @@ class security_logger {
 	/**
 	 * Logs an attempt to log on via the federated_logon plugin
 	 * Returns the rights to grant
+	 * 
+	 * @deprecated 2.0 security_logger::federatedLoginLogger() will be removed and not replaced as the federated_login plugin is not supported anymore.
 	 *
 	 * @param int $success the admin rights granted
 	 * @param string $user
@@ -289,6 +290,7 @@ class security_logger {
 	 * @return int
 	 */
 	static function federatedLoginLogger($success, $user) {
+		deprecationNotice(gettext('security_logger::federatedLoginLogger() will be removed and not replaced as the federated_login plugin is not supported anymore'));
 		return security_logger::adminLoginLogger($success, $user, 'n/a', 'federated_logon_auth');
 	}
 

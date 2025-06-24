@@ -1,20 +1,28 @@
 <?php
 
-use MediaWiki\Block\BlockManager;
-use MediaWiki\Block\DatabaseBlock;
+use MediaWiki\Context\RequestContext;
 use MediaWiki\Linker\LinkTarget;
+use MediaWiki\MainConfigNames;
 use MediaWiki\Page\PageReferenceValue;
 use MediaWiki\Permissions\Authority;
+use MediaWiki\Tests\Unit\MockBlockTrait;
 use MediaWiki\Tests\Unit\Permissions\MockAuthorityTrait;
 use MediaWiki\Title\Title;
+use MediaWiki\Title\TitleValue;
 use MediaWiki\User\UserIdentity;
+use MediaWiki\User\UserIdentityLookup;
 use MediaWiki\User\UserIdentityValue;
 
+/**
+ * @covers \Skin
+ * @group Database
+ */
 class SkinTest extends MediaWikiIntegrationTestCase {
 	use MockAuthorityTrait;
+	use MockBlockTrait;
 
 	/**
-	 * @covers Skin
+	 * @covers \Skin
 	 */
 	public function testGetSkinName() {
 		$skin = new SkinFallback();
@@ -23,9 +31,6 @@ class SkinTest extends MediaWikiIntegrationTestCase {
 		$this->assertEquals( 'testname', $skin->getSkinName(), 'Constructor argument' );
 	}
 
-	/**
-	 * @covers Skin::getDefaultModules
-	 */
 	public function testGetDefaultModules() {
 		$skin = $this->getMockBuilder( Skin::class )
 			->onlyMethods( [ 'outputPage' ] )
@@ -36,7 +41,68 @@ class SkinTest extends MediaWikiIntegrationTestCase {
 		$this->assertTrue( isset( $modules['styles'] ), 'style key is set by default' );
 	}
 
-	public function provideGetDefaultModulesWatchWrite() {
+	/**
+	 * @param bool $isSyndicated
+	 * @param string $html
+	 * @return OutputPage
+	 */
+	private function getMockOutputPage( $isSyndicated, $html ) {
+		$mock = $this->createMock( OutputPage::class );
+		$mock->expects( $this->once() )
+			->method( 'isSyndicated' )
+			->willReturn( $isSyndicated );
+		$mock->method( 'getHTML' )
+			->willReturn( $html );
+		return $mock;
+	}
+
+	public static function provideGetDefaultModulesForOutput() {
+		return [
+			[
+				false,
+				'',
+				[]
+			],
+			[
+				true,
+				'',
+				[ 'mediawiki.feedlink' ]
+			],
+			[
+				false,
+				'FOO mw-ui-button BAR',
+				[ 'mediawiki.ui.button' ]
+			],
+			[
+				true,
+				'FOO mw-ui-button BAR',
+				[ 'mediawiki.ui.button', 'mediawiki.feedlink' ]
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provideGetDefaultModulesForOutput
+	 */
+	public function testGetDefaultModulesForContent( $isSyndicated, $html, array $expectedModuleStyles ) {
+		$skin = new class extends Skin {
+			public function outputPage() {
+			}
+		};
+		$fakeContext = new RequestContext();
+		$fakeContext->setTitle( Title::makeTitle( NS_MAIN, 'Test' ) );
+		$fakeContext->setOutput( $this->getMockOutputPage( $isSyndicated, $html ) );
+		$skin->setContext( $fakeContext );
+
+		$modules = $skin->getDefaultModules();
+
+		$actualStylesModule = array_merge( ...array_values( $modules['styles'] ) );
+		foreach ( $expectedModuleStyles as $expected ) {
+			$this->assertContains( $expected, $actualStylesModule );
+		}
+	}
+
+	public function provideGetDefaultModulesForRights() {
 		yield 'no rights' => [
 			$this->mockRegisteredNullAuthority(), // $authority
 			false, // $hasModule
@@ -48,10 +114,9 @@ class SkinTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
-	 * @dataProvider provideGetDefaultModulesWatchWrite
-	 * @covers Skin::getDefaultModules
+	 * @dataProvider provideGetDefaultModulesForRights
 	 */
-	public function testGetDefaultModulesWatchWrite( Authority $authority, bool $hasModule ) {
+	public function testGetDefaultModulesForRights( Authority $authority, bool $hasModule ) {
 		$skin = new class extends Skin {
 			public function outputPage() {
 			}
@@ -111,7 +176,6 @@ class SkinTest extends MediaWikiIntegrationTestCase {
 
 	/**
 	 * @dataProvider providGetPageClasses
-	 * @covers Skin::getPageClasses
 	 */
 	public function testGetPageClasses(
 		LinkTarget $title,
@@ -136,8 +200,6 @@ class SkinTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
-	 * @covers Skin::isResponsive
-	 *
 	 * @dataProvider provideSkinResponsiveOptions
 	 */
 	public function testIsResponsive( array $options, bool $expected ) {
@@ -166,7 +228,7 @@ class SkinTest extends MediaWikiIntegrationTestCase {
 		$this->assertSame( $expected, $skin->isResponsive() );
 	}
 
-	public function provideSkinResponsiveOptions() {
+	public static function provideSkinResponsiveOptions() {
 		yield 'responsive not set' => [
 			[ 'name' => 'test', 'userPreference' => true ],
 			false
@@ -189,10 +251,7 @@ class SkinTest extends MediaWikiIntegrationTestCase {
 		];
 	}
 
-	/**
-	 * @covers Skin::makeLink
-	 */
-	public function provideMakeLink() {
+	public static function provideMakeLink() {
 		return [
 			'Empty href with link class' => [
 				[
@@ -293,7 +352,6 @@ class SkinTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
-	 * @covers Skin::makeLink
 	 * @dataProvider provideMakeLink
 	 * @param array $data
 	 * @param array $options
@@ -318,7 +376,7 @@ class SkinTest extends MediaWikiIntegrationTestCase {
 		);
 	}
 
-	public function provideGetPersonalToolsForMakeListItem() {
+	public static function provideGetPersonalToolsForMakeListItem() {
 		return [
 			[
 				[
@@ -370,11 +428,10 @@ class SkinTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
-	 * @covers Skin::getPersonalToolsForMakeListItem
 	 * @dataProvider provideGetPersonalToolsForMakeListItem
 	 * @param array $urls
-	 * @param array $applyClassesToListItems
-	 * @param string $expected
+	 * @param bool $applyClassesToListItems
+	 * @param array $expected
 	 */
 	public function testGetPersonalToolsForMakeListItem( array $urls, bool $applyClassesToListItems, array $expected ) {
 		$skin = new class extends Skin {
@@ -391,29 +448,22 @@ class SkinTest extends MediaWikiIntegrationTestCase {
 		);
 	}
 
-	/**
-	 * @covers Skin::setRelevantUser
-	 * @covers Skin::getRelevantUser
-	 */
 	public function testGetRelevantUser_get_set() {
 		$skin = new class extends Skin {
 			public function outputPage() {
 			}
 		};
-		$relevantUser = UserIdentityValue::newRegistered( 1, '123.123.123.123' );
+		$relevantUser = UserIdentityValue::newRegistered( 1, 'SomeUser' );
 		$skin->setRelevantUser( $relevantUser );
 		$this->assertSame( $relevantUser, $skin->getRelevantUser() );
 
-		$blockManagerMock = $this->createNoOpMock( BlockManager::class, [ 'getUserBlock' ] );
-		$blockManagerMock->method( 'getUserBlock' )
-			->with( $relevantUser )
-			->willReturn( new DatabaseBlock( [
-				'address' => $relevantUser,
-				'wiki' => $relevantUser->getWikiId(),
-				'by' => UserIdentityValue::newAnonymous( '123.123.123.123' ),
-				'hideName' => true
-			] ) );
-		$this->setService( 'BlockManager', $blockManagerMock );
+		$this->installMockBlockManager(
+			[
+				'target' => $relevantUser,
+				'hideName' => true,
+			]
+		);
+
 		$ctx = RequestContext::getMain();
 		$ctx->setAuthority( $this->mockAnonNullAuthority() );
 		$skin->setContext( $ctx );
@@ -426,7 +476,7 @@ class SkinTest extends MediaWikiIntegrationTestCase {
 		$this->assertSame( $relevantUser, $skin->getRelevantUser() );
 	}
 
-	public function provideGetRelevantUser_load_from_title() {
+	public static function provideGetRelevantUser_load_from_title() {
 		yield 'Not user namespace' => [
 			'relevantPage' => PageReferenceValue::localReference( NS_MAIN, '123.123.123.123' ),
 			'expectedUser' => null
@@ -451,7 +501,6 @@ class SkinTest extends MediaWikiIntegrationTestCase {
 
 	/**
 	 * @dataProvider provideGetRelevantUser_load_from_title
-	 * @covers Skin::getRelevantUser
 	 */
 	public function testGetRelevantUser_load_from_title(
 		PageReferenceValue $relevantPage,
@@ -461,7 +510,7 @@ class SkinTest extends MediaWikiIntegrationTestCase {
 			public function outputPage() {
 			}
 		};
-		$skin->setRelevantTitle( Title::castFromPageReference( $relevantPage ) );
+		$skin->setRelevantTitle( Title::newFromPageReference( $relevantPage ) );
 		$relevantUser = $skin->getRelevantUser();
 		if ( $expectedUser ) {
 			$this->assertTrue( $expectedUser->equals( $relevantUser ) );
@@ -470,19 +519,70 @@ class SkinTest extends MediaWikiIntegrationTestCase {
 		}
 	}
 
-	/**
-	 * @covers Skin::getRelevantUser
-	 */
 	public function testGetRelevantUser_load_existing() {
 		$skin = new class extends Skin {
 			public function outputPage() {
 			}
 		};
-		$existingUser = $this->getTestSysop()->getUserIdentity();
+		$user = new UserIdentityValue( 42, 'foo' );
+		$userIdentityLookup = $this->createMock( UserIdentityLookup::class );
+		$userIdentityLookup->method( 'getUserIdentityByName' )
+			->willReturnCallback( function ( $name ) use ( $user ) {
+				if ( $name === $user->getName() ) {
+					return $user;
+				}
+				return $this->createMock( UserIdentity::class );
+			} );
+		$this->setService( 'UserIdentityLookup', $userIdentityLookup );
 		$skin->setRelevantTitle(
-			Title::makeTitle( NS_USER, $this->getTestSysop()->getUserIdentity()->getName() )
+			Title::makeTitle( NS_USER, $user->getName() )
 		);
-		$this->assertTrue( $existingUser->equals( $skin->getRelevantUser() ) );
-		$this->assertSame( $existingUser->getId(), $skin->getRelevantUser()->getId() );
+		$this->assertTrue( $user->equals( $skin->getRelevantUser() ) );
+		$this->assertSame( $user->getId(), $skin->getRelevantUser()->getId() );
+	}
+
+	public function testBuildSidebarCache() {
+		// T303007: Skin subclasses and Skin hooks may vary their sidebar contents.
+		$this->overrideConfigValues( [
+			MainConfigNames::UseDatabaseMessages => true,
+			MainConfigNames::EnableSidebarCache => true,
+			MainConfigNames::SidebarCacheExpiry => 3600,
+		] );
+		// Mock time (T344191)
+		$clock = 1301644800.0;
+		$this->getServiceContainer()->getMainWANObjectCache()->setMockTime( $clock );
+		$id = 0;
+		$this->setTemporaryHook( 'SkinBuildSidebar',
+			static function ( Skin $skin, array &$bar ) use ( &$id, &$clock ) {
+				$id++;
+				$clock += 1.0;
+				if ( $skin->getSkinName() === 'foo' ) {
+					$bar['myhook'] = "foo $id";
+				}
+				if ( $skin->getSkinName() === 'bar' ) {
+					$bar['myhook'] = "bar $id";
+				}
+			}
+		);
+		$context = RequestContext::newExtraneousContext( Title::makeTitle( NS_SPECIAL, 'Blankpage' ) );
+		$foo1 = new class( 'foo' ) extends Skin {
+			public function outputPage() {
+			}
+		};
+		$foo2 = new class( 'foo' ) extends Skin {
+			public function outputPage() {
+			}
+		};
+		$bar = new class( 'bar' ) extends Skin {
+			public function outputPage() {
+			}
+		};
+		$foo1->setContext( $context );
+		$foo2->setContext( $context );
+		$bar->setContext( $context );
+		$this->assertArrayContains( [ 'myhook' => 'foo 1' ], $foo1->buildSidebar(), 'fresh' );
+		$clock += 0.01;
+		$this->assertArrayContains( [ 'myhook' => 'foo 1' ], $foo2->buildSidebar(), 'cache hit' );
+		$this->assertArrayContains( [ 'myhook' => 'bar 2' ], $bar->buildSidebar(), 'cache miss' );
 	}
 }

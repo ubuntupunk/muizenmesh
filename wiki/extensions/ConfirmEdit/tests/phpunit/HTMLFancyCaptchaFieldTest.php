@@ -1,9 +1,13 @@
 <?php
 
 use MediaWiki\Extension\ConfirmEdit\FancyCaptcha\HTMLFancyCaptchaField;
+use MediaWiki\Request\FauxRequest;
+use MediaWiki\Request\WebRequest;
+use MediaWiki\Title\Title;
 
 /**
  * @covers \MediaWiki\Extension\ConfirmEdit\FancyCaptcha\HTMLFancyCaptchaField
+ * @group Database
  */
 class HTMLFancyCaptchaFieldTest extends MediaWikiIntegrationTestCase {
 

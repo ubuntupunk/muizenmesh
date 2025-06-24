@@ -18,9 +18,14 @@
  * @file
  */
 
+namespace MediaWiki\PoolCounter;
+
 use MediaWiki\Logger\Spi as LoggerSpi;
+use MediaWiki\Page\ParserOutputAccess;
 use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\Revision\RevisionRenderer;
+use MediaWiki\Status\Status;
+use ParserOptions;
 
 /**
  * PoolCounter protected work wrapping RenderedRevision->getRevisionParserOutput.
@@ -69,6 +74,10 @@ class PoolWorkArticleView extends PoolCounterWork {
 	}
 
 	/**
+	 * Render the given revision.
+	 *
+	 * @see ParserOutputAccess::renderRevision
+	 *
 	 * @return Status with the value being a ParserOutput or null
 	 */
 	public function renderRevision(): Status {
@@ -78,25 +87,8 @@ class PoolWorkArticleView extends PoolCounterWork {
 			null,
 			[ 'audience' => RevisionRecord::RAW ]
 		);
-		if ( !$renderedRevision ) {
-			// audience check failed
-			return Status::newFatal( 'pool-errorunknown' );
-		}
 
-		$time = -microtime( true );
 		$parserOutput = $renderedRevision->getRevisionParserOutput();
-		$time += microtime( true );
-
-		// Timing hack
-		if ( $time > 3 ) {
-			// TODO: Use Parser's logger (once it has one)
-			$logger = $this->loggerSpi->getLogger( 'slow-parse' );
-			$logger->info( 'Parsing {title} was slow, took {time} seconds', [
-				'time' => number_format( $time, 2 ),
-				'title' => (string)$this->revision->getPageAsLinkTarget(),
-				'trigger' => 'view',
-			] );
-		}
 
 		return Status::newGood( $parserOutput );
 	}
@@ -110,3 +102,6 @@ class PoolWorkArticleView extends PoolCounterWork {
 	}
 
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( PoolWorkArticleView::class, 'PoolWorkArticleView' );

@@ -4,11 +4,12 @@ namespace MediaWiki\Extension\AbuseFilter\VariableGenerator;
 
 use MediaWiki\Extension\AbuseFilter\Hooks\AbuseFilterHookRunner;
 use MediaWiki\Extension\AbuseFilter\Variables\VariableHolder;
+use MediaWiki\Storage\PreparedUpdate;
+use MediaWiki\Title\Title;
+use MediaWiki\User\UserFactory;
 use MediaWiki\User\UserIdentity;
-use MWTimestamp;
+use MediaWiki\Utils\MWTimestamp;
 use RecentChange;
-use Title;
-use User;
 use WikiPage;
 
 /**
@@ -22,16 +23,21 @@ class VariableGenerator {
 
 	/** @var AbuseFilterHookRunner */
 	protected $hookRunner;
+	/** @var UserFactory */
+	protected $userFactory;
 
 	/**
 	 * @param AbuseFilterHookRunner $hookRunner
+	 * @param UserFactory $userFactory
 	 * @param VariableHolder|null $vars
 	 */
 	public function __construct(
 		AbuseFilterHookRunner $hookRunner,
+		UserFactory $userFactory,
 		VariableHolder $vars = null
 	) {
 		$this->hookRunner = $hookRunner;
+		$this->userFactory = $userFactory;
 		$this->vars = $vars ?? new VariableHolder();
 	}
 
@@ -72,7 +78,7 @@ class VariableGenerator {
 	 */
 	public function addUserVars( UserIdentity $userIdentity, RecentChange $rc = null ): self {
 		$asOf = $rc ? $rc->getAttribute( 'rc_timestamp' ) : wfTimestampNow();
-		$user = User::newFromIdentity( $userIdentity );
+		$user = $this->userFactory->newFromUserIdentity( $userIdentity );
 
 		$this->vars->setLazyLoadVar(
 			'user_editcount',
@@ -81,6 +87,12 @@ class VariableGenerator {
 		);
 
 		$this->vars->setVar( 'user_name', $user->getName() );
+
+		$this->vars->setLazyLoadVar(
+			'user_type',
+			'user-type',
+			[ 'user-identity' => $userIdentity ]
+		);
 
 		$this->vars->setLazyLoadVar(
 			'user_emailconfirm',
@@ -129,7 +141,11 @@ class VariableGenerator {
 		string $prefix,
 		RecentChange $rc = null
 	): self {
-		$this->vars->setVar( $prefix . '_id', $title->getArticleID() );
+		if ( $rc && $rc->getAttribute( 'rc_type' ) == RC_NEW ) {
+			$this->vars->setVar( $prefix . '_id', 0 );
+		} else {
+			$this->vars->setVar( $prefix . '_id', $title->getArticleID() );
+		}
 		$this->vars->setVar( $prefix . '_namespace', $title->getNamespace() );
 		$this->vars->setVar( $prefix . '_title', $title->getText() );
 		$this->vars->setVar( $prefix . '_prefixedtitle', $title->getPrefixedText() );
@@ -171,14 +187,7 @@ class VariableGenerator {
 		return $this;
 	}
 
-	/**
-	 * @param WikiPage $page
-	 * @param UserIdentity $userIdentity The current user
-	 * @param bool $forFilter Whether the variables should be computed for an ongoing action
-	 *   being filtered
-	 * @return $this For chaining
-	 */
-	public function addEditVars( WikiPage $page, UserIdentity $userIdentity, bool $forFilter = true ): self {
+	public function addDerivedEditVars(): self {
 		$this->vars->setLazyLoadVar( 'edit_diff', 'diff',
 			[ 'oldtext-var' => 'old_wikitext', 'newtext-var' => 'new_wikitext' ] );
 		$this->vars->setLazyLoadVar( 'edit_diff_pst', 'diff',
@@ -201,23 +210,56 @@ class VariableGenerator {
 			[ 'oldlink-var' => 'old_links', 'newlink-var' => 'all_links' ] );
 		$this->vars->setLazyLoadVar( 'removed_links', 'link-diff-removed',
 			[ 'oldlink-var' => 'old_links', 'newlink-var' => 'all_links' ] );
+
+		// Text
 		$this->vars->setLazyLoadVar( 'new_text', 'strip-html',
 			[ 'html-var' => 'new_html' ] );
 
-		$this->vars->setLazyLoadVar( 'all_links', 'links-from-wikitext',
-			[
-				'text-var' => 'new_wikitext',
-				'article' => $page,
-				'forFilter' => $forFilter,
-				'contextUserIdentity' => $userIdentity
-			] );
-		$this->vars->setLazyLoadVar( 'old_links', 'links-from-wikitext-or-database',
-			[
-				'article' => $page,
-				'text-var' => 'old_wikitext',
-				'forFilter' => $forFilter,
-				'contextUserIdentity' => $userIdentity
-			] );
+		return $this;
+	}
+
+	/**
+	 * @param WikiPage $page
+	 * @param UserIdentity $userIdentity The current user
+	 * @param bool $forFilter Whether the variables should be computed for an ongoing action
+	 *   being filtered
+	 * @param PreparedUpdate|null $update
+	 * @return $this For chaining
+	 */
+	public function addEditVars(
+		WikiPage $page,
+		UserIdentity $userIdentity,
+		bool $forFilter = true,
+		PreparedUpdate $update = null
+	): self {
+		$this->addDerivedEditVars();
+
+		if ( $forFilter && $update ) {
+			$this->vars->setLazyLoadVar( 'all_links', 'links-from-update',
+				[ 'update' => $update ] );
+		} else {
+			$this->vars->setLazyLoadVar( 'all_links', 'links-from-wikitext',
+				[
+					'text-var' => 'new_wikitext',
+					'article' => $page,
+					'forFilter' => $forFilter,
+					'contextUserIdentity' => $userIdentity
+				] );
+		}
+
+		if ( $forFilter ) {
+			$this->vars->setLazyLoadVar( 'old_links', 'links-from-database',
+				[ 'article' => $page ] );
+		} else {
+			$this->vars->setLazyLoadVar( 'old_links', 'links-from-wikitext-or-database',
+				[
+					'article' => $page,
+					'text-var' => 'old_wikitext',
+					'contextUserIdentity' => $userIdentity
+				] );
+		}
+
+		// TODO: the following should use PreparedUpdate, too
 		$this->vars->setLazyLoadVar( 'new_pst', 'parse-wikitext',
 			[
 				'wikitext-var' => 'new_wikitext',
@@ -225,12 +267,18 @@ class VariableGenerator {
 				'pst' => true,
 				'contextUserIdentity' => $userIdentity
 			] );
-		$this->vars->setLazyLoadVar( 'new_html', 'parse-wikitext',
-			[
-				'wikitext-var' => 'new_wikitext',
-				'article' => $page,
-				'contextUserIdentity' => $userIdentity
-			] );
+
+		if ( $forFilter && $update ) {
+			$this->vars->setLazyLoadVar( 'new_html', 'html-from-update',
+				[ 'update' => $update ] );
+		} else {
+			$this->vars->setLazyLoadVar( 'new_html', 'parse-wikitext',
+				[
+					'wikitext-var' => 'new_wikitext',
+					'article' => $page,
+					'contextUserIdentity' => $userIdentity
+				] );
+		}
 
 		return $this;
 	}

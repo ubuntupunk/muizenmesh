@@ -23,10 +23,12 @@
  * @author <evan@wikitravel.org>
  */
 
+use MediaWiki\Context\IContextSource;
 use MediaWiki\Html\Html;
 use MediaWiki\Linker\Linker;
 use MediaWiki\Linker\LinkRenderer;
 use MediaWiki\MainConfigNames;
+use MediaWiki\User\User;
 use MediaWiki\User\UserFactory;
 use MediaWiki\User\UserRigorOptions;
 
@@ -35,11 +37,8 @@ use MediaWiki\User\UserRigorOptions;
  */
 class CreditsAction extends FormlessAction {
 
-	/** @var LinkRenderer */
-	private $linkRenderer;
-
-	/** @var UserFactory */
-	private $userFactory;
+	private LinkRenderer $linkRenderer;
+	private UserFactory $userFactory;
 
 	/**
 	 * @param Article $article

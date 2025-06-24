@@ -79,8 +79,8 @@
 
 		dropdownWidget: {
 			getApiValue: function () {
-				var item = this.getMenu().findSelectedItem();
-				return item === null ? undefined : item.getData();
+				var selected = this.getMenu().findFirstSelectedItem();
+				return selected ? selected.getData() : undefined;
 			},
 			setApiValue: function ( v ) {
 				if ( v === undefined ) {
@@ -260,7 +260,7 @@
 		/**
 		 * Test an API boolean
 		 *
-		 * @param {Mixed} value
+		 * @param {any} value
 		 * @return {boolean}
 		 */
 		apiBool: function ( value ) {
@@ -630,9 +630,12 @@
 		 *
 		 * @param {Object} displayParams Query parameters, sanitized for display.
 		 * @param {Object} rawParams Query parameters. You should probably use displayParams instead.
+		 * @param {string} method HTTP method that must be used for this request: 'get' or 'post'
+		 * @param {Object} ajaxOptions Extra options that must be used for this request, in the format
+		 *   expected by jQuery#ajax.
 		 * @return {OO.ui.MenuOptionWidget[]} Each item's data should be an OO.ui.FieldLayout
 		 */
-		formatRequest: function ( displayParams, rawParams ) {
+		formatRequest: function ( displayParams, rawParams, method, ajaxOptions ) {
 			var jsonLayout, phpLayout,
 				apiUrl = new mw.Uri( mw.util.wikiScript( 'api' ) ).toString(),
 				items = [
@@ -693,7 +696,7 @@
 					} )
 				];
 
-			mw.hook( 'apisandbox.formatRequest' ).fire( items, displayParams, rawParams );
+			mw.hook( 'apisandbox.formatRequest' ).fire( items, displayParams, rawParams, method, ajaxOptions );
 
 			return items;
 		},
@@ -703,10 +706,10 @@
 		 */
 		onFormatDropdownChange: function () {
 			var menu = formatDropdown.getMenu(),
-				items = menu.getItems(),
-				selectedField = menu.findSelectedItem() ? menu.findSelectedItem().getData() : null;
+				selected = menu.findFirstSelectedItem(),
+				selectedField = selected ? selected.getData() : null;
 
-			items.forEach( function ( item ) {
+			menu.getItems().forEach( function ( item ) {
 				item.getData().toggle( item.getData() === selectedField );
 			} );
 		}
@@ -714,9 +717,10 @@
 
 	var booklet, panel, oldhash;
 	/**
-	 * Interface to ApiSandbox UI
+	 * Interface to ApiSandbox UI.
 	 *
 	 * @class mw.special.ApiSandbox
+	 * @ignore
 	 */
 	ApiSandbox = {
 		/**
@@ -726,7 +730,7 @@
 		 */
 		init: function () {
 			windowManager = new OO.ui.WindowManager();
-			$( document.body ).append( windowManager.$element );
+			$( OO.ui.getTeleportTarget() ).append( windowManager.$element );
 			windowManager.addWindows( {
 				errorAlert: new OO.ui.MessageDialog()
 			} );
@@ -781,22 +785,22 @@
 		 * @return {boolean} Successful
 		 */
 		loadFromHash: function () {
-			var hash = location.hash;
+			var fragment = location.hash;
 
-			if ( oldhash === hash ) {
+			if ( oldhash === fragment ) {
 				return false;
 			}
-			oldhash = hash;
-			if ( hash === '' ) {
+			oldhash = fragment;
+			if ( fragment === '' ) {
 				return false;
 			}
 
 			// I'm surprised this doesn't seem to exist in jQuery or mw.util.
 			var params = {};
-			hash = hash.replace( /\+/g, '%20' );
+			fragment = fragment.replace( /\+/g, '%20' );
 			var pattern = /([^&=#]+)=?([^&#]*)/g;
 			var match;
-			while ( ( match = pattern.exec( hash ) ) ) {
+			while ( ( match = pattern.exec( fragment ) ) ) {
 				params[ decodeURIComponent( match[ 1 ] ) ] = decodeURIComponent( match[ 2 ] );
 			}
 
@@ -896,6 +900,8 @@
 			var deferreds = [],
 				paramsAreForced = !!params,
 				displayParams = {},
+				ajaxOptions = {},
+				method = 'get',
 				tokenWidgets = [],
 				checkPages = [ pages.main ];
 
@@ -919,7 +925,10 @@
 					tokenWidgets.push( checkPage.tokenWidget );
 				}
 				deferreds = deferreds.concat( checkPage.apiCheckValid() );
-				checkPage.getQueryParams( params, displayParams );
+				checkPage.getQueryParams( params, displayParams, ajaxOptions );
+				if ( checkPage.paramInfo.mustbeposted !== undefined ) {
+					method = 'post';
+				}
 				var subpages = checkPage.getSubpages();
 				// eslint-disable-next-line no-loop-func
 				subpages.forEach( function ( subpage ) {
@@ -966,7 +975,6 @@
 							// If only the tokens are invalid, offer to fix them
 							var tokenErrorCount = countValues( false, arguments );
 							if ( tokenErrorCount === errorCount ) {
-								// eslint-disable-next-line es-x/no-regexp-prototype-flags
 								delete actions[ 0 ].flags;
 								actions.push( {
 									action: 'fix',
@@ -994,7 +1002,7 @@
 
 				var query = $.param( displayParams );
 
-				var formatItems = Util.formatRequest( displayParams, params );
+				var formatItems = Util.formatRequest( displayParams, params, method, ajaxOptions );
 
 				// Force a 'fm' format with wrappedhtml=1, if available
 				if ( params.format !== undefined ) {
@@ -1048,16 +1056,30 @@
 						).$element,
 						formatItems.map( function ( item ) {
 							return item.getData().$element;
-						} ),
-						$result
+						} )
 					);
+
+				if ( method === 'post' ) {
+					page.$element.append( new OO.ui.LabelWidget( {
+						label: mw.message( 'apisandbox-request-post' ).parseDom(),
+						classes: [ 'oo-ui-inline-help' ]
+					} ).$element );
+				}
+				if ( ajaxOptions.contentType === 'multipart/form-data' ) {
+					page.$element.append( new OO.ui.LabelWidget( {
+						label: mw.message( 'apisandbox-request-formdata' ).parseDom(),
+						classes: [ 'oo-ui-inline-help' ]
+					} ).$element );
+				}
+
+				page.$element.append( $result );
+
 				ApiSandbox.updateUI();
 				booklet.setPage( '|results|' );
 
 				location.href = oldhash = '#' + query;
 
-				api.post( params, {
-					contentType: 'multipart/form-data',
+				api[ method ]( params, $.extend( ajaxOptions, {
 					dataType: 'text',
 					xhr: function () {
 						var xhr = new window.XMLHttpRequest();
@@ -1083,7 +1105,7 @@
 						} );
 						return xhr;
 					}
-				} )
+				} ) )
 					.catch( function ( code, data, result, jqXHR ) {
 						var d = $.Deferred();
 
@@ -1964,8 +1986,10 @@
 	 *
 	 * @param {Object} params Write query parameters into this object
 	 * @param {Object} displayParams Write query parameters for display into this object
+	 * @param {Object} ajaxOptions Write options for the API request into this object, in the format
+	 *   expected by jQuery#ajax.
 	 */
-	ApiSandbox.PageLayout.prototype.getQueryParams = function ( params, displayParams ) {
+	ApiSandbox.PageLayout.prototype.getQueryParams = function ( params, displayParams, ajaxOptions ) {
 		// eslint-disable-next-line no-jquery/no-each-util
 		$.each( this.widgets, function ( name, widget ) {
 			var value = widget.getApiValue();
@@ -1975,6 +1999,9 @@
 					value = widget.getApiValueForDisplay();
 				}
 				displayParams[ name ] = value;
+				if ( typeof widget.requiresFormData === 'function' && widget.requiresFormData() ) {
+					ajaxOptions.contentType = 'multipart/form-data';
+				}
 			}
 		} );
 	};

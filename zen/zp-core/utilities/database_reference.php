@@ -2,7 +2,7 @@
 /**
  * Database quick reference
  *
- * @package admin
+ * @package zpcore\admin\utilities
  */
 
 define('OFFSET_PATH', 3);
@@ -34,7 +34,7 @@ $_zp_admin_menu['overview']['subtabs'] = array(gettext('Database') => FULLWEBPAT
 printAdminHeader('overview','Database');
 
 ?>
-<link rel="stylesheet" href="../admin-statistics.css" type="text/css" media="screen" />
+<link rel="stylesheet" href="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/css/admin-statistics.css" type="text/css" media="screen" />
 <style>
 
 .bordered td {
@@ -102,12 +102,12 @@ if(empty($prefix)) {
 if ($_zp_db->isUtf8System('database', 'any')) {
 	echo '<p class="messagebox">' . gettext('The database is UTF-8') . '</p>';
 } else {
-	echo '<p class="warningbox">' . gettext('The database is not UTF-8') . '</p>';
+	echo '<p class="warningbox">' . gettext('The database is not fully set to UTF-8 (utf8mb4). If you encounter data encoding issues try changing the configuration.') . '</p>';
 }
 if ($_zp_db->isUtf8System('server', 'any')) {
-	echo '<p class="messagebox">' . gettext('The database server is UTF-8</p>') . '</p>';
+	echo '<p class="messagebox">' . gettext('The database server is UTF-8') . '</p>';
 } else {
-	echo '<p class="warningbox">' . gettext('The database server is not UTF-8</p>') . '</p>';
+	echo '<p class="warningbox">' . gettext('The database is not fully set to UTF-8 (utf8mb4). If you encounter data encoding issues try changing the configuration.') . '</p>';
 }
 ?>
 <ul>
@@ -156,7 +156,7 @@ if ($tables) {
 }
 ?>
 <hr />
-<script type="text/javascript">
+<script>
 function toggleRow(id) {
 	if ($('#'+id).is(":visible")) {
 		$('#'+id+'_k').hide();
@@ -198,7 +198,7 @@ foreach($tables as $table) {
 			?>
 			<tr<?php echo $rowclass; ?>>
 			<?php
-			$fieldcount = '';
+			$fieldcount = 0;
 			foreach($col as $field) {
 				$fieldcount++;
 				$class = '';

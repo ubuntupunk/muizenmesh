@@ -22,15 +22,16 @@
  */
 
 use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
+use MediaWiki\Config\Config;
 use MediaWiki\Config\ServiceOptions;
+use MediaWiki\Deferred\DeferredUpdates;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MainConfigNames;
 use Wikimedia\Rdbms\ChronologyProtector;
+use Wikimedia\Rdbms\ConfiguredReadOnlyMode;
 use Wikimedia\Rdbms\DatabaseDomain;
-use Wikimedia\Rdbms\DatabaseFactory;
 use Wikimedia\Rdbms\IDatabase;
 use Wikimedia\Rdbms\ILBFactory;
-use Wikimedia\Rdbms\LBFactory;
 use Wikimedia\RequestTimeout\CriticalSectionProvider;
 
 /**
@@ -44,11 +45,12 @@ class MWLBFactory {
 	/** @var array Cache of already-logged deprecation messages */
 	private static $loggedDeprecations = [];
 
+	public const CORE_VIRTUAL_DOMAINS = [ 'virtual-botpasswords' ];
+
 	/**
 	 * @internal For use by ServiceWiring
 	 */
 	public const APPLY_DEFAULT_CONFIG_OPTIONS = [
-		'CommandLineMode',
 		MainConfigNames::DBcompress,
 		MainConfigNames::DBDefaultGroup,
 		MainConfigNames::DBmwschema,
@@ -59,6 +61,7 @@ class MWLBFactory {
 		MainConfigNames::DBserver,
 		MainConfigNames::DBservers,
 		MainConfigNames::DBssl,
+		MainConfigNames::DBStrictWarnings,
 		MainConfigNames::DBtype,
 		MainConfigNames::DBuser,
 		MainConfigNames::DebugDumpSql,
@@ -67,6 +70,7 @@ class MWLBFactory {
 		MainConfigNames::ExternalServers,
 		MainConfigNames::SQLiteDataDir,
 		MainConfigNames::SQLMode,
+		MainConfigNames::VirtualDomainsMapping,
 	];
 	/**
 	 * @var ServiceOptions
@@ -77,9 +81,9 @@ class MWLBFactory {
 	 */
 	private $readOnlyMode;
 	/**
-	 * @var BagOStuff
+	 * @var ChronologyProtector
 	 */
-	private $cpStash;
+	private $chronologyProtector;
 	/**
 	 * @var BagOStuff
 	 */
@@ -96,39 +100,37 @@ class MWLBFactory {
 	 * @var StatsdDataFactoryInterface
 	 */
 	private $statsdDataFactory;
-	/**
-	 * @var DatabaseFactory
-	 */
-	private $databaseFactory;
+	/** @var string[] */
+	private array $virtualDomains;
 
 	/**
 	 * @param ServiceOptions $options
 	 * @param ConfiguredReadOnlyMode $readOnlyMode
-	 * @param BagOStuff $cpStash
+	 * @param ChronologyProtector $chronologyProtector
 	 * @param BagOStuff $srvCache
 	 * @param WANObjectCache $wanCache
 	 * @param CriticalSectionProvider $csProvider
 	 * @param StatsdDataFactoryInterface $statsdDataFactory
-	 * @param DatabaseFactory $databaseFactory
+	 * @param string[] $virtualDomains
 	 */
 	public function __construct(
 		ServiceOptions $options,
 		ConfiguredReadOnlyMode $readOnlyMode,
-		BagOStuff $cpStash,
+		ChronologyProtector $chronologyProtector,
 		BagOStuff $srvCache,
 		WANObjectCache $wanCache,
 		CriticalSectionProvider $csProvider,
 		StatsdDataFactoryInterface $statsdDataFactory,
-		DatabaseFactory $databaseFactory
+		array $virtualDomains
 	) {
 		$this->options = $options;
 		$this->readOnlyMode = $readOnlyMode;
-		$this->cpStash = $cpStash;
+		$this->chronologyProtector = $chronologyProtector;
 		$this->srvCache = $srvCache;
 		$this->wanCache = $wanCache;
 		$this->csProvider = $csProvider;
 		$this->statsdDataFactory = $statsdDataFactory;
-		$this->databaseFactory = $databaseFactory;
+		$this->virtualDomains = $virtualDomains;
 	}
 
 	/**
@@ -140,6 +142,13 @@ class MWLBFactory {
 		$this->options->assertRequiredOptions( self::APPLY_DEFAULT_CONFIG_OPTIONS );
 
 		$typesWithSchema = self::getDbTypesWithSchemas();
+		if ( Profiler::instance() instanceof ProfilerStub ) {
+			$profilerCallback = null;
+		} else {
+			$profilerCallback = static function ( $section ) {
+				return Profiler::instance()->scopedProfileIn( $section );
+			};
+		}
 
 		$lbConf += [
 			'localDomain' => new DatabaseDomain(
@@ -147,15 +156,13 @@ class MWLBFactory {
 				$this->options->get( MainConfigNames::DBmwschema ),
 				$this->options->get( MainConfigNames::DBprefix )
 			),
-			'profiler' => static function ( $section ) {
-				return Profiler::instance()->scopedProfileIn( $section );
-			},
+			'profiler' => $profilerCallback,
 			'trxProfiler' => Profiler::instance()->getTransactionProfiler(),
 			'logger' => LoggerFactory::getInstance( 'rdbms' ),
 			'errorLogger' => [ MWExceptionHandler::class, 'logException' ],
 			'deprecationLogger' => [ static::class, 'logDeprecation' ],
 			'statsdDataFactory' => $this->statsdDataFactory,
-			'cliMode' => $this->options->get( 'CommandLineMode' ),
+			'cliMode' => MW_ENTRY_POINT === 'cli',
 			'readOnlyReason' => $this->readOnlyMode->getReason(),
 			'defaultGroup' => $this->options->get( MainConfigNames::DBDefaultGroup ),
 			'criticalSectionProvider' => $this->csProvider
@@ -190,6 +197,9 @@ class MWLBFactory {
 					$server['ssl'] = true;
 				}
 				$server['flags'] |= $this->options->get( MainConfigNames::DBcompress ) ? DBO_COMPRESS : 0;
+				if ( $this->options->get( MainConfigNames::DBStrictWarnings ) ) {
+					$server['strictWarnings'] = true;
+				}
 
 				$lbConf['servers'] = [ $server ];
 			}
@@ -214,10 +224,11 @@ class MWLBFactory {
 			$this->options->get( MainConfigNames::DBprefix )
 		);
 
-		$lbConf['cpStash'] = $this->cpStash;
+		$lbConf['chronologyProtector'] = $this->chronologyProtector;
 		$lbConf['srvCache'] = $this->srvCache;
 		$lbConf['wanCache'] = $this->wanCache;
-		$lbConf['databaseFactory'] = $this->databaseFactory;
+		$lbConf['virtualDomains'] = array_merge( $this->virtualDomains, self::CORE_VIRTUAL_DOMAINS );
+		$lbConf['virtualDomainsMapping'] = $this->options->get( MainConfigNames::VirtualDomainsMapping );
 
 		return $lbConf;
 	}
@@ -317,7 +328,7 @@ class MWLBFactory {
 			"\$wgDBprefix is set to '$prefix' but the database type is '$dbType'. " .
 			"MediaWiki does not support using a table prefix with this RDBMS type."
 		);
-		MWExceptionRenderer::output( $e, MWExceptionRenderer::AS_PRETTY );
+		MWExceptionRenderer::output( $e, MWExceptionRenderer::AS_RAW );
 		exit;
 	}
 
@@ -335,7 +346,7 @@ class MWLBFactory {
 			"use of Database::getDomainId(), and other features are not reliable when " .
 			"\$wgDBservers does not match the local wiki database/prefix."
 		);
-		MWExceptionRenderer::output( $e, MWExceptionRenderer::AS_PRETTY );
+		MWExceptionRenderer::output( $e, MWExceptionRenderer::AS_RAW );
 		exit;
 	}
 
@@ -353,7 +364,7 @@ class MWLBFactory {
 			"use of Database::getDomainId(), and other features are not reliable when " .
 			"\$wgDBservers does not match the local wiki database/prefix."
 		);
-		MWExceptionRenderer::output( $e, MWExceptionRenderer::AS_PRETTY );
+		MWExceptionRenderer::output( $e, MWExceptionRenderer::AS_RAW );
 		exit;
 	}
 
@@ -422,51 +433,24 @@ class MWLBFactory {
 		Config $config,
 		IBufferingStatsdDataFactory $stats
 	): void {
-		// Use the global WebRequest singleton. The main reason for using this
-		// is to call WebRequest::getIP() which is non-trivial to reproduce statically
-		// because it needs $wgUsePrivateIPs, as well as ProxyLookup and HookRunner services.
-		// TODO: Create a static version of WebRequest::getIP that accepts these three
-		// as dependencies, and then call that here. The other uses of $req below can
-		// trivially use $_COOKIES, $_GET and $_SERVER instead.
-		$req = RequestContext::getMain()->getRequest();
-
-		// Set user IP/agent information for agent session consistency purposes
-		$reqStart = (int)( $_SERVER['REQUEST_TIME_FLOAT'] ?? time() );
-		$cpPosInfo = LBFactory::getCPInfoFromCookieValue(
-			// The cookie has no prefix and is set by MediaWiki::preOutputCommit()
-			$req->getCookie( 'cpPosIndex', '' ),
-			// Mitigate broken client-side cookie expiration handling (T190082)
-			$reqStart - ChronologyProtector::POSITION_COOKIE_TTL
-		);
-		$lbFactory->setRequestInfo( [
-			'IPAddress' => $req->getIP(),
-			'UserAgent' => $req->getHeader( 'User-Agent' ),
-			'ChronologyProtection' => $req->getHeader( 'MediaWiki-Chronology-Protection' ),
-			'ChronologyPositionIndex' => $req->getInt( 'cpPosIndex', $cpPosInfo['index'] ),
-			'ChronologyClientId' => $cpPosInfo['clientId']
-				?? $req->getHeader( 'MediaWiki-Chronology-Client-Id' )
-		] );
-
-		if ( $config->get( 'CommandLineMode' ) ) {
-			// Disable buffering and delaying of DeferredUpdates and stats
-			// for maintenance scripts and PHPUnit tests.
-			// Hook into period lag checks which often happen in long-running scripts
-			$lbFactory->setWaitForReplicationListener(
+		if ( MW_ENTRY_POINT === 'cli' ) {
+			$lbFactory->getMainLB()->setTransactionListener(
 				__METHOD__,
-				static function () use ( $stats, $config ) {
-					DeferredUpdates::tryOpportunisticExecute();
+				static function ( $trigger ) use ( $stats, $config ) {
+					// During maintenance scripts and PHPUnit integration tests, we let
+					// DeferredUpdates run immediately from addUpdate(), unless a transaction
+					// is active. Notify DeferredUpdates after any commit to try now.
+					// See DeferredUpdates::tryOpportunisticExecute for why.
+					if ( $trigger === IDatabase::TRIGGER_COMMIT ) {
+						DeferredUpdates::tryOpportunisticExecute();
+					}
 					// Flush stats periodically in long-running CLI scripts to avoid OOM (T181385)
 					MediaWiki::emitBufferedStatsdData( $stats, $config );
 				}
 			);
-			// Check for other windows to run them. A script may read or do a few writes
-			// to the primary DB but mostly be writing to something else, like a file store.
-			$lbFactory->getMainLB()->setTransactionListener(
+			$lbFactory->setWaitForReplicationListener(
 				__METHOD__,
-				static function ( $trigger ) use ( $stats, $config ) {
-					if ( $trigger === IDatabase::TRIGGER_COMMIT ) {
-						DeferredUpdates::tryOpportunisticExecute();
-					}
+				static function () use ( $stats, $config ) {
 					// Flush stats periodically in long-running CLI scripts to avoid OOM (T181385)
 					MediaWiki::emitBufferedStatsdData( $stats, $config );
 				}

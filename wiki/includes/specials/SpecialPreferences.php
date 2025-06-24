@@ -21,10 +21,20 @@
  * @ingroup SpecialPage
  */
 
+namespace MediaWiki\Specials;
+
+use MediaWiki\Context\IContextSource;
 use MediaWiki\Html\Html;
+use MediaWiki\HTMLForm\HTMLForm;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Preferences\PreferencesFactory;
-use MediaWiki\User\UserOptionsManager;
+use MediaWiki\SpecialPage\SpecialPage;
+use MediaWiki\User\Options\UserOptionsManager;
+use MediaWiki\User\User;
+use OOUI\FieldLayout;
+use OOUI\SearchInputWidget;
+use PermissionsError;
+use PreferencesFormOOUI;
 
 /**
  * A special page that allows users to change their preferences
@@ -33,11 +43,8 @@ use MediaWiki\User\UserOptionsManager;
  */
 class SpecialPreferences extends SpecialPage {
 
-	/** @var PreferencesFactory */
-	private $preferencesFactory;
-
-	/** @var UserOptionsManager */
-	private $userOptionsManager;
+	private PreferencesFactory $preferencesFactory;
+	private UserOptionsManager $userOptionsManager;
 
 	/**
 	 * @param PreferencesFactory|null $preferencesFactory
@@ -118,8 +125,8 @@ class SpecialPreferences extends SpecialPage {
 		}
 		$out->addJsConfigVars( 'wgPreferencesTabs', $prefTabs );
 
-		$out->addHTML( new \OOUI\FieldLayout(
-			new \OOUI\SearchInputWidget( [
+		$out->addHTML( new FieldLayout(
+			new SearchInputWidget( [
 				'placeholder' => $this->msg( 'searchprefs' )->text(),
 			] ),
 			[
@@ -188,6 +195,12 @@ class SpecialPreferences extends SpecialPage {
 	}
 
 	protected function getGroupName() {
-		return 'users';
+		return 'login';
 	}
 }
+
+/**
+ * Retain the old class name for backwards compatibility.
+ * @deprecated since 1.41
+ */
+class_alias( SpecialPreferences::class, 'SpecialPreferences' );

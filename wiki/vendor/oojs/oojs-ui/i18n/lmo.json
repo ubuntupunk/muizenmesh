@@ -5,6 +5,7 @@
 			"Salvemm el lombard"
 		]
 	},
+	"ooui-copytextlayout-copy": "Copia",
 	"ooui-outline-control-move-down": "Sposta in sgiò",
 	"ooui-outline-control-move-up": "Sposta in alt",
 	"ooui-outline-control-remove": "Toeu via l'element",
@@ -21,7 +22,6 @@
 	"ooui-combobox-button-label": "Mostra/scond i opzion",
 	"ooui-selectfile-button-select": "Cata foeura un fail",
 	"ooui-selectfile-button-select-multiple": "Cata foeura di fail",
-	"ooui-selectfile-not-supported": "La selezzion del fail l'è no suportada",
 	"ooui-selectfile-placeholder": "Nissun fail l'è selezzionad",
 	"ooui-selectfile-dragdrop-placeholder": "Met via i fail chichinscì",
 	"ooui-selectfile-dragdrop-placeholder-multiple": "Met via i fail chichinscì",

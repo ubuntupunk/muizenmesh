@@ -18,11 +18,13 @@
  * @file
  */
 
+use MediaWiki\Context\ContextSource;
 use MediaWiki\HookContainer\ProtectedHookAccessorTrait;
 use MediaWiki\Html\Html;
 use MediaWiki\Linker\Linker;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\SpecialPage\SpecialPage;
 use MediaWiki\Title\Title;
 
 /**
@@ -309,7 +311,6 @@ class ImageHistoryList extends ContextSource {
 			[
 				'width' => '120',
 				'height' => '120',
-				'loading' => 'lazy',
 				'isFilePageThumb' => $iscur  // old revisions are already versioned
 			]
 		);
@@ -325,7 +326,7 @@ class ImageHistoryList extends ContextSource {
 			$lang->userDate( $timestamp, $user ),
 			$lang->userTime( $timestamp, $user )
 		)->text();
-		return $thumbnail->toHtml( [ 'alt' => $alt, 'file-link' => true ] );
+		return $thumbnail->toHtml( [ 'alt' => $alt, 'file-link' => true, 'loading' => 'lazy' ] );
 	}
 
 	/**

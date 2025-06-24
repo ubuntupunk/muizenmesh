@@ -4,11 +4,12 @@
 			"AiseluRB",
 			"Amire80",
 			"Assele",
+			"Bashkorttan",
 			"Haqmar",
 			"Sagan",
+			"З. ӘЙЛЕ",
 			"Рустам Нурыев",
-			"Янмурза Баки",
-			"З. ӘЙЛЕ"
+			"Янмурза Баки"
 		]
 	},
 	"tag-visualeditor": "[[{{MediaWiki:visualeditor-descriptionpagelink}}|Күҙләгес мөхәррир]]",
@@ -16,11 +17,10 @@
 	"tag-visualeditor-needcheck": "[[{{MediaWiki:visualeditor-descriptionpagelink}}|Күҙләгес мөхәррир: Тикшереү]]",
 	"tag-visualeditor-needcheck-description": "[[{{MediaWiki:visualeditor-descriptionpagelink}}|Күҙләгес мөхәррир]] аша эшләнгән төҙәтеүҙә система аңламаҫтан үҙгәртелгән вики-текст булыу ихтималлығын асыҡланы.",
 	"tag-visualeditor-switched": "[[{{MediaWiki:visualeditor-descriptionpagelink}}|Күҙләгес мөхәррир: Тикшереү]]",
-	"tag-visualeditor-switched-description": "Ҡатнашыусы күҙләгес мөхәррир (үҙгәртергә) ярҙамында мөхәррирләй башланы, һуңынан вики-тексты үҙгәртергә режимы аша мөхәррирләүгә күсте",
+	"tag-visualeditor-switched-description": "Ҡулланыусы күҙләгес мөхәррир менән үҙгәртә башланы, һуңынан викитекст мөхәрриренә күсте.",
 	"visualeditor-feedback-link": "Project:VisualEditor/Фекер алышыу",
 	"visualeditor-feedback-tool": "Программа тәьминәте тураһында фекер ҡалдырығыҙ",
 	"visualeditor-help-label": "Ҡатнашыусы ҡулланмаларын уҡығыҙ",
-	"visualeditor-help-title": "Күҙләгес мөхәррирҙе файҙаланыу буйынса ҡулланма",
 	"visualeditor-welcomedialog-action": "Мөхәррирләүҙе башларға",
 	"visualeditor-welcomedialog-content": "Һәр кем мөхәррирләй ала һәм бөтә үҙгәртеүҙәр ҙә файҙалы",
 	"visualeditor-welcomedialog-content-thanks": "Донъяға күберәк белергә ярҙам иткәнегеҙ өсөн рәхмәт!",

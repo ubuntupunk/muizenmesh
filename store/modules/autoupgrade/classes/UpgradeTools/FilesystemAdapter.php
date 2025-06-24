@@ -27,23 +27,39 @@
 
 namespace PrestaShop\Module\AutoUpgrade\UpgradeTools;
 
+use FilesystemIterator;
 use PrestaShop\Module\AutoUpgrade\Tools14;
+use RecursiveCallbackFilterIterator;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 
 class FilesystemAdapter
 {
-    private $restoreFilesFilename;
-
+    /**
+     * @var FileFilter
+     */
     private $fileFilter;
 
+    /**
+     * @var string
+     */
     private $autoupgradeDir;
+
+    /**
+     * @var string
+     */
     private $adminSubDir;
+
+    /**
+     * @var string
+     */
     private $prodRootDir;
 
     /**
      * Somes elements to find in a folder.
      * If one of them cannot be found, we can consider that the release is invalid.
      *
-     * @var array
+     * @var array<string, array<string>>
      */
     private $releaseFileChecks = [
         'files' => [
@@ -58,13 +74,11 @@ class FilesystemAdapter
 
     public function __construct(
         FileFilter $fileFilter,
-        $restoreFilesFilename,
-        $autoupgradeDir,
-        $adminSubDir,
-        $prodRootDir
+        string $autoupgradeDir,
+        string $adminSubDir,
+        string $prodRootDir
     ) {
         $this->fileFilter = $fileFilter;
-        $this->restoreFilesFilename = $restoreFilesFilename;
 
         $this->autoupgradeDir = $autoupgradeDir;
         $this->adminSubDir = $adminSubDir;
@@ -76,56 +90,45 @@ class FilesystemAdapter
      *
      * @param string $dirname Directory name
      */
-    public static function deleteDirectory($dirname, $delete_self = true)
+    public static function deleteDirectory(string $dirname, bool $delete_self = true): bool
     {
         return Tools14::deleteDirectory($dirname, $delete_self);
     }
 
-    public function listFilesInDir($dir, $way = 'backup', $list_directories = false)
+    /**
+     * @param 'upgrade'|'restore'|'backup' $way
+     *
+     * @return string[]
+     */
+    public function listFilesInDir(string $dir, string $way, bool $listDirectories = false): array
     {
-        $list = [];
-        $dir = rtrim($dir, '/') . DIRECTORY_SEPARATOR;
-        $allFiles = false;
-        if (is_dir($dir) && is_readable($dir)) {
-            $allFiles = scandir($dir);
-        }
-        if (!is_array($allFiles)) {
-            return $list;
-        }
-        foreach ($allFiles as $file) {
-            $fullPath = $dir . $file;
-            // skip broken symbolic links
-            if (is_link($fullPath) && !is_readable($fullPath)) {
-                continue;
-            }
-            if ($this->isFileSkipped($file, $fullPath, $way)) {
-                continue;
-            }
-            if (is_dir($fullPath)) {
-                $list = array_merge($list, $this->listFilesInDir($fullPath, $way, $list_directories));
-                if ($list_directories) {
-                    $list[] = $fullPath;
-                }
-            } else {
-                $list[] = $fullPath;
-            }
+        $files = [];
+        $directory = new RecursiveDirectoryIterator(
+            $dir,
+            FilesystemIterator::SKIP_DOTS | FilesystemIterator::KEY_AS_FILENAME | FilesystemIterator::CURRENT_AS_PATHNAME | FilesystemIterator::UNIX_PATHS
+        );
+        $filter = new RecursiveCallbackFilterIterator($directory, function ($current, $key, $iterator) use ($way, $dir) {
+            return !$this->isFileSkipped($key, $current, $way, $dir);
+        });
+        $iterator = new \RecursiveIteratorIterator(
+            $filter,
+            $listDirectories ? RecursiveIteratorIterator::SELF_FIRST : RecursiveIteratorIterator::LEAVES_ONLY
+        );
+
+        foreach ($iterator as $info) {
+            $files[] = $info;
         }
 
-        return $list;
+        return $files;
     }
 
     /**
      * this function list all files that will be remove to retrieve the filesystem states before the upgrade.
      *
-     * @return array of files to delete
+     * @return string[] of files to delete
      */
-    public function listFilesToRemove()
+    public function listFilesToRemove(): array
     {
-        $prev_version = preg_match('#auto-backupfiles_V([0-9.]*)_#', $this->restoreFilesFilename, $matches);
-        if ($prev_version) {
-            $prev_version = $matches[1];
-        }
-
         // if we can't find the diff file list corresponding to _PS_VERSION_ and prev_version,
         // let's assume to remove every files
         $toRemove = $this->listFilesInDir($this->prodRootDir, 'restore', true);
@@ -136,29 +139,12 @@ class FilesystemAdapter
             $filename = substr($file, strrpos($file, '/') + 1);
             $toRemove[$key] = preg_replace('#^/admin#', $this->adminSubDir, $file);
             // this is a really sensitive part, so we add an extra checks: preserve everything that contains "autoupgrade"
-            if ($this->isFileSkipped($filename, $file, 'backup') || strpos($file, $this->autoupgradeDir)) {
+            if ($this->isFileSkipped($filename, $file) || strpos($file, $this->autoupgradeDir)) {
                 unset($toRemove[$key]);
             }
         }
 
         return $toRemove;
-    }
-
-    /**
-     * Retrieve a list of sample files to be deleted from the release.
-     *
-     * @param array $directoryList
-     *
-     * @return array Files to remove from the release
-     */
-    public function listSampleFilesFromArray(array $directoryList)
-    {
-        $res = [];
-        foreach ($directoryList as $directory) {
-            $res = array_merge($res, $this->listSampleFiles($directory['path'], $directory['filter']));
-        }
-
-        return $res;
     }
 
     /**
@@ -168,9 +154,9 @@ class FilesystemAdapter
      * @param string $dir directory to look in
      * @param string $fileext suffixe filename
      *
-     * @return array of files
+     * @return string[] of files
      */
-    public function listSampleFiles($dir, $fileext = '.jpg')
+    public function listSampleFiles(string $dir, string $fileext = '.jpg'): array
     {
         $res = [];
         $dir = rtrim($dir, '/') . DIRECTORY_SEPARATOR;
@@ -195,14 +181,14 @@ class FilesystemAdapter
     }
 
     /**
-     *	bool _skipFile : check whether a file is in backup or restore skip list.
-     *
      * @param string $file : current file or directory name eg:'.svn' , 'settings.inc.php'
      * @param string $fullpath : current file or directory fullpath eg:'/home/web/www/prestashop/app/config/parameters.php'
-     * @param string $way : 'backup' , 'upgrade'
-     * @param string $temporaryWorkspace : If needed, another folder than the shop root can be used (used for releases)
+     * @param 'upgrade'|'restore'|'backup' $way
+     * @param string|null $temporaryWorkspace : If needed, another folder than the shop root can be used (used for releases)
+     *
+     * @return bool
      */
-    public function isFileSkipped($file, $fullpath, $way = 'backup', $temporaryWorkspace = null)
+    public function isFileSkipped(string $file, string $fullpath, string $way = 'backup', string $temporaryWorkspace = null): bool
     {
         $fullpath = str_replace('\\', '/', $fullpath); // wamp compliant
         $rootpath = str_replace(
@@ -226,7 +212,10 @@ class FilesystemAdapter
 
         foreach ($ignoreList as $path) {
             $path = str_replace(DIRECTORY_SEPARATOR . 'admin', DIRECTORY_SEPARATOR . $this->adminSubDir, $path);
-            if ($fullpath === $rootpath . $path) {
+            if (strpos($fullpath, $rootpath . $path) === 0 && /* endsWith */ substr($fullpath, -strlen($rootpath . $path)) === $rootpath . $path) {
+                return true;
+            }
+            if (strpos($path, '*') !== false && fnmatch($rootpath . $path, $fullpath, FNM_PATHNAME)) {
                 return true;
             }
         }
@@ -242,7 +231,7 @@ class FilesystemAdapter
      *
      * @return bool
      */
-    public function isReleaseValid($path)
+    public function isReleaseValid(string $path): bool
     {
         foreach ($this->releaseFileChecks as $type => $elements) {
             foreach ($elements as $element) {

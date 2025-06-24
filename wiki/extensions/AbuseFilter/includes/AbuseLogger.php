@@ -2,20 +2,22 @@
 
 namespace MediaWiki\Extension\AbuseFilter;
 
-use DeferredUpdates;
 use ExtensionRegistry;
 use InvalidArgumentException;
 use ManualLogEntry;
 use MediaWiki\CheckUser\Hooks;
 use MediaWiki\Config\ServiceOptions;
+use MediaWiki\Deferred\DeferredUpdates;
 use MediaWiki\Extension\AbuseFilter\Variables\VariableHolder;
 use MediaWiki\Extension\AbuseFilter\Variables\VariablesBlobStore;
 use MediaWiki\Extension\AbuseFilter\Variables\VariablesManager;
+use MediaWiki\Title\Title;
+use MediaWiki\User\User;
 use MediaWiki\User\UserIdentityValue;
-use Title;
-use User;
+use Profiler;
 use Wikimedia\Rdbms\IDatabase;
-use Wikimedia\Rdbms\ILoadBalancer;
+use Wikimedia\Rdbms\LBFactory;
+use Wikimedia\ScopedCallback;
 
 class AbuseLogger {
 	public const CONSTRUCTOR_OPTIONS = [
@@ -43,8 +45,8 @@ class AbuseLogger {
 	private $varManager;
 	/** @var EditRevUpdater */
 	private $editRevUpdater;
-	/** @var ILoadBalancer */
-	private $loadBalancer;
+	/** @var LBFactory */
+	private $lbFactory;
 	/** @var ServiceOptions */
 	private $options;
 	/** @var string */
@@ -58,7 +60,7 @@ class AbuseLogger {
 	 * @param VariablesBlobStore $varBlobStore
 	 * @param VariablesManager $varManager
 	 * @param EditRevUpdater $editRevUpdater
-	 * @param ILoadBalancer $loadBalancer
+	 * @param LBFactory $lbFactory
 	 * @param ServiceOptions $options
 	 * @param string $wikiID
 	 * @param string $requestIP
@@ -72,7 +74,7 @@ class AbuseLogger {
 		VariablesBlobStore $varBlobStore,
 		VariablesManager $varManager,
 		EditRevUpdater $editRevUpdater,
-		ILoadBalancer $loadBalancer,
+		LBFactory $lbFactory,
 		ServiceOptions $options,
 		string $wikiID,
 		string $requestIP,
@@ -88,7 +90,7 @@ class AbuseLogger {
 		$this->varBlobStore = $varBlobStore;
 		$this->varManager = $varManager;
 		$this->editRevUpdater = $editRevUpdater;
-		$this->loadBalancer = $loadBalancer;
+		$this->lbFactory = $lbFactory;
 		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
 		$this->options = $options;
 		$this->wikiID = $wikiID;
@@ -107,7 +109,7 @@ class AbuseLogger {
 	 * @phan-return array{local:int[],global:int[]}
 	 */
 	public function addLogEntries( array $actionsTaken ): array {
-		$dbw = $this->loadBalancer->getConnectionRef( DB_PRIMARY );
+		$dbw = $this->lbFactory->getPrimaryDatabase();
 		$logTemplate = $this->buildLogTemplate();
 		$centralLogTemplate = [
 			'afl_wiki' => $this->wikiID,
@@ -119,7 +121,7 @@ class AbuseLogger {
 		$loggedGlobalFilters = [];
 
 		foreach ( $actionsTaken as $filter => $actions ) {
-			list( $filterID, $global ) = GlobalNameUtils::splitGlobalName( $filter );
+			[ $filterID, $global ] = GlobalNameUtils::splitGlobalName( $filter );
 			$thisLog = $logTemplate;
 			$thisLog['afl_filter_id'] = $filterID;
 			$thisLog['afl_global'] = (int)$global;
@@ -178,7 +180,7 @@ class AbuseLogger {
 		$logTemplate = [
 			'afl_user' => $user->getId(),
 			'afl_user_text' => $user->getName(),
-			'afl_timestamp' => $this->loadBalancer->getConnectionRef( DB_REPLICA )->timestamp(),
+			'afl_timestamp' => $this->lbFactory->getReplicaDatabase()->timestamp(),
 			'afl_namespace' => $this->title->getNamespace(),
 			'afl_title' => $this->title->getDBkey(),
 			'afl_action' => $this->action,
@@ -248,7 +250,15 @@ class AbuseLogger {
 					$entry->setPerformer( new UserIdentityValue( 0, $this->requestIP ) );
 				}
 				$rc = $entry->getRecentChange();
-				Hooks::updateCheckUserData( $rc );
+				// We need to send the entries on POSTSEND to ensure that the user definitely exists, as a temporary
+				// account being created by this edit may not exist until after AbuseFilter processes the edit.
+				DeferredUpdates::addCallableUpdate( static function () use ( $rc ) {
+					// Silence the TransactionProfiler warnings for performing write queries (T359648).
+					$trxProfiler = Profiler::instance()->getTransactionProfiler();
+					$scope = $trxProfiler->silenceForScope( $trxProfiler::EXPECTATION_REPLICAS_ONLY );
+					Hooks::updateCheckUserData( $rc );
+					ScopedCallback::consume( $scope );
+				} );
 			}
 
 			if ( $this->options->get( 'AbuseFilterNotifications' ) !== false ) {

@@ -28,6 +28,7 @@ use Wikimedia\ObjectFactory\ObjectFactory;
  * In the WAN scenario (e.g. multi-datacenter case), this is useful when
  * writes are rare or they usually take place in the primary datacenter.
  *
+ * @deprecated since 1.42
  * @ingroup Cache
  * @since 1.26
  */
@@ -54,6 +55,7 @@ class ReplicatedBagOStuff extends BagOStuff {
 	 *   - sessionConsistencyWindow: Seconds to read from the master source for a key
 	 *      after writing to it. [Default: ReplicatedBagOStuff::MAX_WRITE_DELAY]
 	 *
+	 * @deprecated since 1.42
 	 * @param array $params
 	 * @throws InvalidArgumentException
 	 */
@@ -217,7 +219,7 @@ class ReplicatedBagOStuff extends BagOStuff {
 		return $this->writeStore->proxyCall(
 			__FUNCTION__,
 			self::ARG0_KEYMAP,
-			self::RES_KEYMAP,
+			self::RES_NONKEY,
 			func_get_args(),
 			$this
 		);
@@ -257,27 +259,6 @@ class ReplicatedBagOStuff extends BagOStuff {
 			func_get_args(),
 			$this
 		);
-	}
-
-	protected function makeKeyInternal( $keyspace, $components ) {
-		return $this->genericKeyFromComponents( $keyspace, ...$components );
-	}
-
-	public function makeKey( $collection, ...$components ) {
-		return $this->genericKeyFromComponents( $this->keyspace, $collection, ...$components );
-	}
-
-	public function makeGlobalKey( $collection, ...$components ) {
-		return $this->genericKeyFromComponents( self::GLOBAL_KEYSPACE, $collection, ...$components );
-	}
-
-	protected function convertGenericKey( $key ) {
-		// short-circuit; already uses "generic" keys
-		return $key;
-	}
-
-	public function addBusyCallback( callable $workCallback ) {
-		return $this->writeStore->addBusyCallback( $workCallback );
 	}
 
 	public function setMockTime( &$time ) {

@@ -24,7 +24,7 @@
  * @since 1.39
  */
 
-use MediaWiki\MediaWikiServices;
+use MediaWiki\Utils\MWTimestamp;
 
 require_once __DIR__ . '/Maintenance.php';
 
@@ -50,7 +50,7 @@ class WikiBirthday extends Maintenance {
 	}
 
 	public function execute() {
-		$dbr = $this->getDB( DB_REPLICA );
+		$dbr = $this->getReplicaDB();
 
 		$revId = $dbr->newSelectQueryBuilder()
 			->table( 'revision' )
@@ -80,7 +80,7 @@ class WikiBirthday extends Maintenance {
 				->fetchField();
 		}
 
-		$birthDay = MediaWikiServices::getInstance()->getContentLanguage()
+		$birthDay = $this->getServiceContainer()->getContentLanguage()
 			->getHumanTimestamp( MWTimestamp::getInstance( $timestamp ) );
 
 		$text = "Wiki was created on: " . $birthDay . " <age: " .

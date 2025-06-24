@@ -84,11 +84,14 @@ LanguageSearchWidget.prototype.addResults = function () {
 		query = this.query.getValue().trim(),
 		compare = window.Intl && Intl.Collator ?
 			new Intl.Collator( this.lang, { sensitivity: 'base' } ).compare :
-			function ( a, b ) { return a.toLowerCase() === b.toLowerCase() ? 0 : 1; },
+			function ( a, b ) {
+				return a.toLowerCase() === b.toLowerCase() ? 0 : 1;
+			},
 		hasQuery = !!query.length,
 		items = [];
 
-	this.results.clearItems();
+	var results = this.getResults();
+	results.clearItems();
 
 	this.filteredLanguageResultWidgets.forEach( function ( languageResult ) {
 		var data = languageResult.getData();
@@ -108,13 +111,16 @@ LanguageSearchWidget.prototype.addResults = function () {
 					.updateLabel( query, matchedProperty, compare )
 					.setSelected( false )
 					.setHighlighted( false )
+					// Forward keyboard-triggered events from the OptionWidget to the SelectWidget
+					.off( 'choose' )
+					.connect( results, { choose: [ 'emit', 'choose' ] } )
 			);
 		}
 	} );
 
-	this.results.addItems( items );
+	results.addItems( items );
 	if ( hasQuery ) {
-		this.results.highlightItem( this.results.findFirstSelectableItem() );
+		results.highlightItem( results.findFirstSelectableItem() );
 	}
 };
 

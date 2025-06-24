@@ -21,9 +21,12 @@
  * @ingroup SpecialPage
  */
 
+namespace MediaWiki\Specials;
+
 use MediaWiki\Cache\LinkBatchFactory;
 use MediaWiki\Category\TrackingCategories;
 use MediaWiki\Html\Html;
+use MediaWiki\SpecialPage\SpecialPage;
 
 /**
  * A special page that displays list of tracking categories
@@ -37,11 +40,8 @@ use MediaWiki\Html\Html;
 
 class SpecialTrackingCategories extends SpecialPage {
 
-	/** @var LinkBatchFactory */
-	private $linkBatchFactory;
-
-	/** @var TrackingCategories */
-	private $trackingCategories;
+	private LinkBatchFactory $linkBatchFactory;
+	private TrackingCategories $trackingCategories;
 
 	/**
 	 * @param LinkBatchFactory $linkBatchFactory
@@ -59,7 +59,7 @@ class SpecialTrackingCategories extends SpecialPage {
 	public function execute( $par ) {
 		$this->setHeaders();
 		$this->outputHeader();
-		$this->addHelpLink( 'Help:Categories' );
+		$this->addHelpLink( 'Help:Tracking categories' );
 		$this->getOutput()->setPreventClickjacking( false );
 		$this->getOutput()->addModuleStyles( [
 			'jquery.tablesorter.styles',
@@ -153,3 +153,9 @@ class SpecialTrackingCategories extends SpecialPage {
 		return 'pages';
 	}
 }
+
+/**
+ * Retain the old class name for backwards compatibility.
+ * @deprecated since 1.41
+ */
+class_alias( SpecialTrackingCategories::class, 'SpecialTrackingCategories' );

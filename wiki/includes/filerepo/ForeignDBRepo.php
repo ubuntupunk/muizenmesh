@@ -31,7 +31,7 @@ use Wikimedia\Rdbms\IDatabase;
  *
  * @ingroup FileRepo
  */
-class ForeignDBRepo extends LocalRepo {
+class ForeignDBRepo extends LocalRepo implements IForeignRepoWithDB {
 	/** @var string */
 	protected $dbType;
 
@@ -114,8 +114,11 @@ class ForeignDBRepo extends LocalRepo {
 		};
 	}
 
+	/**
+	 * @return never
+	 */
 	protected function assertWritableRepo() {
-		throw new MWException( static::class . ': write operations are not supported.' );
+		throw new LogicException( static::class . ': write operations are not supported.' );
 	}
 
 	public function getBlobStore(): ?BlobStore {

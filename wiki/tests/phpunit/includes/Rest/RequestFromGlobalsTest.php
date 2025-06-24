@@ -14,9 +14,21 @@ class RequestFromGlobalsTest extends MediaWikiIntegrationTestCase {
 	 */
 	private $reqFromGlobals;
 
+	/**
+	 * @var array
+	 */
+	private $oldServer;
+
 	protected function setUp(): void {
 		parent::setUp();
 		$this->reqFromGlobals = new RequestFromGlobals();
+
+		$this->oldServer = $_SERVER;
+	}
+
+	protected function tearDown(): void {
+		$_SERVER = $this->oldServer;
+		parent::tearDown();
 	}
 
 	/**
@@ -38,7 +50,11 @@ class RequestFromGlobalsTest extends MediaWikiIntegrationTestCase {
 			[
 				[],
 				'GET',
-			]
+			],
+			[
+				[ 'REQUEST_METHOD' => 'get' ],
+				'GET',
+			],
 		];
 	}
 

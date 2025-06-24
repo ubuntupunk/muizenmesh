@@ -3,15 +3,16 @@
 namespace MediaWiki\Tests\Revision;
 
 use ChangeTags;
+use MediaWiki\Message\Message;
 use MediaWiki\Permissions\Authority;
 use MediaWiki\Permissions\SimpleAuthority;
 use MediaWiki\Permissions\UltimateAuthority;
 use MediaWiki\Revision\ContributionsLookup;
 use MediaWiki\Revision\ContributionsSegment;
 use MediaWiki\Revision\RevisionRecord;
+use MediaWiki\User\User;
 use MediaWiki\User\UserIdentityValue;
 use MediaWikiIntegrationTestCase;
-use Message;
 use Wikimedia\Timestamp\ConvertibleTimestamp;
 
 /**
@@ -28,7 +29,7 @@ class ContributionsLookupTest extends MediaWikiIntegrationTestCase {
 	private static $storedRevisions;
 
 	/**
-	 * @var \User
+	 * @var User
 	 */
 	private static $testUser;
 
@@ -56,15 +57,15 @@ class ContributionsLookupTest extends MediaWikiIntegrationTestCase {
 	protected function setUp(): void {
 		parent::setUp();
 
-		// Work around T256006
-		ChangeTags::$avoidReopeningTablesForTesting = true;
+		if ( $this->db->getType() === 'mysql' && str_contains( $this->db->getSoftwareLink(), 'MySQL' ) ) {
+			$this->markTestSkipped( 'See T256006' );
+		}
 
 		// MessageCache needs to be explicitly enabled to load changetag display text.
 		$this->getServiceContainer()->getMessageCache()->enable();
 	}
 
 	protected function tearDown(): void {
-		ChangeTags::$avoidReopeningTablesForTesting = false;
 		$this->getServiceContainer()->getMessageCache()->disable();
 
 		parent::tearDown();
@@ -310,7 +311,7 @@ class ContributionsLookupTest extends MediaWikiIntegrationTestCase {
 		}
 	}
 
-	public function provideBadSegmentMarker() {
+	public static function provideBadSegmentMarker() {
 		yield [ '' ];
 		yield [ '|' ];
 		yield [ '0' ];

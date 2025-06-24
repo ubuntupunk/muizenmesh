@@ -36,15 +36,16 @@
 	},
 	"ResourceModules": {
 		"ext.confirmEdit.reCaptchaNoCaptcha.visualEditor": {
-			"scripts": "ve-confirmedit-reCaptchaNoCaptcha/ve.init.mw.NoCaptchaReCaptchaSaveErrorHandler.js",
-			"targets": [
-				"desktop",
-				"mobile"
-			]
+			"scripts": "ve-confirmedit-reCaptchaNoCaptcha/ve.init.mw.NoCaptchaReCaptchaSaveErrorHandler.js"
+		}
+	},
+	"HookHandlers": {
+		"ReCaptchaHooks": {
+			"class": "MediaWiki\\Extension\\ConfirmEdit\\ReCaptchaNoCaptcha\\Hooks"
 		}
 	},
 	"Hooks": {
-		"ResourceLoaderGetConfigVars": "MediaWiki\\Extension\\ConfirmEdit\\ReCaptchaNoCaptcha\\Hooks::onResourceLoaderGetConfigVars"
+		"ResourceLoaderGetConfigVars": "ReCaptchaHooks"
 	},
 	"attributes": {
 		"VisualEditor": {

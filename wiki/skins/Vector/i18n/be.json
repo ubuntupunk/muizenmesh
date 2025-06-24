@@ -26,7 +26,6 @@
 	"vector-language-button-label": "{{PLURAL:$1|$1 мова|$1 мовы|$1 моў}}",
 	"vector-no-language-button-label": "Дадаць мовы",
 	"vector-no-language-button-aria-label": "Гэты артыкул ёсць толькі на гэтай мове. Дадайце артыкул для іншых моў",
-	"vector-language-redirect-to-top": "На гэтай пляцоўцы {{SITENAME}} моўныя спасылкі знаходзяцца ўверсе старонкі насупраць загалоўка артыкула. [[#p-lang-btn|Перайсці ўверх]].",
 	"vector-language-variant-switcher-label": "Змяніць моўны варыянт",
 	"vector-action-addsection": "Дадаць тэму",
 	"vector-action-delete": "Выдаліць",
@@ -67,5 +66,8 @@
 	"tooltip-vector-anon-user-menu-title": "Больш магчымасцей",
 	"vector-prefs-limited-width": "Уключыць рэжым абмежаванай шырыні",
 	"vector-prefs-limited-width-help": "Уключыце рэжым абмежаванай шырыні для лепшага чытання.",
-	"empty-language-selector-body": "Змест старонкі недаступны на іншых мовах."
+	"empty-language-selector-body": "Змест старонкі недаступны на іншых мовах.",
+	"vector-toc-unpinned-popup": "Змест перанесены сюды.",
+	"vector-page-tools-unpinned-popup": "Меню інструментаў было перанесена сюды.",
+	"vector-main-menu-unpinned-popup": "Галоўнае меню перанесена сюды."
 }

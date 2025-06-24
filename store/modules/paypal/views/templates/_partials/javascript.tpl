@@ -1,5 +1,5 @@
 {**
- * 2007-2023 PayPal
+ * 2007-2024 PayPal
  *
  * NOTICE OF LICENSE
  *
@@ -17,7 +17,7 @@
  *  versions in the future. If you wish to customize PrestaShop for your
  *  needs please refer to http://www.prestashop.com for more information.
  *
- *  @author 2007-2023 PayPal
+ *  @author 2007-2024 PayPal
  *  @author 202 ecommerce <tech@202-ecommerce.com>
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
@@ -29,7 +29,7 @@
    {foreach from=$JSvars key=varName item=varValue}
        {assign var="isNotJSVarsvalue" value=($varName == '0' && $varValue == '1')}
        {if $isNotJSVarsvalue === false}
-           var {$varName} = {$varValue|json_encode nofilter};
+           var {$varName|escape:'htmlall':'UTF-8'} = {$varValue|json_encode nofilter};
        {/if}
    {/foreach}
  {/if}
@@ -51,16 +51,16 @@
           function addScripts() {
               var scripts = Array();
               {foreach from=$JSscripts key=keyScript item=JSscriptAttributes}
-              var script = document.querySelector('script[data-key="{$keyScript}"]');
+              var script = document.querySelector('script[data-key="{$keyScript|escape:'htmlall':'UTF-8'}"]');
 
               if (null == script) {
                   var newScript = document.createElement('script');
                   {foreach from=$JSscriptAttributes key=attrName item=attrVal}
-                  newScript.setAttribute('{$attrName}', '{$attrVal nofilter}');
+                  newScript.setAttribute('{$attrName|escape:'htmlall':'UTF-8'}', '{$attrVal nofilter}');
                   {/foreach}
 
                   if (false === ('{$keyScript}'.search('jq-lib') === 0 && typeof jQuery === 'function')) {
-                      newScript.setAttribute('data-key', '{$keyScript}');
+                      newScript.setAttribute('data-key', '{$keyScript|escape:'htmlall':'UTF-8'}');
                       scripts.push(newScript);
                   }
               }

@@ -3,7 +3,7 @@
  * Creates a sitemap for the site.
  *
  * Copyright © 2005, Ævar Arnfjörð Bjarmason, Jens Frank <jeluf@gmx.de> and
- * Brion Vibber <brion@pobox.com>
+ * Brooke Vibber <bvibber@wikimedia.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@
  */
 
 use MediaWiki\MainConfigNames;
-use MediaWiki\MediaWikiServices;
 use MediaWiki\Title\Title;
 use MediaWiki\WikiMap\WikiMap;
 use Wikimedia\Rdbms\IDatabase;
@@ -201,7 +200,7 @@ class GenerateSitemap extends Maintenance {
 		$this->identifier = $this->getOption( 'identifier', $dbDomain );
 		$this->compress = $this->getOption( 'compress', 'yes' ) !== 'no';
 		$this->skipRedirects = $this->hasOption( 'skip-redirects' );
-		$this->dbr = $this->getDB( DB_REPLICA );
+		$this->dbr = $this->getReplicaDB();
 		$this->generateNamespaces();
 		$this->timestamp = wfTimestamp( TS_ISO_8601, wfTimestampNow() );
 		$encIdentifier = rawurlencode( $this->identifier );
@@ -263,15 +262,12 @@ class GenerateSitemap extends Maintenance {
 			return;
 		}
 
-		$res = $this->dbr->select( 'page',
-			[ 'page_namespace' ],
-			[],
-			__METHOD__,
-			[
-				'GROUP BY' => 'page_namespace',
-				'ORDER BY' => 'page_namespace',
-			]
-		);
+		$res = $this->dbr->newSelectQueryBuilder()
+			->select( [ 'page_namespace' ] )
+			->from( 'page' )
+			->groupBy( 'page_namespace' )
+			->orderBy( 'page_namespace' )
+			->caller( __METHOD__ )->fetchResultSet();
 
 		foreach ( $res as $row ) {
 			$this->namespaces[] = $row->page_namespace;
@@ -297,7 +293,7 @@ class GenerateSitemap extends Maintenance {
 	 * @return string
 	 */
 	private function guessPriority( $namespace ) {
-		return MediaWikiServices::getInstance()->getNamespaceInfo()->isSubject( $namespace )
+		return $this->getServiceContainer()->getNamespaceInfo()->isSubject( $namespace )
 			? $this->priorities[self::GS_MAIN]
 			: $this->priorities[self::GS_TALK];
 	}
@@ -309,35 +305,19 @@ class GenerateSitemap extends Maintenance {
 	 * @return IResultWrapper
 	 */
 	private function getPageRes( $namespace ) {
-		return $this->dbr->select(
-			[ 'page', 'page_props' ],
-			[
-				'page_namespace',
-				'page_title',
-				'page_touched',
-				'page_is_redirect',
-				'pp_propname',
-			],
-			[ 'page_namespace' => $namespace ],
-			__METHOD__,
-			[],
-			[
-				'page_props' => [
-					'LEFT JOIN',
-					[
-						'page_id = pp_page',
-						'pp_propname' => 'noindex'
-					]
-				]
-			]
-		);
+		return $this->dbr->newSelectQueryBuilder()
+			->select( [ 'page_namespace', 'page_title', 'page_touched', 'page_is_redirect', 'pp_propname' ] )
+			->from( 'page' )
+			->leftJoin( 'page_props', null, [ 'page_id = pp_page', 'pp_propname' => 'noindex' ] )
+			->where( [ 'page_namespace' => $namespace ] )
+			->caller( __METHOD__ )->fetchResultSet();
 	}
 
 	/**
 	 * Main loop
 	 */
 	public function main() {
-		$services = MediaWikiServices::getInstance();
+		$services = $this->getServiceContainer();
 		$contLang = $services->getContentLanguage();
 		$langConverter = $services->getLanguageConverterFactory()->getLanguageConverter( $contLang );
 
@@ -394,7 +374,7 @@ class GenerateSitemap extends Maintenance {
 							continue; // we don't want default variant
 						}
 						$entry = $this->fileEntry(
-							$title->getCanonicalURL( '', $vCode ),
+							$title->getCanonicalURL( [ 'variant' => $vCode ] ),
 							$date,
 							$this->priority( $namespace )
 						);

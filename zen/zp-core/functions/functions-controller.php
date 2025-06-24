@@ -3,8 +3,7 @@
 /**
  * Common functions used in the controller for getting/setting current classes,
  * redirecting URLs, and working with the context.
- * @package core
- * @subpackage functions\functions-controller
+ * @package zpcore\functions\rewrite
  */
 // force UTF-8 Ø
 
@@ -57,13 +56,15 @@ function zpRewriteURL($query) {
 				if (isset($query['date'])) {
 					$redirectURL = _ARCHIVE_ . '/' . $query['date'];
 					unset($query['date']);
-				} else if (isset($query['searchfields']) && $query['searchfields'] == 'tags') {
-					$redirectURL = _TAGS_;
-					unset($query['searchfields']);
-				}
-				if (isset($query['search'])) {
-					$redirectURL .= '/' . $query['search'];
-					unset($query['search']);
+				} else if (isset($query['searchfields'])) {
+					if ($query['searchfields'] == 'tags') {
+						$redirectURL = _TAGS_;
+						unset($query['searchfields']);
+						if (isset($query['s'])) {
+							$redirectURL .= '/' . $query['s'];
+							unset($query['s']);
+						}
+					} 
 				}
 				break;
 			default:
@@ -110,18 +111,6 @@ function zpRewriteURL($query) {
  */
 function fix_path_redirect() {
 	global $_zp_current_search, $_zp_page;
-	if (in_context(ZP_SEARCH) && is_object($_zp_current_search)) {
-		//include search words in inital search page url
-		$searchwords = $_zp_current_search->codifySearchString();
-		$searchdates = $_zp_current_search->getSearchDate();
-		$searchfields = $_zp_current_search->getSearchFields();
-		$searchpagepath = SearchEngine::getSearchURL($searchwords, $searchdates, $searchfields, $_zp_page);
-		$request_uri = getRequestURI();
-		// prevent endless redirection loop
-		if ($request_uri !=  urldecode($searchpagepath)) { //urldecode needed as request_uri is and searchpath is not!
-			redirectURL($searchpagepath, '301');
-		}
-	} 
 	if (MOD_REWRITE) {
 		$request_uri = getRequestURI();
 		$parts = parse_url($request_uri);
@@ -149,7 +138,7 @@ function zp_load_page($pagenum = NULL) {
 function zp_load_gallery() {
 	global $_zp_current_album, $_zp_current_album_restore, $_zp_albums,
 	$_zp_current_image, $_zp_current_image_restore, $_zp_images, $_zp_current_comment,
-	$_zp_comments, $_zp_current_context, $_zp_current_search, $_zp_current_zenpage_new,
+	$_zp_comments, $_zp_current_context, $_zp_current_search, $_zp_current_zenpage_news,
 	$_zp_current_zenpage_page, $_zp_current_category, $_zp_post_date, $_zp_pre_authorization;
 	$_zp_current_album = NULL;
 	$_zp_current_album_restore = NULL;
@@ -194,8 +183,9 @@ function zp_load_search() {
 function zp_load_album($folder, $force_nocache = false) {
 	global $_zp_current_album, $_zp_gallery;
 	$_zp_current_album = AlbumBase::newAlbum($folder, !$force_nocache, true);
-	if (!is_object($_zp_current_album) || !$_zp_current_album->exists)
+	if (!is_object($_zp_current_album) || !$_zp_current_album->exists) {
 		return false;
+	}
 	add_context(ZP_ALBUM);
 	return $_zp_current_album;
 }
@@ -304,7 +294,6 @@ function zp_load_request() {
 			switch ($page) {
 				case 'search':
 					return zp_load_search();
-					break;
 				case 'pages':
 					if (extensionEnabled('zenpage')) {
 						return load_zenpage_pages(sanitize(rtrim(strval(@$_GET['title']), '/')));
@@ -400,7 +389,7 @@ function prepareCustomPage() {
 					$albums = array();
 					foreach ($searchalbums as $analbum) {
 						$albumobj = AlbumBase::newAlbum($analbum);
-						$parent = $albumobj->getUrAlbum();
+						$parent = $albumobj->getUrParent();
 						$albums[$parent->getID()] = $parent;
 					}
 					if (count($albums) == 1) { // there is only one parent album for the search
@@ -421,7 +410,7 @@ function prepareCustomPage() {
  * Handles redirections via filter hook "redirection_handler".
  * It is meant to perform redirections of pages that have been removed or renamed.
  * 
- * @since ZenphotoCMS 1.5.2
+ * @since 1.5.2
  */
 function redirectionHandler() {
 	if (zp_has_filter('redirection_handler')) {
@@ -441,4 +430,3 @@ if (!getOption('license_accepted')) {
 		$_GET['z'] = '';
 	}
 }
-?>

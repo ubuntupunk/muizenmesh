@@ -1,5 +1,8 @@
 <?php
 declare( strict_types = 1 );
+// Suppress UnusedPluginSuppression because
+// Phan on PHP 7.4 and PHP 8.1 need different suppressions
+// @phan-file-suppress UnusedPluginSuppression,UnusedPluginFileSuppression
 
 namespace Wikimedia\Parsoid\Utils;
 
@@ -26,14 +29,14 @@ use Wikimedia\Parsoid\Wt2Html\Frame;
  */
 class WTUtils {
 	private const FIRST_ENCAP_REGEXP =
-		'#(?:^|\s)(mw:(?:Transclusion|Param|LanguageVariant|Extension(/[^\s]+)))(?=$|\s)#D';
+		'#(?:^|\s)(mw:(?:Transclusion|Param|LanguageVariant|Extension(/\S+)))(?=$|\s)#D';
 
 	/**
 	 * Regex corresponding to FIRST_ENCAP_REGEXP, but excluding extensions. If FIRST_ENCAP_REGEXP is
 	 * updated, this one should be as well.
 	 */
 	private const NON_EXTENSION_ENCAP_REGEXP =
-		'#(?:^|\s)(mw:(?:Transclusion|Param|LanguageVariant|(/[^\s]+)))(?=$|\s)#D';
+		'#(?:^|\s)(mw:(?:Transclusion|Param|LanguageVariant))(?=$|\s)#D';
 
 	/**
 	 * Regexp for checking marker metas typeofs representing
@@ -181,7 +184,7 @@ class WTUtils {
 	 * @return bool
 	 */
 	public static function hasExpandedAttrsType( Element $node ): bool {
-		return DOMUtils::matchTypeOf( $node, '/^mw:ExpandedAttrs(\/[^\s]+)*$/' ) !== null;
+		return DOMUtils::matchTypeOf( $node, '/^mw:ExpandedAttrs(\/\S+)*$/' ) !== null;
 	}
 
 	/**
@@ -222,21 +225,27 @@ class WTUtils {
 	 * @return Element|null
 	 */
 	public static function findFirstEncapsulationWrapperNode( Node $node ): ?Element {
-		if ( !self::hasParsoidAboutId( $node ) ) {
+		if ( !self::isEncapsulatedDOMForestRoot( $node ) ) {
 			return null;
 		}
 		/** @var Element $node */
 		DOMUtils::assertElt( $node );
 
-		$about = $node->getAttribute( 'about' );
+		$about = DOMCompat::getAttribute( $node, 'about' );
 		$prev = $node;
 		do {
 			$node = $prev;
-			$prev = DOMUtils::previousNonDeletedSibling( $node );
+			$prev = DiffDOMUtils::previousNonDeletedSibling( $node );
 		} while (
 			$prev instanceof Element &&
-			$prev->getAttribute( 'about' ) === $about
+			DOMCompat::getAttribute( $prev, 'about' ) === $about
 		);
+		// NOTE: findFirstEncapsulationWrapperNode can be called by code
+		// even before templates have been fully encapsulated everywhere.
+		// ProcessTreeBuilderFixups::removeAutoInsertedEmptyTags is the main
+		// culprit here and it makes the contract for this helper murky
+		// by hiding potential brokenness since this should never return null
+		// once all templates have been encapsulated!
 		$elt = self::isFirstEncapsulationWrapperNode( $node ) ? $node : null;
 		'@phan-var ?Element $elt'; // @var ?Element $elt
 		return $elt;
@@ -321,25 +330,17 @@ class WTUtils {
 	}
 
 	/**
-	 * Check if $node is an ELEMENT $node belongs to a template/extension.
-	 *
-	 * NOTE: Use with caution. This technique works reliably for the
-	 * root level elements of tpl-content DOM subtrees since only they
-	 * are guaranteed to be  marked and nested content might not
-	 * necessarily be marked.
+	 * Check if $node is a root in an encapsulated DOM forest.
 	 *
 	 * @param Node $node
 	 * @return bool
 	 */
-	public static function hasParsoidAboutId( Node $node ): bool {
-		if (
-			$node instanceof Element &&
-			$node->hasAttribute( 'about' )
-		) {
-			$about = $node->getAttribute( 'about' );
-			// SSS FIXME: Verify that our DOM spec clarifies this
-			// expectation on about-ids and that our clients respect this.
-			return $about && Utils::isParsoidObjectId( $about );
+	public static function isEncapsulatedDOMForestRoot( Node $node ): bool {
+		$about = $node instanceof Element ?
+			DOMCompat::getAttribute( $node, 'about' ) : null;
+		if ( $about !== null ) {
+			// FIXME: Ensure that our DOM spec clarifies this expectation
+			return Utils::isParsoidObjectId( $about );
 		} else {
 			return false;
 		}
@@ -478,18 +479,27 @@ class WTUtils {
 	}
 
 	/**
+	 * Is $node the first wrapper element of extension content?
+	 *
+	 * @param Node $node
+	 * @return bool
+	 */
+	public static function isFirstExtensionWrapperNode( Node $node ): bool {
+		return DOMUtils::matchTypeOf( $node, "#mw:Extension/#" ) !== null;
+	}
+
+	/**
 	 * Checks whether a first encapsulation wrapper node is encapsulating an extension
-	 * that outputs Mediawiki Core DOM Spec HTML (https://www.mediawiki.org/wiki/Specs/HTML)
+	 * that outputs MediaWiki Core DOM Spec HTML (https://www.mediawiki.org/wiki/Specs/HTML)
 	 * @param Node $node
 	 * @param Env $env
 	 * @return bool
 	 */
-	public static function isExtensionOutputingCoreMwDomSpec( Node $node, Env $env ): bool {
+	public static function isExtensionOutputtingCoreMwDomSpec( Node $node, Env $env ): bool {
 		if ( DOMUtils::matchTypeOf( $node, self::NON_EXTENSION_ENCAP_REGEXP ) !== null ) {
 			return false;
 		}
-		$match = DOMUtils::matchTypeOf( $node, '#^mw:Extension/(.+?)$#D' );
-		$extTagName = $match ? substr( $match, strlen( 'mw:Extension/' ) ) : null;
+		$extTagName = self::getExtTagName( $node );
 		$extConfig = $env->getSiteConfig()->getExtTagConfig( $extTagName );
 		$htmlType = $extConfig['options']['outputHasCoreMwDomSpecMarkup'] ?? null;
 		return $htmlType === true;
@@ -612,19 +622,19 @@ class WTUtils {
 	 * prevent them from getting fostered out.
 	 *
 	 * @param Node $node
-	 * @param string $about
+	 * @param ?string $about
 	 * @return Node[]
 	 */
-	public static function getAboutSiblings( Node $node, string $about ): array {
+	public static function getAboutSiblings( Node $node, ?string $about ): array {
 		$nodes = [ $node ];
 
-		if ( !$about ) {
+		if ( $about === null ) {
 			return $nodes;
 		}
 
 		$node = $node->nextSibling;
 		while ( $node && (
-			( $node instanceof Element && $node->getAttribute( 'about' ) === $about ) ||
+			( $node instanceof Element && DOMCompat::getAttribute( $node, 'about' ) === $about ) ||
 			( DOMUtils::isFosterablePosition( $node ) && DOMUtils::isIEW( $node ) )
 		) ) {
 			$nodes[] = $node;
@@ -652,8 +662,9 @@ class WTUtils {
 	 * @return Node|null
 	 */
 	public static function skipOverEncapsulatedContent( Node $node ): ?Node {
-		if ( $node instanceof Element && $node->hasAttribute( 'about' ) ) {
-			$about = $node->getAttribute( 'about' );
+		$about = $node instanceof Element ?
+			DOMCompat::getAttribute( $node, 'about' ) : null;
+		if ( $about !== null ) {
 			// Guaranteed not to be empty. It will at least include $node.
 			$aboutSiblings = self::getAboutSiblings( $node, $about );
 			return end( $aboutSiblings )->nextSibling;
@@ -773,7 +784,7 @@ class WTUtils {
 				$syntaxLen = 4;
 			}
 		} elseif ( $node instanceof CommentTk ) {
-			// @phan-suppress-next-line PhanUndeclaredProperty
+			// @phan-suppress-next-line PhanUndeclaredProperty dynamic property
 			if ( isset( $node->dataParsoid->unclosedComment ) ) {
 				$syntaxLen = 4;
 			}
@@ -785,15 +796,22 @@ class WTUtils {
 	}
 
 	/**
+	 * @param Node $node
+	 * @return ?string
+	 */
+	public static function getExtTagName( Node $node ): ?string {
+		$match = DOMUtils::matchTypeOf( $node, '#^mw:Extension/(.+?)$#D' );
+		return $match ? mb_strtolower( substr( $match, strlen( 'mw:Extension/' ) ) ) : null;
+	}
+
+	/**
 	 * @param Env $env
 	 * @param Node $node
 	 * @return ?ExtensionTagHandler
 	 */
 	public static function getNativeExt( Env $env, Node $node ): ?ExtensionTagHandler {
-		$match = DOMUtils::matchTypeOf( $node, '#^mw:Extension/(.+?)$#D' );
-		$matchingTag = $match ? substr( $match, strlen( 'mw:Extension/' ) ) : null;
-		return $matchingTag ?
-			$env->getSiteConfig()->getExtTagImpl( $matchingTag ) : null;
+		$extTagName = self::getExtTagName( $node );
+		return $extTagName ? $env->getSiteConfig()->getExtTagImpl( $extTagName ) : null;
 	}
 
 	/**
@@ -919,7 +937,7 @@ class WTUtils {
 	 */
 	public static function addPageContentI18nAttribute(
 		Element $element, string $name, string $key, ?array $params = null
-	) {
+	): void {
 		$i18n = I18nInfo::createPageContentI18n( $key, $params );
 		DOMUtils::addTypeOf( $element, 'mw:LocalizedAttrs' );
 		DOMDataUtils::setDataAttrI18n( $element, $name, $i18n );
@@ -934,7 +952,7 @@ class WTUtils {
 	 */
 	public static function addInterfaceI18nAttribute(
 		Element $element, string $name, string $key, ?array $params = null
-	) {
+	): void {
 		$i18n = I18nInfo::createInterfaceI18n( $key, $params );
 		DOMUtils::addTypeOf( $element, 'mw:LocalizedAttrs' );
 		DOMDataUtils::setDataAttrI18n( $element, $name, $i18n );
@@ -954,7 +972,7 @@ class WTUtils {
 	 */
 	public static function addLangI18nAttribute(
 		Element $element, Bcp47Code $lang, string $name, string $key, ?array $params = null
-	) {
+	): void {
 		$i18n = I18nInfo::createLangI18n( $lang, $key, $params );
 		DOMUtils::addTypeOf( $element, 'mw:LocalizedAttrs' );
 		DOMDataUtils::setDataAttrI18n( $element, $name, $i18n );
@@ -1080,6 +1098,7 @@ class WTUtils {
 				$content .= $c->nodeValue;
 			} elseif (
 				$c instanceof Element &&
+				!DOMUtils::isMetaDataTag( $c ) &&
 				!DOMUtils::hasTypeOf( $c, "mw:Extension/ref" )
 			) {
 				$content .= self::textContentFromCaption( $c );

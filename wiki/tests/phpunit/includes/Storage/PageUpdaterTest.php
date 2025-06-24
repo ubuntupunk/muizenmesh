@@ -3,25 +3,25 @@
 namespace MediaWiki\Tests\Storage;
 
 use ChangeTags;
-use CommentStoreComment;
 use Content;
-use DeferredUpdates;
 use FormatJson;
 use LogicException;
+use MediaWiki\CommentStore\CommentStoreComment;
+use MediaWiki\Deferred\DeferredUpdates;
+use MediaWiki\Message\Message;
 use MediaWiki\Page\PageIdentityValue;
 use MediaWiki\Revision\RenderedRevision;
 use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\Revision\SlotRecord;
+use MediaWiki\Status\Status;
 use MediaWiki\Storage\EditResult;
 use MediaWiki\Title\Title;
+use MediaWiki\User\User;
 use MediaWiki\User\UserIdentity;
 use MediaWikiIntegrationTestCase;
-use Message;
 use ParserOptions;
 use RecentChange;
-use Status;
 use TextContent;
-use User;
 use WikiPage;
 use WikitextContent;
 
@@ -51,10 +51,6 @@ class PageUpdaterTest extends MediaWikiIntegrationTestCase {
 				true
 			);
 		}
-
-		$this->tablesUsed[] = 'logging';
-		$this->tablesUsed[] = 'recentchanges';
-		$this->tablesUsed[] = 'change_tag';
 	}
 
 	private function getDummyTitle( $method ) {
@@ -92,7 +88,11 @@ class PageUpdaterTest extends MediaWikiIntegrationTestCase {
 		$page = $wikiPageFactory->newFromTitle( $title );
 		$updater = $page->newPageUpdater( $user );
 
-		$oldStats = $this->db->selectRow( 'site_stats', '*', '1=1' );
+		$oldStats = $this->db->newSelectQueryBuilder()
+			->select( '*' )
+			->from( 'site_stats' )
+			->where( '1=1' )
+			->fetchRow();
 
 		$this->assertFalse( $updater->wasCommitted(), 'wasCommitted' );
 
@@ -168,7 +168,11 @@ class PageUpdaterTest extends MediaWikiIntegrationTestCase {
 		$this->assertNotNull( $rc, 'RecentChange' );
 
 		// check site stats - this asserts that derived data updates where run.
-		$stats = $this->db->selectRow( 'site_stats', '*', '1=1' );
+		$stats = $this->db->newSelectQueryBuilder()
+			->select( '*' )
+			->from( 'site_stats' )
+			->where( '1=1' )
+			->fetchRow();
 		$this->assertSame( $oldStats->ss_total_pages + 1, (int)$stats->ss_total_pages );
 		$this->assertSame( $oldStats->ss_total_edits + 1, (int)$stats->ss_total_edits );
 
@@ -184,7 +188,7 @@ class PageUpdaterTest extends MediaWikiIntegrationTestCase {
 		$this->assertNull( $updater->getNewRevision(), 'getNewRevision()' );
 		$this->assertFalse( $updater->wasRevisionCreated(), 'wasRevisionCreated' );
 		$this->assertTrue( $updater->wasSuccessful(), 'wasSuccessful()' );
-		$this->assertStatusWarning( 'edit-no-change', $status, 'edit-no-change' );
+		$this->assertStatusWarning( 'edit-no-change', $status );
 	}
 
 	/**
@@ -203,7 +207,11 @@ class PageUpdaterTest extends MediaWikiIntegrationTestCase {
 
 		$updater = $page->newPageUpdater( $user );
 
-		$oldStats = $this->db->selectRow( 'site_stats', '*', '1=1' );
+		$oldStats = $this->db->newSelectQueryBuilder()
+			->select( '*' )
+			->from( 'site_stats' )
+			->where( '1=1' )
+			->fetchRow();
 
 		$updater->setOriginalRevisionId( 7 );
 
@@ -300,7 +308,11 @@ class PageUpdaterTest extends MediaWikiIntegrationTestCase {
 		);
 
 		// check site stats - this asserts that derived data updates where run.
-		$stats = $this->db->selectRow( 'site_stats', '*', '1=1' );
+		$stats = $this->db->newSelectQueryBuilder()
+			->select( '*' )
+			->from( 'site_stats' )
+			->where( '1=1' )
+			->fetchRow();
 		$this->assertNotNull( $stats, 'site_stats' );
 		$this->assertSame( $oldStats->ss_total_pages + 0, (int)$stats->ss_total_pages );
 		$this->assertSame( $oldStats->ss_total_edits + 2, (int)$stats->ss_total_edits );
@@ -323,8 +335,7 @@ class PageUpdaterTest extends MediaWikiIntegrationTestCase {
 		$this->assertNotSame( $parentId, $rev->getId(), 'new revision ID' );
 		$this->assertTrue( $updater->wasRevisionCreated(), 'wasRevisionCreated' );
 		$this->assertTrue( $updater->wasSuccessful(), 'wasSuccessful()' );
-		$this->assertStatusOK( $status, 'getStatus()->isOK()' );
-		$this->assertFalse( $status->hasMessage( 'edit-no-change' ), 'edit-no-change' );
+		$this->assertStatusGood( $status );
 		// Setting setForceEmptyRevision causes the original revision to be set.
 		$this->assertEquals( $parentId, $updater->getEditResult()->getOriginalRevisionId() );
 	}
@@ -404,12 +415,11 @@ class PageUpdaterTest extends MediaWikiIntegrationTestCase {
 
 		// Retrieve the mw-rollback change tag and verify it
 		$newRevId = $updater->getNewRevision()->getId();
-		$this->assertSelect(
-			'change_tag',
-			'ct_params',
-			[ 'ct_rev_id' => $newRevId ],
-			[ [ FormatJson::encode( $editResult ) ] ]
-		);
+		$this->newSelectQueryBuilder()
+			->select( 'ct_params' )
+			->from( 'change_tag' )
+			->where( [ 'ct_rev_id' => $newRevId ] )
+			->assertFieldValue( FormatJson::encode( $editResult ) );
 	}
 
 	/**
@@ -529,9 +539,8 @@ class PageUpdaterTest extends MediaWikiIntegrationTestCase {
 			"MultiContentSave returned false, but revision was still created." );
 
 		$status = $updater->getStatus();
-		$this->assertStatusNotOK( $status,
+		$this->assertStatusError( $expectedError, $status,
 			"MultiContentSave returned false, but Status is not fatal." );
-		$this->assertSame( $expectedError, $status->getMessage()->getKey() );
 	}
 
 	/**
@@ -642,14 +651,10 @@ class PageUpdaterTest extends MediaWikiIntegrationTestCase {
 
 		$this->assertFalse( $updater->wasSuccessful(), 'wasSuccessful()' );
 		$this->assertNull( $updater->getNewRevision(), 'getNewRevision()' );
-		$this->assertStatusNotOK( $status, 'getStatus()->isOK()' );
-		$this->assertTrue(
-			$status->hasMessage( 'content-not-allowed-here' ),
-			'content-not-allowed-here'
-		);
+		$this->assertStatusError( 'content-not-allowed-here', $status );
 	}
 
-	public function provideSetRcPatrolStatus( $patrolled ) {
+	public static function provideSetRcPatrolStatus( $patrolled ) {
 		yield [ RecentChange::PRC_UNPATROLLED ];
 		yield [ RecentChange::PRC_AUTOPATROLLED ];
 	}
@@ -769,7 +774,7 @@ class PageUpdaterTest extends MediaWikiIntegrationTestCase {
 		$updater->updateRevision();
 
 		$status = $updater->getStatus();
-		$this->assertStatusOK( $status );
+		$this->assertStatusGood( $status );
 		$rev = $status->getNewRevision();
 		$slot = $rev->getSlot( 'derivedslot' );
 		$this->assertTrue( $slot->getContent()->equals( $content ) );
@@ -892,7 +897,7 @@ class PageUpdaterTest extends MediaWikiIntegrationTestCase {
 		$this->assertSame( '', $comment->text, 'comment text' );
 	}
 
-	public function provideSetUsePageCreationLog() {
+	public static function provideSetUsePageCreationLog() {
 		yield [ true, [ [ 'create', 'create' ] ] ];
 		yield [ false, [] ];
 	}
@@ -913,15 +918,14 @@ class PageUpdaterTest extends MediaWikiIntegrationTestCase {
 		$updater->saveRevision( $summary, EDIT_NEW );
 
 		$rev = $updater->getNewRevision();
-		$this->assertSelect(
-			'logging',
-			[ 'log_type', 'log_action' ],
-			[ 'log_page' => $rev->getPageId() ],
-			$expected
-		);
+		$this->newSelectQueryBuilder()
+			->select( [ 'log_type', 'log_action' ] )
+			->from( 'logging' )
+			->where( [ 'log_page' => $rev->getPageId() ] )
+			->assertResultSet( $expected );
 	}
 
-	public function provideMagicWords() {
+	public static function provideMagicWords() {
 		yield 'PAGEID' => [
 			'Test {{PAGEID}} Test',
 			static function ( RevisionRecord $rev ) {

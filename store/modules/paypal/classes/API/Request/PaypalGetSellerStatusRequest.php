@@ -1,6 +1,6 @@
 <?php
-/**
- * 2007-2023 PayPal
+/*
+ * Since 2007 PayPal
  *
  * NOTICE OF LICENSE
  *
@@ -18,10 +18,11 @@
  *  versions in the future. If you wish to customize PrestaShop for your
  *  needs please refer to http://www.prestashop.com for more information.
  *
- *  @author 2007-2023 PayPal
+ *  @author Since 2007 PayPal
  *  @author 202 ecommerce <tech@202-ecommerce.com>
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
+ *
  */
 
 namespace PaypalAddons\classes\API\Request;
@@ -29,6 +30,7 @@ namespace PaypalAddons\classes\API\Request;
 use Exception;
 use PayPal;
 use PaypalAddons\classes\API\ExtensionSDK\GetSellerStatus;
+use PaypalAddons\classes\API\HttpAdoptedResponse;
 use PaypalAddons\classes\API\Response\Error;
 use Throwable;
 use Tools;
@@ -43,10 +45,13 @@ class PaypalGetSellerStatusRequest extends RequestAbstract
     {
         $response = $this->getResponse();
         $getSellerStatus = new GetSellerStatus($this->getPartnerMerchantId(), $this->getSellerMerchantId());
-        $getSellerStatus->headers = array_merge($getSellerStatus->headers, $this->getHeaders());
 
         try {
             $exec = $this->client->execute($getSellerStatus);
+
+            if ($exec instanceof HttpAdoptedResponse) {
+                $exec = $exec->getAdoptedResponse();
+            }
         } catch (Throwable $e) {
             $error = new Error();
             $error->setMessage($e->getMessage())
@@ -71,7 +76,7 @@ class PaypalGetSellerStatusRequest extends RequestAbstract
         return $response;
     }
 
-    /** @return ResponsePartnerReferrals*/
+    /** @return \PaypalAddons\classes\API\Response\ResponseGetSellerStatus*/
     protected function getResponse()
     {
         return new \PaypalAddons\classes\API\Response\ResponseGetSellerStatus();
@@ -91,7 +96,7 @@ class PaypalGetSellerStatusRequest extends RequestAbstract
         return $this->method->getMerchantId();
     }
 
-    protected function getCapabilities(\PayPalHttp\HttpResponse $data)
+    protected function getCapabilities($data)
     {
         $capabilities = [];
 
@@ -118,7 +123,7 @@ class PaypalGetSellerStatusRequest extends RequestAbstract
         return $capabilities;
     }
 
-    protected function getProducts(\PayPalHttp\HttpResponse $data)
+    protected function getProducts($data)
     {
         $products = [];
 
@@ -137,7 +142,7 @@ class PaypalGetSellerStatusRequest extends RequestAbstract
         return $products;
     }
 
-    protected function getProductsFull(\PayPalHttp\HttpResponse $data)
+    protected function getProductsFull($data)
     {
         if (empty($data->result->products)) {
             return [];
@@ -158,7 +163,7 @@ class PaypalGetSellerStatusRequest extends RequestAbstract
         return $products;
     }
 
-    protected function getCapabilitiesFull(\PayPalHttp\HttpResponse $data)
+    protected function getCapabilitiesFull($data)
     {
         if (empty($data->result->capabilities)) {
             return [];

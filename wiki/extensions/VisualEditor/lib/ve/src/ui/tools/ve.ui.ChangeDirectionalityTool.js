@@ -1,7 +1,7 @@
 /*!
  * VisualEditor UserInterface ChangeDirectionalityTool class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
 
 /**
@@ -29,6 +29,8 @@ OO.inheritClass( ve.ui.ChangeDirectionalityTool, ve.ui.Tool );
 /* Static Properties */
 
 ve.ui.ChangeDirectionalityTool.static.name = 'changeDirectionality';
+
+ve.ui.ChangeDirectionalityTool.static.group = 'utility';
 
 ve.ui.ChangeDirectionalityTool.static.icon = 'textDirRTL';
 

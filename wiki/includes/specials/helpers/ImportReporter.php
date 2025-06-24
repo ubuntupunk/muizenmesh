@@ -19,10 +19,14 @@
  */
 
 use MediaWiki\CommentStore\CommentStoreComment;
+use MediaWiki\Context\ContextSource;
+use MediaWiki\Context\IContextSource;
 use MediaWiki\HookContainer\ProtectedHookAccessorTrait;
 use MediaWiki\Html\Html;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Page\PageIdentity;
+use MediaWiki\Status\Status;
+use MediaWiki\Title\ForeignTitle;
 
 /**
  * Reporting callback
@@ -45,8 +49,14 @@ class ImportReporter extends ContextSource {
 	 * @param bool $upload
 	 * @param string $interwiki
 	 * @param string|bool $reason
+	 * @param IContextSource|null $context
 	 */
-	public function __construct( $importer, $upload, $interwiki, $reason = "" ) {
+	public function __construct( $importer, $upload, $interwiki, $reason = "", IContextSource $context = null ) {
+		if ( $context ) {
+			$this->setContext( $context );
+		} else {
+			wfDeprecated( __METHOD__ . ' without $context', '1.42' );
+		}
 		$this->mOriginalPageOutCallback =
 			$importer->setPageOutCallback( [ $this, 'reportPage' ] );
 		$this->mOriginalLogCallback =
@@ -139,7 +149,7 @@ class ImportReporter extends ContextSource {
 			}
 
 			$comment = CommentStoreComment::newUnsavedComment( $detail );
-			$dbw = wfGetDB( DB_PRIMARY );
+			$dbw = $services->getConnectionProvider()->getPrimaryDatabase();
 			$revStore = $services->getRevisionStore();
 			$nullRevRecord = $revStore->newNullRevision(
 				$dbw,

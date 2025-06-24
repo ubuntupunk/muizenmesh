@@ -23,7 +23,7 @@
  * @ingroup Maintenance
  * @author Antoine Musso <hashar at free dot fr>
  * Based on initSiteStats.php by:
- * @author Brion Vibber
+ * @author Brooke Vibber
  * @author Rob Church <robchur@gmail.com>
  *
  * @license GPL-2.0-or-later
@@ -53,8 +53,11 @@ class ShowSiteStats extends Maintenance {
 		];
 
 		// Get cached stats from a replica DB
-		$dbr = $this->getDB( DB_REPLICA );
-		$stats = $dbr->selectRow( 'site_stats', '*', '', __METHOD__ );
+		$dbr = $this->getReplicaDB();
+		$stats = $dbr->newSelectQueryBuilder()
+			->select( '*' )
+			->from( 'site_stats' )
+			->caller( __METHOD__ )->fetchRow();
 
 		// Get maximum size for each column
 		$max_length_value = $max_length_desc = 0;

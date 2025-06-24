@@ -1,7 +1,7 @@
 /*!
  * VisualEditor MediaWiki Initialization Platform class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see AUTHORS.txt
+ * @copyright See AUTHORS.txt
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
@@ -79,6 +79,14 @@ ve.init.mw.Platform.prototype.getMessage = mw.msg.bind( mw );
  * @method
  * @inheritdoc
  */
+ve.init.mw.Platform.prototype.getUserName = function () {
+	return mw.user.getName();
+};
+
+/**
+ * @method
+ * @inheritdoc
+ */
 ve.init.mw.Platform.prototype.parseNumber = function ( value ) {
 	var number = $.tablesorter.getParser( 'number' ).format( value );
 	// formatDigit returns -Infinity when parsing fails, change this to NaN
@@ -143,7 +151,7 @@ ve.init.mw.Platform.prototype.getUserConfig = function ( keys ) {
  */
 ve.init.mw.Platform.prototype.setUserConfig = function ( keyOrValueMap, value ) {
 	// T214963: Don't try to set user preferences for logged-out users, it doesn't work
-	if ( mw.user.isAnon() ) {
+	if ( !mw.user.isNamed() ) {
 		return false;
 	}
 
@@ -240,6 +248,7 @@ ve.init.mw.Platform.prototype.getUserLanguages = mw.language.getFallbackLanguage
  * @inheritdoc
  */
 ve.init.mw.Platform.prototype.fetchSpecialCharList = function () {
+	var platform = this;
 	return mw.loader.using( 'mediawiki.language.specialCharacters' ).then( function () {
 		var specialCharacterGroups = require( 'mediawiki.language.specialCharacters' ),
 			characters = {},
@@ -253,7 +262,7 @@ ve.init.mw.Platform.prototype.fetchSpecialCharList = function () {
 			if ( other ) {
 				characters.other = {
 					label: otherGroupName,
-					characters: other,
+					symbols: platform.processSpecialCharSymbols( other ),
 					attributes: { dir: mw.config.get( 'wgVisualEditorConfig' ).pageLanguageDir }
 				};
 			}
@@ -305,7 +314,7 @@ ve.init.mw.Platform.prototype.fetchSpecialCharList = function () {
 			// * special-characters-group-thai
 			characters[ groupName ] = {
 				label: mw.msg( 'special-characters-group-' + groupName ),
-				characters: groupObject,
+				symbols: platform.processSpecialCharSymbols( groupObject ),
 				attributes: { dir: rtlGroups.indexOf( groupName ) !== -1 ? 'rtl' : 'ltr' }
 			};
 		} );

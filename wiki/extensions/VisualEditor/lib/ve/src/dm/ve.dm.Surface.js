@@ -1,7 +1,7 @@
 /*!
  * VisualEditor DataModel Surface class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
 
 /**
@@ -40,7 +40,6 @@ ve.dm.Surface = function VeDmSurface( doc, attachedRoot, config ) {
 	this.documentModel = doc;
 	this.attachedRoot = attachedRoot;
 	this.sourceMode = !!config.sourceMode;
-	this.metaList = new ve.dm.MetaList( this );
 	this.selection = new ve.dm.NullSelection();
 	// The selection before the most recent stack of changes was applied
 	this.selectionBefore = this.selection;
@@ -569,15 +568,6 @@ ve.dm.Surface.prototype.getAttachedRoot = function () {
 };
 
 /**
- * Get the meta list.
- *
- * @return {ve.dm.MetaList} Meta list of the surface
- */
-ve.dm.Surface.prototype.getMetaList = function () {
-	return this.metaList;
-};
-
-/**
  * Get the selection.
  *
  * @return {ve.dm.Selection} Current selection
@@ -920,44 +910,6 @@ ve.dm.Surface.prototype.setSelection = function ( selection ) {
 		this.emitContextChange();
 	}
 
-};
-
-/**
- * Place the selection at the first content offset in the document.
- *
- * @deprecated Use ve.ce.Surface#selectFirstSelectableContentOffset
- */
-ve.dm.Surface.prototype.selectFirstContentOffset = function () {
-	var firstOffset = this.getDocument().data.getNearestContentOffset(
-		this.getAttachedRoot().getOffset(),
-		1
-	);
-	if ( firstOffset !== -1 ) {
-		// Found a content offset
-		this.setLinearSelection( new ve.Range( firstOffset ) );
-	} else {
-		// Document is full of structural nodes, just give up
-		this.setNullSelection();
-	}
-};
-
-/**
- * Place the selection at the last content offset in the document.
- *
- * @deprecated Use ve.ce.Surface#selectLastSelectableContentOffset
- */
-ve.dm.Surface.prototype.selectLastContentOffset = function () {
-	var data = this.getDocument().data,
-		documentRange = this.getDocument().getDocumentRange(),
-		lastOffset = data.getNearestContentOffset( documentRange.end, -1 );
-
-	if ( lastOffset !== -1 ) {
-		// Found a content offset
-		this.setLinearSelection( new ve.Range( lastOffset ) );
-	} else {
-		// Document is full of structural nodes, just give up
-		this.setNullSelection();
-	}
 };
 
 /**

@@ -2,8 +2,7 @@
 /**
  * user_groups plugin--tabs
  * @author Stephen Billard (sbillard)
- * @package plugins
- * @subpackage users
+ * @package zpcore\plugins\usergroups
  */
 define('OFFSET_PATH', 4);
 require_once(dirname(dirname(dirname(__FILE__))) . '/admin-globals.php');
@@ -130,7 +129,7 @@ if (isset($_GET['action'])) {
 printAdminHeader('users');
 $background = '';
 ?>
-<script type="text/javascript" src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/sprintf.js"></script>
+<script src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/sprintf.js"></script>
 <?php
 echo '</head>' . "\n";
 ?>
@@ -399,8 +398,7 @@ echo '</head>' . "\n";
 							<input type="hidden" name="totalgroups" value="<?php echo $id; ?>" />
 							<input type="hidden" name="checkForPostTruncation" value="1" />
 						</form>
-						<script type="text/javascript">
-							//<!-- <![CDATA[
+						<script>
 							function checkSubmit() {
 								newgroupid = <?php echo ($id - 1); ?>;
 								var c = 0;
@@ -434,7 +432,6 @@ echo '</head>' . "\n";
 								}
 								return true;
 							}
-							// ]]> -->
 						</script>
 						<br class="clearall" />
 						<?php

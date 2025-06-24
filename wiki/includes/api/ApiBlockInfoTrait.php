@@ -18,8 +18,13 @@
  * @file
  */
 
+use MediaWiki\Block\AbstractBlock;
 use MediaWiki\Block\Block;
+use MediaWiki\Block\CompositeBlock;
+use MediaWiki\Block\DatabaseBlock;
 use MediaWiki\Block\SystemBlock;
+use MediaWiki\User\User;
+use MediaWiki\Utils\MWTimestamp;
 
 /**
  * @ingroup API
@@ -42,6 +47,8 @@ trait ApiBlockInfoTrait {
 	 *  - blockexpiryrelative - relative time to blockexpiry (e.g. 'in 5 days'), omitted if infinite
 	 *  - blockpartial - block only applies to certain pages, namespaces and/or actions
 	 *  - systemblocktype - system block type, if any
+	 *  - blockcomponents - If the block is a composite block, this will be an array of block
+	 *    info arrays
 	 */
 	private function getBlockDetails(
 		Block $block,
@@ -63,6 +70,10 @@ trait ApiBlockInfoTrait {
 		$vals['blockpartial'] = !$block->isSitewide();
 		$vals['blocknocreate'] = $block->isCreateAccountBlocked();
 		$vals['blockanononly'] = !$block->isHardblock();
+		if ( $block instanceof AbstractBlock ) {
+			$vals['blockemail'] = $block->isEmailBlocked();
+			$vals['blockowntalk'] = !$block->isUsertalkEditAllowed();
+		}
 
 		$user = $this->getUser();
 		// Formatted timestamps
@@ -82,7 +93,27 @@ trait ApiBlockInfoTrait {
 			$vals['systemblocktype'] = $block->getSystemBlockType();
 		}
 
+		if ( $block instanceof CompositeBlock ) {
+			$components = [];
+			foreach ( $block->getOriginalBlocks() as $singleBlock ) {
+				$components[] = $this->getBlockDetails( $singleBlock, $language );
+			}
+			$vals['blockcomponents'] = $components;
+		}
+
 		return $vals;
+	}
+
+	/**
+	 * Get the API error code, to be used in ApiMessage::create or ApiBase::dieWithError
+	 * @param Block $block
+	 * @return string
+	 */
+	private function getBlockCode( Block $block ): string {
+		if ( $block instanceof DatabaseBlock && $block->getType() === Block::TYPE_AUTO ) {
+			return 'autoblocked';
+		}
+		return 'blocked';
 	}
 
 	// region   Methods required from ApiBase

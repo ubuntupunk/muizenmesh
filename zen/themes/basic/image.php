@@ -13,8 +13,7 @@ if (!defined('WEBPATH'))
 		<link rel="stylesheet" href="<?php echo pathurlencode($zenCSS); ?>" type="text/css" />
 		<link rel="stylesheet" href="<?php echo pathurlencode(dirname(dirname($zenCSS))); ?>/common.css" type="text/css" />
 		<?php if (zp_has_filter('theme_head', 'colorbox::css')) { ?>
-			<script type="text/javascript">
-				// <!-- <![CDATA[
+			<script>
 				$(document).ready(function() {
 					$(".fullimage").colorbox({
 						maxWidth: "98%",
@@ -26,7 +25,6 @@ if (!defined('WEBPATH'))
 						}
 					});
 				});
-				// ]]> -->
 			</script>
 		<?php } ?>
 		<?php if (class_exists('RSS')) printRSSHeaderLink('Gallery', gettext('Gallery RSS')); ?>

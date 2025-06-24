@@ -1,7 +1,7 @@
 <?php
 /**
  * provides the Options tab of admin
- * @package admin
+ * @package zpcore\admin
  */
 // force UTF-8 Ø
 
@@ -120,10 +120,26 @@ if (isset($_GET['action'])) {
 				setOption('articles_per_page', sanitize_numeric($_POST['articles_per_page']));
 			}
 			setOption('multi_lingual', (int) isset($_POST['multi_lingual']));
-			$f = sanitize($_POST['date_format_list'], 3);
-			if ($f == 'custom')
-				$f = sanitize($_POST['date_format'], 3);
-			setOption('date_format', $f);
+
+			// date format
+			$dateformat = sanitize($_POST['date_format_list'], 3);
+			if ($dateformat == 'custom') {
+				$dateformat = sanitize($_POST['date_format'], 3);
+			}
+			setOption('date_format', $dateformat);
+			$timeformat = sanitize($_POST['time_format_list'], 3);
+			if ($timeformat == 'custom') {
+				$timeformat = sanitize($_POST['time_format'], 3);
+			}
+			setOption('time_format', $timeformat);
+			if (extension_loaded('intl')) {
+				$localized_dates = (int) isset($_POST['date_format_localized']);
+			} else {
+				$localized_dates = 0;
+			}
+			setOption('date_format_localized', $localized_dates);
+			setOption('time_display_disabled', (int) isset($_POST['time_display_disabled']));
+			
 			setOption('UTF8_image_URI', (int) isset($_POST['UTF8_image_URI']));
 			foreach ($_POST as $key => $value) {
 				if (preg_match('/^log_size.*_(.*)$/', $key, $matches)) {
@@ -131,6 +147,7 @@ if (isset($_GET['action'])) {
 					setOption($matches[1] . '_log_mail', (int) isset($_POST['log_mail_' . $matches[1]]));
 				}
 			}
+			setOption('daily_logs', (int) isset($_POST['daily_logs']));
 		}
 
 		/*		 * * Gallery options ** */
@@ -144,14 +161,14 @@ if (isset($_GET['action'])) {
 			$_zp_gallery->setSecondLevelThumbs((int) isset($_POST['multilevel_thumb_select_images']));
 			$_zp_gallery->setTitle(process_language_string_save('gallery_title', 2));
 			$_zp_gallery->setDesc(process_language_string_save('Gallery_description', EDITOR_SANITIZE_LEVEL));
-			
+
 			$_zp_gallery->setCopyrightNotice(process_language_string_save('copyright_site_notice', EDITOR_SANITIZE_LEVEL));
 			$_zp_gallery->setCopyrightURL(sanitize($_POST['copyright_site_url'], 3));
 			$_zp_gallery->set('copyright_site_url_custom', sanitize($_POST['copyright_site_url_custom'], 3));
 			setOption('display_copyright_notice', (int) isset($_POST['display_copyright_notice']));
 			$_zp_gallery->set('copyright_site_rightsholder', sanitize($_POST['copyright_site_rightsholder'], 3));
 			$_zp_gallery->set('copyright_site_rightsholder_custom', sanitize($_POST['copyright_site_rightsholder_custom'], 3));
-		
+
 			$_zp_gallery->setParentSiteTitle(process_language_string_save('website_title', 2));
 			$web = sanitize($_POST['website_url'], 3);
 			$_zp_gallery->setParentSiteURL($web);
@@ -191,6 +208,7 @@ if (isset($_GET['action'])) {
 				}
 			}
 			setOption('search_fields', implode(',', $searchfields));
+			setOption('search_fieldsselector_enabled', (int) isset($_POST['search_fieldsselector_enabled']));
 			setOption('search_cache_duration', sanitize_numeric($_POST['search_cache_duration']));
 			$notify = processCredentials('search');
 			setOption('exact_tag_match', sanitize($_POST['tag_match']));
@@ -201,7 +219,7 @@ if (isset($_GET['action'])) {
 			setOption('search_no_pages', (int) isset($_POST['search_no_pages']));
 			setOption('search_no_news', (int) isset($_POST['search_no_news']));
 			setOption('search_within', (int) ($_POST['search_within'] && true));
-			
+
 			// image default sort order + direction
 			$sorttype = strtolower(sanitize($_POST['search_image_sort_type'], 3));
 			if ($sorttype == 'custom') {
@@ -218,7 +236,7 @@ if (isset($_GET['action'])) {
 				}
 				setOption('search_image_sort_direction', $direction);
 			}
-			
+
 			// album default sort order + direction
 			$sorttype = strtolower(sanitize($_POST['search_album_sort_type'], 3));
 			if ($sorttype == 'custom') {
@@ -230,7 +248,7 @@ if (isset($_GET['action'])) {
 			} else {
 				setOption('search_album_sort_direction', isset($_POST['search_album_sort_direction']));
 			}
-			
+
 			if (ZP_NEWS_ENABLED) {
 				// Zenpage news articles default sort order + direction
 				$sorttype = strtolower(sanitize($_POST['search_newsarticle_sort_type'], 3));
@@ -244,7 +262,7 @@ if (isset($_GET['action'])) {
 					setOption('search_newsarticle_sort_direction', isset($_POST['search_newsarticle_sort_direction']));
 				}
 			}
-			
+
 			if (ZP_PAGES_ENABLED) {
 				// Zenpage pages default sort order + direction
 				$sorttype = strtolower(sanitize($_POST['search_page_sort_type'], 3));
@@ -270,14 +288,15 @@ if (isset($_GET['action'])) {
 			setOption('image_sharpen', (int) isset($_POST['image_sharpen']));
 			setOption('image_interlace', (int) isset($_POST['image_interlace']));
 			setOption('EmbedIPTC', (int) isset($_POST['EmbedIPTC']));
-			
+			setOption('metadata_refresh_behaviour', sanitize($_POST['metadata_refresh_behaviour'], 3));
+
 			setOption('copyright_image_notice', process_language_string_save('copyright_image_notice', 3));
 			setOption('display_copyright_image_notice', (int) isset($_POST['display_copyright_image_notice']));
 			setOption('copyright_image_url', sanitize($_POST['copyright_image_url']));
 			setOption('copyright_image_url_custom', sanitize($_POST['copyright_image_url_custom']));
 			setOption('copyright_image_rightsholder', sanitize($_POST['copyright_image_rightsholder']));
 			setOption('copyright_image_rightsholder_custom', sanitize($_POST['copyright_image_rightsholder_custom']));
-			
+
 			setOption('sharpen_amount', sanitize_numeric($_POST['sharpen_amount']));
 			setOption('image_max_size', sanitize_numeric($_POST['image_max_size']));
 			$num = str_replace(',', '.', sanitize($_POST['sharpen_radius']));
@@ -388,7 +407,7 @@ if (isset($_GET['action'])) {
 				} else {
 					$ncw = $cw = getThemeOption('thumb_crop_width', $table, $themename);
 					$nch = $ch = getThemeOption('thumb_crop_height', $table, $themename);
-					if (isset($_POST['image_size'])) 
+					if (isset($_POST['image_size']))
 						setThemeOption('image_size', sanitize_numeric($_POST['image_size']), $table, $themename);
 					if (isset($_POST['image_use_side']))
 						setThemeOption('image_use_side', sanitize($_POST['image_use_side']), $table, $themename);
@@ -413,7 +432,7 @@ if (isset($_GET['action'])) {
 						}
 						setThemeOption('thumb_crop_height', $nch, $table, $themename);
 					}
-					
+
 					if (isset($_POST['albums_per_page'])) {
 						$albums_per_page = sanitize_numeric($_POST['albums_per_page']);
 						setThemeOption('albums_per_page', $albums_per_page, $table, $themename);
@@ -430,7 +449,7 @@ if (isset($_GET['action'])) {
 					if (isset($_POST['thumb_transition_max'])) {
 						setThemeOption('thumb_transition_max', max(1, sanitize_numeric($_POST['thumb_transition_max'])), $table, $themename);
 					}
-					
+
 					if (isset($_POST['custom_index_page']))
 						setThemeOption('custom_index_page', sanitize($_POST['custom_index_page'], 3), $table, $themename);
 					$otg = getThemeOption('thumb_gray', $table, $themename);
@@ -507,7 +526,7 @@ if (isset($_GET['action'])) {
 }
 printAdminHeader($_current_tab);
 ?>
-<script type="text/javascript" src="js/farbtastic.js"></script>
+<script src="js/farbtastic.js"></script>
 <link rel="stylesheet" href="js/farbtastic.css" type="text/css" />
 <?php
 if ($_zp_admin_current_subpage == 'gallery' || $_zp_admin_current_subpage == 'image') {
@@ -527,10 +546,9 @@ if ($_zp_admin_current_subpage == 'gallery' || $_zp_admin_current_subpage == 'im
 		sort($dbfields);
 	}
 	?>
-	<script type="text/javascript" src="js/encoder.js"></script>
-	<script type="text/javascript" src="js/tag.js"></script>
-	<script type="text/javascript">
-						// <!-- <![CDATA[
+	<script src="js/encoder.js"></script>
+	<script src="js/tag.js"></script>
+	<script>
 						$(function () {
 						$('#<?php echo $targetid; ?>').tagSuggest({
 						tags: [
@@ -538,7 +556,6 @@ if ($_zp_admin_current_subpage == 'gallery' || $_zp_admin_current_subpage == 'im
 						]
 						});
 						});
-						// ]]> -->
 	</script>
 	<?php
 }
@@ -691,7 +708,7 @@ Authority::printPasswordFormJS();
 											<?php echo sprintf(gettext('The <em>tokens</em> used in rewritten URIs may be altered to your taste. See the <a href="%s">plugin options</a> for <code>rewriteTokens</code>.'), WEBPATH . '/' . ZENFOLDER . '/admin-options.php?page=options&tab=plugin&single=rewriteTokens'); ?>
 											<?php
 											if (!getOption('mod_rewrite_detected'))
-												echo '<p class="notebox">' . gettext('Setup did not detect a working <em>mod_rewrite</em> facility.'), '</p>';
+												echo '<p class="notebox">' . gettext('Setup did not detect a working <em>mod_rewrite</em> facility. Since this test is not 100% reliable this may be a false report though.'), '</p>';
 											?>
 										</p>
 										<p><?php echo gettext("If you are having problems with images whose names contain characters with diacritical marks try changing the <em>UTF8 image URIs</em> setting."); ?></p>
@@ -791,7 +808,7 @@ Authority::printPasswordFormJS();
 											}
 											?>
 										</ul>
-										<script type="text/javascript">
+										<script>
 																			var oldselect = '<?php echo $currentValue; ?>';
 																			function radio_click(id) {
 																			if ($('#r_' + id).prop('checked')) {
@@ -815,7 +832,7 @@ Authority::printPasswordFormJS();
 										<?php if(!empty($systemlocales)) { // if class ResourceBundle does not exist this has no meaning ?>
 											<p class="notebox"><?php printf(gettext('Languages marked with the %1$s icon have no matching locale installed on the server and therefore will not work. This is a technical requirement by native <a href="%2$s">PHP gettext</a>.'), '<img src="'. WEBPATH . '/'. ZENFOLDER .'/images/action.png" alt="'. gettext('Locale not installed'). '">', 'https://www.php.net/manual/en/book.gettext.php'); ?></p>
 										<?php } ?>
-										
+
 										<label class="checkboxlabel">
 											<input type="checkbox" name="multi_lingual" value="1"	<?php checked('1', getOption('multi_lingual')); ?> /><?php echo gettext('Multi-lingual'); ?>
 										</label>
@@ -828,72 +845,37 @@ Authority::printPasswordFormJS();
 									</td>
 								</tr>
 								<tr>
-									<td width="175"><?php echo gettext("Date format:"); ?></td>
+									<td width="175"><?php echo gettext("Date and time formats:"); ?></td>
 									<td width="350">
-										<select id="date_format_list" name="date_format_list" onchange="showfield(this, 'customTextBox')">
 											<?php
-											$formatlist = array(
-															gettext('Custom')												 => 'custom',
-															gettext('02/25/08 15:30')								 => 'm/d/y H:i', //'%d/%m/%y %H:%M',
-															gettext('02/25/08')											 => 'm/d/y', //'%d/%m/%y',
-															gettext('02/25/2008 15:30')							 => 'm/d/Y H:i', //'%d/%m/%Y %H:%M',
-															gettext('02/25/2008')										 => 'm/d/Y', //'%d/%m/%Y',
-															gettext('02-25-08 15:30')								 => 'm-d-y H:i', //'%d-%m-%y %H:%M',
-															gettext('02-25-08')											 => 'm-d-y', //'%d-%m-%y',
-															gettext('02-25-2008 15:30')							 => 'm-d-Y H:i', //'%d-%m-%Y %H:%M',
-															gettext('02-25-2008')										 => 'm-d-Y',//'%d-%m-%Y',
-															gettext('2008. February 25. 15:30')			 => 'Y. F d. H:i',//'%Y. %B %d. %H:%M',
-															gettext('2008. February 25.')						 => 'Y. F d.',//'%Y. %B %d.',
-															gettext('2008-02-25 15:30')							 => 'Y-m-d H:i',//'%Y-%m-%d %H:%M',
-															gettext('2008-02-25')										 => 'Y-m-d', //'%Y-%m-%d',
-															gettext('25 Feb 2008 15:30')						 => 'd M Y H:i', //'%d %B %Y %H:%M',
-															gettext('25 Feb 2008')									 => 'd M Y', //'%d %B %Y',
-															gettext('25 February 2008 15:30')				 => 'd F Y H:i', //'%d %B %Y %H:%M',
-															gettext('25 February 2008')							 => 'd F Y', //'%d %B %Y',
-															gettext('25. Feb 2008 15:30')						 => 'd. M Y H:i', //'%d. %B %Y %H:%M',
-															gettext('25. Feb 2008')									 => 'd. M Y', //'%d. %B %Y',
-															gettext('25. Feb. 08 15:30')						 => 'd. M y H:i', //'%d. %b %y %H:%M',
-															gettext('25. Feb. 08')									 => 'd. M y', //'%d. %b %y',
-															gettext('25. February 2008 15:30')			 => 'd. F Y H:i', //'%d. %B %Y %H:%M',
-															gettext('25. February 2008')						 => 'd. F Y', //'%d. %B %Y',
-															gettext('25.02.08 15:30')								 => 'd.m.y H:i', //'%d.%m.%y %H:%M',
-															gettext('25.02.08')											 => 'd.m.y', //'%d.%m.%y',
-															gettext('25.02.2008 15:30')							 => 'd.m.Y H:i', //'%d.%m.%Y %H:%M',
-															gettext('25.02.2008')										 => 'd.m.Y', //'%d.%m.%Y',
-															gettext('25-02-08 15:30')								 => 'd-m-y H:i', //'%d-%m-%y %H:%M',
-															gettext('25-02-08')											 => 'd-m-y', //'%d-%m-%y',
-															gettext('25-02-2008 15:30')							 => 'd-m-Y H:i', //'%d-%m-%Y %H:%M',
-															gettext('25-02-2008')										 => 'd-m-Y', //'%d-%m-%Y',
-															gettext('25-Feb-08 15:30')							 => 'd-M-y H:i', //'%d-%b-%y %H:%M',
-															gettext('25-Feb-08')										 => 'd-M-y', //'%d-%b-%y',
-															gettext('25-Feb-2008 15:30')						 => 'd-M-Y H:i', //'%d-%b-%Y %H:%M',
-															gettext('25-Feb-2008')									 => 'd-M-Y', //'%d-%b-%Y',
-															gettext('Feb 25, 2008 15:30')						 => 'M d, Y H:i', //'%b %d, %Y %H:%M',
-															gettext('Feb 25, 2008')									 => 'M d, Y', //'%b %d, %Y',
-															gettext('February 25, 2008 15:30')			 => 'F d, Y H:i', //'%B %d, %Y %H:%M',
-															gettext('February 25, 2008')						 => 'F d, Y' //'%B %d, %Y');
-													); 
-											if (extension_loaded('intl')) {
-												$formatlist[gettext('Preferred date representation')] = 'locale_preferreddate_time';
-											}
-											$cv = DATE_FORMAT;
-											$flip = array_flip($formatlist);
-											if (isset($flip[$cv])) {
-												$dsp = 'none';
-											} else {
-												$dsp = 'block';
-											}
-											if (array_search($cv, $formatlist) === false)
-												$cv = 'custom';
-											generateListFromArray(array($cv), $formatlist, false, true);
-											?>
-										</select>
-										<div id="customTextBox" class="customText" style="display:<?php echo $dsp; ?>">
-											<br />
-											<input type="text" size="<?php echo TEXT_INPUT_SIZE; ?>" name="date_format" value="<?php echo html_encode(DATE_FORMAT); ?>" />
-										</div>
+											printDatetimeFormatSelector();
+											$use_localized_date = getOption('date_format_localized');
+											$time_display_disabled = getOption('time_display_disabled');
+										?>
+										<p>
+											<label class="checkboxlabel">
+												<input type="checkbox" name="date_format_localized" value="1"	<?php checked('1', $use_localized_date); ?> /><?php echo gettext('Use localized dates'); ?>
+											</label>
+										</p>
+										<p>	
+											<label class="checkboxlabel">
+												<input type="checkbox" name="time_display_disabled" value="1"	<?php checked('1', $time_display_disabled); ?> /><?php echo gettext('Disable time for display'); ?>
+											</label>
+										</p>
 									</td>
-									<td><?php echo gettext('Format for dates. Select from the list or set to <code>custom</code> and provide a <a href="https://www.php.net/manual/en/function.date.php"><span class="nowrap"><code>date()</code></span></a> format string in the text box.'); ?></td>
+									<td>
+										<p><?php echo gettext('Formats for date and time. Select from the lists or set to <code>custom</code> and provide a <a href="https://www.php.net/manual/en/datetime.format.php">datetime</a> format string for date and time in the custom boxes.'); ?></p>
+										<p><?php echo gettext('If time is disabled for display standard theme and admin functions will not display it.'); ?></p>
+									<?php if (extension_loaded('intl')) { ?>
+										<p class="notebox">
+										<?php echo gettext('NOTE: If localized dates are enabled and you are using a custom date format you need to provide an <a href="https://unicode-org.github.io/icu/userguide/format_parse/datetime/">ICU dateformat string</a>.'); ?>
+									</p>
+								<?php } else { ?>
+									<p class="warningbox">
+										<?php echo gettext('The intl PHP extension is not installed and localized dates are not available on your system.'); ?>
+									</p>
+								<?php } ?>
+									</td>
 								</tr>
 								<tr>
 									<td width="175"><?php echo gettext("Charset:"); ?></td>
@@ -962,8 +944,7 @@ Authority::printPasswordFormJS();
 										<p><textarea name="allowed_tags" id="allowed_tags" style="width: 340px" rows="10" cols="35"><?php echo html_encode(getOption('allowed_tags')); ?></textarea></p>
 									</td>
 									<td>
-										<script type="text/javascript">
-																			// <!-- <![CDATA[
+										<script>
 																							function resetallowedtags() {
 																							$('#allowed_tags').val(<?php
 									$t = getOption('allowed_tags_default');
@@ -984,7 +965,6 @@ Authority::printPasswordFormJS();
 	}
 	?>);
 																							}
-																			// ]]> -->
 										</script>
 										<p><?php echo gettext("Tags and attributes allowed in comments, descriptions, and other fields."); ?><p>
 										<p><?php echo gettext("Follow the form: <em>tag</em> =&gt; (<em>attribute</em> =&gt;() <em>attribute</em>=&gt;() <em>attribute</em> =&gt;()....etc.)"); ?></p>
@@ -1102,7 +1082,20 @@ Authority::printPasswordFormJS();
 									</td>
 									<td><?php echo gettext('Logs will be "rolled" over when they exceed the specified size. If checked, the administrator will be e-mailed when this occurs.') ?></td>
 								</tr>
-								
+
+								<tr>
+									<td width="175">
+										<?php echo gettext("Daily logs:"); ?></p
+
+									</td>
+									<td width="350">
+										<label>
+											<input type="checkbox" id="daily_logs" name="daily_logs" value="1" <?php checked('1', getOption('daily_logs')); ?> /> <?php echo gettext('Enable daily logs'); ?>
+										</label>
+									</td>
+									<td><?php echo gettext('If checked logs will be created daily by appending the dateformat YYYY-mm-dd to the filename.'); ?></td>
+								</tr>
+
 								<?php zp_apply_filter('admin_general_data'); ?>
 								<tr>
 									<td colspan="3">
@@ -1112,6 +1105,7 @@ Authority::printPasswordFormJS();
 										</p>
 									</td>
 								</tr>
+
 							</table>
 						</form>
 					</div>
@@ -1150,18 +1144,18 @@ Authority::printPasswordFormJS();
 									</td>
 									<td><?php echo gettext("A brief description of your gallery. Some themes may display this text."); ?></td>
 								</tr>
-								
+
 								<tr>
 									<td><?php echo gettext('Site copyright notice'); ?></td>
 									<td>
 										<p><?php print_language_string_list($_zp_gallery->getCopyrightNotice('all'), 'copyright_site_notice'); ?> <?php echo gettext('Notice'); ?></p>
-										
+
 									</td>
 									<td>
 										<p><?php echo gettext('The notice will be used by the html_meta_tags plugin. If not set the image meta data is tried instead.'); ?></p>
 									</td>
 								</tr>
-		
+
 								<tr>
 									<td><?php echo gettext('Site copyright URL'); ?></td>
 									<td>
@@ -1171,15 +1165,15 @@ Authority::printPasswordFormJS();
 										<p><?php echo gettext('Choose a Zenpage page or define a custom URL. The URL maybe used to point to some specific copyright info source. Must be an absolute URL address of the form: http://mydomain.com/license.html.'); ?></p>
 									</td>
 								</tr>
-								
+
 								<tr>
-									<td><?php echo gettext("Display coypright notice"); ?></td>
+									<td><?php echo gettext("Display copyright notice"); ?></td>
 									<td>
 										<label><input type="checkbox" name="display_copyright_notice" id="display_copyright_notice" value="1" <?php checked('1', getOption('display_copyright_notice')); ?> /> <?php echo gettext('Enable'); ?></label>
 									</td>
 									<td><?php echo gettext("Enable to display the copyright notice. This may usually be in the theme footer but is up to the theme."); ?></td>
 								</tr>
-								
+
 								<tr>
 									<td><?php echo gettext('Site copyright rightsholder'); ?></td>
 									<td>
@@ -1189,7 +1183,7 @@ Authority::printPasswordFormJS();
 										<p><?php echo gettext('The rights holder will be used by the html_meta_tags plugin. If set to <em>none</em> the image metadata fields "copyright" or "owner" are used as fallbacks, if available.'); ?></p>
 									</td>
 								</tr>
-								
+
 								<tr>
 									<td><?php echo gettext('Gallery type'); ?></td>
 									<td>
@@ -1245,7 +1239,7 @@ Authority::printPasswordFormJS();
 										<td>
 											<p>
 											<input type="text" size="<?php echo TEXT_INPUT_SIZE; ?>"
-														 class="dirtyignore" 
+														 class="dirtyignore"
 														 onkeydown="passwordClear('');"
 														 id="user_name" name="user"
 														 value="<?php echo html_encode($_zp_gallery->getUser()); ?>" />
@@ -1274,7 +1268,7 @@ Authority::printPasswordFormJS();
 											?>
 											<input class="dirtyignore" type="password" name="pass" style="display:none;" />
 											<input type="password" size="<?php echo TEXT_INPUT_SIZE; ?>"
-														 class="dirtyignore" 
+														 class="dirtyignore"
 														 id="pass" name="pass"
 														 onkeydown="passwordClear('');"
 														 onkeyup="passwordStrength('');"
@@ -1282,7 +1276,7 @@ Authority::printPasswordFormJS();
 											<br />
 											<span class="password_field_">
 												<input type="password" size="<?php echo TEXT_INPUT_SIZE; ?>"
-															 class="dirtyignore" 
+															 class="dirtyignore"
 															 id="pass_r" name="pass_r" disabled="disabled"
 															 onkeydown="passwordClear('');"
 															 onkeyup="passwordMatch('');"
@@ -1423,7 +1417,7 @@ Authority::printPasswordFormJS();
 									</td>
 									<td>
 										<?php
-										echo gettext('Sort order for the albums on the index of the gallery. Custom sort values must be database field names. You can have multiple fields separated by commas. This option is also the default sort for albums and subalbums.');
+										echo gettext('Sort order for all albums and subalbums.');
 										?>
 									</td>
 								</tr>
@@ -1574,7 +1568,7 @@ Authority::printPasswordFormJS();
 										</td>
 										<td>
 											<input type="text" size="<?php echo TEXT_INPUT_SIZE; ?>"
-														 class="dirtyignore" 
+														 class="dirtyignore"
 														 onkeydown="passwordClear('');"
 														 id="user_name" name="user"
 														 value="<?php echo html_encode(getOption('search_user')); ?>" autocomplete="off" />
@@ -1603,7 +1597,7 @@ Authority::printPasswordFormJS();
 											?>
 											<input class="dirtyignore" type="password" name="pass" style="display:none;" />
 											<input type="password" size="<?php echo TEXT_INPUT_SIZE; ?>"
-														 class="dirtyignore" 
+														 class="dirtyignore"
 														 id="pass" name="pass"
 														 onkeydown="passwordClear('');"
 														 onkeyup="passwordStrength('');"
@@ -1611,7 +1605,7 @@ Authority::printPasswordFormJS();
 											<br />
 											<span class="password_field_">
 												<input type="password" size="<?php echo TEXT_INPUT_SIZE; ?>"
-															 class="dirtyignore" 
+															 class="dirtyignore"
 															 id="pass_r" name="pass_r" disabled="disabled"
 															 onkeydown="passwordClear('');"
 															 onkeyup="passwordMatch('');"
@@ -1744,6 +1738,22 @@ Authority::printPasswordFormJS();
 									<p><?php echo gettext('<code>Default search</code> sets how searches from search page results behave. The search will either be from <em>within</em> the results of the previous search or will be a fresh <em>new</em> search.') ?></p>
 									<p><?php echo gettext('Setting <code>Do not return <em>{item}</em> matches</code> will cause search to ignore <em>{items}</em> when looking for matches.') ?></p>
 								</td>
+
+								<tr>
+									<td><?php echo gettext('Search fields selector'); ?></td>
+									<td>
+										<p>
+											<label>
+												<input type="checkbox" name="search_fieldsselector_enabled" value="1" <?php checked('1', getOption('search_fieldsselector_enabled')); ?> />
+												<?php echo gettext('Enable selector') ?>
+											</label>
+										</p>
+									</td>
+									<td>
+										<?php echo gettext('If enabled the search form will feature a selector for all currently enabled search fields above.'); ?>
+									</td>
+								</tr>
+
 								<tr>
 									<td><?php echo gettext('Cache expiry'); ?></td>
 									<td>
@@ -1753,14 +1763,14 @@ Authority::printPasswordFormJS();
 										<?php echo gettext('Search will remember the results of particular searches so that it can quickly serve multiple pages, etc. Over time this remembered result can become obsolete, so it should be refreshed. This option lets you decide how long before a search will be considered obsolete and thus re-executed. Setting the option to <em>zero</em> disables caching of searches.'); ?>
 									</td>
 								</tr>
-				
+
 								<tr>
 									<td class="leftcolumn"><?php echo gettext("Sort albums by"); ?> </td>
 									<td colspan="2">
 										<span class="nowrap">
 											<select id="album_sort_select" name="search_album_sort_type" onchange="update_direction(this, 'album_direction_div', 'album_custom_div');">
 												<?php
-												$sort = getSortByOptions('albums-search'); 
+												$sort = getSortByOptions('albums-search');
 												$cvt = $type = strtolower(getOption('search_album_sort_type'));
 												if ($type && !in_array($type, $sort)) {
 													$cv = array('custom');
@@ -1796,7 +1806,7 @@ Authority::printPasswordFormJS();
 											$dsp = 'block';
 										}
 										?>
-										
+
 									</td>
 
 								</tr>
@@ -1807,7 +1817,7 @@ Authority::printPasswordFormJS();
 										<span class="nowrap">
 											<select id="image_sort_select" name="search_image_sort_type" onchange="update_direction(this, 'image_direction_div', 'image_custom_div')">
 												<?php
-												$sort = getSortByOptions('images-search'); 
+												$sort = getSortByOptions('images-search');
 												$cvt = $type = strtolower(getOption('search_image_sort_type'));
 												if ($type && !in_array($type, $sort)) {
 													$cv = array('custom');
@@ -1843,7 +1853,7 @@ Authority::printPasswordFormJS();
 											$dsp = 'block';
 										}
 										?>
-										
+
 									</td>
 								</tr>
 								<?php
@@ -1891,11 +1901,11 @@ Authority::printPasswordFormJS();
 												$dsp = 'block';
 											}
 											?>
-											
+
 										</td>
 									</tr>
-								<?php 
-								} 
+								<?php
+								}
 								if (ZP_PAGES_ENABLED) {
 									$zenpage_sort_pages = getSortByOptions('pages-search');
 								?>
@@ -1940,11 +1950,11 @@ Authority::printPasswordFormJS();
 												$dsp = 'block';
 											}
 											?>
-											
+
 										</td>
 									</tr>
 								<?php } ?>
-					
+
 								<tr>
 									<td colspan="3">
 										<p class="buttons">
@@ -2028,7 +2038,6 @@ Authority::printPasswordFormJS();
 									</td>
 									<td>
 										<p><?php echo gettext("Default sort order for images."); ?></p>
-										<p><?php echo gettext('Custom sort values must be database field names. You can have multiple fields separated by commas.') ?></p>
 									</td>
 								</tr>
 								<tr>
@@ -2043,8 +2052,7 @@ Authority::printPasswordFormJS();
 									<td width="350">
 										<p class="nowrap">
 											<?php echo gettext('Normal Image'); ?>&nbsp;<input type="text" size="3" id="imagequality" name="image_quality" value="<?php echo getOption('image_quality'); ?>" />
-											<script type="text/javascript">
-																								// <!-- <![CDATA[
+											<script>
 																								$(function() {
 																								$("#slider-imagequality").slider({
 	<?php $v = getOption('image_quality'); ?>
@@ -2058,14 +2066,12 @@ Authority::printPasswordFormJS();
 																								});
 																												$("#imagequality").val($("#slider-imagequality").slider("value"));
 																								});
-																								// ]]> -->
 											</script>
 										<div id="slider-imagequality"></div>
 										</p>
 										<p class="nowrap">
 											<?php echo gettext('<em>full</em> Image'); ?>&nbsp;<input type="text" size="3" id="fullimagequality" name="full_image_quality" value="<?php echo getOption('full_image_quality'); ?>" />
-											<script type="text/javascript">
-																								// <!-- <![CDATA[
+											<script>
 																								$(function() {
 																								$("#slider-fullimagequality").slider({
 	<?php $v = getOption('full_image_quality'); ?>
@@ -2079,14 +2085,12 @@ Authority::printPasswordFormJS();
 																								});
 																												$("#fullimagequality").val($("#slider-fullimagequality").slider("value"));
 																								});
-																								// ]]> -->
 											</script>
 										<div id="slider-fullimagequality"></div>
 										</p>
 										<p class="nowrap">
 											<?php echo gettext('Thumbnail'); ?>&nbsp;<input type="text" size="3" id="thumbquality" name="thumb_quality" value="<?php echo getOption('thumb_quality'); ?>" />
-											<script type="text/javascript">
-																								// <!-- <![CDATA[
+											<script>
 																								$(function() {
 																								$("#slider-thumbquality").slider({
 	<?php $v = getOption('thumb_quality'); ?>
@@ -2100,7 +2104,6 @@ Authority::printPasswordFormJS();
 																								});
 																												$("#thumbquality").val($("#slider-thumbquality").slider("value"));
 																								});
-																								// ]]> -->
 											</script>
 										<div id="slider-thumbquality"></div>
 										</p>
@@ -2157,8 +2160,7 @@ Authority::printPasswordFormJS();
 										</p>
 										<p class="nowrap">
 											<?php echo gettext('Amount'); ?>&nbsp;<input type="text" id="sharpenamount" name="sharpen_amount" size="3" value="<?php echo getOption('sharpen_amount'); ?>" />
-											<script type="text/javascript">
-																								// <!-- <![CDATA[
+											<script>
 																								$(function() {
 																								$("#slider-sharpenamount").slider({
 	<?php $v = getOption('sharpen_amount'); ?>
@@ -2172,7 +2174,6 @@ Authority::printPasswordFormJS();
 																								});
 																												$("#sharpenamount").val($("#slider-sharpenamount").slider("value"));
 																								});
-																								// ]]> -->
 											</script>
 										<div id="slider-sharpenamount"></div>
 										</p>
@@ -2189,7 +2190,7 @@ Authority::printPasswordFormJS();
 										</table>
 									</td>
 									<td>
-										<p><?php echo gettext("Add an unsharp mask to images and/or thumbnails.") . "</p><p class='notebox'>" . gettext("<strong>WARNING</strong>: can overload slow servers."); ?></p>
+										<p><?php echo gettext("Add an unsharp mask to images and/or thumbnails.") . "</p><p class='warningbox'>" . gettext("<strong>WARNING</strong>: can overload slow servers."); ?></p>
 										<p><?php echo gettext("<em>Amount</em>: the strength of the sharpening effect. Values are between 0 (least sharpening) and 100 (most sharpening)."); ?></p>
 										<p><?php echo gettext("<em>Radius</em>: the pixel radius of the sharpening mask. A smaller radius sharpens smaller details, and a larger radius sharpens larger details."); ?></p>
 										<p><?php echo gettext("<em>Threshold</em>: the color difference threshold required for sharpening. A low threshold sharpens all edges including faint ones, while a higher threshold only sharpens more distinct edges."); ?></p>
@@ -2269,7 +2270,7 @@ Authority::printPasswordFormJS();
 										<p class="nowrap">
 											<?php echo gettext("offset h"); ?>
 											<input type="text" size="2" name="watermark_h_offset"
-														 value="<?php echo html_encode(getOption('watermark_h_offset')); ?>" /><?php echo /* xgettext:no-php-format */ gettext("% w, "); ?>
+														 value="<?php echo html_encode(getOption('watermark_h_offset')); ?>" /><?php echo /* xgettext:no-php-format */ gettext("% , w "); ?>
 											<input type="text" size="2" name="watermark_w_offset"
 														 value="<?php echo html_encode(getOption('watermark_w_offset')); ?>" /><?php /* xgettext:no-php-format */ echo gettext("%"); ?>
 										</p>
@@ -2286,14 +2287,16 @@ Authority::printPasswordFormJS();
 											<?php
 										}
 										?>
+										<p class="notebox">
+											<?php echo gettext('<strong>NOTE:</strong> If you want to watermark <em>Full sized images</em> you have to enable <em>cache the full image</em> from the <em>Full image protection</em> option below.'); ?>
+										</p>
 									</td>
 
 								</tr>
 								<tr>
 									<td><?php echo gettext("Caching concurrency:"); ?></td>
 									<td>
-										<script type="text/javascript">
-																							// <!-- <![CDATA[
+										<script>
 																							$(function() {
 																							$("#slider-workers").slider({
 	<?php $v = getOption('imageProcessorConcurrency'); ?>
@@ -2309,7 +2312,6 @@ Authority::printPasswordFormJS();
 																											$("#cache-workers").val($("#slider-workers").slider("value"));
 																											$("#cache_processes").html($("#cache-workers").val());
 																							});
-																							// ]]> -->
 										</script>
 										<div id="slider-workers"></div>
 										<input type="hidden" id="cache-workers" name="imageProcessorConcurrency" value="<?php echo getOption('imageProcessorConcurrency'); ?>" />
@@ -2345,7 +2347,7 @@ Authority::printPasswordFormJS();
 									</td>
 									<td><?php
 										echo gettext('If checked all image URIs will link to the image processor and the image cache will be disabled to browsers via an <em>.htaccess</em> file. Images are still cached but the image processor is used to serve the image rather than allowing the browser to fetch the file.') .
-										'<p class="notebox">' . gettext('<strong>WARNING	:</strong> This option adds significant overhead to <strong>each and every</strong> image reference! Some <em>JavaScript</em> and <em>Flash</em> based image handlers will not work with an image processor URI and are incompatible with this option.') . '</p>';
+										'<p class="warningbox">' . gettext('<strong>WARNING	:</strong> This option adds significant overhead to <strong>each and every</strong> image reference! Some <em>JavaScript</em> and <em>Flash</em> based image handlers will not work with an image processor URI and are incompatible with this option.') . '</p>';
 										?></td>
 								</tr>
 								<tr>
@@ -2356,7 +2358,7 @@ Authority::printPasswordFormJS();
 									</td>
 									<td><?php
 										echo gettext('When enabled, the image processor will check album access credentials.') .
-										'<p class="notebox">' . gettext('<strong>WARNING	:</strong> This option adds memory overhead to image caching! You may be unable to cache some images depending on your server memory availability.') . '</p>';
+										'<p class="warningbox">' . gettext('<strong>WARNING	:</strong> This option adds memory overhead to image caching! You may be unable to cache some images depending on your server memory availability.') . '</p>';
 										?></td>
 								</tr>
 								<tr>
@@ -2410,7 +2412,7 @@ Authority::printPasswordFormJS();
 													</td>
 													<td style="margin:0; padding:0">
 														<input type="text" size="30"
-																	 class="dirtyignore" 
+																	 class="dirtyignore"
 																	 onkeydown="passwordClear('');"
 																	 id="user_name" name="user"
 																	 value="<?php echo html_encode(getOption('protected_image_user')); ?>" autocomplete="off" />
@@ -2435,7 +2437,7 @@ Authority::printPasswordFormJS();
 														?>
 														<input class="dirtyignore" type="password" name="pass" style="display:none;" />
 														<input type="password" size="30"
-																	 class="dirtyignore" 
+																	 class="dirtyignore"
 																	 id="pass" name="pass"
 																	 onkeydown="passwordClear('');"
 																	 onkeyup="passwordStrength('');"
@@ -2443,7 +2445,7 @@ Authority::printPasswordFormJS();
 														<br />
 														<span class="password_field_">
 															<input type="password" size="30"
-																		 class="dirtyignore" 
+																		 class="dirtyignore"
 																		 id="pass_r" name="pass_r" disabled="disabled"
 																		 onkeydown="passwordClear('');"
 																		 onkeyup="passwordMatch('');"
@@ -2521,9 +2523,6 @@ Authority::printPasswordFormJS();
 															$checked_hide = ' checked="checked"';
 														}
 													}
-													if (!$item[4]) {
-														$checked_show = ' disabled="disabled"';
-													}
 													?>
 													<li>
 														<label><input id="<?php echo $key; ?>_show" name="<?php echo $key; ?>" type="radio"<?php echo $checked_show ?> value="1" /><img src ="images/pass.png" alt="<?php echo gettext('show'); ?>" /></label>
@@ -2541,13 +2540,13 @@ Authority::printPasswordFormJS();
 										<p>
 											<?php echo gettext("Select how image metadata fields are handled."); ?>
 										<ul style="list-style: none;">
-											<li><img src ="images/pass.png" alt="<?php echo gettext('show'); ?>" /><?php echo gettext('Show the field'); ?></li>
-											<li><img src ="images/reset.png" alt="<?php echo gettext('show'); ?>" /><?php echo gettext('Hide the field'); ?></li>
-											<li><img src ="images/fail.png" alt="<?php echo gettext('show'); ?>" /><?php echo gettext('Do not process the field'); ?></li>
+											<li><img src ="images/pass.png" alt="<?php echo gettext('show'); ?>" /><?php echo gettext('Show the field and import data'); ?></li>
+											<li><img src ="images/reset.png" alt="<?php echo gettext('show'); ?>" /><?php echo gettext('Hide the field but import data'); ?></li>
+											<li><img src ="images/fail.png" alt="<?php echo gettext('show'); ?>" /><?php echo gettext('No display and import'); ?></li>
 										</ul>
 										</p>
-										<p>
-											<?php echo gettext('Hint: you can drag down the <em>drag handle</em> in the lower right corner to show more selections.') ?>
+										<p class="warningbox">
+											<?php echo gettext('<strong>Important:</strong> The "Refresh metadata" utility which is accessible from the backend "Overview" page, every album-edit page and every image-edit page, will overwrite all manually added metadata with metadata embedded in the image/album for all fields enabled. This cannot be undone!'); ?>
 										</p>
 									</td>
 								</tr>
@@ -2563,24 +2562,44 @@ Authority::printPasswordFormJS();
 												<?php generateListFromArray(array(getOption('IPTC_encoding')), array_flip($sets), false, true) ?>
 											</select>
 										</td>
-										<td><?php echo gettext("The default character encoding of image IPTC metadata."); ?></td>
+										<td>
+										<p><?php echo gettext("The default character encoding of image IPTC metadata."); ?></p>
+										<p class="notebox">
+											<?php echo gettext('<strong>NOTE:</strong> If you notice unexpected behaviour, especially with non-ASCII characters (Cyrillic for example), try again with the <code>xmpMetadata</code> plugin enabled.'); ?>
+										</p>
+										</td>
 									</tr>
 									<?php
 								}
         ?>
-         <tr>
+									<tr>
+											<td><?php echo gettext("Metadata refresh behaviour:"); ?></td>
+											<td>
+												<?php $metarefresh_behaviour = getOption('metadata_refresh_behaviour'); ?>
+												<ul class="optionlist">
+													<li><label><input type="radio" name="metadata_refresh_behaviour" value="full-refresh"	<?php checked('full-refresh', $metarefresh_behaviour); ?> /> <?php echo gettext('Full metadata refresh'); ?></label></li>
+													<li><label><input type="radio" name="metadata_refresh_behaviour" value="skip-title-and-desc" <?php checked('skip-title-and-desc', $metarefresh_behaviour); ?> /> <?php echo gettext('Skip title and description admin fields'); ?></label></li>
+													<li><label><input type="radio" name="metadata_refresh_behaviour" value="metadata-fields-only"	<?php checked('metadata-fields-only', $metarefresh_behaviour); ?> /> <?php echo gettext('Skip all admin fields'); ?></label></li>
+												</ul>
+											</td>
+											
+											<td><?php echo gettext("Image metadata like EXIF or IPTC data is stored in separate database columns and have no interface to edit. By default a metadata refresh also sets various fields like the title, description or extra fields like location, state etc. based on this data. Date and tags are always updated."); ?></td>
+										</tr>		
+										
+										
+										<tr>
 										<td><?php echo gettext("IPTC caption linebreaks:"); ?></td>
 										<td>
            <label><input type="checkbox" name="IPTC_convert_linebreaks" value="1"	<?php checked('1', getOption('IPTC_convert_linebreaks')); ?> /></label>
 										</td>
 										<td><?php echo gettext("If checked line breaks embeded in the IPTCcaption field will be converted to <code>&lt;br&gt;</code> on image importing."); ?></td>
 									</tr>
-        
+
 								<tr>
 									<td><?php echo gettext('Image copyright notice'); ?></td>
 									<td>
 										<p><?php print_language_string_list(getOption('copyright_image_notice'), 'copyright_image_notice'); ?> <?php echo gettext('Notice'); ?></p>
-										
+
 									</td>
 									<td>
 										<p><?php echo gettext('The notice will be used by the html_meta_tags plugin. If not set the image meta data is tried instead.'); ?></p>
@@ -2595,15 +2614,15 @@ Authority::printPasswordFormJS();
 										<p><?php echo gettext('Choose a Zenpage page or define a custom URL. The URL maybe used to point to some specific copyright info source. Must be an absolute URL address of the form: http://mydomain.com/license.html.'); ?></p>
 									</td>
 								</tr>
-								
+
 								<tr>
-									<td><?php echo gettext("Display Image coypright notice"); ?></td>
+									<td><?php echo gettext("Display Image copyright notice"); ?></td>
 									<td>
 										<label><input type="checkbox" name="display_copyright_image_notice" id="display_copyright_image_notice" value="1" <?php checked('1', getOption('display_copyright_image_notice')); ?> /> <?php echo gettext('Enable'); ?></label>
 									</td>
 									<td><?php echo gettext("Enable to display the image copyright notice. This may usually be in the theme below the image but is up to the theme where and if used at all.."); ?></td>
 								</tr>
-								
+
 								<tr>
 									<td><?php echo gettext('Image copyright rightsholder'); ?></td>
 									<td>
@@ -2613,9 +2632,9 @@ Authority::printPasswordFormJS();
 										<p><?php echo gettext('The rights holder will be used by the html_meta_tags plugin. If set to <em>none</em> the image metadata fields "copyright" or "owner" are used as fallbacks, if available.'); ?></p>
 									</td>
 								</tr>
-								
-								
-								
+
+
+
 								<tr>
 									<?php
 											if (GRAPHICS_LIBRARY == 'Imagick') {
@@ -3034,7 +3053,7 @@ Authority::printPasswordFormJS();
 											</td>
 											<td><?php echo gettext("If this option is not empty, the Gallery Index URL that would normally link to the theme <code>index.php</code> script will instead link to this script. This frees up the <code>index.php</code> script so that you can create a customized <em>Home page</em> script. This option applies only to the main theme for the <em>Gallery</em>."); ?></td>
 										</tr>
-						
+
 										<?php
 									}
 									if (count($supportedOptions) > 0) {
@@ -3098,10 +3117,8 @@ Authority::printPasswordFormJS();
 					?>
 					<div id="tab_plugin" class="tabbox">
 						<?php zp_apply_filter('admin_note', 'options', $subtab); ?>
-						<script type="text/javascript">
-																							// <!-- <![CDATA[
+						<script>
 																							var optionholder = new Array();
-																							// ]]> -->
 						</script>
 						<form class="dirty-check" id="form_options" action="?action=saveoptions<?php if (isset($_GET['single'])) echo '&amp;single=' . html_encode($showExtension); ?>" method="post" autocomplete="off">
 							<?php XSRFToken('saveoptions'); ?>
@@ -3138,7 +3155,7 @@ Authority::printPasswordFormJS();
 										if (false === eval($str)) {
 											$plugin_name = '';
 										}
-									} 
+									}
 									if(empty($plugin_name)) {
 										$plugin_name = $extension;
 									}
@@ -3149,13 +3166,13 @@ Authority::printPasswordFormJS();
 										} else {
 											$plugin_description = processExtensionVariable($plugin_description);
 										}
-									} 
+									}
 									$plugin_version = '';
 									if ($str = isolate('$plugin_version', $pluginStream)) {
 										if (false === eval($str)) {
 											$plugin_version = '';
 										}
-									} 
+									}
 									$plugin_deprecated = '';
 									if ($str = isolate('$plugin_deprecated', $pluginStream)) {
 										if (false === eval($str)) {
@@ -3166,13 +3183,13 @@ Authority::printPasswordFormJS();
 												$plugin_deprecated = gettext('This plugin will be removed in future versions.');
 											}
 										}
-									} 
+									}
 									$plugin_date = '';
 									if ($str = isolate('$plugin_date', $pluginStream)) {
 										if (false === eval($str)) {
 											$plugin_date = '';
 										}
-									} 
+									}
 									$str = isolate('$option_interface', $pluginStream);
 									if (false !== $str) {
 										require_once($path);
@@ -3229,8 +3246,8 @@ Authority::printPasswordFormJS();
 															?>
 														</th>
 														<th style="text-align:left; font-weight: normal;" colspan="2">
-															<?php 
-															echo $plugin_description;  
+															<?php
+															echo $plugin_description;
 															if($plugin_deprecated) {
 																echo '<p class="warningbox"><strong>' . gettext('Deprecated').  ':</strong> ' . $plugin_deprecated . '</p>';
 															}
@@ -3320,18 +3337,13 @@ Authority::printPasswordFormJS();
 										<select id="server_protocol" name="server_protocol">
 											<option value="http" <?php if (SERVER_PROTOCOL == 'http') echo 'selected="selected"'; ?>>http</option>
 											<option value="https" <?php if (SERVER_PROTOCOL == 'https') echo 'selected="selected"'; ?>>https</option>
-											<option value="https_admin" <?php if (SERVER_PROTOCOL == 'https_admin') echo 'selected="selected"'; ?>><?php echo gettext('secure admin'); ?></option>
 										</select>
 									</td>
 									<td>
-										<p><?php echo gettext("Normally this option should be set to <em>http</em>. If you are running a secure server, change this to <em>https</em>. Select <em>secure admin</em> if you need only to insure secure access to <code>admin</code> pages. However, if your server supports <em>https</em> there is no reason to use for the admin only!"); ?></p>
-										<p class="notebox"><?php
-											echo gettext('<strong>Note:</strong> Login from the front-end user login form is secure only if <em>https</em> is selected.');
-											?>
-										</p>
+										<p><?php echo gettext("Normally this option should be set to <em>http</em>. If you are running a secure server, change this to <em>https</em>."); ?></p>
 										<p class="warningbox"><?php
-											echo gettext('<strong>Warning:</strong> If you select <em>https</em> or <em>secure admin</em> your server <strong>MUST</strong> support <em>https</em>. ' .
-															'If you set either of these on a server which does not support <em>https</em> you will not be able to access the <code>admin</code> pages to reset the option! ' .
+											echo gettext('<strong>Warning:</strong> If you select <em>https</em> your server <strong>MUST</strong> support <em>https</em>. ' .
+															'If you set <em>https</em> on a server which does not support <em>https</em> you will not be able to access the <code>admin</code> pages to reset the option! ' .
 															'Your only possibility then is to set or add <code>$conf["server_protocol"] = "http";</code> to your <code>zenphoto.cfg.php</code> file .');
 											?>
 										</p>
@@ -3425,7 +3437,7 @@ Authority::printPasswordFormJS();
 									</td>
 									<td width="350">
 										<label>
-											<?php 
+											<?php
 												$anonymize_ip = getOption('anonymize_ip');
 												$anonymize_ip_levels = array(
 													gettext('0 - No anonymizing') => 0,
@@ -3448,8 +3460,8 @@ Authority::printPasswordFormJS();
 										</p>
 									</td>
 								</tr>
-								<?php 
-								$data_policy_sharedtext = gettext('This is used by the official plugins <em>comment_form</em>, <em>contact_form</em> and <em>register_user</em> plugins if the data usage confirmation is enabled. Other plugins or usages must implement <code>getDataUsageNotice()/printDataUsageNotice()</code> specifially.'); 
+								<?php
+								$data_policy_sharedtext = gettext('This is used by the official plugins <em>comment_form</em>, <em>contact_form</em> and <em>register_user</em> plugins if the data usage confirmation is enabled. Other plugins or usages must implement <code>getDataUsageNotice()/printDataUsageNotice()</code> specifially.');
 								?>
 								<tr>
 									<td width="175">

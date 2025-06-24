@@ -2,6 +2,8 @@
 
 require_once __DIR__ . '/Maintenance.php';
 
+use MediaWiki\Site\SiteImporter;
+
 /**
  * Maintenance script for importing site definitions from XML into the sites table.
  *
@@ -28,7 +30,7 @@ class ImportSites extends Maintenance {
 	public function execute() {
 		$file = $this->getArg( 0 );
 
-		$siteStore = \MediaWiki\MediaWikiServices::getInstance()->getSiteStore();
+		$siteStore = $this->getServiceContainer()->getSiteStore();
 		$importer = new SiteImporter( $siteStore );
 		$importer->setExceptionCallback( [ $this, 'reportException' ] );
 

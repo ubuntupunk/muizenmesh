@@ -3,7 +3,6 @@ declare( strict_types = 1 );
 
 namespace Wikimedia\Parsoid\Wt2Html\PP\Handlers;
 
-use Wikimedia\Parsoid\Config\Env;
 use Wikimedia\Parsoid\Core\DomSourceRange;
 use Wikimedia\Parsoid\Core\Sanitizer;
 use Wikimedia\Parsoid\DOM\Comment;
@@ -24,10 +23,6 @@ use Wikimedia\Parsoid\Utils\WTUtils;
  */
 class DisplaySpace {
 
-	/**
-	 * @param Text $node
-	 * @return ?int
-	 */
 	private static function getTextNodeDSRStart( Text $node ): ?int {
 		$parent = $node->parentNode;
 		'@phan-var Element $parent';  /** @var Element $parent */
@@ -55,14 +50,10 @@ class DisplaySpace {
 		return $start;
 	}
 
-	/**
-	 * @param Text $node
-	 * @param int $offset
-	 */
 	private static function insertDisplaySpace(
 		Text $node, int $offset
 	): void {
-		$str = $str = $node->nodeValue;
+		$str = $node->nodeValue;
 
 		$prefix = substr( $str, 0, $offset );
 		$suffix = substr( $str, $offset + 1 );
@@ -116,10 +107,9 @@ class DisplaySpace {
 	 * French spaces, Guillemet-left
 	 *
 	 * @param Node $node
-	 * @param Env $env
 	 * @return bool|Element
 	 */
-	public static function leftHandler( Node $node, Env $env ) {
+	public static function leftHandler( Node $node ) {
 		$omit = self::omitNode( $node );
 		if ( $omit !== false ) {
 			return $omit;
@@ -140,10 +130,9 @@ class DisplaySpace {
 	 * French spaces, Guillemet-right
 	 *
 	 * @param Node $node
-	 * @param Env $env
 	 * @return bool|Element
 	 */
-	public static function rightHandler( Node $node, Env $env ) {
+	public static function rightHandler( Node $node ) {
 		$omit = self::omitNode( $node );
 		if ( $omit !== false ) {
 			return $omit;

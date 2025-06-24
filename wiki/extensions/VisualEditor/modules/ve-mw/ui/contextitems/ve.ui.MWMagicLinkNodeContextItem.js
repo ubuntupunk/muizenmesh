@@ -1,7 +1,7 @@
 /*!
  * VisualEditor MWMagicLinkNodeContextItem class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
 
 /**
@@ -11,8 +11,8 @@
  * @extends ve.ui.LinkContextItem
  *
  * @constructor
- * @param {ve.ui.Context} context Context item is in
- * @param {ve.dm.MWMagicLinkNode} model Model item is related to
+ * @param {ve.ui.LinearContext} context Context the item is in
+ * @param {ve.dm.MWMagicLinkNode} model Model the item is related to
  * @param {Object} [config]
  */
 ve.ui.MWMagicLinkNodeContextItem = function VeUiMWMagicLinkNodeContextItem() {

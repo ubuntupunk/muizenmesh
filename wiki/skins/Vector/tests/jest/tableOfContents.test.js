@@ -6,7 +6,7 @@ const tableOfContentsLineTemplate = fs.readFileSync( 'includes/templates/TableOf
 const pinnableElementOpenTemplate = fs.readFileSync( 'includes/templates/PinnableElement/Open.mustache', 'utf8' );
 const pinnableElementCloseTemplate = fs.readFileSync( 'includes/templates/PinnableElement/Close.mustache', 'utf8' );
 const pinnableHeaderTemplate = fs.readFileSync( 'includes/templates/PinnableHeader.mustache', 'utf8' );
-const initTableOfContents = require( '../../resources/skins.vector.es6/tableOfContents.js' );
+const initTableOfContents = require( '../../resources/skins.vector.js/tableOfContents.js' );
 
 let /** @type {HTMLElement} */ container,
 	/** @type {HTMLElement} */ fooSection,
@@ -25,6 +25,7 @@ const SECTIONS = [
 		number: '1',
 		line: 'foo',
 		anchor: 'foo',
+		linkAnchor: 'foo',
 		'is-top-level-section': true,
 		'is-parent-section': false,
 		'array-sections': null
@@ -33,6 +34,7 @@ const SECTIONS = [
 		number: '2',
 		line: 'bar',
 		anchor: 'bar',
+		linkAnchor: 'bar',
 		'is-top-level-section': true,
 		'is-parent-section': true,
 		'vector-button-label': 'Toggle bar subsection',
@@ -41,6 +43,7 @@ const SECTIONS = [
 			number: '2.1',
 			line: 'baz',
 			anchor: 'baz',
+			linkAnchor: 'baz',
 			'is-top-level-section': false,
 			'is-parent-section': true,
 			'array-sections': [ {
@@ -48,6 +51,7 @@ const SECTIONS = [
 				number: '2.1.1',
 				line: 'qux',
 				anchor: 'qux',
+				linkAnchor: 'qux',
 				'is-top-level-section': false,
 				'is-parent-section': false,
 				'array-sections': null
@@ -58,6 +62,7 @@ const SECTIONS = [
 		number: '3',
 		line: 'quux',
 		anchor: 'quux',
+		linkAnchor: 'quux',
 		'is-top-level-section': true,
 		'is-parent-section': false,
 		'array-sections': null
@@ -70,7 +75,6 @@ const SECTIONS = [
  */
 function render( templateProps = {} ) {
 	const templateData = Object.assign( {
-		'is-vector-toc-beginning-enabled': true,
 		'msg-vector-toc-beginning': 'Beginning',
 		'vector-is-collapse-sections-enabled': false,
 		'array-sections': SECTIONS,
@@ -125,7 +129,6 @@ describe( 'Table of contents', () => {
 	let toc;
 
 	beforeEach( () => {
-		// @ts-ignore
 		global.window.matchMedia = jest.fn( () => ( {} ) );
 	} );
 
@@ -135,7 +138,6 @@ describe( 'Table of contents', () => {
 			toc = undefined;
 		}
 
-		// @ts-ignore
 		mw.util.getTargetFromFragment = undefined;
 	} );
 
@@ -163,7 +165,7 @@ describe( 'Table of contents', () => {
 	describe( 'binds event listeners', () => {
 		test( 'for onHeadingClick', () => {
 			toc = mount();
-			const heading = /** @type {HTMLElement} */ ( document.querySelector( `#toc-foo .${toc.LINK_CLASS}` ) );
+			const heading = /** @type {HTMLElement} */ ( document.querySelector( `#toc-foo .${ toc.LINK_CLASS }` ) );
 			heading.click();
 
 			expect( onToggleClick ).not.toBeCalled();
@@ -172,7 +174,7 @@ describe( 'Table of contents', () => {
 		} );
 		test( 'for onToggleClick', () => {
 			toc = mount();
-			const toggle = /** @type {HTMLElement} */ ( document.querySelector( `#toc-bar .${toc.TOGGLE_CLASS}` ) );
+			const toggle = /** @type {HTMLElement} */ ( document.querySelector( `#toc-bar .${ toc.TOGGLE_CLASS }` ) );
 			toggle.click();
 
 			expect( onHeadingClick ).not.toBeCalled();
@@ -180,7 +182,6 @@ describe( 'Table of contents', () => {
 			expect( onToggleClick ).toBeCalled();
 		} );
 		test( 'for onHashChange', () => {
-			// @ts-ignore
 			mw.util.getTargetFromFragment = jest.fn().mockImplementation( ( hash ) => {
 				return hash === 'toc-foo' ? fooSection : null;
 			} );
@@ -212,8 +213,8 @@ describe( 'Table of contents', () => {
 			 */
 			function testActiveClasses( id, activeSection, activeTopSection ) {
 				toc.changeActiveSection( id );
-				activeSections = container.querySelectorAll( `.${toc.ACTIVE_SECTION_CLASS}` );
-				activeTopSections = container.querySelectorAll( `.${toc.ACTIVE_TOP_SECTION_CLASS}` );
+				activeSections = container.querySelectorAll( `.${ toc.ACTIVE_SECTION_CLASS }` );
+				activeTopSections = container.querySelectorAll( `.${ toc.ACTIVE_TOP_SECTION_CLASS }` );
 				expect( activeSections.length ).toEqual( 1 );
 				expect( activeTopSections.length ).toEqual( 1 );
 				expect( activeSections[ 0 ] ).toEqual( activeSection );
@@ -245,14 +246,14 @@ describe( 'Table of contents', () => {
 	describe( 'applies the correct aria attributes', () => {
 		test( 'when initialized', () => {
 			toc = mount();
-			const toggleButton = /** @type {HTMLElement} */ ( barSection.querySelector( `.${toc.TOGGLE_CLASS}` ) );
+			const toggleButton = /** @type {HTMLElement} */ ( barSection.querySelector( `.${ toc.TOGGLE_CLASS }` ) );
 
 			expect( toggleButton.getAttribute( 'aria-expanded' ) ).toEqual( 'true' );
 		} );
 
 		test( 'when expanding sections', () => {
 			toc = mount();
-			const toggleButton = /** @type {HTMLElement} */ ( barSection.querySelector( `.${toc.TOGGLE_CLASS}` ) );
+			const toggleButton = /** @type {HTMLElement} */ ( barSection.querySelector( `.${ toc.TOGGLE_CLASS }` ) );
 
 			toc.expandSection( 'toc-bar' );
 			expect( toggleButton.getAttribute( 'aria-expanded' ) ).toEqual( 'true' );
@@ -260,7 +261,7 @@ describe( 'Table of contents', () => {
 
 		test( 'when toggling sections', () => {
 			toc = mount();
-			const toggleButton = /** @type {HTMLElement} */ ( barSection.querySelector( `.${toc.TOGGLE_CLASS}` ) );
+			const toggleButton = /** @type {HTMLElement} */ ( barSection.querySelector( `.${ toc.TOGGLE_CLASS }` ) );
 
 			toc.toggleExpandSection( 'toc-bar' );
 			expect( toggleButton.getAttribute( 'aria-expanded' ) ).toEqual( 'false' );
@@ -272,7 +273,6 @@ describe( 'Table of contents', () => {
 
 	describe( 'when the hash fragment changes', () => {
 		test( 'expands and activates corresponding section', () => {
-			// @ts-ignore
 			mw.util.getTargetFromFragment = jest.fn().mockImplementation( ( hash ) => {
 				return hash === 'toc-qux' ? quxSection : null;
 			} );
@@ -288,8 +288,8 @@ describe( 'Table of contents', () => {
 				newURL: 'http://example.com#qux'
 			} ) );
 
-			const activeSections = container.querySelectorAll( `.${toc.ACTIVE_SECTION_CLASS}` );
-			const activeTopSections = container.querySelectorAll( `.${toc.ACTIVE_TOP_SECTION_CLASS}` );
+			const activeSections = container.querySelectorAll( `.${ toc.ACTIVE_SECTION_CLASS }` );
+			const activeTopSections = container.querySelectorAll( `.${ toc.ACTIVE_TOP_SECTION_CLASS }` );
 			expect( activeSections.length ).toEqual( 1 );
 			expect( activeTopSections.length ).toEqual( 1 );
 			expect(
@@ -313,10 +313,7 @@ describe( 'Table of contents', () => {
 		} );
 
 		test( 're-renders toc when wikipage.tableOfContents hook is fired with sections', async () => {
-			// @ts-ignore
-			// eslint-disable-next-line compat/compat
 			jest.spyOn( mw.loader, 'using' ).mockImplementation( () => Promise.resolve() );
-			// @ts-ignore
 			mw.template.getCompiler = () => {};
 			jest.spyOn( mw, 'message' ).mockImplementation( ( msg ) => {
 				const msgFactory = ( /** @type {string} */ text ) => {
@@ -336,7 +333,6 @@ describe( 'Table of contents', () => {
 				}
 
 			} );
-			// @ts-ignore
 			jest.spyOn( mw.template, 'getCompiler' ).mockImplementation( () => {
 				return {
 					compile: () => {
@@ -355,7 +351,7 @@ describe( 'Table of contents', () => {
 
 			toc = mount();
 
-			const toggleButton = /** @type {HTMLElement} */ ( barSection.querySelector( `.${toc.TOGGLE_CLASS}` ) );
+			const toggleButton = /** @type {HTMLElement} */ ( barSection.querySelector( `.${ toc.TOGGLE_CLASS }` ) );
 			// Collapse section.
 			toc.toggleExpandSection( 'toc-bar' );
 			expect( toggleButton.getAttribute( 'aria-expanded' ) ).toEqual( 'false' );
@@ -369,10 +365,8 @@ describe( 'Table of contents', () => {
 				// bar
 				SECTIONS[ 1 ],
 				// baz
-				// @ts-ignore
 				SECTIONS[ 1 ][ 'array-sections' ][ 0 ],
 				// qux
-				// @ts-ignore
 				SECTIONS[ 1 ][ 'array-sections' ][ 0 ][ 'array-sections' ][ 0 ],
 				// quux
 				SECTIONS[ 2 ],
@@ -382,13 +376,14 @@ describe( 'Table of contents', () => {
 					number: '4',
 					line: 'bat',
 					anchor: 'bat',
+					linkAnchor: 'bat',
 					'is-top-level-section': true,
 					'is-parent-section': false,
 					'array-sections': null
 				}
 			] );
 
-			const newToggleButton = /** @type {HTMLElement} */ ( document.querySelector( `#toc-bar .${toc.TOGGLE_CLASS}` ) );
+			const newToggleButton = /** @type {HTMLElement} */ ( document.querySelector( `#toc-bar .${ toc.TOGGLE_CLASS }` ) );
 			expect( newToggleButton ).not.toBeNull();
 			// Check that the sections render in their expanded form.
 			expect( newToggleButton.getAttribute( 'aria-expanded' ) ).toEqual( 'true' );

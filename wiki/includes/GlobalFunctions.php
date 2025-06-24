@@ -20,18 +20,20 @@
  * @file
  */
 
+use MediaWiki\HookContainer\HookRunner;
+use MediaWiki\Libs\UnpackFailedException;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\ProcOpenError;
-use MediaWiki\ResourceLoader\ResourceLoader;
+use MediaWiki\Request\WebRequest;
 use MediaWiki\Shell\Shell;
 use MediaWiki\StubObject\StubUserLang;
 use MediaWiki\Title\Title;
+use MediaWiki\Utils\MWTimestamp;
 use MediaWiki\Utils\UrlUtils;
 use Wikimedia\AtEase\AtEase;
 use Wikimedia\ParamValidator\TypeDef\ExpiryDef;
 use Wikimedia\RequestTimeout\RequestTimeout;
-use Wikimedia\WrappedString;
 
 /**
  * Load an extension
@@ -169,8 +171,7 @@ function wfMergeErrorArrays( ...$args ) {
 		foreach ( $errors as $params ) {
 			$originalParams = $params;
 			if ( $params[0] instanceof MessageSpecifier ) {
-				$msg = $params[0];
-				$params = array_merge( [ $msg->getKey() ], $msg->getParams() );
+				$params = [ $params[0]->getKey(), ...$params[0]->getParams() ];
 			}
 			# @todo FIXME: Sometimes get nested arrays for $params,
 			# which leads to E_NOTICEs
@@ -308,7 +309,7 @@ function wfUrlencode( $s ) {
 	if ( $needle === null ) {
 		$needle = [ '%3B', '%40', '%24', '%21', '%2A', '%28', '%29', '%2C', '%2F', '%7E' ];
 		if ( !isset( $_SERVER['SERVER_SOFTWARE'] ) ||
-			( strpos( $_SERVER['SERVER_SOFTWARE'], 'Microsoft-IIS/7' ) === false )
+			!str_contains( $_SERVER['SERVER_SOFTWARE'], 'Microsoft-IIS/7' )
 		) {
 			$needle[] = '%3A';
 		}
@@ -486,8 +487,8 @@ function wfGetUrlUtils(): UrlUtils {
 }
 
 /**
- * Expand a potentially local URL to a fully-qualified URL. Assumes $wgServer
- * is correct.
+ * Expand a potentially local URL to a fully-qualified URL using $wgServer
+ * (or one of its alternatives).
  *
  * The meaning of the PROTO_* constants is as follows:
  * PROTO_HTTP: Output a URL starting with http://
@@ -499,10 +500,16 @@ function wfGetUrlUtils(): UrlUtils {
  *    For protocol-relative URLs, use the protocol of $wgCanonicalServer
  * PROTO_INTERNAL: Like PROTO_CANONICAL, but uses $wgInternalServer instead of $wgCanonicalServer
  *
+ * If $url specifies a protocol, or $url is domain-relative and $wgServer
+ * specifies a protocol, PROTO_HTTP, PROTO_HTTPS, PROTO_RELATIVE and
+ * PROTO_CURRENT do not change that.
+ *
+ * Parent references (/../) in the path are resolved (as in wfRemoveDotSegments).
+ *
  * @deprecated since 1.39, use UrlUtils::expand()
- * @param string $url Either fully-qualified or a local path + query
- * @param string|int|null $defaultProto One of the PROTO_* constants. Determines the
- *    protocol to use if $url or $wgServer is protocol-relative
+ * @param string $url An URL; can be absolute (e.g. http://example.com/foo/bar),
+ *    protocol-relative (//example.com/foo/bar) or domain-relative (/foo/bar).
+ * @param string|int|null $defaultProto One of the PROTO_* constants, as described above.
  * @return string|false Fully-qualified URL, current-path-relative URL or false if
  *    no valid URL can be constructed
  */
@@ -536,7 +543,7 @@ function wfGetServerUrl( $proto ) {
  * @return string URL assembled from its component parts
  */
 function wfAssembleUrl( $urlParts ) {
-	return wfGetUrlUtils()->assemble( (array)$urlParts );
+	return UrlUtils::assemble( (array)$urlParts );
 }
 
 /**
@@ -544,18 +551,17 @@ function wfAssembleUrl( $urlParts ) {
  * '/a/./b/../c/' becomes '/a/c/'.  For details on the algorithm, please see
  * RFC3986 section 5.2.4.
  *
- * @since 1.19
- *
  * @deprecated since 1.39, use UrlUtils::removeDotSegments()
+ * @since 1.19
  * @param string $urlPath URL path, potentially containing dot-segments
  * @return string URL path with all dot-segments removed
  */
 function wfRemoveDotSegments( $urlPath ) {
-	return wfGetUrlUtils()->removeDotSegments( (string)$urlPath );
+	return UrlUtils::removeDotSegments( (string)$urlPath );
 }
 
 /**
- * Returns a regular expression of url protocols
+ * Returns a partial regular expression of recognized URL protocols, e.g. "http:\/\/|https:\/\/"
  *
  * @deprecated since 1.39, use UrlUtils::validProtocols()
  * @param bool $includeProtocolRelative If false, remove '//' from the returned protocol list.
@@ -563,8 +569,8 @@ function wfRemoveDotSegments( $urlPath ) {
  * @return string
  */
 function wfUrlProtocols( $includeProtocolRelative = true ) {
-	$method = $includeProtocolRelative ? 'validProtocols' : 'validAbsoluteProtocols';
-	return wfGetUrlUtils()->$method();
+	return $includeProtocolRelative ? wfGetUrlUtils()->validProtocols() :
+		wfGetUrlUtils()->validAbsoluteProtocols();
 }
 
 /**
@@ -822,6 +828,7 @@ function wfLogWarning( $msg, $callerOffset = 1, $level = E_USER_WARNING ) {
 /**
  * Return a Language object from $langcode
  *
+ * @deprecated since 1.41, use MediaWiki\Languages\LanguageFactory::getLanguage instead.
  * @param Language|string|bool $langcode Either:
  *                  - a Language object
  *                  - code of the language to get the message for, if it is
@@ -835,6 +842,7 @@ function wfLogWarning( $msg, $callerOffset = 1, $level = E_USER_WARNING ) {
  * @return Language|StubUserLang
  */
 function wfGetLangObj( $langcode = false ) {
+	wfDeprecated( __FUNCTION__, '1.41' );
 	# Identify which language to get or create a language object for.
 	# Using is_object here due to Stub objects.
 	if ( is_object( $langcode ) ) {
@@ -969,36 +977,6 @@ function wfHostname() {
 }
 
 /**
- * Returns a script tag that stores the amount of time it took MediaWiki to
- * handle the request in milliseconds as 'wgBackendResponseTime'.
- *
- * If $wgShowHostnames is true, the script will also set 'wgHostname' to the
- * hostname of the server handling the request.
- *
- * @deprecated since 1.40
- * @param string|null $nonce Value from OutputPage->getCSP()->getNonce()
- * @return string|WrappedString HTML
- */
-function wfReportTime( $nonce = null ) {
-	global $wgShowHostnames;
-
-	$elapsed = ( microtime( true ) - $_SERVER['REQUEST_TIME_FLOAT'] );
-	// seconds to milliseconds
-	$responseTime = round( $elapsed * 1000 );
-	$reportVars = [ 'wgBackendResponseTime' => $responseTime ];
-	if ( $wgShowHostnames ) {
-		$reportVars['wgHostname'] = wfHostname();
-	}
-
-	return (
-		ResourceLoader::makeInlineScript(
-			ResourceLoader::makeConfigSetScript( $reportVars ),
-			$nonce
-		)
-	);
-}
-
-/**
  * Safety wrapper for debug_backtrace().
  *
  * Will return an empty array if debug_backtrace is disabled, otherwise
@@ -1032,14 +1010,13 @@ function wfDebugBacktrace( $limit = 0 ) {
  * Get a debug backtrace as a string
  *
  * @param bool|null $raw If true, the return value is plain text. If false, HTML.
- *   Defaults to $wgCommandLineMode if unset.
+ *   Defaults to true if MW_ENTRY_POINT is 'cli', otherwise false.
  * @return string
  * @since 1.25 Supports $raw parameter.
  */
 function wfBacktrace( $raw = null ) {
-	global $wgCommandLineMode;
-
-	if ( $raw ?? $wgCommandLineMode ) {
+	$raw ??= MW_ENTRY_POINT === 'cli';
+	if ( $raw ) {
 		$frameFormat = "%s line %s calls %s()\n";
 		$traceFormat = "%s";
 	} else {
@@ -1082,7 +1059,7 @@ function wfGetCaller( $level = 2 ) {
  * Return a string consisting of callers in the stack. Useful sometimes
  * for profiling specific points.
  *
- * @param int $limit The maximum depth of the stack frame to return, or false for the entire stack.
+ * @param int|false $limit The maximum depth of the stack frame to return, or false for the entire stack.
  * @return string
  */
 function wfGetAllCallers( $limit = 3 ) {
@@ -1107,21 +1084,6 @@ function wfFormatStackFrame( $frame ) {
 	return isset( $frame['class'] ) && isset( $frame['type'] ) ?
 		$frame['class'] . $frame['type'] . $frame['function'] :
 		$frame['function'];
-}
-
-/* Some generic result counters, pulled out of SearchEngine */
-
-/**
- * @todo document
- *
- * @deprecated with warnings since 1.40
- * @param int $offset
- * @param int $limit
- * @return string
- */
-function wfShowingResults( $offset, $limit ) {
-	wfDeprecated( __FUNCTION__, '1.40' );
-	return wfMessage( 'showingresults' )->numParams( $limit, $offset + 1 )->parse();
 }
 
 /**
@@ -1163,20 +1125,23 @@ function wfClientAcceptsGzip( $force = false ) {
  * is achieved by substituting certain characters with HTML entities.
  * As required by the callers, "<nowiki>" is not used.
  *
- * @param string $text Text to be escaped
- * @param-taint $text escapes_html
+ * @param string|null|false $input Text to be escaped
+ * @param-taint $input escapes_html
  * @return string
  */
-function wfEscapeWikiText( $text ) {
+function wfEscapeWikiText( $input ): string {
 	global $wgEnableMagicLinks;
-	static $repl = null, $repl2 = null;
+	static $repl = null, $repl2 = null, $repl3 = null, $repl4 = null;
 	if ( $repl === null || defined( 'MW_PARSER_TEST' ) || defined( 'MW_PHPUNIT_TEST' ) ) {
 		// Tests depend upon being able to change $wgEnableMagicLinks, so don't cache
 		// in those situations
 		$repl = [
 			'"' => '&#34;', '&' => '&#38;', "'" => '&#39;', '<' => '&#60;',
 			'=' => '&#61;', '>' => '&#62;', '[' => '&#91;', ']' => '&#93;',
-			'{' => '&#123;', '|' => '&#124;', '}' => '&#125;', ';' => '&#59;',
+			'{' => '&#123;', '|' => '&#124;', '}' => '&#125;',
+			';' => '&#59;', // a token inside language converter brackets
+			'!!' => '&#33;!', // a token inside table context
+			"\n!" => "\n&#33;", "\r!" => "\r&#33;", // a token inside table context
 			"\n#" => "\n&#35;", "\r#" => "\r&#35;",
 			"\n*" => "\n&#42;", "\r*" => "\r&#42;",
 			"\n:" => "\n&#58;", "\r:" => "\r&#58;",
@@ -1186,6 +1151,7 @@ function wfEscapeWikiText( $text ) {
 			"\n\t" => "\n&#9;", "\r\t" => "\r&#9;", // "\n\t\n" is treated like "\n\n"
 			"\n----" => "\n&#45;---", "\r----" => "\r&#45;---",
 			'__' => '_&#95;', '://' => '&#58;//',
+			'~~~' => '~~&#126;', // protect from PST, just to be safe(r)
 		];
 
 		$magicLinks = array_keys( array_filter( $wgEnableMagicLinks ) );
@@ -1197,6 +1163,24 @@ function wfEscapeWikiText( $text ) {
 			$repl["$magic\n"] = "$magic&#10;";
 			$repl["$magic\f"] = "$magic&#12;";
 		}
+		// Additionally escape the following characters at the beginning of the
+		// string, in case they merge to form tokens when spliced into a
+		// string.  Tokens like -{ {{ [[ {| etc are already escaped because
+		// the second character is escaped above, but the following tokens
+		// are handled here: |+ |- __FOO__ ~~~
+		$repl3 = [
+			'+' => '&#43;', '-' => '&#45;', '_' => '&#95;', '~' => '&#126;',
+		];
+		// Similarly, protect the following characters at the end of the
+		// string, which could turn form the start of `__FOO__` or `~~~~`
+		// A trailing newline could also form the unintended start of a
+		// paragraph break if it is glued to a newline in the following
+		// context.
+		$repl4 = [
+			'_' => '&#95;', '~' => '&#126;',
+			"\n" => "&#10;", "\r" => "&#13;",
+			"\t" => "&#9;", // "\n\t\n" is treated like "\n\n"
+		];
 
 		// And handle protocols that don't use "://"
 		global $wgUrlProtocols;
@@ -1208,8 +1192,23 @@ function wfEscapeWikiText( $text ) {
 		}
 		$repl2 = $repl2 ? '/\b(' . implode( '|', $repl2 ) . '):/i' : '/^(?!)/';
 	}
-	$text = substr( strtr( "\n$text", $repl ), 1 );
-	// @phan-suppress-next-line PhanTypeMismatchArgumentNullableInternal False positive
+	// Tell phan that $repl2, $repl3 and $repl4 will also be non-null here
+	'@phan-var string $repl2';
+	'@phan-var string $repl3';
+	'@phan-var string $repl4';
+	// This will also stringify input in case it's not a string
+	$text = substr( strtr( "\n$input", $repl ), 1 );
+	if ( $text === '' ) {
+		return $text;
+	}
+	$first = strtr( $text[0], $repl3 ); // protect first character
+	if ( strlen( $text ) > 1 ) {
+		$text = $first . substr( $text, 1, -1 ) .
+		strtr( substr( $text, -1 ), $repl4 ); // protect last character
+	} else {
+		// special case for single-character strings
+		$text = strtr( $first, $repl4 ); // protect last character
+	}
 	$text = preg_replace( $repl2, '$1&#58;', $text );
 	return $text;
 }
@@ -1308,8 +1307,11 @@ function wfHttpError( $code, $label, $desc ) {
  *
  * The optional $resetGzipEncoding parameter controls suppression of
  * the Content-Encoding header sent by ob_gzhandler; by default it
- * is left. See comments for wfClearOutputBuffers() for why it would
- * be used.
+ * is left. This should be used for HTTP 304 responses, where you need to
+ * preserve the Content-Encoding header of the real result, but
+ * also need to suppress the output of ob_gzhandler to keep to spec
+ * and avoid breaking Firefox in rare cases where the headers and
+ * body are broken over two packets.
  *
  * Note that some PHP configuration options may add output buffer
  * layers which cannot be removed; these are left in place.
@@ -1351,25 +1353,6 @@ function wfResetOutputBuffers( $resetGzipEncoding = true ) {
 }
 
 /**
- * More legible than passing a 'false' parameter to wfResetOutputBuffers():
- *
- * Clear away output buffers, but keep the Content-Encoding header
- * produced by ob_gzhandler, if any.
- *
- * This should be used for HTTP 304 responses, where you need to
- * preserve the Content-Encoding header of the real result, but
- * also need to suppress the output of ob_gzhandler to keep to spec
- * and avoid breaking Firefox in rare cases where the headers and
- * body are broken over two packets.
- *
- * @deprecated since 1.36
- */
-function wfClearOutputBuffers() {
-	wfDeprecated( __FUNCTION__, '1.36' );
-	wfResetOutputBuffers( false );
-}
-
-/**
  * Get a timestamp string in one of various formats
  *
  * @param mixed $outputtype Output format, one of the TS_* constants. Defaults to
@@ -1391,8 +1374,8 @@ function wfTimestamp( $outputtype = TS_UNIX, $ts = 0 ) {
  * Return a formatted timestamp, or null if input is null.
  * For dealing with nullable timestamp columns in the database.
  *
- * @param int $outputtype
- * @param string|null $ts
+ * @param mixed $outputtype
+ * @param mixed|null $ts
  * @return string|false|null Null if called with null, otherwise the result of wfTimestamp()
  */
 function wfTimestampOrNull( $outputtype = TS_UNIX, $ts = null ) {
@@ -1436,47 +1419,39 @@ function wfTempDir() {
 /**
  * Make directory, and make all parent directories if they don't exist
  *
- * @param string $dir Full path to directory to create
+ * @param string $dir Full path to directory to create. Callers should make sure this is not a storage path.
  * @param int|null $mode Chmod value to use, default is $wgDirectoryMode
  * @param string|null $caller Optional caller param for debugging.
- * @throws MWException
  * @return bool
  */
 function wfMkdirParents( $dir, $mode = null, $caller = null ) {
 	global $wgDirectoryMode;
 
 	if ( FileBackend::isStoragePath( $dir ) ) {
-		throw new MWException( __FUNCTION__ . " given storage path '$dir'." );
+		throw new LogicException( __FUNCTION__ . " given storage path '$dir'." );
 	}
-
 	if ( $caller !== null ) {
 		wfDebug( "$caller: called wfMkdirParents($dir)" );
 	}
-
-	if ( strval( $dir ) === '' || is_dir( $dir ) ) {
+	if ( strval( $dir ) === '' ) {
 		return true;
 	}
 
 	$dir = str_replace( [ '\\', '/' ], DIRECTORY_SEPARATOR, $dir );
-
-	if ( $mode === null ) {
-		$mode = $wgDirectoryMode;
-	}
+	$mode ??= $wgDirectoryMode;
 
 	// Turn off the normal warning, we're doing our own below
-	AtEase::suppressWarnings();
-	$ok = mkdir( $dir, $mode, true ); // PHP5 <3
-	AtEase::restoreWarnings();
-
+	// PHP doesn't include the path in its warning message, so we add our own to aid in diagnosis.
+	//
+	// Repeat existence check if creation failed so that we silently recover in case of
+	// a race condition where another request created it since the first check.
+	//
+	// phpcs:ignore Generic.PHP.NoSilencedErrors.Discouraged
+	$ok = is_dir( $dir ) || @mkdir( $dir, $mode, true ) || is_dir( $dir );
 	if ( !$ok ) {
-		// directory may have been created on another request since we last checked
-		if ( is_dir( $dir ) ) {
-			return true;
-		}
-
-		// PHP doesn't report the path in its warning message, so add our own to aid in diagnosis.
-		wfLogWarning( sprintf( "failed to mkdir \"%s\" mode 0%o", $dir, $mode ) );
+		trigger_error( sprintf( "failed to mkdir \"%s\" mode 0%o", $dir, $mode ), E_USER_WARNING );
 	}
+
 	return $ok;
 }
 
@@ -1498,7 +1473,6 @@ function wfRecursiveRemoveDir( $dir ) {
 				}
 			}
 		}
-		reset( $objects );
 		rmdir( $dir );
 	}
 }
@@ -1681,7 +1655,8 @@ function wfShellWikiCmd( $script, array $parameters = [], array $options = [] ) 
 	global $wgPhpCli;
 	// Give site config file a chance to run the script in a wrapper.
 	// The caller may likely want to call wfBasename() on $script.
-	Hooks::runner()->onWfShellWikiCmd( $script, $parameters, $options );
+	( new HookRunner( MediaWikiServices::getInstance()->getHookContainer() ) )
+		->onWfShellWikiCmd( $script, $parameters, $options );
 	$cmd = [ $options['php'] ?? $wgPhpCli ];
 	if ( isset( $options['wrapper'] ) ) {
 		$cmd[] = $options['wrapper'];
@@ -1883,12 +1858,20 @@ function wfRelativePath( $path, $from ) {
  * administrative tasks. See the IMaintainableDatabase and IDatabase interfaces
  * for details.
  *
- * @deprecated since 1.39, use LoadBalancer::getConnection() on an injected
- * instance of LoadBalancer instead.
+ * @deprecated since 1.39, emitting warnings since 1.42; instead, you can use:
+ *   $services = MediaWikiServices::getInstance();
+ *   $dbr = $services->getConnectionProvider()->getReplicaDatabase();
+ *   $dbw = $services->getConnectionProvider()->getPrimaryDatabase();
+ *
+ * 	 … or, in rare circumstances, you may need to use:
+ *
+ *   $services->getDBLoadBalancer()->getConnection() / getMaintenanceConnectionRef()
  *
  * @return \Wikimedia\Rdbms\DBConnRef
  */
 function wfGetDB( $db, $groups = [], $wiki = false ) {
+	wfDeprecated( __FUNCTION__, '1.39' );
+
 	if ( $wiki === false ) {
 		return MediaWikiServices::getInstance()
 			->getDBLoadBalancer()
@@ -1902,11 +1885,12 @@ function wfGetDB( $db, $groups = [], $wiki = false ) {
 }
 
 /**
- * Get the path to a specified script file, respecting file
- * extensions; this is a wrapper around $wgScriptPath etc.
- * except for 'index' and 'load' which use $wgScript/$wgLoadScript
+ * Get the URL path to a MediaWiki entry point.
  *
- * @param string $script Script filename, sans extension
+ * This is a wrapper to respect $wgScript and $wgLoadScript overrides.
+ *
+ * @see MW_ENTRY_POINT
+ * @param string $script Name of entrypoint, without `.php` extension.
  * @return string
  */
 function wfScript( $script = 'index' ) {
@@ -1975,13 +1959,11 @@ function wfMemoryLimit( $newLimit ) {
 		if ( $newLimit == -1 ) {
 			wfDebug( "Removing PHP's memory limit" );
 			AtEase::suppressWarnings();
-			// @phan-suppress-next-line PhanTypeMismatchArgumentInternal Scalar okay with php8.1
 			ini_set( 'memory_limit', $newLimit );
 			AtEase::restoreWarnings();
 		} elseif ( $newLimit > $oldLimit ) {
 			wfDebug( "Raising PHP's memory limit to $newLimit bytes" );
 			AtEase::suppressWarnings();
-			// @phan-suppress-next-line PhanTypeMismatchArgumentInternal Scalar okay with php8.1
 			ini_set( 'memory_limit', $newLimit );
 			AtEase::restoreWarnings();
 		}
@@ -2061,27 +2043,15 @@ function wfShorthandToInteger( ?string $string = '', int $default = -1 ): int {
  *
  * @throws MWException If $data not long enough, or if unpack fails
  * @return array Associative array of the extracted data
+ * @deprecated since 1.42 Use StringUtils::unpack instead
  */
 function wfUnpack( $format, $data, $length = false ) {
-	if ( $length !== false ) {
-		$realLen = strlen( $data );
-		if ( $realLen < $length ) {
-			throw new MWException( "Tried to use wfUnpack on a "
-				. "string of length $realLen, but needed one "
-				. "of at least length $length."
-			);
-		}
+	wfDeprecated( __FUNCTION__, '1.42' );
+	try {
+		return StringUtils::unpack( (string)$format, (string)$data, $length );
+	} catch ( UnpackFailedException $e ) {
+		throw new MWException( $e->getMessage(), 0, $e );
 	}
-
-	AtEase::suppressWarnings();
-	$result = unpack( $format, $data );
-	AtEase::restoreWarnings();
-
-	if ( $result === false ) {
-		// If it cannot extract the packed data.
-		throw new MWException( "unpack could not unpack binary data" );
-	}
-	return $result;
 }
 
 /**

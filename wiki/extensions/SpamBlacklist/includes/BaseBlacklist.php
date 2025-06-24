@@ -2,13 +2,13 @@
 
 namespace MediaWiki\Extension\SpamBlacklist;
 
-use Exception;
+use InvalidArgumentException;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Revision\SlotRecord;
+use MediaWiki\Title\Title;
+use MediaWiki\User\User;
 use ObjectCache;
 use TextContent;
-use Title;
-use User;
 
 /**
  * Base class for different kinds of blacklists
@@ -126,11 +126,10 @@ abstract class BaseBlacklist {
 	 * @deprecated Use getSpamBlacklist() or getEmailBlacklist() instead
 	 * @param string $type Code for the blacklist
 	 * @return BaseBlacklist
-	 * @throws Exception
 	 */
 	public static function getInstance( $type ) {
 		if ( !isset( self::$blacklistTypes[$type] ) ) {
-			throw new Exception( "Invalid blacklist type '$type' passed to " . __METHOD__ );
+			throw new InvalidArgumentException( "Invalid blacklist type '$type' passed to " . __METHOD__ );
 		}
 
 		if ( !isset( self::$instances[$type] ) ) {
@@ -296,6 +295,11 @@ abstract class BaseBlacklist {
 		if ( !$this->files ) {
 			# No lists
 			wfDebugLog( 'SpamBlacklist', "no files specified\n" );
+			return [];
+		}
+
+		if ( defined( 'MW_PHPUNIT_TEST' ) ) {
+			wfDebugLog( 'SpamBlacklist', 'remote loading disabled during PHPUnit test' );
 			return [];
 		}
 

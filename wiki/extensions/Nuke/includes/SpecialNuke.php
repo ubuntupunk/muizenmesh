@@ -2,35 +2,41 @@
 
 namespace MediaWiki\Extension\Nuke;
 
-use CommentStore;
 use DeletePageJob;
-use FileDeleteForm;
-use Html;
 use HTMLForm;
 use JobQueueGroup;
-use ListToggle;
+use MediaWiki\CommentStore\CommentStore;
 use MediaWiki\Extension\Nuke\Hooks\NukeHookRunner;
+use MediaWiki\Html\Html;
+use MediaWiki\Html\ListToggle;
+use MediaWiki\Page\File\FileDeleteForm;
 use MediaWiki\Permissions\PermissionManager;
+use MediaWiki\Request\WebRequest;
+use MediaWiki\SpecialPage\SpecialPage;
+use MediaWiki\Title\Title;
+use MediaWiki\User\UserFactory;
+use MediaWiki\User\UserNamePrefixSearch;
+use MediaWiki\User\UserNameUtils;
 use OOUI\DropdownInputWidget;
 use OOUI\FieldLayout;
 use OOUI\TextInputWidget;
 use PermissionsError;
 use RepoGroup;
-use SpecialPage;
-use Title;
-use User;
 use UserBlockedError;
-use UserNamePrefixSearch;
-use WebRequest;
+use Wikimedia\Rdbms\IConnectionProvider;
+use Wikimedia\Rdbms\SelectQueryBuilder;
 use Xml;
 
 class SpecialNuke extends SpecialPage {
 
-	/** @var NukeHookRunner */
+	/** @var NukeHookRunner|null */
 	private $hookRunner;
 
 	/** @var JobQueueGroup */
 	private $jobQueueGroup;
+
+	/** @var IConnectionProvider */
+	private $dbProvider;
 
 	/** @var PermissionManager */
 	private $permissionManager;
@@ -38,21 +44,41 @@ class SpecialNuke extends SpecialPage {
 	/** @var RepoGroup */
 	private $repoGroup;
 
+	/** @var UserFactory */
+	private $userFactory;
+
+	/** @var UserNamePrefixSearch */
+	private $userNamePrefixSearch;
+
+	/** @var UserNameUtils */
+	private $userNameUtils;
+
 	/**
 	 * @param JobQueueGroup $jobQueueGroup
+	 * @param IConnectionProvider $dbProvider
 	 * @param PermissionManager $permissionManager
 	 * @param RepoGroup $repoGroup
+	 * @param UserFactory $userFactory
+	 * @param UserNamePrefixSearch $userNamePrefixSearch
+	 * @param UserNameUtils $userNameUtils
 	 */
 	public function __construct(
 		JobQueueGroup $jobQueueGroup,
+		IConnectionProvider $dbProvider,
 		PermissionManager $permissionManager,
-		RepoGroup $repoGroup
+		RepoGroup $repoGroup,
+		UserFactory $userFactory,
+		UserNamePrefixSearch $userNamePrefixSearch,
+		UserNameUtils $userNameUtils
 	) {
 		parent::__construct( 'Nuke', 'nuke' );
-		$this->hookRunner = new NukeHookRunner( $this->getHookContainer() );
 		$this->jobQueueGroup = $jobQueueGroup;
+		$this->dbProvider = $dbProvider;
 		$this->permissionManager = $permissionManager;
 		$this->repoGroup = $repoGroup;
+		$this->userFactory = $userFactory;
+		$this->userNamePrefixSearch = $userNamePrefixSearch;
+		$this->userNameUtils = $userNameUtils;
 	}
 
 	public function doesWrites() {
@@ -86,7 +112,7 @@ class SpecialNuke extends SpecialPage {
 
 		// Normalise name
 		if ( $target !== '' ) {
-			$user = User::newFromName( $target );
+			$user = $this->userFactory->newFromName( $target );
 			if ( $user ) {
 				$target = $user->getName();
 			}
@@ -209,7 +235,7 @@ class SpecialNuke extends SpecialPage {
 
 		$nuke = $this->getPageTitle();
 
-		$options = Xml::listDropDownOptions(
+		$options = Xml::listDropdownOptions(
 			$this->msg( 'deletereason-dropdown' )->inContentLanguage()->text(),
 			[ 'other' => $this->msg( 'deletereasonotherlist' )->inContentLanguage()->text() ]
 		);
@@ -221,7 +247,7 @@ class SpecialNuke extends SpecialPage {
 				'tabIndex' => 1,
 				'infusable' => true,
 				'value' => '',
-				'options' => Xml::listDropDownOptionsOoui( $options ),
+				'options' => Xml::listDropdownOptionsOoui( $options ),
 			] ),
 			[
 				'label' => $this->msg( 'deletecomment' )->text(),
@@ -289,6 +315,8 @@ class SpecialNuke extends SpecialPage {
 				[],
 				[ 'action' => 'history' ]
 			);
+			$isRedirect = $title->isRedirect();
+			$query = $isRedirect ? [ 'redirect' => 'no' ] : [];
 			$out->addHTML( '<li>' .
 				Xml::check(
 					'pages[]',
@@ -296,7 +324,7 @@ class SpecialNuke extends SpecialPage {
 					[ 'value' => $title->getPrefixedDBkey() ]
 				) . "\u{00A0}" .
 				( $thumb ? $thumb->toHtml( [ 'desc-link' => true ] ) : '' ) .
-				$linkRenderer->makeKnownLink( $title ) . $wordSeparator .
+				$linkRenderer->makeKnownLink( $title, null, [], $query ) . $wordSeparator .
 				$this->msg( 'parentheses' )->rawParams( $userNameText . $changesLink )->escaped() .
 				"</li>\n" );
 		}
@@ -318,54 +346,39 @@ class SpecialNuke extends SpecialPage {
 	 * @return array
 	 */
 	protected function getNewPages( $username, $limit, $namespace = null ) {
-		$dbr = wfGetDB( DB_REPLICA );
-
-		$what = [
-			'rc_namespace',
-			'rc_title',
-		];
-
-		$where = [
-			$dbr->makeList( [
-				'rc_new' => 1,
-				$dbr->makeList( [
-					'rc_log_type' => 'upload',
-					'rc_log_action' => 'upload',
-				], LIST_AND ),
-			], LIST_OR ),
-		];
+		$dbr = $this->dbProvider->getReplicaDatabase();
+		$queryBuilder = $dbr->newSelectQueryBuilder()
+			->select( [ 'rc_namespace', 'rc_title' ] )
+			->from( 'recentchanges' )
+			->join( 'actor', null, 'actor_id=rc_actor' )
+			->where(
+				$dbr->expr( 'rc_new', '=', 1 )->orExpr(
+					$dbr->expr( 'rc_log_type', '=', 'upload' )
+						->and( 'rc_log_action', '=', 'upload' )
+				)
+			)
+			->orderBy( 'rc_timestamp', SelectQueryBuilder::SORT_DESC )
+			->limit( $limit );
 
 		if ( $username === '' ) {
-			$what['rc_user_text'] = 'actor_name';
+			$queryBuilder->field( 'actor_name', 'rc_user_text' );
 		} else {
-			$where['actor_name'] = $username;
+			$queryBuilder->andWhere( [ 'actor_name' => $username ] );
 		}
 
 		if ( $namespace !== null ) {
-			$where['rc_namespace'] = $namespace;
+			$queryBuilder->andWhere( [ 'rc_namespace' => $namespace ] );
 		}
 
 		$pattern = $this->getRequest()->getText( 'pattern' );
 		if ( $pattern !== null && trim( $pattern ) !== '' ) {
-			// $pattern is a SQL pattern supporting wildcards, so buildLike
-			// will not work.
-			$where[] = 'rc_title LIKE ' . $dbr->addQuotes( $pattern );
+			// $pattern is a SQL pattern supporting wildcards, so buildLike() will not work.
+			// Wildcards are escaped using '\', so LikeValue/LikeMatch will not work either.
+			$queryBuilder->andWhere( 'rc_title LIKE ' . $dbr->addQuotes( $pattern ) );
 		}
 
-		$result = $dbr->select(
-			[ 'recentchanges', 'actor' ],
-			$what,
-			$where,
-			__METHOD__,
-			[
-				'ORDER BY' => 'rc_timestamp DESC',
-				'LIMIT' => $limit
-			],
-			[ 'actor' => [ 'JOIN', 'actor_id=rc_actor' ] ]
-		);
-
+		$result = $queryBuilder->caller( __METHOD__ )->fetchResultSet();
 		$pages = [];
-
 		foreach ( $result as $row ) {
 			$pages[] = [
 				Title::makeTitle( $row->rc_namespace, $row->rc_title ),
@@ -375,7 +388,7 @@ class SpecialNuke extends SpecialPage {
 
 		// Allows other extensions to provide pages to be nuked that don't use
 		// the recentchanges table the way mediawiki-core does
-		$this->hookRunner->onNukeGetNewPages( $username, $pattern, $namespace, $limit, $pages );
+		$this->getNukeHookRunner()->onNukeGetNewPages( $username, $pattern, $namespace, $limit, $pages );
 
 		// Re-enforcing the limit *after* the hook because other extensions
 		// may add and/or remove pages. We need to make sure we don't end up
@@ -404,16 +417,11 @@ class SpecialNuke extends SpecialPage {
 			$title = Title::newFromText( $page );
 
 			$deletionResult = false;
-			if ( !$this->hookRunner->onNukeDeletePage( $title, $reason, $deletionResult ) ) {
-				if ( $deletionResult ) {
-					$res[] = $this->msg( 'nuke-deleted' )
-						->plaintextParams( $title->getPrefixedText() )
-						->parse();
-				} else {
-					$res[] = $this->msg( 'nuke-not-deleted' )
-						->plaintextParams( $title->getPrefixedText() )
-						->parse();
-				}
+			if ( !$this->getNukeHookRunner()->onNukeDeletePage( $title, $reason, $deletionResult ) ) {
+				$res[] = $this->msg(
+					$deletionResult ? 'nuke-deleted' : 'nuke-not-deleted',
+					wfEscapeWikiText( $title->getPrefixedText() )
+				)->parse();
 				continue;
 			}
 
@@ -451,17 +459,15 @@ class SpecialNuke extends SpecialPage {
 			}
 
 			if ( $status === 'job' ) {
-				$res[] = $this->msg( 'nuke-deletion-queued' )
-					->plaintextParams( $title->getPrefixedText() )
-					->parse();
-			} elseif ( $status->isOK() ) {
-				$res[] = $this->msg( 'nuke-deleted' )
-					->plaintextParams( $title->getPrefixedText() )
-					->parse();
+				$res[] = $this->msg(
+					'nuke-deletion-queued',
+					wfEscapeWikiText( $title->getPrefixedText() )
+				)->parse();
 			} else {
-				$res[] = $this->msg( 'nuke-not-deleted' )
-					->plaintextParams( $title->getPrefixedText() )
-					->parse();
+				$res[] = $this->msg(
+					$status->isOK() ? 'nuke-deleted' : 'nuke-not-deleted',
+					wfEscapeWikiText( $title->getPrefixedText() )
+				)->parse();
 			}
 		}
 
@@ -486,14 +492,15 @@ class SpecialNuke extends SpecialPage {
 	 * @return string[] Matching subpages
 	 */
 	public function prefixSearchSubpages( $search, $limit, $offset ) {
-		$user = User::newFromName( $search );
-		if ( !$user ) {
+		$search = $this->userNameUtils->getCanonical( $search );
+		if ( !$search ) {
 			// No prefix suggestion for invalid user
 			return [];
 		}
 
 		// Autocomplete subpage as user list - public to allow caching
-		return UserNamePrefixSearch::search( 'public', $search, $limit, $offset );
+		return $this->userNamePrefixSearch
+			->search( UserNamePrefixSearch::AUDIENCE_PUBLIC, $search, $limit, $offset );
 	}
 
 	/**
@@ -527,5 +534,16 @@ class SpecialNuke extends SpecialPage {
 		} else {
 			return $dropdownSelection;
 		}
+	}
+
+	/**
+	 * @return NukeHookRunner
+	 */
+	private function getNukeHookRunner() {
+		if ( !$this->hookRunner ) {
+			$this->hookRunner = new NukeHookRunner( $this->getHookContainer() );
+		}
+
+		return $this->hookRunner;
 	}
 }

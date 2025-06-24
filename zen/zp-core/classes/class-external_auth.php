@@ -4,12 +4,12 @@
  * Root class for external authorizaton plugins
  *
  * @author Stephen Billard (sbillard)
- * @package core
+ * @package zpcore\classes\authorization
  */
 
 class external_auth {
 
-	var $auth='external';
+	public $auth='external';
 
 	/**
 	 * returns an array with the user details from the external authorization

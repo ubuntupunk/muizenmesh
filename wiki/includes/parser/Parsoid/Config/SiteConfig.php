@@ -21,12 +21,12 @@
 
 namespace MediaWiki\Parser\Parsoid\Config;
 
-use Config;
-use ExtensionRegistry;
 use Language;
 use LanguageCode;
 use LanguageConverter;
 use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
+use MediaWiki\Config\Config;
+use MediaWiki\Config\MutableConfig;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Interwiki\InterwikiLookup;
 use MediaWiki\Languages\LanguageConverterFactory;
@@ -36,16 +36,14 @@ use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MainConfigNames;
 use MediaWiki\Parser\MagicWordArray;
 use MediaWiki\Parser\MagicWordFactory;
+use MediaWiki\Parser\ParserOutput;
 use MediaWiki\SpecialPage\SpecialPageFactory;
+use MediaWiki\Title\NamespaceInfo;
 use MediaWiki\Title\Title;
-use MediaWiki\User\UserOptionsLookup;
+use MediaWiki\User\Options\UserOptionsLookup;
 use MediaWiki\Utils\UrlUtils;
 use MediaWiki\WikiMap\WikiMap;
-use MutableConfig;
-use MWException;
-use NamespaceInfo;
-use Parser;
-use ParserOutput;
+use ParserFactory;
 use PrefixingStatsdDataFactoryProxy;
 use Psr\Log\LoggerInterface;
 use UnexpectedValueException;
@@ -95,70 +93,32 @@ class SiteConfig extends ISiteConfig {
 		MainConfigNames::NoFollowNsExceptions,
 		MainConfigNames::NoFollowDomainExceptions,
 		MainConfigNames::ExternalLinkTarget,
+		MainConfigNames::EnableMagicLinks,
 	];
 
-	/** @var ServiceOptions */
-	private $config;
-
-	/** @var Config */
-	private $mwConfig;
-
-	/** @var array Parsoid-specific options array from $config */
-	private $parsoidSettings;
-
-	/** @var Language */
-	private $contLang;
-
-	/** @var StatsdDataFactoryInterface */
-	private $stats;
-
-	/** @var MagicWordFactory */
-	private $magicWordFactory;
-
-	/** @var NamespaceInfo */
-	private $namespaceInfo;
-
-	/** @var SpecialPageFactory */
-	private $specialPageFactory;
-
-	/** @var InterwikiLookup */
-	private $interwikiLookup;
-
-	/** @var Parser */
-	private $parser;
-
-	/** @var UserOptionsLookup */
-	private $userOptionsLookup;
-
-	/** @var ObjectFactory */
-	private $objectFactory;
-
-	/** @var LanguageFactory */
-	private $languageFactory;
-
-	/** @var LanguageConverterFactory */
-	private $languageConverterFactory;
-
-	/** @var LanguageNameUtils */
-	private $languageNameUtils;
-
-	/** @var UrlUtils */
-	private $urlUtils;
-
-	/** @var string|null */
-	private $baseUri;
-
-	/** @var string|null */
-	private $relativeLinkPrefix;
-
-	/** @var array|null */
-	private $interwikiMap;
-
-	/** @var array|null */
-	private $variants;
-
-	/** @var array */
-	private $extensionTags;
+	private ServiceOptions $config;
+	private Config $mwConfig;
+	/** Parsoid-specific options array from $config */
+	private array $parsoidSettings;
+	private Language $contLang;
+	private StatsdDataFactoryInterface $stats;
+	private MagicWordFactory $magicWordFactory;
+	private NamespaceInfo $namespaceInfo;
+	private SpecialPageFactory $specialPageFactory;
+	private InterwikiLookup $interwikiLookup;
+	private ParserFactory $parserFactory;
+	private UserOptionsLookup $userOptionsLookup;
+	private ObjectFactory $objectFactory;
+	private LanguageFactory $languageFactory;
+	private LanguageConverterFactory $languageConverterFactory;
+	private LanguageNameUtils $languageNameUtils;
+	private UrlUtils $urlUtils;
+	private ?string $baseUri = null;
+	private ?string $relativeLinkPrefix = null;
+	private ?array $interwikiMap = null;
+	private ?array $variants = null;
+	private ?array $extensionTags = null;
+	private bool $isTimedMediaHandlerLoaded;
 
 	/**
 	 * @param ServiceOptions $config MediaWiki main configuration object
@@ -175,8 +135,10 @@ class SiteConfig extends ISiteConfig {
 	 * @param LanguageConverterFactory $languageConverterFactory
 	 * @param LanguageNameUtils $languageNameUtils
 	 * @param UrlUtils $urlUtils
-	 * @param Parser $parser
+	 * @param array $extensionParsoidModules
+	 * @param ParserFactory $parserFactory
 	 * @param Config $mwConfig
+	 * @param bool $isTimedMediaHandlerLoaded
 	 */
 	public function __construct(
 		ServiceOptions $config,
@@ -193,9 +155,11 @@ class SiteConfig extends ISiteConfig {
 		LanguageConverterFactory $languageConverterFactory,
 		LanguageNameUtils $languageNameUtils,
 		UrlUtils $urlUtils,
-		// $parser is temporary and may be removed once a better solution is found.
-		Parser $parser, // T268776
-		Config $mwConfig
+		array $extensionParsoidModules,
+		// $parserFactory is temporary and may be removed once a better solution is found.
+		ParserFactory $parserFactory, // T268776
+		Config $mwConfig,
+		bool $isTimedMediaHandlerLoaded
 	) {
 		parent::__construct();
 
@@ -211,14 +175,13 @@ class SiteConfig extends ISiteConfig {
 		$this->namespaceInfo = $namespaceInfo;
 		$this->specialPageFactory = $specialPageFactory;
 		$this->interwikiLookup = $interwikiLookup;
-		$this->parser = $parser;
+		$this->parserFactory = $parserFactory;
 		$this->userOptionsLookup = $userOptionsLookup;
 		$this->languageFactory = $languageFactory;
 		$this->languageConverterFactory = $languageConverterFactory;
 		$this->languageNameUtils = $languageNameUtils;
 		$this->urlUtils = $urlUtils;
 
-		// Override parent default
 		// Override parent default
 		if ( isset( $this->parsoidSettings['linting'] ) ) {
 			// @todo: Add this setting to MW's MainConfigSchema
@@ -233,11 +196,11 @@ class SiteConfig extends ISiteConfig {
 		}
 
 		// Register extension modules
-		// TODO: inject this (T257586)
-		$parsoidModules = ExtensionRegistry::getInstance()->getAttribute( 'ParsoidModules' );
-		foreach ( $parsoidModules as $configOrSpec ) {
+		foreach ( $extensionParsoidModules as $configOrSpec ) {
 			$this->registerExtensionModule( $configOrSpec );
 		}
+
+		$this->isTimedMediaHandlerLoaded = $isTimedMediaHandlerLoaded;
 	}
 
 	/** @inheritDoc */
@@ -265,10 +228,6 @@ class SiteConfig extends ISiteConfig {
 			);
 		}
 		return $prefixedMetrics;
-	}
-
-	public function nativeGalleryEnabled(): bool {
-		return $this->parsoidSettings['nativeGalleryEnabled'] ?? false;
 	}
 
 	public function galleryOptions(): array {
@@ -300,7 +259,7 @@ class SiteConfig extends ISiteConfig {
 		}
 		$url = substr( $url, 0, -2 );
 
-		$bits = wfParseUrl( $url );
+		$bits = $this->urlUtils->parse( $url );
 		if ( !$bits ) {
 			throw new UnexpectedValueException( "Failed to parse article path '$url'" );
 		}
@@ -429,6 +388,12 @@ class SiteConfig extends ISiteConfig {
 		return $this->config->get( MainConfigNames::InterwikiMagic );
 	}
 
+	/** @inheritDoc */
+	public function magicLinkEnabled( string $which ): bool {
+		$m = $this->config->get( MainConfigNames::EnableMagicLinks );
+		return $m[$which] ?? true;
+	}
+
 	public function interwikiMap(): array {
 		// Unfortunate that this mostly duplicates \ApiQuerySiteinfo::appendInterwikiMap()
 		if ( $this->interwikiMap !== null ) {
@@ -455,11 +420,11 @@ class SiteConfig extends ISiteConfig {
 			// Just append the placeholder at the end.
 			// This makes sure that the interwikiMatcher adds one match
 			// group per URI, and that interwiki links work as expected.
-			if ( strpos( $val['url'], '$1' ) === false ) {
+			if ( !str_contains( $val['url'], '$1' ) ) {
 				$val['url'] .= '$1';
 			}
 
-			if ( substr( $row['iw_url'], 0, 2 ) == '//' ) {
+			if ( str_starts_with( $row['iw_url'], '//' ) ) {
 				$val['protorel'] = true;
 			}
 			if ( isset( $row['iw_local'] ) && $row['iw_local'] == '1' ) {
@@ -518,6 +483,11 @@ class SiteConfig extends ISiteConfig {
 		return Title::newMainPage()->getPrefixedText();
 	}
 
+	public function mainPageLinkTarget(): Title {
+		// @todo Perhaps should inject TitleFactory here?
+		return Title::newMainPage();
+	}
+
 	/**
 	 * Lookup config
 	 * @param string $key
@@ -539,17 +509,13 @@ class SiteConfig extends ISiteConfig {
 		if ( $this->languageConverterFactory->isConversionDisabled() ) {
 			return false;
 		}
-		try {
-			$langObject = $this->languageFactory->getLanguage( $lang );
-			if ( !in_array( $langObject->getCode(), LanguageConverter::$languagesWithVariants, true ) ) {
-				return false;
-			}
-			$converter = $this->languageConverterFactory->getLanguageConverter( $langObject );
-			return $converter->hasVariants();
-		} catch ( MWException $ex ) {
-			// Probably a syntactically invalid language code
+
+		$langObject = $this->languageFactory->getLanguage( $lang );
+		if ( !in_array( $langObject->getCode(), LanguageConverter::$languagesWithVariants, true ) ) {
 			return false;
 		}
+		$converter = $this->languageConverterFactory->getLanguageConverter( $langObject );
+		return $converter->hasVariants();
 	}
 
 	public function script(): string {
@@ -678,10 +644,10 @@ class SiteConfig extends ISiteConfig {
 
 	/** @inheritDoc */
 	protected function getFunctionSynonyms(): array {
-		return $this->parser->getFunctionSynonyms();
+		return $this->parserFactory->getMainInstance()->getFunctionSynonyms();
 	}
 
-	/** @inheritDoc */
+	/** @return array<string,array> $magicWord => [ int $caseSensitive, string ...$alias ] */
 	protected function getMagicWords(): array {
 		return $this->contLang->getMagicWords();
 	}
@@ -698,7 +664,7 @@ class SiteConfig extends ISiteConfig {
 		// in that method.
 		// Filter out timedmedia-* unless that extension is loaded, so Parsoid
 		// doesn't have a hard dependency on an extension.
-		if ( !ExtensionRegistry::getInstance()->isLoaded( 'TimedMediaHandler' ) ) {
+		if ( !$this->isTimedMediaHandlerLoaded ) {
 			$words = preg_grep( '/^timedmedia_/', $words, PREG_GREP_INVERT );
 		}
 		$words = $this->magicWordFactory->newArray( $words );
@@ -713,7 +679,7 @@ class SiteConfig extends ISiteConfig {
 	}
 
 	private function populateExtensionTags(): void {
-		$this->extensionTags = array_fill_keys( $this->parser->getTags(), true );
+		$this->extensionTags = array_fill_keys( $this->parserFactory->getMainInstance()->getTags(), true );
 	}
 
 	/** @inheritDoc */

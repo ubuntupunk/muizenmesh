@@ -1,7 +1,7 @@
 /*!
  * VisualEditor MWGalleryContextItem class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
 
 /**
@@ -10,8 +10,8 @@
  * @class
  * @extends ve.ui.LinearContextItem
  *
- * @param {ve.ui.Context} context Context item is in
- * @param {ve.dm.Model} model Model item is related to
+ * @param {ve.ui.LinearContext} context Context the item is in
+ * @param {ve.dm.Model} model Model the item is related to
  * @param {Object} [config]
  */
 ve.ui.MWGalleryContextItem = function VeUiMWGalleryContextItem() {

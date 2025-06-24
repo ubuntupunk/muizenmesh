@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInite5d7822eb9408399134f41da898c2ac7
+class ComposerStaticInit844ad4dffddb131d6773ed2f8891f1de
 {
     public static $classMap = array (
         'Gsitemap' => __DIR__ . '/../..' . '/gsitemap.php',
@@ -13,7 +13,7 @@ class ComposerStaticInite5d7822eb9408399134f41da898c2ac7
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->classMap = ComposerStaticInite5d7822eb9408399134f41da898c2ac7::$classMap;
+            $loader->classMap = ComposerStaticInit844ad4dffddb131d6773ed2f8891f1de::$classMap;
 
         }, null, ClassLoader::class);
     }

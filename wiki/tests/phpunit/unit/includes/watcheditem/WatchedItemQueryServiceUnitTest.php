@@ -1,16 +1,22 @@
 <?php
 
+use MediaWiki\CommentStore\CommentStore;
 use MediaWiki\Revision\RevisionRecord;
+use MediaWiki\Title\TitleValue;
+use MediaWiki\User\Options\UserOptionsLookup;
+use MediaWiki\User\TempUser\TempUserConfig;
+use MediaWiki\User\User;
 use MediaWiki\User\UserIdentityValue;
-use MediaWiki\User\UserOptionsLookup;
 use PHPUnit\Framework\MockObject\MockObject;
 use Wikimedia\Rdbms\DBConnRef;
+use Wikimedia\Rdbms\Expression;
+use Wikimedia\Rdbms\IConnectionProvider;
 use Wikimedia\Rdbms\IDatabase;
-use Wikimedia\Rdbms\LoadBalancer;
+use Wikimedia\Rdbms\IReadableDatabase;
 use Wikimedia\TestingAccessWrapper;
 
 /**
- * @covers WatchedItemQueryService
+ * @covers \WatchedItemQueryService
  */
 class WatchedItemQueryServiceUnitTest extends MediaWikiUnitTestCase {
 
@@ -19,8 +25,6 @@ class WatchedItemQueryServiceUnitTest extends MediaWikiUnitTestCase {
 	 */
 	private function getMockCommentStore() {
 		$mockStore = $this->createMock( CommentStore::class );
-		$mockStore->method( 'getFields' )
-			->willReturn( [ 'commentstore' => 'fields' ] );
 		$mockStore->method( 'getJoin' )
 			->willReturn( [
 				'tables' => [ 'commentstore' => 'table' ],
@@ -40,11 +44,12 @@ class WatchedItemQueryServiceUnitTest extends MediaWikiUnitTestCase {
 		UserOptionsLookup $userOptionsLookup = null
 	) {
 		return new WatchedItemQueryService(
-			$this->getMockLoadBalancer( $mockDb ),
+			$this->getMockDbProvider( $mockDb ),
 			$this->getMockCommentStore(),
 			$this->getMockWatchedItemStore(),
 			$this->createHookContainer(),
 			$userOptionsLookup ?? $this->createMock( UserOptionsLookup::class ),
+			$this->createMock( TempUserConfig::class ),
 			false
 		);
 	}
@@ -109,14 +114,9 @@ class WatchedItemQueryServiceUnitTest extends MediaWikiUnitTestCase {
 		return $mock;
 	}
 
-	/**
-	 * @param DBConnRef $mockDb
-	 * @return LoadBalancer
-	 */
-	private function getMockLoadBalancer( DBConnRef $mockDb ) {
-		$mock = $this->createMock( LoadBalancer::class );
-		$mock->method( 'getConnectionRef' )
-			->with( DB_REPLICA )
+	private function getMockDbProvider( IReadableDatabase $mockDb ): IConnectionProvider {
+		$mock = $this->createMock( IConnectionProvider::class );
+		$mock->method( 'getReplicaDatabase' )
 			->willReturn( $mockDb );
 		return $mock;
 	}
@@ -451,7 +451,7 @@ class WatchedItemQueryServiceUnitTest extends MediaWikiUnitTestCase {
 		$this->assertEquals( [ '20160203123456', 42 ], $startFrom );
 	}
 
-	public function getWatchedItemsWithRecentChangeInfoOptionsProvider() {
+	public static function getWatchedItemsWithRecentChangeInfoOptionsProvider() {
 		return [
 			[
 				[ 'includeFields' => [ WatchedItemQueryService::INCLUDE_FLAGS ] ],
@@ -857,7 +857,7 @@ class WatchedItemQueryServiceUnitTest extends MediaWikiUnitTestCase {
 		$this->assertNull( $startFrom );
 	}
 
-	public function filterPatrolledOptionProvider() {
+	public static function filterPatrolledOptionProvider() {
 		return [
 			'Patrolled' => [ WatchedItemQueryService::FILTER_PATROLLED ],
 			'Not patrolled' => [ WatchedItemQueryService::FILTER_NOT_PATROLLED ],
@@ -894,12 +894,12 @@ class WatchedItemQueryServiceUnitTest extends MediaWikiUnitTestCase {
 		$this->assertSame( [], $items );
 	}
 
-	public function mysqlIndexOptimizationProvider() {
+	public static function mysqlIndexOptimizationProvider() {
 		return [
 			[
 				'mysql',
 				[],
-				[ "rc_timestamp > ''" ],
+				[ new Expression( 'rc_timestamp', '>', '' ) ],
 			],
 			[
 				'mysql',
@@ -931,6 +931,13 @@ class WatchedItemQueryServiceUnitTest extends MediaWikiUnitTestCase {
 		$conds = array_merge( $commonConds, $expectedExtraConds );
 
 		$mockDb = $this->getMockDb();
+		$mockDb->expects( $this->any() )
+			->method( 'expr' )
+			->with(
+				'rc_timestamp',
+				$this->isType( 'string' ),
+				$this->isType( 'string' )
+			)->willReturnCallback( static fn ( $field, $op, $val ) => new Expression( $field, $op, $val ) );
 		$mockDb->expects( $this->once() )
 			->method( 'select' )
 			->with(
@@ -953,7 +960,7 @@ class WatchedItemQueryServiceUnitTest extends MediaWikiUnitTestCase {
 		$this->assertSame( [], $items );
 	}
 
-	public function userPermissionRelatedExtraChecksProvider() {
+	public static function userPermissionRelatedExtraChecksProvider() {
 		return [
 			[
 				[],
@@ -1356,7 +1363,7 @@ class WatchedItemQueryServiceUnitTest extends MediaWikiUnitTestCase {
 		);
 	}
 
-	public function provideGetWatchedItemsForUserOptions() {
+	public static function provideGetWatchedItemsForUserOptions() {
 		return [
 			[
 				[ 'namespaceIds' => [ 0, 1 ], ],
@@ -1444,7 +1451,7 @@ class WatchedItemQueryServiceUnitTest extends MediaWikiUnitTestCase {
 		$this->assertSame( [], $items );
 	}
 
-	public function provideGetWatchedItemsForUser_fromUntilStartFromOptions() {
+	public static function provideGetWatchedItemsForUser_fromUntilStartFromOptions() {
 		return [
 			[
 				[
@@ -1555,7 +1562,7 @@ class WatchedItemQueryServiceUnitTest extends MediaWikiUnitTestCase {
 		$this->assertSame( [], $items );
 	}
 
-	public function getWatchedItemsForUserInvalidOptionsProvider() {
+	public static function getWatchedItemsForUserInvalidOptionsProvider() {
 		return [
 			[
 				[ 'sort' => 'foo' ],

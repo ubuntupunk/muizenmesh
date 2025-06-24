@@ -1,11 +1,11 @@
 <?php
-/* Smarty version 4.3.1, created on 2023-12-21 13:10:29
+/* Smarty version 4.3.1, created on 2024-08-02 18:54:57
   from '/home/sexthera/public_html/muizenmesh.co.za/store/themes/classic/templates/catalog/_partials/product-flags.tpl' */
 
 /* @var Smarty_Internal_Template $_smarty_tpl */
 if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
   'version' => '4.3.1',
-  'unifunc' => 'content_65841d259d1d56_85471931',
+  'unifunc' => 'content_66ad0f61d75e21_02044230',
   'has_nocache_code' => false,
   'file_dependency' => 
   array (
@@ -20,21 +20,21 @@ if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
   array (
   ),
 ),false)) {
-function content_65841d259d1d56_85471931 (Smarty_Internal_Template $_smarty_tpl) {
+function content_66ad0f61d75e21_02044230 (Smarty_Internal_Template $_smarty_tpl) {
 $_smarty_tpl->_loadInheritance();
 $_smarty_tpl->inheritance->init($_smarty_tpl, false);
-$_smarty_tpl->compiled->nocache_hash = '194207342065841d259cd005_26516137';
-$_smarty_tpl->inheritance->instanceBlock($_smarty_tpl, 'Block_162075677665841d259cecf0_44103338', 'product_flags');
+$_smarty_tpl->compiled->nocache_hash = '155876064366ad0f61d72342_00127919';
+$_smarty_tpl->inheritance->instanceBlock($_smarty_tpl, 'Block_204572160466ad0f61d73a69_63787867', 'product_flags');
 ?>
 
 <?php }
 /* {block 'product_flags'} */
-class Block_162075677665841d259cecf0_44103338 extends Smarty_Internal_Block
+class Block_204572160466ad0f61d73a69_63787867 extends Smarty_Internal_Block
 {
 public $subBlocks = array (
   'product_flags' => 
   array (
-    0 => 'Block_162075677665841d259cecf0_44103338',
+    0 => 'Block_204572160466ad0f61d73a69_63787867',
   ),
 );
 public function callBlock(Smarty_Internal_Template $_smarty_tpl) {

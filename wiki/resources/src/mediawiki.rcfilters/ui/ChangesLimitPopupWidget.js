@@ -2,12 +2,12 @@ var ValuePickerWidget = require( './ValuePickerWidget.js' ),
 	ChangesLimitPopupWidget;
 
 /**
- * Widget defining the popup to choose number of results
+ * Widget defining the popup to choose number of results.
  *
  * @class mw.rcfilters.ui.ChangesLimitPopupWidget
+ * @ignore
  * @extends OO.ui.Widget
  *
- * @constructor
  * @param {mw.rcfilters.dm.FilterGroup} limitModel Group model for 'limit'
  * @param {mw.rcfilters.dm.FilterItem} groupByPageItemModel Group model for 'limit'
  * @param {Object} [config] Configuration object
@@ -16,7 +16,7 @@ ChangesLimitPopupWidget = function MwRcfiltersUiChangesLimitPopupWidget( limitMo
 	config = config || {};
 
 	// Parent
-	ChangesLimitPopupWidget.parent.call( this, config );
+	ChangesLimitPopupWidget.super.call( this, config );
 
 	this.limitModel = limitModel;
 	this.groupByPageItemModel = groupByPageItemModel;
@@ -36,6 +36,11 @@ ChangesLimitPopupWidget = function MwRcfiltersUiChangesLimitPopupWidget( limitMo
 	this.valuePicker.connect( this, { choose: [ 'emit', 'limit' ] } );
 	this.groupByPageCheckbox.connect( this, { change: [ 'emit', 'groupByPage' ] } );
 	this.groupByPageItemModel.connect( this, { update: 'onGroupByPageModelUpdate' } );
+	// HACK: Directly connect to the checkbox click event so that we can save the preference
+	// when the user explicitly interacts with the checkbox rather than when the checkbox changes
+	// state. This is to make sure that we only save preference when the user explicitly interacts
+	// with the UI.
+	this.groupByPageCheckbox.$element.on( 'click', this.onGroupByPageUserClick.bind( this ) );
 
 	// Initialize
 	this.$element
@@ -51,6 +56,7 @@ ChangesLimitPopupWidget = function MwRcfiltersUiChangesLimitPopupWidget( limitMo
 					}
 				).$element
 		);
+
 	this.valuePicker.selectWidget.$element.attr( 'aria-label', mw.msg( 'rcfilters-limit-title' ) );
 };
 
@@ -61,17 +67,19 @@ OO.inheritClass( ChangesLimitPopupWidget, OO.ui.Widget );
 /* Events */
 
 /**
+ * A limit item was chosen.
+ *
  * @event limit
  * @param {string} name Item name
- *
- * A limit item was chosen
+ * @ignore
  */
 
 /**
+ * Results are grouped by page
+ *
  * @event groupByPage
  * @param {boolean} isGrouped The results are grouped by page
- *
- * Results are grouped by page
+ * @ignore
  */
 
 /**
@@ -79,6 +87,13 @@ OO.inheritClass( ChangesLimitPopupWidget, OO.ui.Widget );
  */
 ChangesLimitPopupWidget.prototype.onGroupByPageModelUpdate = function () {
 	this.groupByPageCheckbox.setSelected( this.groupByPageItemModel.isSelected() );
+};
+
+/**
+ * Respond to user explicitly clicking the Group by page checkbox
+ */
+ChangesLimitPopupWidget.prototype.onGroupByPageUserClick = function () {
+	this.emit( 'groupByPageUserClick', this.groupByPageCheckbox.isSelected() );
 };
 
 module.exports = ChangesLimitPopupWidget;

@@ -1,6 +1,6 @@
 <?php
-/**
- * 2007-2023 PayPal
+/*
+ * Since 2007 PayPal
  *
  * NOTICE OF LICENSE
  *
@@ -18,25 +18,86 @@
  *  versions in the future. If you wish to customize PrestaShop for your
  *  needs please refer to http://www.prestashop.com for more information.
  *
- *  @author 2007-2023 PayPal
+ *  @author Since 2007 PayPal
  *  @author 202 ecommerce <tech@202-ecommerce.com>
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
+ *
  */
 
 namespace PaypalAddons\classes\API\ExtensionSDK;
 
-use PayPalHttp\HttpRequest;
+use PaypalAddons\classes\API\HttpAdoptedResponse;
+use PaypalAddons\classes\API\HttpResponse;
+use PaypalAddons\classes\API\Request\HttpRequestInterface;
+use PaypalAddons\classes\API\WrapperInterface;
+use PaypalAddons\services\Builder\BuilderInterface;
 
 if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-class PartnerReferrals extends HttpRequest
+class PartnerReferrals implements HttpRequestInterface, WrapperInterface
 {
-    public function __construct()
+    protected $headers = [];
+    /**
+     * @var BuilderInterface
+     */
+    protected $builder;
+
+    public function __construct(BuilderInterface $builder)
     {
-        parent::__construct('/v2/customer/partner-referrals?', 'POST');
         $this->headers['Content-Type'] = 'application/json';
+        $this->builder = $builder;
+    }
+
+    public function getPath()
+    {
+        return '/v2/customer/partner-referrals';
+    }
+
+    /** @return array*/
+    public function getHeaders()
+    {
+        return $this->headers;
+    }
+
+    /**
+     * @param array $headers
+     *
+     * @return self
+     */
+    public function setHeaders($headers)
+    {
+        if (is_array($headers)) {
+            $this->headers = $headers;
+        }
+
+        return $this;
+    }
+
+    public function getBody()
+    {
+        $body = $this->builder->build();
+
+        if (is_array($body)) {
+            $body = json_encode($body);
+        }
+
+        return $body;
+    }
+
+    public function getMethod()
+    {
+        return 'POST';
+    }
+
+    public function wrap($object)
+    {
+        if ($object instanceof HttpResponse) {
+            return new HttpAdoptedResponse($object);
+        }
+
+        return $object;
     }
 }

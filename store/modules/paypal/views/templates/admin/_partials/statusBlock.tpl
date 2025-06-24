@@ -1,5 +1,5 @@
 {**
- * 2007-2023 PayPal
+ * 2007-2024 PayPal
  *
  * NOTICE OF LICENSE
  *
@@ -17,7 +17,7 @@
  *  versions in the future. If you wish to customize PrestaShop for your
  *  needs please refer to http://www.prestashop.com for more information.
  *
- *  @author 2007-2023 PayPal
+ *  @author 2007-2024 PayPal
  *  @author 202 ecommerce <tech@202-ecommerce.com>
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
@@ -56,8 +56,24 @@
           {if $vars.tlsVersion|default:false && $vars.tlsVersion['status']}
             {l s='The PHP cURL extension must be enabled on your server.' mod='paypal'}
           {elseif $vars.tlsVersion|default:false}
-            {l s='The PHP cURL extension must be enabled on your server. Please contact your hosting provider for more information.' mod='paypal'}
-            {$vars.tlsVersion['error_message']|escape:'htmlall':'UTF-8'}
+              <div>
+                  {l s='TLS verification is failed. Probably, It doesn\'t impact on the module functionality.' mod='paypal'}
+                  {{l s='The module can\'t access to [a @href1@]the page[/a].' mod='paypal'}|paypalreplace:['@href1@' =>{$vars.tlsVersion['ping_page']|default:'#'}, '@target@' => {'target="blank"'}]}
+                  {l s='The possible causes are the following:' mod='paypal'}
+                <ul>
+                  <li>{l s='htpasswd enabled' mod='paypal'}</li>
+                  <li>{l s='the https protocol is not supported' mod='paypal'}</li>
+                  <li>{l s='wrong https certificate' mod='paypal'}</li>
+                  <li>{l s='invalid server settings or insufficient access rights.' mod='paypal'}</li>
+                </ul>
+                  {if {$vars.tlsVersion['error_message']|default:''}}
+                    <div>
+                        {l s='Access error message:' mod='paypal'}
+                        {$vars.tlsVersion['error_message']|escape:'htmlall':'UTF-8'}
+                    </div>
+                  {/if}
+              </div>
+
           {/if}
         </li>
       {/if}

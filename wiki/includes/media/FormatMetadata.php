@@ -25,6 +25,8 @@
  * @file
  */
 
+use MediaWiki\Context\ContextSource;
+use MediaWiki\Context\IContextSource;
 use MediaWiki\HookContainer\ProtectedHookAccessorTrait;
 use MediaWiki\Html\Html;
 use MediaWiki\Logger\LoggerFactory;
@@ -459,6 +461,9 @@ class FormatMetadata extends ContextSource {
 						break;
 
 					case 'Flash':
+						if ( $val === '' ) {
+							$val = 0;
+						}
 						$flashDecode = [
 							'fired' => $val & 0b00000001,
 							'return' => ( $val & 0b00000110 ) >> 1,
@@ -1216,13 +1221,12 @@ class FormatMetadata extends ContextSource {
 	 * @param string $lang Lang code of item or false
 	 * @param bool $default If it is default value.
 	 * @param bool $noHtml If to avoid html (for back-compat)
-	 * @throws MWException
 	 * @return string Language item (Note: despite how this looks, this is
 	 *   treated as wikitext, not as HTML).
 	 */
 	private function langItem( $value, $lang, $default = false, $noHtml = false ) {
 		if ( $lang === false && $default === false ) {
-			throw new MWException( '$lang and $default cannot both be false.' );
+			throw new InvalidArgumentException( '$lang and $default cannot both be false.' );
 		}
 
 		if ( $noHtml ) {
@@ -1828,7 +1832,7 @@ class FormatMetadata extends ContextSource {
 
 		// otherwise just return any one language
 		unset( $value['_type'] );
-		if ( !empty( $value ) ) {
+		if ( $value ) {
 			return reset( $value );
 		}
 

@@ -20,6 +20,10 @@
  * @file
  * @author Daniel Kinzler
  */
+
+namespace MediaWiki\Title;
+
+use InvalidArgumentException;
 use MediaWiki\Linker\LinkTarget;
 use MediaWiki\Page\PageReference;
 
@@ -101,3 +105,6 @@ interface TitleFormatter {
 	 */
 	public function getNamespaceName( $namespace, $text );
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( TitleFormatter::class, 'TitleFormatter' );

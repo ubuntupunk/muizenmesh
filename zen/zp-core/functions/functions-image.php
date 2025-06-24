@@ -1,8 +1,7 @@
 <?php
 /**
  * image processing functions
- * @package core
- * @subpackage functions\functions-image
+ * @package zpcore\functions\image
  *
  */
 // force UTF-8 Ø
@@ -231,9 +230,9 @@ function cacheImage($newfilename, $imgfile, $args, $allow_watermark = false, $th
 		}
 		if ($rotate) {
 			if (DEBUG_IMAGE) {
-				debugLog("cacheImage:rotate->$rotate");
+				debugLog('cacheImage:flip_rotate: '. print_r($rotate, true));
 			}
-			$im = $_zp_graphics->rotateImage($im, $rotate);
+			$im = $_zp_graphics->flipRotateImage($im, $rotate);
 			if (!$im) {
 				imageError('404 Not Found', sprintf(gettext('Image %s not rotatable.'), filesystemToInternal($imgfile)), 'err-failimage.png', $imgfile, $album, $newfilename);
 			}
@@ -356,6 +355,12 @@ function cacheImage($newfilename, $imgfile, $args, $allow_watermark = false, $th
 					}
 				}
 			}
+			if (!is_null($neww)) {
+				$neww = round($neww);
+			}
+			if (!is_null($newh)) {
+				$newh = round($newh);
+			}
 			if (is_null($cx) && is_null($cy)) { // scale crop to max of image
 				// set crop scale factor
 				$cf = 1;
@@ -397,6 +402,18 @@ function cacheImage($newfilename, $imgfile, $args, $allow_watermark = false, $th
 			if ($cy < 0) {
 				$ch = $ch + $cy;
 				$cy = 0;
+			}
+			if (!is_null($cw)) {
+				$cw = round($cw);
+			}
+			if (!is_null($ch)) {
+				$ch = round($ch);
+			}
+			if (!is_null($cx)) {
+				$cx = round($cx);
+			}
+			if (!is_null($cy)) {
+				$cy = round($cy);
 			}
 			if (DEBUG_IMAGE) {
 				debugLog("cacheImage:crop " . basename($imgfile) . ":\$size=$size, \$width=$width, \$height=$height, \$cw=$cw, \$ch=$ch, \$cx=$cx, \$cy=$cy, \$quality=$quality, \$thumb=$thumb, \$crop=$crop, \$rotate=$rotate");
@@ -468,7 +485,7 @@ function cacheImage($newfilename, $imgfile, $args, $allow_watermark = false, $th
 		if (is_string($effects)) {
 			$imgEffects = explode(',', $effects);
 			if (in_array('gray', $imgEffects)) {
-				$_zp_graphics->imageGray($newim);
+				$newim = $_zp_graphics->imageGray($newim);
 			}
 		}
 		$newim = addWatermark($newim, $watermark_image, $imgfile);
@@ -547,15 +564,16 @@ function cacheImage($newfilename, $imgfile, $args, $allow_watermark = false, $th
 	return true;
 }
 
-/* Determines the rotation of the image looking EXIF information.
+/**
+ * Determines the rotation of the image by looking at EXIF information.
+ * 
+ * Returns an array with two indexes "rotate" (= degree to rotate) and "flip" ("horizontal" or "vertical") 
+ * or false if nothing applies
  *
+ * @since 1.6.1 Return values changed from string|false to array|false
+ * 
  * @param string $imgfile the image name
- * @return false when the image should not be rotated, or the degrees the
- *         image should be rotated otherwise.
- *
- * PHP GD do not support flips so when a flip is needed we make a
- * rotation that get close to that flip. But I don't think any camera will
- * fill a flipped value in the tag.
+ * @return array|false
  */
 function getImageRotation($imgfile) {
 	global $_zp_db;
@@ -570,29 +588,16 @@ function getImageRotation($imgfile) {
 				$rotation = $result['Orientation'];
 			}
 		}
-	} else if (is_array($result) && array_key_exists('EXIFOrientation', $result) && is_string($result['EXIFOrientation'])) {
-		$splits = preg_split('/!([(0-9)])/', strval($result['EXIFOrientation']));
-		$rotation = $splits[0];
+	} else if (is_array($result) && array_key_exists('EXIFOrientation', $result)) {
+		$rotation = extractImageExifOrientation($result['EXIFOrientation']); 
 	}
-	if ($rotation) {
-		switch ($rotation) {
-			case 1 : return false; // none
-			case 2 : return false; // mirrored
-			case 3 : return 180; // upside-down (not 180 but close)
-			case 4 : return 180; // upside-down mirrored
-			case 5 : return 270; // 90 CW mirrored (not 270 but close)
-			case 6 : return 270; // 90 CCW
-			case 7 : return 90; // 90 CCW mirrored (not 90 but close)
-			case 8 : return 90; // 90 CW
-		}
-	}
-	return false;
+	return getImageFlipRotate($rotation);
 }
 
 /**
  * Adds a watermark to a resized image. If no watermark is set it just returns the image
  * 
- * @since ZenphotoCMS 1.5.3 - consolidated from cacheImage() and full-image.php
+ * @since 1.5.3 - consolidated from cacheImage() and full-image.php
  * 
  * @param resource|object $newim GD image resource or Imagick object
  * @param string $watermark_image The path to the watermark to use
@@ -655,7 +660,7 @@ function addWatermark($newim, $watermark_image, $imgfile = null) {
 /**
  * Checks if an processed image is a GD library image
  * 
- * @since ZenphotoCMS 1.6
+ * @since 1.6
  * 
  * @param mixed $image And Image resource (PHP < 8) or GDImage object (PHP 8+)
  * @return boolean

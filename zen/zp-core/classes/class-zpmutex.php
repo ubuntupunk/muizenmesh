@@ -2,11 +2,13 @@
 /**
  * Zenphoto Mutex class
  * @author Stephen Billard (sbillard)
+ * 
+ * @package zpcore\classes\helpers
  */
 class zpMutex {
 
 	private $locked = NULL;
-	private $ignoreUseAbort = NULL;
+	private $ignoreUserAbort = NULL;
 	private $mutex = NULL;
 	private $lock = NULL;
 

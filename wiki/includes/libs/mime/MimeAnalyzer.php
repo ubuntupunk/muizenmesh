@@ -1,7 +1,5 @@
 <?php
 /**
- * Module defining helper functions for detecting and dealing with MIME types.
- *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -27,9 +25,16 @@ use Wikimedia\Mime\MimeMap;
 use Wikimedia\Mime\MimeMapMinimal;
 
 /**
- * Implements functions related to MIME types such as detection and mapping to file extension
+ * @defgroup Mime Mime
+ *
+ * @ingroup Media
+ */
+
+/**
+ * Detect MIME types of a file by mapping file extensions or parsing file contents.
  *
  * @since 1.28
+ * @ingroup Mime
  */
 class MimeAnalyzer implements LoggerAwareInterface {
 	/** @var string */
@@ -154,10 +159,7 @@ class MimeAnalyzer implements LoggerAwareInterface {
 		$lines = explode( "\n", $rawMimeTypes );
 		foreach ( $lines as $s ) {
 			$s = trim( $s );
-			if ( empty( $s ) ) {
-				continue;
-			}
-			if ( strpos( $s, '#' ) === 0 ) {
+			if ( $s === '' || str_starts_with( $s, '#' ) ) {
 				continue;
 			}
 
@@ -170,7 +172,7 @@ class MimeAnalyzer implements LoggerAwareInterface {
 
 			$ext = trim( substr( $s, $i + 1 ) );
 
-			if ( empty( $ext ) ) {
+			if ( !$ext ) {
 				continue;
 			}
 
@@ -190,10 +192,7 @@ class MimeAnalyzer implements LoggerAwareInterface {
 		$lines = explode( "\n", $rawMimeInfo );
 		foreach ( $lines as $s ) {
 			$s = trim( $s );
-			if ( empty( $s ) ) {
-				continue;
-			}
-			if ( strpos( $s, '#' ) === 0 ) {
+			if ( $s === '' || str_starts_with( $s, '#' ) ) {
 				continue;
 			}
 
@@ -222,7 +221,7 @@ class MimeAnalyzer implements LoggerAwareInterface {
 
 			foreach ( $m as $mime ) {
 				$mime = trim( $mime );
-				if ( empty( $mime ) ) {
+				if ( !$mime ) {
 					continue;
 				}
 
@@ -708,13 +707,13 @@ class MimeAnalyzer implements LoggerAwareInterface {
 		$script_type = null;
 
 		# detect by shebang
-		if ( substr( $head, 0, 2 ) == "#!" ) {
+		if ( str_starts_with( $head, "#!" ) ) {
 			$script_type = "ASCII";
-		} elseif ( substr( $head, 0, 5 ) == "\xef\xbb\xbf#!" ) {
+		} elseif ( str_starts_with( $head, "\xef\xbb\xbf#!" ) ) {
 			$script_type = "UTF-8";
-		} elseif ( substr( $head, 0, 7 ) == "\xfe\xff\x00#\x00!" ) {
+		} elseif ( str_starts_with( $head, "\xfe\xff\x00#\x00!" ) ) {
 			$script_type = "UTF-16BE";
-		} elseif ( substr( $head, 0, 7 ) == "\xff\xfe#\x00!" ) {
+		} elseif ( str_starts_with( $head, "\xff\xfe#\x00!" ) ) {
 			$script_type = "UTF-16LE";
 		}
 
@@ -1073,5 +1072,31 @@ class MimeAnalyzer implements LoggerAwareInterface {
 	 */
 	public function getMediaTypes(): array {
 		return array_keys( $this->mediaTypes );
+	}
+
+	/**
+	 * Check if major_mime has a value accepted by enum in a database schema.
+	 *
+	 * @since 1.42.0 (also backported to 1.39.7, 1.40.3 and 1.41.1)
+	 *
+	 * @param string $type
+	 * @return bool
+	 */
+	public function isValidMajorMimeType( string $type ): bool {
+		// From maintenance/tables-generated.sql => img_major_mime
+		$types = [
+			'unknown',
+			'application',
+			'audio',
+			'image',
+			'text',
+			'video',
+			'message',
+			'model',
+			'multipart',
+			'chemical',
+		];
+
+		return in_array( $type, $types );
 	}
 }

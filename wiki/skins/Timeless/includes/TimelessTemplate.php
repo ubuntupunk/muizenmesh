@@ -9,12 +9,12 @@ namespace MediaWiki\Skin\Timeless;
 
 use BaseTemplate;
 use File;
-use Html;
-use Linker;
+use MediaWiki\Html\Html;
+use MediaWiki\Linker\Linker;
 use MediaWiki\MediaWikiServices;
-use ResourceLoaderSkinModule;
-use Sanitizer;
-use SpecialPage;
+use MediaWiki\Parser\Sanitizer;
+use MediaWiki\ResourceLoader\SkinModule;
+use MediaWiki\SpecialPage\SpecialPage;
 
 class TimelessTemplate extends BaseTemplate {
 
@@ -121,7 +121,7 @@ class TimelessTemplate extends BaseTemplate {
 		$templateData = $this->getSkin()->getTemplateData();
 		$html = Html::rawElement(
 			'div',
-			[ 'id' => 'content', 'class' => 'mw-body',  'role' => 'main' ],
+			[ 'id' => 'content', 'class' => 'mw-body', 'role' => 'main' ],
 			$this->getSiteNotices() .
 			$this->getIndicators() .
 			$templateData[ 'html-title-heading' ] .
@@ -475,7 +475,7 @@ class TimelessTemplate extends BaseTemplate {
 				'role' => 'banner'
 			]
 		);
-		$logos = ResourceLoaderSkinModule::getAvailableLogos( $config );
+		$logos = SkinModule::getAvailableLogos( $config );
 		if ( $part !== 'image' ) {
 			$wordmarkImage = $this->getLogoImage( $config->get( 'TimelessWordmark' ), true );
 			if ( !$wordmarkImage && isset( $logos['wordmark'] ) ) {
@@ -684,6 +684,15 @@ class TimelessTemplate extends BaseTemplate {
 		if ( isset( $personalTools['anonuserpage'] ) ) {
 			unset( $personalTools['anonuserpage'] );
 		}
+		// Remove temp user placeholder, as we display the user name in the dropdown header instead.
+		// Removing the use of .mw-userpage-tmp class also prevents the anchored popup from appearing,
+		// which is good, because there's no reasonable place to put it.
+		if (
+			isset( $personalTools['userpage'] ) &&
+			in_array( 'mw-userpage-tmp', $personalTools['userpage']['links'][0]['class'] ?? [] )
+		) {
+			unset( $personalTools['userpage'] );
+		}
 
 		// Remove Echo badges
 		if ( isset( $personalTools['notifications-alert'] ) ) {
@@ -694,7 +703,7 @@ class TimelessTemplate extends BaseTemplate {
 			$extraTools['notifications-notice'] = $personalTools['notifications-notice'];
 			unset( $personalTools['notifications-notice'] );
 		}
-		$class = empty( $extraTools ) ? '' : 'extension-icons';
+		$class = $extraTools === [] ? '' : 'extension-icons';
 
 		// Re-label some messages
 		if ( isset( $personalTools['userpage'] ) ) {
@@ -705,9 +714,12 @@ class TimelessTemplate extends BaseTemplate {
 		}
 
 		// Labels
-		if ( $user->isRegistered() ) {
+		if ( $user->isNamed() ) {
 			$dropdownHeader = $userName;
 			$headerMsg = [ 'timeless-loggedinas', $userName ];
+		} elseif ( $user->isTemp() ) {
+			$dropdownHeader = $user->getName();
+			$headerMsg = 'timeless-notloggedin';
 		} else {
 			$dropdownHeader = $this->getMsg( 'timeless-anonymous' )->text();
 			$headerMsg = 'timeless-notloggedin';
@@ -724,7 +736,7 @@ class TimelessTemplate extends BaseTemplate {
 		);
 
 		// Extra icon stuff (echo etc)
-		if ( !empty( $extraTools ) ) {
+		if ( $extraTools !== [] ) {
 			$iconList = '';
 			foreach ( $extraTools as $key => $item ) {
 				$iconList .= $skin->makeListItem( $key, $item );
@@ -973,8 +985,8 @@ class TimelessTemplate extends BaseTemplate {
 		$catList = '';
 
 		$allCats = $skin->getOutput()->getCategoryLinks();
-		if ( !empty( $allCats ) ) {
-			if ( !empty( $allCats['normal'] ) ) {
+		if ( $allCats !== [] ) {
+			if ( isset( $allCats['normal'] ) && $allCats['normal'] !== [] ) {
 				$catList .= $this->getCatList(
 					$allCats['normal'],
 					'normal-catlinks',
@@ -992,7 +1004,7 @@ class TimelessTemplate extends BaseTemplate {
 					->getBoolOption( $skin->getUser(), 'showhiddencats' )
 				) {
 					$hiddenCatClass[] = 'mw-hidden-cats-user-shown';
-				} elseif ( $skin->getTitle()->getNamespace() == NS_CATEGORY ) {
+				} elseif ( $skin->getTitle()->getNamespace() === NS_CATEGORY ) {
 					$hiddenCatClass[] = 'mw-hidden-cats-ns-shown';
 				} else {
 					$hiddenCatClass[] = 'mw-hidden-cats-hidden';

@@ -19,9 +19,6 @@ class ApiVisualEditorTest extends ApiTestCase {
 	/** @var ScopedCallback|null */
 	private $scopedCallback;
 
-	/** @var @inheritDoc */
-	protected $tablesUsed = [ 'page', 'revision' ];
-
 	protected function setUp(): void {
 		parent::setUp();
 		$this->scopedCallback = ExtensionRegistry::getInstance()->setAttributeForTest(
@@ -62,8 +59,10 @@ class ApiVisualEditorTest extends ApiTestCase {
 			'starttimestamp',
 			'oldid',
 			'blockinfo',
+			'wouldautocreate',
 			'canEdit',
 			'content',
+			'preloaded',
 			// When updating this, also update the sample response in
 			// ve.init.mw.DesktopArticleTarget.test.js
 		];
@@ -77,30 +76,25 @@ class ApiVisualEditorTest extends ApiTestCase {
 	/**
 	 * @dataProvider provideLoadEditorPreload
 	 */
-	public function testLoadEditorPreload( $params, $expected ) {
+	public function testLoadEditorPreload( bool $useMyLanguage ) {
+		$content = 'Some test page content';
+		$pageTitle = 'Test VE preload';
+		$this->editPage( $pageTitle, $content );
+		$params = [
+			'preload' => $useMyLanguage ? "Special:MyLanguage/$pageTitle" : $pageTitle,
+			'paction' => 'wikitext',
+		];
+		// NB The page isn't actually translated, so we get the same content back.
 		$this->assertSame(
-			$expected,
+			$content,
 			$this->loadEditor( $params )[0]['visualeditor']['content']
 		);
 	}
 
-	public function provideLoadEditorPreload() {
+	public static function provideLoadEditorPreload() {
 		return [
-			'load with preload content' => [
-				[
-					'preload' => 'UTPage',
-					'paction' => 'wikitext',
-				],
-				'UTContent',
-			],
-			'load with preload via Special:MyLanguage' => [
-				// NB UTPage isn't actually translated, so we get the same content back.
-				[
-					'preload' => 'Special:MyLanguage/UTPage',
-					'paction' => 'wikitext',
-				],
-				'UTContent',
-			]
+			'load with preload content' => [ false ],
+			'load with preload via Special:MyLanguage' => [ true ],
 		];
 	}
 

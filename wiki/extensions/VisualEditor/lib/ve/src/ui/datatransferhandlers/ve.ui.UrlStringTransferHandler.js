@@ -1,7 +1,7 @@
 /*!
  * VisualEditor UserInterface UrlStringTransferHandler class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
 
 /**
@@ -53,6 +53,7 @@ ve.ui.UrlStringTransferHandler.static.urlRegExp = null; // Initialized below
 
 ve.init.Platform.static.initializedPromise.then( function () {
 	ve.ui.UrlStringTransferHandler.static.urlRegExp =
+		// eslint-disable-next-line security/detect-non-literal-regexp
 		new RegExp(
 			ve.init.platform.getExternalLinkUrlProtocolsRegExp().source +
 				'\\S+$',

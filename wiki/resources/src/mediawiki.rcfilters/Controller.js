@@ -4,21 +4,21 @@ var byteLength = require( 'mediawiki.String' ).byteLength,
 
 /* eslint no-underscore-dangle: "off" */
 /**
- * Controller for the filters in Recent Changes
+ * Controller for the filters in Recent Changes.
  *
- * @class mw.rcfilters.Controller
- *
- * @constructor
+ * @class Controller
+ * @memberof mw.rcfilters
+ * @ignore
  * @param {mw.rcfilters.dm.FiltersViewModel} filtersModel Filters view model
  * @param {mw.rcfilters.dm.ChangesListViewModel} changesListModel Changes list view model
  * @param {mw.rcfilters.dm.SavedQueriesModel} savedQueriesModel Saved queries model
  * @param {Object} config Additional configuration
- * @cfg {string} savedQueriesPreferenceName Where to save the saved queries
- * @cfg {string} daysPreferenceName Preference name for the days filter
- * @cfg {string} limitPreferenceName Preference name for the limit filter
- * @cfg {string} collapsedPreferenceName Preference name for collapsing and showing
+ * @param {string} config.savedQueriesPreferenceName Where to save the saved queries
+ * @param {string} config.daysPreferenceName Preference name for the days filter
+ * @param {string} config.limitPreferenceName Preference name for the limit filter
+ * @param {string} config.collapsedPreferenceName Preference name for collapsing and showing
  *  the active filters area
- * @cfg {boolean} [normalizeTarget] Dictates whether or not to go through the
+ * @param {boolean} [config.normalizeTarget] Dictates whether or not to go through the
  *  title normalization to separate title subpage/parts into the target= url
  *  parameter
  */
@@ -86,8 +86,8 @@ Controller.prototype.initialize = function ( filterStructure, namespaceStructure
 		subset: []
 	};
 	items = [ nsAllContents, nsAllDiscussions ];
-	// eslint-disable-next-line no-jquery/no-each-util
-	$.each( namespaceStructure, function ( namespaceID, label ) {
+	for ( var namespaceID in namespaceStructure ) {
+		var label = namespaceStructure[ namespaceID ];
 		// Build and clean up the individual namespace items definition
 		var isTalk = mw.Title.isTalkNamespace( namespaceID ),
 			nsFilter = {
@@ -101,7 +101,7 @@ Controller.prototype.initialize = function ( filterStructure, namespaceStructure
 			};
 		items.push( nsFilter );
 		( isTalk ? nsAllDiscussions : nsAllContents ).subset.push( { filter: namespaceID } );
-	} );
+	}
 
 	views.namespaces = {
 		title: mw.msg( 'namespaces' ),
@@ -182,7 +182,9 @@ Controller.prototype.initialize = function ( filterStructure, namespaceStructure
 					min: 0, // The server normalizes negative numbers to 0 results
 					max: 1000
 				},
-				sortFunc: function ( a, b ) { return Number( a.name ) - Number( b.name ); },
+				sortFunc: function ( a, b ) {
+					return Number( a.name ) - Number( b.name );
+				},
 				default: mw.user.options.get( this.limitPreferenceName, displayConfig.limitDefault ),
 				sticky: true,
 				filters: displayConfig.limitArray.map( function ( num ) {
@@ -201,7 +203,9 @@ Controller.prototype.initialize = function ( filterStructure, namespaceStructure
 					min: 0,
 					max: displayConfig.maxDays
 				},
-				sortFunc: function ( a, b ) { return Number( a.name ) - Number( b.name ); },
+				sortFunc: function ( a, b ) {
+					return Number( a.name ) - Number( b.name );
+				},
 				numToLabelFunc: function ( i ) {
 					return Number( i ) < 1 ?
 						( Number( i ) * 24 ).toFixed( 2 ) :
@@ -246,8 +250,8 @@ Controller.prototype.initialize = function ( filterStructure, namespaceStructure
 	// Before we do anything, we need to see if we require additional items in the
 	// groups that have 'AllowArbitrary'. For the moment, those are only single_option
 	// groups; if we ever expand it, this might need further generalization:
-	// eslint-disable-next-line no-jquery/no-each-util
-	$.each( views, function ( viewName, viewData ) {
+	for ( var viewName in views ) {
+		var viewData = views[ viewName ];
 		viewData.groups.forEach( function ( groupData ) {
 			var extraValues = [];
 			if ( groupData.allowArbitrary ) {
@@ -262,7 +266,7 @@ Controller.prototype.initialize = function ( filterStructure, namespaceStructure
 				controller.addNumberValuesToGroup( groupData, extraValues );
 			}
 		} );
-	} );
+	}
 
 	// Initialize the model
 	this.filtersModel.initializeFilters( filterStructure, views );
@@ -554,6 +558,12 @@ Controller.prototype.toggleHighlight = function () {
 	this.uriProcessor.updateURL();
 
 	if ( this.filtersModel.isHighlightEnabled() ) {
+		/**
+		 * Fires when highlight feature is enabled.
+		 *
+		 * @event ~'RcFilters.highlight.enable'
+		 * @memberof Hooks
+		 */
 		mw.hook( 'RcFilters.highlight.enable' ).fire();
 	}
 };
@@ -566,7 +576,9 @@ Controller.prototype.toggleInvertedTags = function () {
 
 	if (
 		this.filtersModel.getFiltersByView( 'tags' ).filter(
-			function ( filterItem ) { return filterItem.isSelected(); }
+			function ( filterItem ) {
+				return filterItem.isSelected();
+			}
 		).length
 	) {
 		// Only re-fetch results if there are tags items that are actually selected
@@ -584,7 +596,9 @@ Controller.prototype.toggleInvertedNamespaces = function () {
 
 	if (
 		this.filtersModel.getFiltersByView( 'namespaces' ).filter(
-			function ( filterItem ) { return filterItem.isSelected(); }
+			function ( filterItem ) {
+				return filterItem.isSelected();
+			}
 		).length
 	) {
 		// Only re-fetch results if there are namespace items that are actually selected
@@ -840,6 +854,7 @@ Controller.prototype.applySavedQuery = function ( queryID ) {
  * Check whether the current filter and highlight state exists
  * in the saved queries model.
  *
+ * @ignore
  * @return {mw.rcfilters.dm.SavedQueryItemModel} Matching item model
  */
 Controller.prototype.findQueryMatchingCurrentState = function () {
@@ -957,7 +972,7 @@ Controller.prototype.updateNumericPreference = function ( prefName, newValue ) {
 
 /**
  * Synchronize the URL with the current state of the filters
- * without adding an history entry.
+ * without adding a history entry.
  */
 Controller.prototype.replaceUrl = function () {
 	this.uriProcessor.updateURL();

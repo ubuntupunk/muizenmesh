@@ -4,7 +4,7 @@
  * Collects and analyzes searches
  *
  * @author Stephen Billard (sbillard)
- * @package plugins
+ * @package zpcore\plugins\searchstatistics
  */
 define('OFFSET_PATH', 4);
 require_once(dirname(dirname(dirname(__FILE__))) . '/admin-globals.php');
@@ -113,7 +113,7 @@ asort($results_f);
 arsort($results_f);
 $results_f = array_slice($results_f, 0, $limit_f, true);
 ?>
-<link rel="stylesheet" href="../../admin-statistics.css" type="text/css" media="screen" />
+<link rel="stylesheet" href="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/css/admin-statistics.css" type="text/css" media="screen" />
 <body>
 	<?php printLogoAndLinks(); ?>
 	<div id="main">

@@ -1,7 +1,7 @@
 <?php
 /**
  * Theme file editor
- * @package admin
+ * @package zpcore\admin
  * @author Ozh
  */
 // force UTF-8 �

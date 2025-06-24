@@ -4,6 +4,7 @@ use MediaWiki\Block\BlockUserFactory;
 use MediaWiki\Block\DatabaseBlock;
 use MediaWiki\Block\Restriction\PageRestriction;
 use MediaWiki\Tests\Unit\Permissions\MockAuthorityTrait;
+use MediaWiki\User\User;
 
 /**
  * @group Blocking
@@ -29,7 +30,7 @@ class BlockUserTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
-	 * @covers MediaWiki\Block\BlockUser::placeBlock
+	 * @covers \MediaWiki\Block\BlockUser::placeBlock
 	 */
 	public function testValidTarget() {
 		$status = $this->blockUserFactory->newBlockUser(
@@ -38,7 +39,7 @@ class BlockUserTest extends MediaWikiIntegrationTestCase {
 			'infinity',
 			'test block'
 		)->placeBlock();
-		$this->assertStatusOK( $status );
+		$this->assertStatusGood( $status );
 		$block = $this->user->getBlock();
 		$this->assertSame( 'test block', $block->getReasonComment()->text );
 		$this->assertInstanceOf( DatabaseBlock::class, $block );
@@ -50,7 +51,7 @@ class BlockUserTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
-	 * @covers MediaWiki\Block\BlockUser::placeBlock
+	 * @covers \MediaWiki\Block\BlockUser::placeBlock
 	 */
 	public function testHideUser() {
 		$status = $this->blockUserFactory->newBlockUser(
@@ -62,7 +63,7 @@ class BlockUserTest extends MediaWikiIntegrationTestCase {
 				'isHideUser' => true
 			]
 		)->placeBlock();
-		$this->assertStatusOK( $status );
+		$this->assertStatusGood( $status );
 		$block = $this->user->getBlock();
 		$this->assertInstanceOf( DatabaseBlock::class, $block );
 		$this->assertSame( 'test hideuser', $block->getReasonComment()->text );
@@ -70,7 +71,7 @@ class BlockUserTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
-	 * @covers MediaWiki\Block\BlockUser::placeBlock
+	 * @covers \MediaWiki\Block\BlockUser::placeBlock
 	 */
 	public function testExistingPage() {
 		$this->getExistingTestPage( 'Existing Page' );
@@ -84,14 +85,14 @@ class BlockUserTest extends MediaWikiIntegrationTestCase {
 			[],
 			[ $page ]
 		)->placeBlock();
-		$this->assertStatusOK( $status );
+		$this->assertStatusGood( $status );
 		$block = $this->user->getBlock();
 		$this->assertInstanceOf( DatabaseBlock::class, $block );
 		$this->assertSame( 'test existingpage', $block->getReasonComment()->text );
 	}
 
 	/**
-	 * @covers MediaWiki\Block\BlockUser::placeBlock
+	 * @covers \MediaWiki\Block\BlockUser::placeBlock
 	 */
 	public function testNonexistentPage() {
 		$pageRestriction = PageRestriction::class;
@@ -108,7 +109,7 @@ class BlockUserTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
-	 * @covers MediaWiki\Block\BlockUser::placeBlockInternal
+	 * @covers \MediaWiki\Block\BlockUser::placeBlockInternal
 	 */
 	public function testReblock() {
 		$blockStatus = $this->blockUserFactory->newBlockUser(
@@ -117,7 +118,7 @@ class BlockUserTest extends MediaWikiIntegrationTestCase {
 			'infinity',
 			'test block'
 		)->placeBlockUnsafe();
-		$this->assertStatusOK( $blockStatus );
+		$this->assertStatusGood( $blockStatus );
 		$priorBlock = $this->user->getBlock();
 		$this->assertInstanceOf( DatabaseBlock::class, $priorBlock );
 		$this->assertSame( 'test block', $priorBlock->getReasonComment()->text );
@@ -130,20 +131,7 @@ class BlockUserTest extends MediaWikiIntegrationTestCase {
 			'infinity',
 			'test reblock'
 		)->placeBlockUnsafe( /*reblock=*/false );
-		$this->assertStatusNotOK( $reblockStatus );
-
-		$this->user->clearInstanceCache();
-		$block = $this->user->getBlock();
-		$this->assertInstanceOf( DatabaseBlock::class, $block );
-		$this->assertSame( $blockId, $block->getId() );
-
-		$reblockStatus = $this->blockUserFactory->newBlockUser(
-			$this->user,
-			$this->mockAnonUltimateAuthority(),
-			'infinity',
-			'test block'
-		)->placeBlockUnsafe( /*reblock=*/true );
-		$this->assertStatusNotOK( $reblockStatus );
+		$this->assertStatusError( 'ipb_already_blocked', $reblockStatus );
 
 		$this->user->clearInstanceCache();
 		$block = $this->user->getBlock();
@@ -156,7 +144,7 @@ class BlockUserTest extends MediaWikiIntegrationTestCase {
 			'infinity',
 			'test reblock'
 		)->placeBlockUnsafe( /*reblock=*/true );
-		$this->assertStatusOK( $reblockStatus );
+		$this->assertStatusGood( $reblockStatus );
 
 		$this->user->clearInstanceCache();
 		$block = $this->user->getBlock();
@@ -165,7 +153,7 @@ class BlockUserTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
-	 * @covers MediaWiki\Block\BlockUser::placeBlockInternal
+	 * @covers \MediaWiki\Block\BlockUser::placeBlockInternal
 	 */
 	public function testPostHook() {
 		$hookBlock = false;
@@ -186,7 +174,7 @@ class BlockUserTest extends MediaWikiIntegrationTestCase {
 			'infinity',
 			'test block'
 		)->placeBlockUnsafe();
-		$this->assertStatusOK( $blockStatus );
+		$this->assertStatusGood( $blockStatus );
 		$priorBlock = $this->user->getBlock();
 		$this->assertInstanceOf( DatabaseBlock::class, $priorBlock );
 		$this->assertSame( $priorBlock->getId(), $hookBlock->getId() );
@@ -200,7 +188,7 @@ class BlockUserTest extends MediaWikiIntegrationTestCase {
 			'infinity',
 			'test reblock'
 		)->placeBlockUnsafe( /*reblock=*/true );
-		$this->assertStatusOK( $reblockStatus );
+		$this->assertStatusGood( $reblockStatus );
 
 		$this->user->clearInstanceCache();
 		$newBlock = $this->user->getBlock();
@@ -210,7 +198,7 @@ class BlockUserTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
-	 * @covers MediaWiki\Block\BlockUser::placeBlockInternal
+	 * @covers \MediaWiki\Block\BlockUser::placeBlockInternal
 	 */
 	public function testIPBlockAllowedAutoblockPreserved() {
 		$blockStatus = $this->blockUserFactory->newBlockUser(
@@ -220,7 +208,7 @@ class BlockUserTest extends MediaWikiIntegrationTestCase {
 			'test block with autoblocking',
 			[ 'isAutoblocking' => true ]
 		)->placeBlockUnsafe();
-		$this->assertStatusOK( $blockStatus );
+		$this->assertStatusGood( $blockStatus );
 		$block = $blockStatus->getValue();
 
 		$target = '1.2.3.4';
@@ -243,7 +231,7 @@ class BlockUserTest extends MediaWikiIntegrationTestCase {
 			'infinity',
 			'test IP block'
 		)->placeBlockUnsafe();
-		$this->assertStatusOK( $IPBlockStatus );
+		$this->assertStatusGood( $IPBlockStatus );
 		$IPBlock = $IPBlockStatus->getValue();
 		$this->assertInstanceOf( DatabaseBlock::class, $IPBlock );
 		$this->assertNull( $hookPriorBlock );
@@ -252,7 +240,8 @@ class BlockUserTest extends MediaWikiIntegrationTestCase {
 			static function ( DatabaseBlock $block ) {
 				return $block->getId();
 			},
-			DatabaseBlock::newListFromTarget( $target, null, /*fromPrimary=*/true )
+			$this->getServiceContainer()->getDatabaseBlockStore()
+				->newListFromTarget( $target, null, /*fromPrimary=*/true )
 		);
 		$this->assertContains( $autoBlockId, $blockIds );
 		$this->assertContains( $IPBlock->getId(), $blockIds );

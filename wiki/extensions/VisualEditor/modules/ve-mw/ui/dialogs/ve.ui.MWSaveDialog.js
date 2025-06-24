@@ -1,7 +1,7 @@
 /*!
  * VisualEditor UserInterface MWSaveDialog class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see AUTHORS.txt
+ * @copyright See AUTHORS.txt
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
@@ -50,8 +50,6 @@ ve.ui.MWSaveDialog.static.name = 'mwSave';
 ve.ui.MWSaveDialog.static.title =
 	OO.ui.deferMsg( 'visualeditor-savedialog-title-save' );
 
-ve.ui.MWSaveDialog.static.feedbackUrl = 'https://www.mediawiki.org/wiki/Talk:VisualEditor/Diffs';
-
 ve.ui.MWSaveDialog.static.actions = [
 	{
 		action: 'save',
@@ -85,16 +83,6 @@ ve.ui.MWSaveDialog.static.actions = [
 		label: OO.ui.deferMsg( 'visualeditor-savedialog-label-resolve-conflict' ),
 		flags: [ 'primary', 'progressive' ],
 		modes: 'conflict'
-	},
-	{
-		action: 'report',
-		label: OO.ui.deferMsg( 'visualeditor-savedialog-label-visual-diff-report' ),
-		flags: [ 'progressive' ],
-		modes: 'review',
-		framed: false,
-		icon: 'feedback',
-		classes: [ 've-ui-mwSaveDialog-visualDiffFeedback' ],
-		href: ve.ui.MWSaveDialog.static.feedbackUrl
 	}
 ];
 
@@ -149,8 +137,6 @@ ve.ui.MWSaveDialog.prototype.setDiffAndReview = function ( wikitextDiffPromise, 
 		diffElement.$document.addClass( [
 			'mw-body-content',
 			'mw-parser-output',
-			// HACK: T287733
-			mw.config.get( 'skin' ) === 'vector' || mw.config.get( 'skin' ) === 'vector-2022' ? 'vector-body' : null,
 			'mw-content-' + visualDiff.newDoc.getDir()
 		] );
 		ve.targetLinksToNewWindow( diffElement.$document[ 0 ] );
@@ -178,6 +164,9 @@ ve.ui.MWSaveDialog.prototype.setDiffAndReview = function ( wikitextDiffPromise, 
 			// wikitextDiff is an HTML string we trust from the API
 			// eslint-disable-next-line no-jquery/no-append-html
 			dialog.$reviewWikitextDiff.empty().append( wikitextDiff );
+			// Remove the HTML diff-mode ButtonGroupWidget because this.reviewModeButtonSelect replaces it.
+			// This matches what's done for action=diff in modules/ve-mw/preinit/ve.init.mw.DiffPage.init.js
+			dialog.$reviewWikitextDiff.find( '.ve-init-mw-diffPage-diffMode' ).empty();
 		} else {
 			dialog.$reviewWikitextDiff.empty().append(
 				$( '<div>' ).addClass( 've-ui-mwSaveDialog-no-changes' ).text( ve.msg( 'visualeditor-diff-no-changes' ) )
@@ -581,6 +570,16 @@ ve.ui.MWSaveDialog.prototype.initialize = function () {
 
 		dialog.updateOptionsBar();
 	} );
+	this.editSummaryInput.on( 'resize', function () {
+		if ( dialog.overflowTimeout !== undefined ) {
+			clearTimeout( dialog.overflowTimeout );
+		}
+		dialog.panels.$element.css( 'overflow', 'hidden' );
+		dialog.updateSize();
+		dialog.overflowTimeout = setTimeout( function () {
+			dialog.panels.$element.css( 'overflow', '' );
+		}, 250 );
+	} );
 
 	this.$saveCheckboxes = $( '<div>' ).addClass( 've-ui-mwSaveDialog-checkboxes' );
 	this.$saveOptions = $( '<div>' ).addClass( 've-ui-mwSaveDialog-options' ).append(
@@ -644,9 +643,7 @@ ve.ui.MWSaveDialog.prototype.initialize = function () {
 	this.$previewHeading = $( '<h1>' ).addClass( 'firstHeading' );
 	this.$previewViewer = $( '<div>' ).addClass( [
 		'mw-body-content',
-		'mw-parser-output',
-		// HACK: T287733
-		mw.config.get( 'skin' ) === 'vector' || mw.config.get( 'skin' ) === 'vector-2022' ? 'vector-body' : null
+		'mw-parser-output'
 	] );
 	this.previewPanel.$element
 		// Make focusable for keyboard accessible scrolling
@@ -714,15 +711,9 @@ ve.ui.MWSaveDialog.prototype.updateReviewMode = function () {
 	// * visualeditor-diffmode-source
 	ve.userConfig( 'visualeditor-diffmode-' + surfaceMode, diffMode );
 
-	// Hack: cache report action so it is getable even when hidden (see T174497)
-	if ( !this.report ) {
-		this.report = this.getActions().get( { actions: 'report' } )[ 0 ];
-	}
-
 	this.$reviewVisualDiff.toggleClass( 'oo-ui-element-hidden', !isVisual );
 	this.$reviewWikitextDiff.toggleClass( 'oo-ui-element-hidden', isVisual );
 	if ( isVisual ) {
-		this.report.toggle( true );
 		if ( !this.diffElement ) {
 			if ( !this.diffElementPromise ) {
 				this.diffElementPromise = this.getDiffElementPromise().then( function ( diffElement ) {
@@ -734,8 +725,6 @@ ve.ui.MWSaveDialog.prototype.updateReviewMode = function () {
 			return;
 		}
 		this.positionDiffElement();
-	} else {
-		this.report.toggle( false );
 	}
 
 	// Support: iOS
@@ -760,7 +749,7 @@ ve.ui.MWSaveDialog.prototype.onReviewChoose = function ( item ) {
  */
 ve.ui.MWSaveDialog.prototype.setDimensions = function () {
 	// Parent method
-	ve.ui.MWSaveDialog.parent.prototype.setDimensions.apply( this, arguments );
+	ve.ui.MWSaveDialog.super.prototype.setDimensions.apply( this, arguments );
 
 	if ( !this.positioning ) {
 		this.positionDiffElement();
@@ -890,7 +879,6 @@ ve.ui.MWSaveDialog.prototype.getTeardownProcess = function ( data ) {
 	return ve.ui.MWSaveDialog.super.prototype.getTeardownProcess.call( this, data )
 		.next( function () {
 			this.emit( 'close' );
-			this.report = null;
 		}, this );
 };
 
@@ -916,11 +904,6 @@ ve.ui.MWSaveDialog.prototype.getActionProcess = function ( action ) {
 	if ( action === 'approve' ) {
 		return new OO.ui.Process( function () {
 			this.swapPanel( 'save' );
-		}, this );
-	}
-	if ( action === 'report' ) {
-		return new OO.ui.Process( function () {
-			window.open( this.constructor.static.feedbackUrl );
 		}, this );
 	}
 

@@ -1,6 +1,6 @@
 <?php
-/**
- * 2007-2023 PayPal
+/*
+ * Since 2007 PayPal
  *
  * NOTICE OF LICENSE
  *
@@ -18,20 +18,21 @@
  *  versions in the future. If you wish to customize PrestaShop for your
  *  needs please refer to http://www.prestashop.com for more information.
  *
- *  @author 2007-2023 PayPal
+ *  @author Since 2007 PayPal
  *  @author 202 ecommerce <tech@202-ecommerce.com>
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
+ *
  */
 
 namespace PaypalAddons\classes\Webhook;
 
-use PayPal\Api\Webhook;
 use PaypalAddons\classes\AbstractMethodPaypal;
-use PaypalAddons\classes\API\Request\V_1\CreateWebHookRequest;
-use PaypalAddons\classes\API\Request\V_1\GetWebHooks;
-use PaypalAddons\classes\API\Request\V_1\UpdateWebHookEventType;
+use PaypalAddons\classes\API\Model\Webhook;
+use PaypalAddons\classes\API\Model\WebhookEventType;
+use PaypalAddons\classes\API\Model\WebhookPatch;
 use PaypalAddons\classes\API\Response\Response;
+use PaypalAddons\classes\Constants\WebHookType;
 
 if (!defined('_PS_VERSION_')) {
     exit;
@@ -62,10 +63,10 @@ class CreateWebhook
     public function execute()
     {
         $method = $this->getMethod();
-        $response = (new GetWebHooks($method))->execute();
+        $response = $method->getWebhookList();
 
         if ($response->isSuccess() == false) {
-            $executeResponse = (new CreateWebHookRequest($method))->execute();
+            $executeResponse = $method->createWebhook();
 
             if ($executeResponse->isSuccess()) {
                 @$this->updateWebhookId($executeResponse->getData());
@@ -75,7 +76,7 @@ class CreateWebhook
         }
 
         if (empty($response->getData())) {
-            return (new CreateWebHookRequest($method))->execute();
+            return $method->createWebhook();
         }
 
         $webhookHandler = (new WebhookHandlerUrl())->get();
@@ -86,16 +87,18 @@ class CreateWebhook
                 $this->updateWebhookId($webhook);
 
                 if ($this->getUpdate()) {
-                    return (new UpdateWebHookEventType($method, $webhook))->execute();
+                    return $this->updateWebhookEventTypes($webhook);
                 }
 
                 return (new Response())
                     ->setSuccess(true)
                     ->setData($webhook);
+            } else {
+                $method->deleteWebhook($webhook->getId());
             }
         }
 
-        $executeResponse = (new CreateWebHookRequest($method))->execute();
+        $executeResponse = $method->createWebhook();
 
         if ($executeResponse->isSuccess()) {
             @$this->updateWebhookId($executeResponse->getData());
@@ -153,6 +156,26 @@ class CreateWebhook
      */
     protected function updateWebhookId(Webhook $webhook)
     {
-        (new WebhookId($this->method))->update($webhook->id);
+        (new WebhookId($this->method))->update($webhook->getId());
+    }
+
+    protected function updateWebhookEventTypes(Webhook $webhook)
+    {
+        $eventTypes = [];
+        $webhookPatch = new WebhookPatch($webhook->getId());
+
+        foreach (WebHookType::getAll() as $type) {
+            $eventType = new WebhookEventType();
+            $eventType->setName($type);
+            $eventTypes[] = $eventType->toArray();
+        }
+
+        $webhookPatch->addPatch(
+            'replace',
+            '/event_types',
+            $eventTypes
+        );
+
+        return $this->method->patchWebhook($webhookPatch);
     }
 }

@@ -27,10 +27,10 @@
  * 	<li>Also your theme might require extra CSS for this usage, especially the controls.</li>
  * 	<li>This only creates a slideshow in jQuery mode, no matter how the mode is set.</li>
  * </ul>
- *
+ * 
+ * @deprecated 2.0 
  * @author Malte Müller (acrylian)
- * @package plugins
- * @subpackage slideshow2
+ * @package zpcore\plugins\slideshow2
  */
 $plugin_is_filter = 9 | THEME_PLUGIN | ADMIN_PLUGIN;
 $plugin_description = gettext("Slideshow plugin based on the Cycle2 jQuery plugin.");
@@ -46,13 +46,17 @@ zp_register_filter('content_macro', 'cycle::macro');
 
 /**
  * Plugin option handling class
- *
+ * @deprecated 2.0 
  */
 class cycle {
 
+	/**
+	 * @deprecated 2.0  
+	 * @global type $_zp_gallery
+	 */
 	function __construct() {
 		global $_zp_gallery;
-		
+
 		if (OFFSET_PATH == 2) {
 			foreach (getThemeFiles(array('404.php', 'themeoptions.php', 'theme_description.php', 'slideshow.php', 'functions.php', 'password.php', 'sidebar.php', 'register.php', 'contact.php')) as $theme => $scripts) {
 				foreach ($scripts as $script) {
@@ -78,6 +82,10 @@ class cycle {
 		}
 	}
 
+	/**
+	 * @deprecated 2.0 
+	 * @return type
+	 */
 	function getOptionsSupported() {
 
 		/*		 * *********************
@@ -195,10 +203,23 @@ class cycle {
 		return $options;
 	}
 
+	/**
+	 * @deprecated 2.0 
+	 * @param type $option
+	 * @param type $currentValue
+	 */
 	function handleOption($option, $currentValue) {
 		
 	}
 
+	/**
+	 * @deprecated 2.0 
+	 * @param type $album
+	 * @param type $controls
+	 * @param type $width
+	 * @param type $height
+	 * @return type
+	 */
 	static function getSlideshowPlayer($album, $controls = false, $width = NULL, $height = NULL) {
 		$albumobj = NULL;
 		if (!empty($album)) {
@@ -212,10 +233,28 @@ class cycle {
 		}
 	}
 
+	/**
+	 * @deprecated 2.0 
+	 * @global type $_zp_gallery
+	 * @global type $_zp_gallery_page
+	 * @param type $heading
+	 * @param type $speedctl
+	 * @param type $albumobj
+	 * @param type $imageobj
+	 * @param type $width
+	 * @param type $height
+	 * @param type $crop
+	 * @param type $shuffle
+	 * @param type $linkslides
+	 * @param type $controls
+	 * @param type $returnpath
+	 * @param type $imagenumber
+	 * @return string
+	 */
 	static function getShow($heading, $speedctl, $albumobj, $imageobj, $width, $height, $crop, $shuffle, $linkslides, $controls, $returnpath, $imagenumber) {
 		global $_zp_gallery, $_zp_gallery_page;
 		setOption('cycle-slideshow_' . $_zp_gallery->getCurrentTheme() . '_' . stripSuffix($_zp_gallery_page), 1);
-		if (!$albumobj->isMyItem(LIST_RIGHTS) && !checkAlbumPassword($albumobj)) {
+		if (!$albumobj->isMyItem(LIST_RIGHTS) && $albumobj->isProtected()) {
 			return '<div class="errorbox" id="message"><h2>' . gettext('This album is password protected!') . '</h2></div>';
 		}
 		// setting the image size
@@ -234,15 +273,15 @@ class cycle {
 		$slides_temp = $albumobj->getImages(0);
 		$slides = array();
 		//sort out non image types as the script does not work with them
-		foreach($slides_temp as $slide) {
+		foreach ($slides_temp as $slide) {
 			$imgobj = Image::newImage($albumobj, $slide);
-			if($imgobj->isPhoto()) {
+			if ($imgobj->isPhoto()) {
 				$slides[] = $slide;
 			}
 		}
-		if(empty($slides)) {
+		if (empty($slides)) {
 			return '';
-		} 
+		}
 		$numslides = count($slides);
 		if ($shuffle) { // means random order, not the effect!
 			shuffle($slides);
@@ -336,7 +375,7 @@ class cycle {
 		$slideshow .= cycle::getSlide($albumobj, $slideobj, $width, $height, $cropw, $croph, $linkslides, false);
 		//}
 		$slideshow .= '<script class="slides" type="text/cycle" data-cycle-split="---">' . "\n";
-		$count = '';
+		$count = 0;
 		foreach ($slides as $slide) {
 			$count++;
 			$slideobj = cycle::getSlideObj($slide, $albumobj);
@@ -353,7 +392,7 @@ class cycle {
 
 	/**
 	 * Helper function to print the individual slides
-	 *
+	 * @deprecated 2.0 
 	 * @param obj $albumobj Album object
 	 * @param obj $imgobj Current slide obj
 	 * @param int $width Slide image width
@@ -413,7 +452,7 @@ class cycle {
 
 	/**
 	 * Helper function to print the individual slides
-	 *
+	 * @deprecated 2.0 
 	 * @param obj $albumobj Album object
 	 * @param obj $imgobj Current slide obj
 	 * @param int $width Slide image width
@@ -431,7 +470,7 @@ class cycle {
 
 	/**
 	 * We might need this to exclude file types or not…
-	 *
+	 * @deprecated 2.0 
 	 * @param type $slide
 	 * @param type $albumobj
 	 * @return type
@@ -440,6 +479,11 @@ class cycle {
 		return Image::newImage($albumobj, $slide);
 	}
 
+	/**
+	 * @deprecated 2.0  
+	 * @param type $macros
+	 * @return string
+	 */
 	static function macro($macros) {
 		$macros['SLIDESHOW'] = array(
 				'class' => 'function',
@@ -451,39 +495,43 @@ class cycle {
 		return $macros;
 	}
 
+	/**
+	 * @deprecated 2.0 
+	 * @global type $_zp_gallery
+	 */
 	static function cycleJS() {
 		global $_zp_gallery;
 		?>
-		<script	src="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/jquery.cycle2.min.js" type="text/javascript"></script>
-		<script	src="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/jquery.cycle2.center.min.js" type="text/javascript"></script>
+		<script	src="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/jquery.cycle2.min.js"></script>
+		<script	src="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/jquery.cycle2.center.min.js"></script>
 		<!-- effect plugins -->
 
 		<?php if (getOption('cycle-slideshow_effect') == 'flipHorz' || getOption('cycle-slideshow_effect') == 'flipVert') { ?>
-			<script	src="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/jquery.cycle2.flip.min.js" type="text/javascript"></script>
+			<script	src="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/jquery.cycle2.flip.min.js"></script>
 		<?php } ?>
 
 		<!--[if lt IE 9]>
-			<script	src="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/jquery.cycle2.ie-fade.min.js" type="text/javascript"></script>
+			<script	src="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/jquery.cycle2.ie-fade.min.js"></script>
 		<![endif]-->
 
 		<?php if (getOption('cycle-slideshow_effect') == 'shuffle') { ?>
-			<script	src="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/jquery.cycle2.shuffle.min.js" type="text/javascript"></script>
+			<script	src="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/jquery.cycle2.shuffle.min.js"></script>
 		<?php } ?>
 
 		<?php if (getOption('cycle-slideshow_effect') == 'tileSlide' || getOption('cycle-slideshow_effect') == 'tileBlind') { ?>
-			<script	src="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/jquery.cycle2.tile.min.js" type="text/javascript"></script>
+			<script	src="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/jquery.cycle2.tile.min.js"></script>
 		<?php } ?>
 
 		<?php if (getOption('cycle-slideshow_effect') == 'scrollVert') { ?>
-			<script	src="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/jquery.cycle2.scrollVert.min.js" type="text/javascript"></script>
+			<script	src="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/jquery.cycle2.scrollVert.min.js"></script>
 		<?php } ?>
 
-		<script	src="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/jquery.cycle2.carousel.min.js" type="text/javascript"></script>
+		<script	src="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/jquery.cycle2.carousel.min.js"></script>
 
 		<!--  swipe with iOS fix -->
 		<?php if (getOption('cycle-slideshow_swipe')) { ?>
-			<script	src="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/jquery.cycle2.swipe.min.js" type="text/javascript"></script>
-			<script	src="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/ios6fix.js" type="text/javascript"></script>
+			<script	src="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/jquery.cycle2.swipe.min.js"></script>
+			<script	src="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/ios6fix.js"></script>
 			<?php
 		}
 		$theme = $_zp_gallery->getCurrentTheme();
@@ -497,14 +545,14 @@ class cycle {
 		<link rel="stylesheet" type="text/css" href="<?php echo $css ?>" />
 		<!--[if lte IE 7]>
 			<link rel="stylesheet" type="text/css" href="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/fonts/ie7.css" />
-			<script	src="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/fonts/ie7.js" type="text/javascript"></script>
+			<script	src="<?php echo FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER ?>/slideshow2/fonts/ie7.js"></script>
 		<![endif]-->
 		<?php
 	}
 
 	/** TODO WE MIGHT NOT NEED THIS AS CYCLE2 MIGHT BE ABLE TO DISPLAY ANYTHING!
 	 * Returns the file extension if the item passed is displayable by the player
-	 *
+	 * @deprecated 2.0 
 	 * @param mixed $image either an image object or the filename of an image.
 	 * @param array $valid_types list of the types we will accept
 	 * @return string;
@@ -536,7 +584,7 @@ if (extensionEnabled('slideshow2')) {
 	 *
 	 * If the mode is set to "jQuery Colorbox" and the Colorbox plugin is enabled this link starts a Colorbox slideshow
 	 * from a hidden HTML list of all images in the album. On album.php it starts with the first always, on image.php with the current image.
-	 *
+	 * @deprecated 2.0 
 	 * @param string $linktext Text for the link
 	 * @param string $linkstyle Style of Text for the link
 	 */
@@ -619,7 +667,7 @@ if (extensionEnabled('slideshow2')) {
 					}
 					$count = '';
 					?>
-					<script type="text/javascript">
+					<script>
 						$(document).ready(function () {
 							$("a[rel='slideshow']").colorbox({
 								slideshow: true,
@@ -703,7 +751,7 @@ if (extensionEnabled('slideshow2')) {
 	 *
 	 * NOTE: The jQuery mode does not support movie and audio files anymore. If you need to show them please use the Flash mode.
 	 * Also note that this function is not used for the Colorbox mode!
-	 *
+	 * @deprecated 2.0 
 	 * @param bool $heading set to true (default) to emit the slideshow breadcrumbs in flash mode
 	 * @param bool $speedctl controls whether an option box for controlling transition speed is displayed
 	 * @param obj $albumobj The object of the album to show the slideshow of. If set this overrides the POST data of the printSlideShowLink()
@@ -718,11 +766,11 @@ if (extensionEnabled('slideshow2')) {
 	 */
 	function printSlideShow($heading = true, $speedctl = false, $albumobj = NULL, $imageobj = NULL, $width = NULL, $height = NULL, $crop = false, $shuffle = false, $linkslides = false, $controls = true) {
 		global $_zp_myfavorites, $_zp_conf_vars, $_zp_db;
-		if (!isset($_POST['albumid']) AND ! is_object($albumobj)) {
+		if (!isset($_POST['albumid']) AND !is_object($albumobj)) {
 			return '<div class="errorbox" id="message"><h2>' . gettext('Invalid linking to the slideshow page.') . '</h2></div>';
 		}
 		//getting the image to start with
-		if (!empty($_POST['imagenumber']) AND ! is_object($imageobj)) {
+		if (!empty($_POST['imagenumber']) AND !is_object($imageobj)) {
 			$imagenumber = sanitize_numeric($_POST['imagenumber']) - 1; // slideshows starts with 0, but zp with 1.
 		} elseif (is_object($imageobj)) {
 			$imagenumber = $imageobj->getIndex();

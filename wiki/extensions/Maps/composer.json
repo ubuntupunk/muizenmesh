@@ -49,7 +49,7 @@
 		"jmikola/geojson": "^1.0.2"
 	},
 	"require-dev": {
-		"vimeo/psalm": "^4.22.0",
+		"vimeo/psalm": "^5.0.0",
 		"phpstan/phpstan": "^1.4.8",
 		"mediawiki/mediawiki-codesniffer": "39.0.0"
 	},
@@ -69,7 +69,10 @@
 		"mediawiki/semantic-media-wiki": "Add, edit, aggregate and visualize structured coordinate data stored with Semantic MediaWiki"
 	},
 	"config": {
-		"process-timeout": 0
+		"process-timeout": 0,
+		"allow-plugins": {
+			"composer/installers": true
+		}
 	},
 	"scripts":{
 		"ci": "php ../../tests/phpunit/phpunit.php -c phpunit.xml.dist"

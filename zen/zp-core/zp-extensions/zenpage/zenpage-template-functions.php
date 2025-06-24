@@ -3,8 +3,7 @@
  * zenpage template functions
  *
  * @author Malte Müller (acrylian), Stephen Billard (sbillard)
- * @package plugins
- * @subpackage zenpage
+ * @package zpcore\plugins\zenpage\template
  */
 /* * ********************************************* */
 /* ZENPAGE TEMPLATE FUNCTIONS
@@ -132,7 +131,7 @@ function printLatestNews($number = 5, $category = '', $showdate = true, $showcon
 	global $_zp_gallery, $_zp_current_zenpage_news;
 	$latest = getLatestNews($number, $category, $sticky);
 	echo "\n<ul id=\"latestnews\">\n";
-	$count = "";
+	$count = 0;
 	foreach ($latest as $item) {
 		$count++;
 		$category = "";
@@ -156,7 +155,7 @@ function printLatestNews($number = 5, $category = '', $showdate = true, $showcon
 		if ($obj->getTruncation()) {
 			$shorten = true;
 		}
-		$date = zpFormattedDate(DATE_FORMAT, strtotime($item['date']));
+		$date = zpFormattedDate(DATETIME_DISPLAYFORMAT, strtotime($item['date']));
 		echo "<li>";
 		echo "<h3><a href=\"" . $link . "\" title=\"" . getBare(html_encode($title)) . "\">" . $title . "</a></h3>\n";
 		if ($showdate) {
@@ -587,7 +586,7 @@ function getNewsDate() {
 	global $_zp_current_zenpage_news;
 	if (!is_null($_zp_current_zenpage_news)) {
 		$d = $_zp_current_zenpage_news->getDateTime();
-		return zpFormattedDate(DATE_FORMAT, strtotime($d));
+		return zpFormattedDate(DATETIME_DISPLAYFORMAT, strtotime($d));
 	}
 	return false;
 }
@@ -628,7 +627,7 @@ function printNewsArchive($class = 'archive', $yearclass = 'year', $monthclass =
 	}
 	$datecount = $_zp_zenpage->getAllArticleDates($yearsonly, $order);
 	$lastyear = "";
-	$nr = "";
+	$nr = 0;
 	echo "\n<ul $class>\n";
 	foreach($datecount as $key => $val) {
 		$nr++;
@@ -636,8 +635,13 @@ function printNewsArchive($class = 'archive', $yearclass = 'year', $monthclass =
 			$year = "no date";
 			$month = "";
 		} else {
-			$year = getFormattedLocaleDate('Y', $key);
-			$month = getFormattedLocaleDate('F', $key);
+			if (extension_loaded('intl') && getOption('date_format_localized')) {
+				$year = zpFormattedDate('yyyy', $key, true); 
+				$month = zpFormattedDate('MMMM', $key, true);
+			} else {
+				$year = zpFormattedDate('Y', $key, false); 
+				$month = zpFormattedDate('F', $key,  false);
+			}
 		}
 		if ($lastyear != $year) {
 			$lastyear = $year;
@@ -651,7 +655,7 @@ function printNewsArchive($class = 'archive', $yearclass = 'year', $monthclass =
 		if ($yearsonly) {
 			$datetosearch = $key;
 		} else {
-			$datetosearch = getFormattedLocaleDate('Y-F', $key);
+			$datetosearch = zpFormattedDate('Y-F', $key);
 		}
 		if (getCurrentNewsArchive('plain') == $datetosearch) {
 			$active = $activeclass;
@@ -675,7 +679,7 @@ function printNewsArchive($class = 'archive', $yearclass = 'year', $monthclass =
  * Gets the current select news date (year-month) or formatted
  *
  * @param string $mode "formatted" for a formatted date or "plain" for the pure year-month (for example "2008-09") archive date
- * @param string $format If $mode="formatted" how the date should be printed (see PHP's date() function for the requirements)
+ * @param string $format If $mode="formatted" a datetime format or if localized dates are enabled an ICU dateformat
  * @return string
  */
 function getCurrentNewsArchive($mode = 'formatted', $format = 'F Y') {
@@ -683,7 +687,7 @@ function getCurrentNewsArchive($mode = 'formatted', $format = 'F Y') {
 	if (in_context(ZP_ZENPAGE_NEWS_DATE)) {
 		$archivedate = $_zp_post_date;
 		if ($mode == "formatted") {
-			$archivedate = getFormattedLocaleDate($format, $archivedate);
+			$archivedate = zpFormattedDate($format, $archivedate);
 		}
 		return $archivedate;
 	}
@@ -695,7 +699,7 @@ function getCurrentNewsArchive($mode = 'formatted', $format = 'F Y') {
  *
  * @param string $before What you want to print before the archive if using in a breadcrumb navigation for example
  * @param string $mode "formatted" for a formatted date or "plain" for the pure year-month (for example "2008-09") archive date
- * @param string $format If $mode="formatted" how the date should be printed (see PHP's date() function for the requirements)
+ * @param string $format If $mode="formatted" a datetime format or if localized dates are enabled an ICU dateformat
  * @return string
  */
 function printCurrentNewsArchive($before = '', $mode = 'formatted', $format = 'F Y') {
@@ -1150,7 +1154,7 @@ function getZenpageStatistic($number = 10, $option = "all", $mode = "popular", $
 	$statspages = array();
 	if ($option == "all" || $option == "news") {
 		$articles = $_zp_zenpage->getArticles($number, NULL, true, $mode, $sortdirection, false);
-		$counter = "";
+		$counter = 0;
 		$statsarticles = array();
 		foreach ($articles as $article) {
 			$counter++;
@@ -1171,7 +1175,7 @@ function getZenpageStatistic($number = 10, $option = "all", $mode = "popular", $
 	}
 	if (($option == "all" || $option == "categories") && $mode != "mostrated" && $mode != "toprated") {
 		$categories = $_zp_zenpage->getAllCategories(true, $mode, $sortdirection);
-		$counter = "";
+		$counter = 0;
 		$statscats = array();
 		foreach ($categories as $cat) {
 			$counter++;
@@ -1191,7 +1195,7 @@ function getZenpageStatistic($number = 10, $option = "all", $mode = "popular", $
 	}
 	if ($option == "all" || $option == "pages") {
 		$pages = $_zp_zenpage->getPages(NULL, false, $number, $mode, $sortdirection);
-		$counter = "";
+		$counter = 0;
 		$statspages = array();
 		foreach ($pages as $page) {
 			$counter++;
@@ -1290,7 +1294,7 @@ function printZenpageStatistic($number = 10, $option = "all", $mode = "popular",
 		echo '</small>';
 		echo '</h3></a>';
 		if ($showdate && $item['type'] != 'Category') {
-			echo "<p>" . zpFormattedDate(DATE_FORMAT, strtotime($item['date'])) . "</p>";
+			echo "<p>" . zpFormattedDate(DATETIME_DISPLAYFORMAT, strtotime($item['date'])) . "</p>";
 		}
 		if ($showcontent && $item['type'] != 'Category') {
 			echo '<p>' . truncate_string($item['content'], $contentlength) . '</p>';
@@ -1431,11 +1435,13 @@ function printNestedMenu($option = 'list', $mode = NULL, $counter = TRUE, $css_i
 		$css_class_active = "";
 		rem_context(ZP_ZENPAGE_PAGE);
 	}
-	if (0 == count($items) + (int) ($mode == 'categories'))
+	if (0 == count($items) + (int) ($mode == 'categories')) {
 		return; // nothing to do
+	}
 	$startlist = $startlist && !($option == 'omit-top' || $option == 'list-sub');
-	if ($startlist)
+	if ($startlist) {
 		echo '<ul id="' . $css_id . '">';
+	}
 	// if index link and if if with count
 	if (!empty($indexname)) {
 		if ($limit) {
@@ -1458,14 +1464,10 @@ function printNestedMenu($option = 'list', $mode = NULL, $counter = TRUE, $css_i
 					echo "<li><a href=\"" . html_encode(getNewsIndexURL()) . "\" title=\"" . html_encode($indexname) . "\">" . html_encode($display) . "</a>";
 				}
 				if ($counter) {
-					if (in_context(ZP_ZENPAGE_NEWS_CATEGORY) && $mode == 'categories') {
-						$totalcount = count($_zp_current_category->getArticles(0));
-					} else {
-						save_context();
-						rem_context(ZP_ZENPAGE_NEWS_DATE);
-						$totalcount = count($_zp_zenpage->getArticles(0));
-						restore_context();
-					}
+					save_context();
+					rem_context(ZP_ZENPAGE_NEWS_DATE);
+					$totalcount = $_zp_zenpage->getTotalArticles();
+					restore_context();
 					echo ' <span style="white-space:nowrap;"><small>(' . sprintf(ngettext('%u article', '%u articles', $totalcount), $totalcount) . ')</small></span>';
 				}
 				echo "</li>\n";
@@ -1483,6 +1485,7 @@ function printNestedMenu($option = 'list', $mode = NULL, $counter = TRUE, $css_i
 		$parents[$c] = NULL;
 	}
 	foreach ($items as $item) {
+
 		$password_class = '';
 		switch ($mode) {
 			case 'pages':
@@ -1495,7 +1498,7 @@ function printNestedMenu($option = 'list', $mode = NULL, $counter = TRUE, $css_i
 				$itemtitlelink = $pageobj->getName();
 				$itemurl = $pageobj->getLink();
 				$count = '';
-				if ($pageobj->isProtected()) {
+				if (!$pageobj->isMyItem(LIST_RIGHTS) && $pageobj->isProtected()) {
 					$password_class = ' has_password';
 				}
 				break;
@@ -1508,17 +1511,22 @@ function printNestedMenu($option = 'list', $mode = NULL, $counter = TRUE, $css_i
 				$itemtitlelink = $catobj->getName();
 				$itemurl = $catobj->getLink();
 				$catcount = count($catobj->getArticles());
+				if (!$catobj->isMyItem(LIST_RIGHTS) && $catobj->isProtected()) {
+					$catcount = 1; // count for protected is 0 but we want to show them
+					$counter = false; // disable counter for protected items 
+					$password_class = ' has_password';
+				}
 				if ($counter) {
 					$count = ' <span style="white-space:nowrap;"><small>(' . sprintf(ngettext('%u article', '%u articles', $catcount), $catcount) . ')</small></span>';
 				} else {
 					$count = '';
 				}
-				if ($catobj->isProtected()) {
-					$password_class = ' has_password';
-				}
+
+				
 				break;
 		}
 		if ($catcount) {
+
 			$level = max(1, count(explode('-', strval($itemsortorder))));
 			$process = (($level <= $showsubs && $option == "list") // user wants all the pages whose level is <= to the parameter
 							|| ($option == 'list' || $option == 'list-top') && $level == 1 // show the top level
@@ -1533,7 +1541,7 @@ function printNestedMenu($option = 'list', $mode = NULL, $counter = TRUE, $css_i
 
 			if ($process) {
 				if ($level > $indent) {
-					echo "\n" . str_pad("\t", $indent, "\t") . '<ul class="' . $css_class . '">'."\n";
+					echo "\n" . str_pad("\t", $indent, "\t") . '<ul class="' . $css_class . '">' . "\n";
 					$indent++;
 					$parents[$indent] = NULL;
 					$open[$indent] = 0;
@@ -1541,7 +1549,7 @@ function printNestedMenu($option = 'list', $mode = NULL, $counter = TRUE, $css_i
 					$parents[$indent] = NULL;
 					while ($indent > $level) {
 						if ($open[$indent]) {
-							$open[$indent] --;
+							$open[$indent]--;
 							echo "</li>\n";
 						}
 						$indent--;
@@ -1550,17 +1558,17 @@ function printNestedMenu($option = 'list', $mode = NULL, $counter = TRUE, $css_i
 				} else { // level == indent, have not changed
 					if ($open[$indent]) { // level = indent
 						echo str_pad("\t", $indent, "\t") . "</li>\n";
-						$open[$indent] --;
+						$open[$indent]--;
 					} else {
 						echo "\n";
 					}
 				}
 				if ($open[$indent]) { // close an open LI if it exists
 					echo "</li>\n";
-					$open[$indent] --;
+					$open[$indent]--;
 				}
 				echo str_pad("\t", $indent - 1, "\t");
-				$open[$indent] ++;
+				$open[$indent]++;
 				$parents[$indent] = $itemid;
 				if ($level == 1) { // top level
 					$class = $css_class_topactive . $password_class;
@@ -1592,13 +1600,13 @@ function printNestedMenu($option = 'list', $mode = NULL, $counter = TRUE, $css_i
 							break;
 					}
 				}
-				if(empty($current)) {
-					$current =  trim($password_class);
+				if (empty($current)) {
+					$current = trim($password_class);
 				}
 				if ($limit) {
 					$itemtitle = shortenContent($itemtitle, $limit, MENU_TRUNCATE_INDICATOR);
 				}
-				echo '<li class="' . $current. '"><a href="' . html_encode($itemurl) . '" title="' . html_encode(getBare($itemtitle)) . '">' . html_encode($itemtitle) . '</a>' . $count;
+				echo '<li class="' . $current . '"><a href="' . html_encode($itemurl) . '" title="' . html_encode(getBare($itemtitle)) . '">' . html_encode($itemtitle) . '</a>' . $count;
 			}
 		}
 	}
@@ -1606,19 +1614,20 @@ function printNestedMenu($option = 'list', $mode = NULL, $counter = TRUE, $css_i
 	while ($indent > 1) {
 		if ($open[$indent]) {
 			echo "</li>\n";
-			$open[$indent] --;
+			$open[$indent]--;
 		}
 		$indent--;
 		echo str_pad("\t", $indent, "\t") . "</ul>";
 	}
 	if ($open[$indent]) {
 		echo "</li>\n";
-		$open[$indent] --;
+		$open[$indent]--;
 	} else {
 		echo "\n";
 	}
-	if ($startlist)
+	if ($startlist) {
 		echo "</ul>\n";
+	}
 }
 
 /**
@@ -1729,10 +1738,8 @@ function next_page() {
 	}
 	while (!empty($_zp_next_pagelist)) {
 		$page = new ZenpagePage(array_shift($_zp_next_pagelist));
-		if ((zp_loggedin() && $page->isMyItem(LIST_RIGHTS)) || $page->checkForGuest()) {
-			$_zp_current_zenpage_page = $page;
-			return true;
-		}
+		$_zp_current_zenpage_page = $page;
+		return true;
 	}
 	$_zp_next_pagelist = NULL;
 	$_zp_current_zenpage_page = $_zp_current_page_restore;
@@ -1849,7 +1856,7 @@ function getPageDate() {
 	global $_zp_current_zenpage_page;
 	if (!is_null($_zp_current_zenpage_page)) {
 		$d = $_zp_current_zenpage_page->getDatetime();
-		return zpFormattedDate(DATE_FORMAT, strtotime($d));
+		return zpFormattedDate(DATETIME_DISPLAYFORMAT, strtotime($d));
 	}
 	return false;
 }
@@ -1872,7 +1879,7 @@ function getPageLastChangeDate() {
 	global $_zp_current_zenpage_page;
 	if (!is_null($_zp_current_zenpage_page)) {
 		$d = $_zp_current_zenpage_page->getLastChange();
-		return zpFormattedDate(DATE_FORMAT, strtotime($d));
+		return zpFormattedDate(DATETIME_DISPLAYFORMAT, strtotime($d));
 	}
 	return false;
 }
@@ -1899,6 +1906,9 @@ function printPageLastChangeDate($before) {
 function getPageContent($titlelink = NULL, $published = true) {
 	global $_zp_current_zenpage_page;
 	if (is_Pages() && empty($titlelink)) {
+		if (!$_zp_current_zenpage_page->checkAccess()) {
+			return '<p>' . gettext('<em>This page is protected.</em>') . '</p>';
+		}
 		return $_zp_current_zenpage_page->getContent();
 	}
 	// print content of a page directly on a normal zenphoto theme page or any other page for example
@@ -2124,7 +2134,6 @@ function getLatestZenpageComments($number, $type = "all", $itemID = "") {
 	global $_zp_db;
 	$itemID = sanitize_numeric($itemID);
 	$number = sanitize_numeric($number);
-	$checkauth = zp_loggedin();
 
 	if ($type == 'all' || $type == 'news') {
 		$newspasswordcheck = "";
@@ -2135,13 +2144,11 @@ function getLatestZenpageComments($number, $type = "all", $itemID = "") {
 			$newscheck = $_zp_db->queryFullArray("SELECT * FROM " . $_zp_db->prefix('news') . " ORDER BY date");
 			foreach ($newscheck as $articlecheck) {
 				$obj = new ZenpageNews($articlecheck['titlelink']);
-				if ($obj->inProtectedCategory()) {
-					if ($checkauth && $obj->isMyItem(LIST_RIGHTS)) {
-						$newsshow = '';
-					} else {
-						$excludenews = " AND id != " . $articlecheck['id'];
-						$newspasswordcheck = $newspasswordcheck . $excludenews;
-					}
+				if ($obj->isVisible()) {
+					$newsshow = '';
+				} else {
+					$excludenews = " AND news.id != " . $articlecheck['id'];
+					$newspasswordcheck = $newspasswordcheck . $excludenews;
 				}
 			}
 		}
@@ -2155,13 +2162,11 @@ function getLatestZenpageComments($number, $type = "all", $itemID = "") {
 			$pagescheck = $_zp_db->queryFullArray("SELECT * FROM " . $_zp_db->prefix('pages') . " ORDER BY date");
 			foreach ($pagescheck as $pagecheck) {
 				$obj = new ZenpagePage($pagecheck['titlelink']);
-				if ($obj->isProtected()) {
-					if ($checkauth && $obj->isMyItem(LIST_RIGHTS)) {
-						$pagesshow = '';
-					} else {
-						$excludepages = " AND pages.id != " . $pagecheck['id'];
-						$pagepasswordcheck = $pagepasswordcheck . $excludepages;
-					}
+				if ($obj->isVisible()) {
+					$pagesshow = '';
+				} else {
+					$excludepages = " AND pages.id != " . $pagecheck['id'];
+					$pagepasswordcheck = $pagepasswordcheck . $excludepages;
 				}
 			}
 		}
@@ -2187,7 +2192,7 @@ function getLatestZenpageComments($number, $type = "all", $itemID = "") {
 						. " ORDER BY c.id DESC LIMIT $number");
 	}
 	if ($type == "all" OR $type == "page") {
-		$comments_pages = $_zp_db->queryFullArray($sql = "SELECT c.id, c.name, c.type, c.website,"
+		$comments_pages = $_zp_db->queryFullArray("SELECT c.id, c.name, c.type, c.website,"
 						. " c.date, c.anon, c.comment, pages.title, pages.titlelink FROM " . $_zp_db->prefix('comments') . " AS c, " . $_zp_db->prefix('pages') . " AS pages "
 						. $wherePages
 						. " ORDER BY c.id DESC LIMIT $number");

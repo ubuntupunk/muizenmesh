@@ -1,7 +1,6 @@
 <?php
 /**
- * @package plugins
- * @subpackage comment-form
+ * @package zpcore\plugins\commentform
  */
 define('COMMENTS_PER_PAGE', max(1, getOption('comment_form_comments_per_page')));
 
@@ -9,8 +8,8 @@ $_zp_comment_stored = array();
 
 function comment_form_PaginationJS() {
 	?>
-	<script type="text/javascript" src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/jquery.pagination.js"></script>
-	<script type="text/javascript">
+	<script src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/jquery.pagination.js"></script>
+	<script>
 		function pageselectCallback(page_index, jq) {
 			var items_per_page = <?php echo max(1, COMMENTS_PER_PAGE); ?>;
 			var max_elem = Math.min((page_index + 1) * items_per_page, $('#comments div.comment').length);
@@ -124,18 +123,24 @@ function comment_form_print10Most() {
  */
 function getCommentAddress($i) {
 	$result = array();
-	if (isset($_POST[$i . '-comment_form_website']))
+	if (isset($_POST[$i . '-comment_form_website'])) {
 		$result['website'] = sanitize($_POST[$i . '-comment_form_website'], 1);
-	if (isset($_POST[$i . '-comment_form_street']))
+	}
+	if (isset($_POST[$i . '-comment_form_street'])) {
 		$result['street'] = sanitize($_POST[$i . '-comment_form_street'], 1);
-	if (isset($_POST[$i . '-comment_form_city']))
+	}
+	if (isset($_POST[$i . '-comment_form_city'])) {
 		$result['city'] = sanitize($_POST[$i . '-comment_form_city'], 1);
-	if (isset($_POST[$i . '-comment_form_state']))
+	}
+	if (isset($_POST[$i . '-comment_form_state'])) {
 		$result['state'] = sanitize($_POST[$i . '-comment_form_state'], 1);
-	if (isset($_POST[$i . '-comment_form_country']))
+	}
+	if (isset($_POST[$i . '-comment_form_country'])) {
 		$result['country'] = sanitize($_POST[$i . '-comment_form_country'], 1);
-	if (isset($_POST[$i . '-comment_form_postal']))
+	}
+	if (isset($_POST[$i . '-comment_form_postal'])) {
 		$result['postal'] = sanitize($_POST[$i . '-comment_form_postal'], 1);
+	}
 	return $result;
 }
 
@@ -191,6 +196,8 @@ define('USE_CAPTCHA', 8);
 define('COMMENT_BODY_REQUIRED', 16);
 define('COMMENT_SEND_EMAIL', 32);
 define('COMMENT_DATACONFIRMATION', 64);
+define('COMMENT_TEXTQUIZ', 128);
+define('COMMENT_MATHQUIZ', 256);
 
 /**
  * Generic comment adding routine. Called by album objects or image objects
@@ -212,18 +219,23 @@ define('COMMENT_DATACONFIRMATION', 64);
  * @param string $customdata
  * @param bit $check bitmask of which fields must be checked. If set overrides the options
  * @param bool $dataconfirmation True if data privacy confirmation required
+ * @param string $textquiz_answer_user
+ * @param string $mathquiz_answer_user
  * @return object
  */
-function comment_form_addComment($name, $email, $website, $comment, $code, $code_ok, $receiver, $ip, $private, $anon, $customdata, $check = false, $dataconfirmation = null) {
+function comment_form_addComment($name, $email, $website, $comment, $code, $code_ok, $receiver, $ip, $private, $anon, $customdata, $check = false, $dataconfirmation = null, $textquiz_answer_user = '', $mathquiz_answer_user = '') {
 	global $_zp_captcha, $_zp_gallery, $_zp_authority, $_zp_comment_on_hold, $_zp_spamFilter, $_zp_db;
 	if ($check === false) {
 		$whattocheck = 0;
-		if (getOption('comment_email_required') == 'required')
+		if (getOption('comment_email_required') == 'required') {
 			$whattocheck = $whattocheck | COMMENT_EMAIL_REQUIRED;
-		if (getOption('comment_name_required'))
+		}
+		if (getOption('comment_name_required')) {
 			$whattocheck = $whattocheck | COMMENT_NAME_REQUIRED;
-		if (getOption('comment_web_required') == 'required')
+		}
+		if (getOption('comment_web_required') == 'required') {
 			$whattocheck = $whattocheck | COMMENT_WEB_REQUIRED;
+		}
 		switch (getOption('Use_Captcha')) {
 			case 0:
 				break;
@@ -235,12 +247,21 @@ function comment_form_addComment($name, $email, $website, $comment, $code, $code
 				$whattocheck = $whattocheck | USE_CAPTCHA;
 				break;
 		}
-		if (getOption('comment_body_requiired'))
+		if (getOption('comment_body_requiired')) {
 			$whattocheck = $whattocheck | COMMENT_BODY_REQUIRED;
-		if (getOption('email_new_comments'))
+		}
+		if (getOption('email_new_comments')) {
 			$whattocheck = $whattocheck | COMMENT_SEND_EMAIL;
-		if(getOption('comment_form_dataconfirmation')) 
+		}
+		if(getOption('comment_form_dataconfirmation'))  {
 			$whattocheck = $whattocheck | COMMENT_DATACONFIRMATION;
+		}
+		if (getQuizFieldQuestion('comment_form_textquiz')) {
+			$whattocheck = $whattocheck | COMMENT_TEXTQUIZ;
+		}
+		if (getQuizFieldQuestion('comment_form_mathquiz')) {
+			$whattocheck = $whattocheck | COMMENT_MATHQUIZ;
+		}
 	} else {
 		$whattocheck = $check;
 	}
@@ -254,14 +275,16 @@ function comment_form_addComment($name, $email, $website, $comment, $code, $code
 	$comment = trim($comment);
 	$receiverid = $receiver->getID();
 	$goodMessage = 2;
-	if ($private) 
+	if ($private)  {
 		$private = 1;
-	else
-		$private = 0;
-	if ($anon)
+	} else {
+ 		$private = 0;
+	}
+	if ($anon) {
 		$anon = 1;
-	else
+	} else {
 		$anon = 0;
+	}
 	$commentobj = new Comment();
 	$commentobj->transient = false; // otherwise we won't be able to save it....
 	$commentobj->setOwnerID($receiverid);
@@ -308,6 +331,27 @@ function comment_form_addComment($name, $email, $website, $comment, $code, $code
 		$commentobj->comment_error_text .= ' ' . gettext("Please agree to storage and handling of your data by this website.");
 		$goodMessage = false;
 	}
+	
+	// Quizes
+	if ($whattocheck & COMMENT_TEXTQUIZ) {
+		$textquiz_answer = strtolower(trim(get_language_string(getOption('comment_form_textquiz_answer'))));
+		$textquiz_answer_user = strtolower(trim($textquiz_answer_user));
+		if (empty($textquiz_answer_user) || $textquiz_answer != $textquiz_answer_user) {
+			$commentobj->setInModeration(-8);
+			$commentobj->comment_error_text .= ' ' . gettext("You must enter the correct text quiz answer.");
+			$goodMessage = false;
+		}
+	}
+	if ($whattocheck & COMMENT_MATHQUIZ) {
+		$mathquiz_answer = eval('return ' . getQuizFieldQuestion('comment_form_mathquiz') . ';');
+		$mathquiz_answer_user = trim($mathquiz_answer_user);
+		if (empty($mathquiz_answer_user) || $mathquiz_answer != $mathquiz_answer_user) {
+			$commentobj->setInModeration(-8);
+			$commentobj->comment_error_text .= ' ' . gettext("You must enter the correct math quiz answer.");
+			$goodMessage = false;
+		}
+	}
+
 	$moderate = 0;
 	if ($goodMessage && isset($_zp_spamFilter)) {
 		$goodMessage = $_zp_spamFilter->filterMessage($name, $email, $website, $comment, $receiver, $ip);
@@ -351,7 +395,7 @@ function comment_form_addComment($name, $email, $website, $comment, $code, $code
 		switch ($type) {
 			case "albums":
 				$url = "album=" . pathurlencode($receiver->name);
-				$ur_album = $receiver->getUrAlbum();
+				$ur_album = $receiver->getUrParent();
 				if ($moderate) {
 					$action = sprintf(gettext('A comment has been placed in moderation on your album “%1$s”.'), $receiver->name);
 				} else {
@@ -377,7 +421,7 @@ function comment_form_addComment($name, $email, $website, $comment, $code, $code
 			default: // all image types
 				$album = $receiver->getAlbum();
 				$url = "album=" . pathurlencode($album->name) . "&image=" . urlencode($receiver->filename);
-				$ur_album = $album->getUrAlbum();
+				$ur_album = $album->getUrParent();
 				if ($moderate) {
 					$action = sprintf(gettext('A comment has been placed in moderation on your image “%1$s” in the album “%2$s”.'), $receiver->getTitle(), $album->name);
 				} else {
@@ -535,7 +579,18 @@ function comment_form_handle_comment() {
 			$p_anon = isset($_POST['anon']);
 			$p_dataconfirmation = isset($_POST['comment_dataconfirmation']);
 
-			$commentadded = $commentobject->addComment($p_name, $p_email, $p_website, $p_comment, $code1, $code2, $p_server, $p_private, $p_anon, serialize(getCommentAddress(0)), $p_dataconfirmation);
+			if (isset($_POST['comment_textquiz'])) {
+				$p_textquiz_answer_user = sanitize($_POST['comment_textquiz'], 3);
+			} else {
+				$p_textquiz_answer_user = NULL;
+			}
+			if (isset($_POST['comment_mathquiz'])) {
+				$p_mathquiz_answer_user = sanitize($_POST['comment_mathquiz'], 3);
+			} else {
+				$p_mathquiz_answer_user = NULL; 
+			}
+
+			$commentadded = $commentobject->addComment($p_name, $p_email, $p_website, $p_comment, $code1, $code2, $p_server, $p_private, $p_anon, serialize(getCommentAddress(0)), $p_dataconfirmation, $p_textquiz_answer_user, $p_mathquiz_answer_user);
 
 			$comment_error = $commentadded->getInModeration();
 			$_zp_comment_stored = array(
@@ -652,12 +707,12 @@ function printCommentAuthorLink($title = NULL, $class = NULL, $id = NULL) {
  * Uses the "date_format" option for the formatting unless
  * a format string is passed.
  *
- * @param string $format a date() compatible format
+ * @param string $format A datetime format, if using localized dates an ICU dateformat
  * @return string
  */
 function getCommentDateTime($format = NULL) {
 	if (is_null($format)) {
-		$format = DATE_FORMAT;
+		$format = DATETIME_DISPLAYFORMAT;
 	}
 	global $_zp_current_comment;
 	return myts_date($format, $_zp_current_comment['date']);
@@ -700,7 +755,7 @@ function printEditCommentLink($text, $before = '', $after = '', $title = NULL, $
  * Gets latest comments for images, albums, news and pages
  *
  * @param int $number how many comments you want.
- * @param string $type	"all" for all latest comments of all images, albums, news and pages
+ * @param string|array $type	"all" for all latest comments of all images, albums, news and pages
  * 											an array of table items e.g. array('images','albums') for all images, albums, news and pages
  * 											"image" for the lastest comments of one specific image
  * 											"album" for the latest comments of one specific album
@@ -999,7 +1054,7 @@ function commentsAllowed($type) {
 /**
  * Gets an array of comments for the current admin
  * 
- * @since ZenphotoCMS 1.6 - Renamed from fetchComments()
+ * @since 1.6 - Renamed from fetchComments()
  *
  * @param int $number how many comments desired
  * @return array
@@ -1085,7 +1140,7 @@ function getComments($number) {
 /**
  * Gets an array of comments for the current admin
  * 
- * @deprecated ZenphotoCMS 2.0 - Use getComments() instead
+ * @deprecated 2.0 - Use getComments() instead
  *
  * @param int $number how many comments desired
  * @return array
@@ -1093,4 +1148,175 @@ function getComments($number) {
 function fetchComments($number) {
 	deprecationNotice(gettext('Use getComments() instead.'));
 	return getComments($number);
+}
+
+/**
+ * Checks if a field is required
+ * 
+ * @since 1.6.3
+ * 
+ * @param string $option The field option name
+ * @return bool
+ */
+function isCommentFormRequiredField($option) {
+	if (getOption($option) == 'required') {
+		return true;
+	}
+	return false;
+}
+
+/**
+ * Gets the star to mark required field names
+ * 
+ * @since 1.6.3
+ * 
+ * @param string $option The field option name
+ * @return string
+ */
+function getCommentFormRequiredFieldMark($option) {
+	if (isCommentFormRequiredField($option)) {
+		return '<strong>*</strong>';
+	}
+	return '';
+}
+
+/**
+ * Returns the required attribute if the field is required
+ * 
+ * @since 1.6.3
+ * 
+ * @param string $option The field option name
+ * @return string
+ */
+function getCommentFormRequiredFieldAttr($option) {
+	if (isCommentFormRequiredField($option)) {
+		return ' required';
+	}
+	return '';
+}
+
+/**
+ * Checks if the field should be set to readonly
+ * 
+ * @since 1.6.3
+ * 
+ * @param bool $disabled 
+ * return bool
+ */
+function isCommentFormReadonlyField($disabled) {
+	if ($disabled) {
+		return true;
+	}
+	return false;
+}
+
+/**
+ * Gets the readonly attribute for disabled fields
+ * 
+ * @since 1.6.3
+ * 
+ * @param bool $disabled
+ * @return string
+ */
+function getCommentFormReadonlyFieldAttr($disabled) {
+	if(isCommentFormReadonlyField($disabled)) {
+		return ' readonly';
+	}
+	return '';
+}
+
+/**
+ * Prints the combined required and readonly attributes as needed
+ * @since 1.6.3
+ * @param string $option The field option name
+ * @param bool $disabled
+ * @param string $autocomplete_value Default "on" if autocomplete is ebabled
+ */
+function printCommentFormFieldAttributes($option, $disabled, $autocomplete_value = 'on') {
+	echo getCommentFormRequiredFieldAttr($option);
+	echo getCommentFormReadonlyFieldAttr($disabled);
+	printCommentformAutocompleteAttr($autocomplete_value, true);
+}
+
+/**
+ * Returns the autocomplete attribute for the form depending if autocomplete is enabled
+ *  
+ * @since 1.6.3
+ * 
+ * @return string
+ */
+function getCommentformFormAutocompleteAttr() {
+	if (getOption('comment_form_autocomplete')) {
+		return getCommentformAutocompleteAttr('on');
+	}
+	return getCommentformAutocompleteAttr();
+}
+
+/**
+ * Gets the autocomplete attribute with the value passed if autocomplete is enabled
+ * Note that the value is not validated. See See e.g. https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete for valid values and tokens
+ *  
+ * @since 1.6.3
+ * 
+ * @param string $value Default "on" if autocomplete is ebabled
+ * @param bool $skip_off Set to true to skip returing autocomplete="off"
+ * @return string
+ */
+function getCommentformAutocompleteAttr($value = "on", $skip_off = false) {
+	if (getOption('comment_form_autocomplete')) {
+		return ' autocomplete="' . sanitize($value) . '"';
+	}
+	if (!$skip_off) {
+		return ' autocomplete="off"';
+	}
+	return '';
+}
+
+/**
+ * Prints the autocomplete attribute with the value passed if autocomplete is enabled
+ * Note that the value is not validated. See See e.g. https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete for valid values and tokens
+ *  
+ * @since 1.6.3
+ * 
+ * @param string $value Default "on" if autocomplete is ebabled
+ * @param bool $skip_off Set to true to skip printing autocomplete="off"
+ */
+function printCommentformAutocompleteAttr($value = "on", $skip_off = false) {
+	echo getCommentformAutocompleteAttr($value, $skip_off);
+}
+
+
+/**
+ * Gets the the question to a quiz field if the field is enabled and setup correctly
+ * 
+ * @since 1.6.5 
+ * 
+ * @param string $which
+ * @return string|bool
+ */
+function getQuizFieldQuestion($which = '') {
+	if (!zp_loggedin()) {
+		switch ($which) {
+			case 'comment_form_textquiz':
+				if (getOption($which)) {
+					$question = trim(get_language_string(getOption('comment_form_textquiz_question')));
+					$answer = trim(get_language_string(getOption('comment_form_textquiz_question')));
+					if (!empty($question) && !empty($answer)) {
+						return $question;
+					}
+				}
+				break;
+			case 'comment_form_mathquiz':
+				if (getOption($which)) {
+					$question = get_language_string(getOption('comment_form_mathquiz_question'));
+					// filter in case a user entered invalid expression
+					$question_filtered = trim(preg_replace("/[^0-9\-\*\+\/\().]/", '', $question));
+					if (!empty($question_filtered)) {
+						return $question_filtered;
+					}
+				}
+				break;
+		}
+	}
+	return false;
 }

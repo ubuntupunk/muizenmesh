@@ -53,7 +53,8 @@ class DOMPostProcessorTest extends \PHPUnit\Framework\TestCase {
 				false,
 				[
 					[
-						'Processor' => Normalize::class
+						'Processor' => Normalize::class,
+						'skipNested' => false
 					]
 				],
 				"<p>hi</p><p></p><p>ho</p>",
@@ -65,7 +66,9 @@ class DOMPostProcessorTest extends \PHPUnit\Framework\TestCase {
 					[
 						'name' => 'CleanUp-handleEmptyElts',
 						'shortcut' => 'cleanup',
+						'skipNested' => false,
 						'isTraverser' => true,
+						'tplInfo' => true,
 						'handlers' => [
 							[
 								'nodeName' => null,
@@ -74,8 +77,8 @@ class DOMPostProcessorTest extends \PHPUnit\Framework\TestCase {
 						]
 					]
 				],
-				"<p>hi</p><p></p><p>ho</p>",
-				'<html><head></head><body data-object-id="0"><p data-object-id="1">hi</p><p data-object-id="2" class="mw-empty-elt"></p><p data-object-id="3">ho</p></body></html>'
+				"<p>hi</p><p></p><p>ho</p><p typeof='mw:Transclusion' about='#mwt1' data-mw='{}' data-parsoid='{}'></p>",
+				'<html><head></head><body data-object-id="0"><p data-object-id="1">hi</p><p data-object-id="2" class="mw-empty-elt"></p><p data-object-id="3">ho</p><p typeof="mw:Transclusion" about="#mwt1" data-object-id="4" class="mw-empty-elt"></p></body></html>'
 			]
 		];
 	}

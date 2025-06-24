@@ -5,16 +5,18 @@ namespace MediaWiki\Tests\Integration\CommentFormatter;
 use MediaWiki\CommentFormatter\CommentFormatter;
 use MediaWiki\CommentFormatter\CommentItem;
 use MediaWiki\CommentFormatter\CommentParser;
-use MediaWiki\CommentFormatter\CommentParserFactory;
+use MediaWiki\CommentStore\CommentStoreComment;
 use MediaWiki\Linker\LinkTarget;
 use MediaWiki\Page\PageIdentityValue;
+use MediaWiki\Permissions\Authority;
 use MediaWiki\Permissions\SimpleAuthority;
 use MediaWiki\Revision\MutableRevisionRecord;
 use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\Tests\Unit\CommentFormatter\CommentFormatterTestUtils;
+use MediaWiki\Tests\Unit\DummyServicesTrait;
+use MediaWiki\Title\TitleValue;
 use MediaWiki\User\UserIdentityValue;
 use MediaWikiIntegrationTestCase;
-use TitleValue;
 
 /**
  * Trivial comment formatting with a mocked parser. Can't be a unit test because
@@ -23,6 +25,8 @@ use TitleValue;
  * @covers \MediaWiki\CommentFormatter\CommentFormatter
  */
 class CommentFormatterTest extends MediaWikiIntegrationTestCase {
+	use DummyServicesTrait;
+
 	private function getParser() {
 		return new class extends CommentParser {
 			public function __construct() {
@@ -64,23 +68,10 @@ class CommentFormatterTest extends MediaWikiIntegrationTestCase {
 		};
 	}
 
-	private function getParserFactory() {
-		$parser = $this->getParser();
-		return new class( $parser ) extends CommentParserFactory {
-			private $parser;
-
-			public function __construct( $parser ) {
-				$this->parser = $parser;
-			}
-
-			public function create() {
-				return $this->parser;
-			}
-		};
-	}
-
 	private function newCommentFormatter() {
-		return new CommentFormatter( $this->getParserFactory() );
+		return new CommentFormatter(
+			$this->getDummyCommentParserFactory( $this->getParser() )
+		);
 	}
 
 	public function testCreateBatch() {
@@ -218,7 +209,7 @@ class CommentFormatterTest extends MediaWikiIntegrationTestCase {
 		);
 	}
 
-	public function provideFormatRevision() {
+	public static function provideFormatRevision() {
 		$normal = ' <span class="comment">(' .
 			'comment=hello, selfLinkTarget=Page, !samePage, enableSectionLinks' .
 			')</span>';
@@ -265,13 +256,12 @@ class CommentFormatterTest extends MediaWikiIntegrationTestCase {
 	 * @param string $text
 	 * @param bool $isDeleted
 	 * @param bool $isAllowed
-	 * @return array{RevisionRecord,Authority}
-	 * @throws \MWException
+	 * @return array<RevisionRecord|Authority>
 	 */
 	private function makeRevisionAndAuthority( $text, $isDeleted, $isAllowed ) {
 		$page = new PageIdentityValue( 1, 0, 'Page', false );
 		$rev = new MutableRevisionRecord( $page );
-		$comment = new \CommentStoreComment( 1, $text );
+		$comment = new CommentStoreComment( 1, $text );
 		$rev->setId( 100 );
 		$rev->setComment( $comment );
 		$rev->setVisibility( $isDeleted ? RevisionRecord::DELETED_COMMENT : 0 );

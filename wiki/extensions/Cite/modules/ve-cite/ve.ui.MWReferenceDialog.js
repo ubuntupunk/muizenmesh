@@ -1,3 +1,5 @@
+'use strict';
+
 /*!
  * VisualEditor UserInterface MediaWiki MWReferenceDialog class.
  *
@@ -8,10 +10,8 @@
 /**
  * Dialog for editing MediaWiki references.
  *
- * @class
- * @extends ve.ui.NodeDialog
- *
  * @constructor
+ * @extends ve.ui.NodeDialog
  * @param {Object} [config] Configuration options
  */
 ve.ui.MWReferenceDialog = function VeUiMWReferenceDialog( config ) {
@@ -97,7 +97,7 @@ ve.ui.MWReferenceDialog.static.excludeCommands = [
  * @return {Object} Import rules
  */
 ve.ui.MWReferenceDialog.static.getImportRules = function () {
-	var rules = ve.copy( ve.init.target.constructor.static.importRules );
+	const rules = ve.copy( ve.init.target.constructor.static.importRules );
 	return ve.extendObject(
 		rules,
 		{
@@ -162,7 +162,7 @@ ve.ui.MWReferenceDialog.prototype.isModified = function () {
  * Handle reference target widget change events
  */
 ve.ui.MWReferenceDialog.prototype.onTargetChange = function () {
-	var hasContent = this.documentHasContent();
+	const hasContent = this.documentHasContent();
 
 	this.actions.setAbilities( {
 		done: this.isModified(),
@@ -195,7 +195,7 @@ ve.ui.MWReferenceDialog.prototype.onReferenceGroupInputChange = function () {
  * @param {ve.ui.MWReferenceResultWidget} item Chosen item
  */
 ve.ui.MWReferenceDialog.prototype.onSearchResultsChoose = function ( item ) {
-	var ref = item.getData();
+	const ref = item.getData();
 
 	if ( this.selectedNode instanceof ve.dm.MWReferenceNode ) {
 		this.getFragment().removeContent();
@@ -208,7 +208,7 @@ ve.ui.MWReferenceDialog.prototype.onSearchResultsChoose = function ( item ) {
 };
 
 /**
- * @inheritdoc
+ * @override
  */
 ve.ui.MWReferenceDialog.prototype.getReadyProcess = function ( data ) {
 	return ve.ui.MWReferenceDialog.super.prototype.getReadyProcess.call( this, data )
@@ -222,7 +222,7 @@ ve.ui.MWReferenceDialog.prototype.getReadyProcess = function ( data ) {
 };
 
 /**
- * @inheritdoc
+ * @override
  */
 ve.ui.MWReferenceDialog.prototype.getBodyHeight = function () {
 	// Clamp value to between 300 and 400px height, preferring the actual height if available
@@ -261,23 +261,21 @@ ve.ui.MWReferenceDialog.prototype.useReference = function ( ref ) {
 	this.referenceGroupInput.setValue( this.originalGroup );
 	this.referenceGroupInput.setDisabled( false );
 
-	var group = this.getFragment().getDocument().getInternalList()
+	const group = this.getFragment().getDocument().getInternalList()
 		.getNodeGroup( this.referenceModel.getListGroup() );
-	if ( ve.getProp( group, 'keyedNodes', this.referenceModel.getListKey(), 'length' ) > 1 ) {
-		this.$reuseWarning.removeClass( 'oo-ui-element-hidden' );
-		this.$reuseWarningText.text( mw.msg(
-			'cite-ve-dialog-reference-editing-reused-long',
-			group.keyedNodes[ this.referenceModel.getListKey() ].length
-		) );
-	} else {
-		this.$reuseWarning.addClass( 'oo-ui-element-hidden' );
-	}
+	const nodes = ve.getProp( group, 'keyedNodes', this.referenceModel.getListKey() );
+	const usages = nodes ? nodes.filter( function ( node ) {
+		return !node.findParent( ve.dm.MWReferencesListNode );
+	} ).length : 0;
+
+	this.reuseWarning.toggle( usages > 1 )
+		.setLabel( mw.msg( 'cite-ve-dialog-reference-editing-reused-long', usages ) );
 
 	return this;
 };
 
 /**
- * @inheritdoc
+ * @override
  */
 ve.ui.MWReferenceDialog.prototype.initialize = function () {
 	// Parent method
@@ -290,15 +288,14 @@ ve.ui.MWReferenceDialog.prototype.initialize = function () {
 	} );
 	this.searchPanel = new OO.ui.PanelLayout();
 
-	this.reuseWarningIcon = new OO.ui.IconWidget( { icon: 'alert' } );
-	this.$reuseWarningText = $( '<span>' );
-	this.$reuseWarning = $( '<div>' )
-		.addClass( 've-ui-mwReferenceDialog-reuseWarning' )
-		.append( this.reuseWarningIcon.$element, this.$reuseWarningText );
-
-	var citeCommands = Object.keys( ve.init.target.getSurface().commandRegistry.registry ).filter( function ( command ) {
-		return command.indexOf( 'cite-' ) !== -1;
+	this.reuseWarning = new OO.ui.MessageWidget( {
+		inline: true,
+		icon: 'alert',
+		classes: [ 've-ui-mwReferenceDialog-reuseWarning' ]
 	} );
+
+	const citeCommands = Object.keys( ve.init.target.getSurface().commandRegistry.registry )
+		.filter( ( command ) => command.indexOf( 'cite-' ) !== -1 );
 	this.referenceTarget = ve.init.target.createTargetWidget(
 		{
 			includeCommands: this.constructor.static.includeCommands,
@@ -332,8 +329,11 @@ ve.ui.MWReferenceDialog.prototype.initialize = function () {
 	this.referenceTarget.connect( this, { change: 'onTargetChange' } );
 
 	// Initialization
+	this.$content.addClass( 've-ui-mwReferenceDialog' );
+
 	this.panels.addItems( [ this.editPanel, this.searchPanel ] );
-	this.editPanel.$element.append( this.$reuseWarning, this.contentFieldset.$element, this.optionsFieldset.$element );
+	this.editPanel.$element.append(
+		this.reuseWarning.$element, this.contentFieldset.$element, this.optionsFieldset.$element );
 	this.optionsFieldset.addItems( [ this.referenceGroupField ] );
 	this.searchPanel.$element.append( this.search.$element );
 	this.$body.append( this.panels.$element );
@@ -350,12 +350,12 @@ ve.ui.MWReferenceDialog.prototype.useExistingReference = function () {
 };
 
 /**
- * @inheritdoc
+ * @override
  */
 ve.ui.MWReferenceDialog.prototype.getActionProcess = function ( action ) {
 	if ( action === 'insert' || action === 'done' ) {
 		return new OO.ui.Process( function () {
-			var surfaceModel = this.getFragment().getSurface();
+			const surfaceModel = this.getFragment().getSurface();
 
 			this.referenceModel.setGroup( this.referenceGroupInput.getValue() );
 
@@ -379,7 +379,7 @@ ve.ui.MWReferenceDialog.prototype.getActionProcess = function ( action ) {
 };
 
 /**
- * @inheritdoc
+ * @override
  * @param {Object} [data] Setup data
  * @param {boolean} [data.useExistingReference] Open the dialog in "use existing reference" mode
  */
@@ -399,7 +399,7 @@ ve.ui.MWReferenceDialog.prototype.getSetupProcess = function ( data ) {
 
 			this.search.setInternalList( this.getFragment().getDocument().getInternalList() );
 
-			var isReadOnly = this.isReadOnly();
+			const isReadOnly = this.isReadOnly();
 			this.referenceTarget.setReadOnly( isReadOnly );
 			this.referenceGroupInput.setReadOnly( isReadOnly );
 
@@ -411,14 +411,15 @@ ve.ui.MWReferenceDialog.prototype.getSetupProcess = function ( data ) {
 				done: false
 			} );
 
-			this.referenceGroupInput.populateMenu( this.getFragment().getDocument().getInternalList() );
+			this.referenceGroupInput.populateMenu(
+				this.getFragment().getDocument().getInternalList() );
 
 			this.trackedInputChange = false;
 		}, this );
 };
 
 /**
- * @inheritdoc
+ * @override
  */
 ve.ui.MWReferenceDialog.prototype.getTeardownProcess = function ( data ) {
 	return ve.ui.MWReferenceDialog.super.prototype.getTeardownProcess.call( this, data )

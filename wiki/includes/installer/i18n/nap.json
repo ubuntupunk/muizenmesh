@@ -5,6 +5,7 @@
 			"Chelin",
 			"Fitoschido",
 			"Macofe",
+			"Reedy",
 			"Ruthven"
 		]
 	},
@@ -52,8 +53,6 @@
 	"config-no-db": "Nun se può truvà nu driver adatto p' 'o database! È necessario installare nu driver p' 'o PHP.\n{{PLURAL:$2|'O furmato suppurtato|'E furmate suppurtate}} 'e database ccà annanze: $1.\n\nSi cumpilate PHP autonomamente, riaccunciatevello attivando nu client database, p'esempio ausannoo <code>./configure --with-mysqli</code>.\nQuanno fosse installato PHP pe' bbìa 'e nu pacchetto Debian o Ubuntu, allora avite 'a installà pure 'o pacchetto <code>php-mysql</code>.",
 	"config-outdated-sqlite": "'''Attenziò''': tenite 'o SQLite $1 pe' tramente ca ce vulesse 'a verziona $2, SQLite nun sarrà a disposizione.",
 	"config-no-fts3": "'''Attenziò''': SQLite è cumpilato senza 'o [//sqlite.org/fts3.html modulo FTS3], 'e funziune 'e p'ascià dinto nun sarranno a disposizione ncopp'a stu backend.",
-	"config-pcre-old": "<strong>Errore fatale:</strong> s'addimanna PCRE  $1 o succiessivo.\n'O file vuosto binario PHP è acucchiato c' 'o PCRE $2.\n[https://www.mediawiki.org/wiki/Manual:Errors_and_symptoms/PCRE Cchiù nfurmaziune].",
-	"config-pcre-no-utf8": "<strong>Fatale:</strong> 'E module PCRE d' 'o PHP pare ca se so' compilate senza PCRE_UTF8 supporto.\nA MediaWiki serve nu supporto UTF-8 pe' putè funziunà apposto.",
 	"config-memory-raised": "'O valore 'e PHP <code>memory_limit</code> è $1, aumentato a $2.",
 	"config-memory-bad": "<strong>Attenziò:</strong> 'o valore 'e PHP <code>memory_limit</code> è $1.\nProbabbilmente troppo basso.\n'A installazione se putesse scassà!",
 	"config-apc": "[https://www.php.net/apc APC] è installato",
@@ -166,7 +165,7 @@
 	"config-subscribe-help": "Chest'è na mailing list a basso traffeco ca se dedicasse a se ffà annunzie 'e verziune nove, piglianno pure mpurtante nutarelle ca riguardassero 'a sicurezza.\nFosse cunzigliato 'e se nzegnà e s'agghiurnà l'installazione 'e MediaWiki quanno na verziona nova fosse pubbreca.",
 	"config-subscribe-noemail": "Vuje avite tentato 'e ve trasì dint' 'a mailing list addedecata a se fà annunzie ncopp' 'e verziune nove senza ve dà n'indirizzo email.\nNzertanno n'indirizzo email se vulite affettuà l'iscrizione dint'a mailing list.",
 	"config-pingback": "Sparte 'e date 'e st'installazione ch' 'e sviluppature 'e MediaWiki.",
-	"config-pingback-help": "Si vuje sciglite st'opzione, MediaWiki cuntattasse spisso https://www.mediawiki.org ch' 'e date 'e base e st'istanza MediaWiki. Dint' 'a sta categoria 'e date, tràseno, p'esempie, 'o tipo 'e sistema, 'a virziona 'e PHP e database 'e backend scigliuto. 'A Wikimedia Foundation spartisse sti date ch' 'e sviluppature Mediawiki p' 'a puté aiutà a guidà 'e fatiche 'e sviluppo future. P' 'o sistema d' 'o vuosto 'e date se mannan'accussì:\n<pre>$1</pre>",
+	"config-pingback-help": "Si vuje sciglite st'opzione, MediaWiki cuntattasse spisso https://www.mediawiki.org ch' 'e date 'e base e st'istanza MediaWiki. Dint' 'a sta categoria 'e date, tràseno, p'esempie, 'o tipo 'e sistema, 'a virziona 'e PHP e database 'e backend scigliuto. 'A Wikimedia Foundation spartisse sti date ch' 'e sviluppature MediaWiki p' 'a puté aiutà a guidà 'e fatiche 'e sviluppo future. P' 'o sistema d' 'o vuosto 'e date se mannan'accussì:\n<pre>$1</pre>",
 	"config-almost-done": "Avite quase fernuto!\nMo' putite zumpà 'a parta r' 'a configurazione e sempricemente installà 'a wiki.",
 	"config-optional-continue": "Spiate cchiù dimanne.",
 	"config-optional-skip": "Me so' scucciato già, installa surtanto 'o wiki.",
@@ -184,7 +183,6 @@
 	"config-license-cc-0": "Creative Commons Zero (Pubbreco dumminio)",
 	"config-license-gfdl": "GNU Free Documentation License 1.3 o verziune aroppo",
 	"config-license-pd": "Pubbreco duminio",
-	"config-license-cc-choose": "Sciglite na licienza Creative Commons ca vulite",
 	"config-license-help": "Nu cuofeno 'e wiki pubbrece lassano 'e cuntribbute lloro cu na [https://freedomdefined.org/Definition licienza libbera]. Chesto aiutasse a crià nu senso 'e pruprietà spartuta dint'a communità e ncuraggiasse a cuntribbuiì a nu tèrmene luongo. Nun è generalmente necessario pe' nu wiki privato o aziendale.\n\nSi vulite ausà testi 'a Wikipedia, o vulite ca Wikipedia se pozza miette 'n grado d'accettà teste cupiate d' 'o wiki vuosto, avissev'a scegiere <strong>{{int:config-license-cc-by-sa}}</strong>.\n\nApprimma Wikipedia aveva ausato 'a GNU Free Documentation License. 'A GFDL è una licienza valida, ma è di difficile comprensiona e complica 'o riutilizzo 'e cuntenute.",
 	"config-email-settings": "Mpustaziune email",
 	"config-enable-email": "Premmette mmasciate elettroniche r'asciuta",
@@ -206,9 +204,6 @@
 	"config-upload-deleted-help": "Sciglite na cartella addò s'astipassero 'e file scancellate.\nIdealmente a sta cartella nun s'avess'a trasì r' 'a web",
 	"config-instantcommons": "Appiccia Instant Commons",
 	"config-instantcommons-help": "[https://www.mediawiki.org/wiki/InstantCommons Instant Commons] è na funziunalita ca premmettesse 'e wiki 'ausà immaggene, suone e ati file multimediale ca ve truvate ncopp' 'o sito 'e [https://commons.wikimedia.org/ Wikimedia Commons].\nSi chesto vulite fà, MediaWiki vulesse accieso a Internet.\n\nPe n'avé cchiù nfurmaziune ncopp'a sta funziunalità, ncludenno 'e struziune ncopp' 'a configuraziona pe' wiki divierze 'e Wikimedia Commons, fermateve nu poco a stureà [https://www.mediawiki.org/wiki/Special:MyLanguage/Manual:$wgForeignFileRepos 'o manuale].",
-	"config-cc-error": "'O selettore 'e licienze Creative Commons nun mmustaje nisciuno risultato.\nNzertate manualmente 'o nomme d' 'a licienza.",
-	"config-cc-again": "Selezziona n'ata vota...",
-	"config-cc-not-chosen": "Sciglite quale licienza Creative Commons desiderate e cliccate ncopp' 'a \"proceed\".",
 	"config-advanced-settings": "Configurazione avanzata",
 	"config-cache-options": "Mpustaziune p' 'a cache d'oggette:",
 	"config-cache-help": "'O caching 'uggette s'ausa pe' puté migliurà 'a velocità 'e MediaWiki a fforza 'e ffà caching d' 'e date cchiù spisso ausàte.\nE Mezze a gruosse site se songo ncuraggiate a ll'appiccià chiste, e site piccerilli vedarranno migliuramente pure.",
@@ -278,5 +273,5 @@
 	"config-extensions-requires": "$1 (vuless' 'o $2)",
 	"config-screenshot": "screenshot",
 	"mainpagetext": "<strong>MediaWiki è stato installato.</strong>",
-	"mainpagedocfooter": "Iate a cunzultà [https://www.mediawiki.org/wiki/Special:MyLanguage/Help:Contents User's Guide] pe' n'avé nfurmaziune ncopp' 'o modo aùso d' 'o software wiki.\n\n== P'accummincià ==\n* [https://www.mediawiki.org/wiki/Special:MyLanguage/Manual:Configuration_settings Elenco 'e mpustaziune pe' sta configuraziona]\n* [https://www.mediawiki.org/wiki/Special:MyLanguage/Manual:FAQ FAQ 'e Mediawiki]\n* [https://lists.wikimedia.org/postorius/lists/mediawiki-announce.lists.wikimedia.org/ Elenco 'e nutizie 'e Mediawiki]\n* [https://www.mediawiki.org/wiki/Special:MyLanguage/Localisation#Translation_resources Localizzazzione 'e MediaWiki p' 'a lengua vuosta]\n* [https://www.mediawiki.org/wiki/Special:MyLanguage/Manual:Combating_spam Mparate a cumbattere 'o spammo dint' 'a wiki d' 'a vosta]"
+	"mainpagedocfooter": "Iate a cunzultà [https://www.mediawiki.org/wiki/Special:MyLanguage/Help:Contents User's Guide] pe' n'avé nfurmaziune ncopp' 'o modo aùso d' 'o software wiki.\n\n== P'accummincià ==\n* [https://www.mediawiki.org/wiki/Special:MyLanguage/Manual:Configuration_settings Elenco 'e mpustaziune pe' sta configuraziona]\n* [https://www.mediawiki.org/wiki/Special:MyLanguage/Manual:FAQ FAQ 'e MediaWiki]\n* [https://lists.wikimedia.org/postorius/lists/mediawiki-announce.lists.wikimedia.org/ Elenco 'e nutizie 'e MediaWiki]\n* [https://www.mediawiki.org/wiki/Special:MyLanguage/Localisation#Translation_resources Localizzazzione 'e MediaWiki p' 'a lengua vuosta]\n* [https://www.mediawiki.org/wiki/Special:MyLanguage/Manual:Combating_spam Mparate a cumbattere 'o spammo dint' 'a wiki d' 'a vosta]"
 }

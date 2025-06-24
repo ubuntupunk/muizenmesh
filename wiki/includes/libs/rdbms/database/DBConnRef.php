@@ -199,10 +199,6 @@ class DBConnRef implements IMaintainableDatabase {
 		return $this->__call( __FUNCTION__, func_get_args() );
 	}
 
-	public function lastQuery() {
-		return $this->__call( __FUNCTION__, func_get_args() );
-	}
-
 	public function lastDoneWrites() {
 		return $this->__call( __FUNCTION__, func_get_args() );
 	}
@@ -306,23 +302,34 @@ class DBConnRef implements IMaintainableDatabase {
 		return $this->__call( __FUNCTION__, [ $sql, $fname, $flags ] );
 	}
 
-	public function queryMulti(
-		array $sqls, string $fname = __METHOD__, int $flags = 0, ?string $summarySql = null
-	) {
-		if ( $this->role !== ILoadBalancer::DB_PRIMARY ) {
-			$flags |= IDatabase::QUERY_REPLICA_ROLE;
-		}
-		return $this->__call( __FUNCTION__, [ $sqls, $fname, $flags, $summarySql ] );
-	}
-
 	public function newSelectQueryBuilder(): SelectQueryBuilder {
 		// Use $this not $this->conn so that the domain is preserved (T326377)
 		return new SelectQueryBuilder( $this );
 	}
 
+	public function newUnionQueryBuilder(): UnionQueryBuilder {
+		// Use $this not $this->conn so that the domain is preserved (T326377)
+		return new UnionQueryBuilder( $this );
+	}
+
 	public function newUpdateQueryBuilder(): UpdateQueryBuilder {
 		// Use $this not $this->conn so that the domain is preserved (T326377)
 		return new UpdateQueryBuilder( $this );
+	}
+
+	public function newDeleteQueryBuilder(): DeleteQueryBuilder {
+		// Use $this not $this->conn so that the domain is preserved (T326377)
+		return new DeleteQueryBuilder( $this );
+	}
+
+	public function newInsertQueryBuilder(): InsertQueryBuilder {
+		// Use $this not $this->conn so that the domain is preserved (T326377)
+		return new InsertQueryBuilder( $this );
+	}
+
+	public function newReplaceQueryBuilder(): ReplaceQueryBuilder {
+		// Use $this not $this->conn so that the domain is preserved (T326377)
+		return new ReplaceQueryBuilder( $this );
 	}
 
 	public function selectField(
@@ -515,6 +522,10 @@ class DBConnRef implements IMaintainableDatabase {
 		return $this->__call( __FUNCTION__, func_get_args() );
 	}
 
+	public function expr( string $field, string $op, $value ): Expression {
+		return new Expression( $field, $op, $value );
+	}
+
 	public function addIdentifierQuotes( $s ) {
 		return $this->__call( __FUNCTION__, func_get_args() );
 	}
@@ -556,7 +567,7 @@ class DBConnRef implements IMaintainableDatabase {
 	) {
 		$this->assertRoleAllowsWrites();
 
-		return $this->__call( __FUNCTION__, func_get_args() );
+		$this->__call( __FUNCTION__, func_get_args() );
 	}
 
 	public function delete( $table, $conds, $fname = __METHOD__ ) {
@@ -578,14 +589,7 @@ class DBConnRef implements IMaintainableDatabase {
 		return $this->__call( __FUNCTION__, func_get_args() );
 	}
 
-	public function unionQueries( $sqls, $all ) {
-		return $this->__call( __FUNCTION__, func_get_args() );
-	}
-
-	public function unionConditionPermutations(
-		$table, $vars, array $permute_conds, $extra_conds = '', $fname = __METHOD__,
-		$options = [], $join_conds = []
-	) {
+	public function unionQueries( $sqls, $all, $options = [] ) {
 		return $this->__call( __FUNCTION__, func_get_args() );
 	}
 
@@ -601,19 +605,7 @@ class DBConnRef implements IMaintainableDatabase {
 		return $this->__call( __FUNCTION__, func_get_args() );
 	}
 
-	public function wasLockTimeout() {
-		return $this->__call( __FUNCTION__, func_get_args() );
-	}
-
-	public function wasConnectionLoss() {
-		return $this->__call( __FUNCTION__, func_get_args() );
-	}
-
 	public function wasReadOnlyError() {
-		return $this->__call( __FUNCTION__, func_get_args() );
-	}
-
-	public function wasErrorReissuable() {
 		return $this->__call( __FUNCTION__, func_get_args() );
 	}
 
@@ -836,6 +828,12 @@ class DBConnRef implements IMaintainableDatabase {
 		return $this->__call( __FUNCTION__, func_get_args() );
 	}
 
+	public function truncateTable( $table, $fname = __METHOD__ ) {
+		$this->assertRoleAllowsWrites();
+
+		return $this->__call( __FUNCTION__, func_get_args() );
+	}
+
 	public function truncate( $tables, $fname = __METHOD__ ) {
 		$this->assertRoleAllowsWrites();
 
@@ -922,9 +920,3 @@ class DBConnRef implements IMaintainableDatabase {
 		return ( $i === ILoadBalancer::DB_PRIMARY ) ? $this->lb->getWriterIndex() : $i;
 	}
 }
-
-/**
- * @since 1.22
- * @deprecated since 1.29
- */
-class_alias( DBConnRef::class, 'DBConnRef' );

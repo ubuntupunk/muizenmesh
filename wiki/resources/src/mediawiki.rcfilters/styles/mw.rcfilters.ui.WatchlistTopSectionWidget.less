@@ -1,4 +1,4 @@
-@import 'mediawiki.ui/variables.less';
+@import 'mediawiki.skin.variables.less';
 
 .mw-rcfilters-ui-watchlistTopSectionWidget {
 	&-watchlistDetails {
@@ -7,11 +7,23 @@
 
 	&-savedLinksTable {
 		margin-top: 1em;
+
+		// T358424: Stack <= 1200px
+		// At this resolution, particularly in Vector 2022, the
+		// UI becomes more cluttered. Forcing these onto separate lines
+		// avoids the buttons spilling out of content area.
+		.mw-rcfilters-ui-row {
+			@media only screen and ( max-width: @width-breakpoint-desktop-wide ) {
+				display: flex;
+				flex-flow: column;
+				align-items: start;
+			}
+		}
 	}
 
 	&-separator {
 		margin-top: 1em;
-		border-top: 2px solid @colorGray14;
+		border-top: 2px @border-style-base #eaecf0;
 	}
 }
 

@@ -21,7 +21,10 @@
  * @ingroup SpecialPage
  */
 
+namespace MediaWiki\Specials;
+
 use MediaWiki\Auth\PasswordAuthenticationRequest;
+use MediaWiki\SpecialPage\SpecialRedirectToSpecial;
 
 /**
  * Let users recover their password.
@@ -34,3 +37,6 @@ class SpecialChangePassword extends SpecialRedirectToSpecial {
 			PasswordAuthenticationRequest::class, [ 'returnto', 'returntoquery' ] );
 	}
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( SpecialChangePassword::class, 'SpecialChangePassword' );

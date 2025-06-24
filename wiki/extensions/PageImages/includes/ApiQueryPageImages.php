@@ -5,8 +5,8 @@ namespace PageImages;
 use ApiBase;
 use ApiQuery;
 use ApiQueryBase;
-use MediaWiki\MediaWikiServices;
-use Title;
+use MediaWiki\Title\Title;
+use RepoGroup;
 use Wikimedia\ParamValidator\ParamValidator;
 use Wikimedia\ParamValidator\TypeDef\IntegerDef;
 
@@ -22,12 +22,21 @@ use Wikimedia\ParamValidator\TypeDef\IntegerDef;
  * @author Sam Smith
  */
 class ApiQueryPageImages extends ApiQueryBase {
+	/** @var RepoGroup */
+	private $repoGroup;
+
 	/**
 	 * @param ApiQuery $query API query module
 	 * @param string $moduleName Name of this query module
+	 * @param RepoGroup $repoGroup
 	 */
-	public function __construct( ApiQuery $query, $moduleName ) {
+	public function __construct(
+		ApiQuery $query,
+		$moduleName,
+		RepoGroup $repoGroup
+	) {
 		parent::__construct( $query, $moduleName, 'pi' );
+		$this->repoGroup = $repoGroup;
 	}
 
 	/**
@@ -168,7 +177,7 @@ class ApiQueryPageImages extends ApiQueryBase {
 	protected function setResultValues( array $prop, $pageId, $fileName, $size, $lang ) {
 		$vals = [];
 		if ( isset( $prop['thumbnail'] ) || isset( $prop['original'] ) ) {
-			$file = MediaWikiServices::getInstance()->getRepoGroup()->findFile( $fileName );
+			$file = $this->repoGroup->findFile( $fileName );
 			if ( $file ) {
 				if ( isset( $prop['thumbnail'] ) ) {
 					$thumb = $file->transform( [
@@ -228,6 +237,7 @@ class ApiQueryPageImages extends ApiQueryBase {
 				ParamValidator::PARAM_TYPE => [ 'thumbnail', 'name', 'original' ],
 				ParamValidator::PARAM_ISMULTI => true,
 				ParamValidator::PARAM_DEFAULT => 'thumbnail|name',
+				ApiBase::PARAM_HELP_MSG_PER_VALUE => [],
 			],
 			'thumbsize' => [
 				ParamValidator::PARAM_TYPE => 'integer',
@@ -244,6 +254,7 @@ class ApiQueryPageImages extends ApiQueryBase {
 				ParamValidator::PARAM_TYPE => [ PageImages::LICENSE_FREE, PageImages::LICENSE_ANY ],
 				ParamValidator::PARAM_ISMULTI => false,
 				ParamValidator::PARAM_DEFAULT => $this->getConfig()->get( 'PageImagesAPIDefaultLicense' ),
+				ApiBase::PARAM_HELP_MSG_PER_VALUE => [],
 			],
 			'continue' => [
 				ParamValidator::PARAM_TYPE => 'integer',

@@ -1,10 +1,21 @@
 <?php
 
+namespace MediaWiki\Tests\Api;
+
+namespace MediaWiki\Tests\Api;
+
+use ApiMain;
+use ApiOptions;
+use ApiUsageException;
+use MediaWiki\Context\DerivativeContext;
+use MediaWiki\Context\IContextSource;
+use MediaWiki\Context\RequestContext;
 use MediaWiki\Preferences\DefaultPreferencesFactory;
 use MediaWiki\Request\FauxRequest;
 use MediaWiki\Tests\Unit\Permissions\MockAuthorityTrait;
 use MediaWiki\Title\Title;
-use MediaWiki\User\UserOptionsManager;
+use MediaWiki\User\Options\UserOptionsManager;
+use MediaWiki\User\User;
 use PHPUnit\Framework\MockObject\MockObject;
 
 /**
@@ -12,9 +23,9 @@ use PHPUnit\Framework\MockObject\MockObject;
  * @group Database
  * @group medium
  *
- * @covers ApiOptions
+ * @covers \ApiOptions
  */
-class ApiOptionsTest extends MediaWikiLangTestCase {
+class ApiOptionsTest extends ApiTestCase {
 	use MockAuthorityTrait;
 
 	/** @var MockObject */
@@ -153,7 +164,7 @@ class ApiOptionsTest extends MediaWikiLangTestCase {
 		foreach ( $options as $key => $value ) {
 			if ( isset( $kinds[$key] ) ) {
 				$mapping[$key] = $kinds[$key];
-			} elseif ( substr( $key, 0, 7 ) === 'userjs-' ) {
+			} elseif ( str_starts_with( $key, 'userjs-' ) ) {
 				$mapping[$key] = 'userjs';
 			} else {
 				$mapping[$key] = 'unused';
@@ -200,7 +211,7 @@ class ApiOptionsTest extends MediaWikiLangTestCase {
 
 			$this->executeQuery( $request );
 		} catch ( ApiUsageException $e ) {
-			$this->assertTrue( ApiTestCase::apiExceptionHasCode( $e, 'notloggedin' ) );
+			$this->assertApiErrorCode( 'notloggedin', $e );
 			return;
 		}
 		$this->fail( "ApiUsageException was not thrown" );
@@ -208,13 +219,14 @@ class ApiOptionsTest extends MediaWikiLangTestCase {
 
 	public function testNoOptionname() {
 		$this->mUserMock->method( 'isRegistered' )->willReturn( true );
+		$this->mUserMock->method( 'isNamed' )->willReturn( true );
 
 		try {
 			$request = $this->getSampleRequest( [ 'optionvalue' => '1' ] );
 
 			$this->executeQuery( $request );
 		} catch ( ApiUsageException $e ) {
-			$this->assertTrue( ApiTestCase::apiExceptionHasCode( $e, 'nooptionname' ) );
+			$this->assertApiErrorCode( 'nooptionname', $e );
 			return;
 		}
 		$this->fail( "ApiUsageException was not thrown" );
@@ -222,7 +234,7 @@ class ApiOptionsTest extends MediaWikiLangTestCase {
 
 	public function testNoChanges() {
 		$this->mUserMock->method( 'isRegistered' )->willReturn( true );
-
+		$this->mUserMock->method( 'isNamed' )->willReturn( true );
 		$this->userOptionsManagerMock->expects( $this->never() )
 			->method( 'resetOptions' );
 
@@ -237,65 +249,111 @@ class ApiOptionsTest extends MediaWikiLangTestCase {
 
 			$this->executeQuery( $request );
 		} catch ( ApiUsageException $e ) {
-			$this->assertTrue( ApiTestCase::apiExceptionHasCode( $e, 'nochanges' ) );
+			$this->assertApiErrorCode( 'nochanges', $e );
 			return;
 		}
 		$this->fail( "ApiUsageException was not thrown" );
 	}
 
-	public function testReset() {
-		$this->mUserMock->method( 'isRegistered' )->willReturn( true );
+	public function userScenarios() {
+		return [
+			[ true, true, false ],
+			[ true, false, true ],
+		];
+	}
 
-		$this->userOptionsManagerMock->expects( $this->once() )
-			->method( 'resetOptions' );
+	/**
+	 * @dataProvider userScenarios
+	 */
+	public function testReset( $isRegistered, $isNamed, $expectException ) {
+		$this->mUserMock->method( 'isRegistered' )->willReturn( $isRegistered );
+		$this->mUserMock->method( 'isNamed' )->willReturn( $isNamed );
 
-		$this->userOptionsManagerMock->expects( $this->never() )
-			->method( 'setOption' );
-
-		$this->mUserMock->expects( $this->once() )
-			->method( 'saveSettings' );
-
+		if ( $expectException ) {
+			$this->userOptionsManagerMock->expects( $this->never() )->method( 'resetOptions' );
+			$this->userOptionsManagerMock->expects( $this->never() )->method( 'setOption' );
+			$this->mUserMock->expects( $this->never() )->method( 'saveSettings' );
+		} else {
+			$this->userOptionsManagerMock->expects( $this->once() )->method( 'resetOptions' );
+			$this->userOptionsManagerMock->expects( $this->never() )->method( 'setOption' );
+			$this->mUserMock->expects( $this->once() )->method( 'saveSettings' );
+		}
 		$request = $this->getSampleRequest( [ 'reset' => '' ] );
-
-		$response = $this->executeQuery( $request );
-
-		$this->assertEquals( self::$Success, $response );
+		try {
+			$response = $this->executeQuery( $request );
+			if ( $expectException ) {
+				$this->fail( 'Expected a "notloggedin" error.' );
+			} else {
+				$this->assertEquals( self::$Success, $response );
+			}
+		} catch ( ApiUsageException $e ) {
+			if ( !$expectException ) {
+				$this->fail( 'Unexpected "notloggedin" error.' );
+			} else {
+				$this->assertApiErrorCode( 'notloggedin', $e );
+			}
+		}
 	}
 
-	public function testResetKinds() {
-		$this->mUserMock->method( 'isRegistered' )->willReturn( true );
-
-		$this->userOptionsManagerMock->expects( $this->once() )
-			->method( 'resetOptions' );
-
-		$this->userOptionsManagerMock->expects( $this->never() )
-			->method( 'setOption' );
-
-		$this->mUserMock->expects( $this->once() )
-			->method( 'saveSettings' );
-
+	/**
+	 * @dataProvider userScenarios
+	 */
+	public function testResetKinds( $isRegistered, $isNamed, $expectException ) {
+		$this->mUserMock->method( 'isRegistered' )->willReturn( $isRegistered );
+		$this->mUserMock->method( 'isNamed' )->willReturn( $isNamed );
+		if ( $expectException ) {
+			$this->mUserMock->expects( $this->never() )->method( 'saveSettings' );
+			$this->userOptionsManagerMock->expects( $this->never() )->method( 'resetOptions' );
+			$this->userOptionsManagerMock->expects( $this->never() )->method( 'setOption' );
+		} else {
+			$this->userOptionsManagerMock->expects( $this->once() )->method( 'resetOptions' );
+			$this->userOptionsManagerMock->expects( $this->never() )->method( 'setOption' );
+			$this->mUserMock->expects( $this->once() )->method( 'saveSettings' );
+		}
 		$request = $this->getSampleRequest( [ 'reset' => '', 'resetkinds' => 'registered' ] );
-
-		$response = $this->executeQuery( $request );
-
-		$this->assertEquals( self::$Success, $response );
+		try {
+			$response = $this->executeQuery( $request );
+			if ( $expectException ) {
+				$this->fail( "Expected an ApiUsageException" );
+			} else {
+				$this->assertEquals( self::$Success, $response );
+			}
+		} catch ( ApiUsageException $e ) {
+			if ( !$expectException ) {
+				throw $e;
+			}
+			$this->assertNotNull( $e->getMessageObject() );
+			$this->assertApiErrorCode( 'notloggedin', $e );
+		}
 	}
 
-	public function testResetChangeOption() {
-		$this->mUserMock->method( 'isRegistered' )->willReturn( true );
+	/**
+	 * @dataProvider userScenarios
+	 */
+	public function testResetChangeOption( $isRegistered, $isNamed, $expectException ) {
+		$this->mUserMock->method( 'isRegistered' )->willReturn( $isRegistered );
+		$this->mUserMock->method( 'isNamed' )->willReturn( $isNamed );
 
-		$this->userOptionsManagerMock->expects( $this->once() )
-			->method( 'resetOptions' );
-
-		$this->userOptionsManagerMock->expects( $this->exactly( 2 ) )
-			->method( 'setOption' )
-			->withConsecutive(
-				[ $this->mUserMock, 'willBeHappy', 'Happy' ],
-				[ $this->mUserMock, 'name', 'value' ]
-			);
-
-		$this->mUserMock->expects( $this->once() )
-			->method( 'saveSettings' );
+		if ( $expectException ) {
+			$this->userOptionsManagerMock->expects( $this->never() )->method( 'resetOptions' );
+			$this->userOptionsManagerMock->expects( $this->never() )->method( 'setOption' );
+			$this->mUserMock->expects( $this->never() )->method( 'saveSettings' );
+		} else {
+			$this->userOptionsManagerMock->expects( $this->once() )->method( 'resetOptions' );
+			$expectedOptions = [
+				'willBeHappy' => 'Happy',
+				'name' => 'value',
+			];
+			$this->userOptionsManagerMock->expects( $this->exactly( count( $expectedOptions ) ) )
+				->method( 'setOption' )
+				->willReturnCallback( function ( $user, $oname, $val ) use ( &$expectedOptions ) {
+					$this->assertSame( $this->mUserMock, $user );
+					$this->assertArrayHasKey( $oname, $expectedOptions );
+					$this->assertSame( $expectedOptions[$oname], $val );
+					unset( $expectedOptions[$oname] );
+				} );
+			$this->mUserMock->expects( $this->once() )->method( 'saveSettings' );
+		}
 
 		$args = [
 			'reset' => '',
@@ -304,9 +362,21 @@ class ApiOptionsTest extends MediaWikiLangTestCase {
 			'optionvalue' => 'value'
 		];
 
-		$response = $this->executeQuery( $this->getSampleRequest( $args ) );
+		try {
+			$response = $this->executeQuery( $this->getSampleRequest( $args ) );
 
-		$this->assertEquals( self::$Success, $response );
+			if ( $expectException ) {
+				$this->fail( "Expected an ApiUsageException" );
+			} else {
+				$this->assertEquals( self::$Success, $response );
+			}
+		} catch ( ApiUsageException $e ) {
+			if ( !$expectException ) {
+				throw $e;
+			}
+			$this->assertNotNull( $e->getMessageObject() );
+			$this->assertApiErrorCode( 'notloggedin', $e );
+		}
 	}
 
 	/**
@@ -316,18 +386,22 @@ class ApiOptionsTest extends MediaWikiLangTestCase {
 		$message = ''
 	) {
 		$this->mUserMock->method( 'isRegistered' )->willReturn( true );
-
+		$this->mUserMock->method( 'isNamed' )->willReturn( true );
 		$this->userOptionsManagerMock->expects( $this->never() )
 			->method( 'resetOptions' );
 
-		$args = [];
-		foreach ( $setOptions as $setOption ) {
-			$args[] = array_merge( [ $this->mUserMock ], $setOption );
+		$expectedOptions = [];
+		foreach ( $setOptions as [ $opt, $val ] ) {
+			$expectedOptions[$opt] = $val;
 		}
-
 		$this->userOptionsManagerMock->expects( $this->exactly( count( $setOptions ) ) )
 			->method( 'setOption' )
-			->withConsecutive( ...$args );
+			->willReturnCallback( function ( $user, $oname, $val ) use ( &$expectedOptions ) {
+				$this->assertSame( $this->mUserMock, $user );
+				$this->assertArrayHasKey( $oname, $expectedOptions );
+				$this->assertSame( $expectedOptions[$oname], $val );
+				unset( $expectedOptions[$oname] );
+			} );
 
 		if ( $setOptions ) {
 			$this->mUserMock->expects( $this->once() )
@@ -346,7 +420,7 @@ class ApiOptionsTest extends MediaWikiLangTestCase {
 		$this->assertEquals( $result, $response, $message );
 	}
 
-	public function provideOptionManupulation() {
+	public static function provideOptionManupulation() {
 		return [
 			[
 				[ 'change' => 'userjs-option=1' ],

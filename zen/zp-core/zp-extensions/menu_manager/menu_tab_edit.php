@@ -1,4 +1,7 @@
 <?php
+/**
+ * @package zpcore\plugins\menumanager
+ */
 define('OFFSET_PATH', 4);
 require_once(dirname(dirname(dirname(__FILE__))) . '/admin-globals.php');
 if (extensionEnabled('zenpage')) {
@@ -48,15 +51,15 @@ $menuset = checkChosenMenuset();
 				echo $report;
 			}
 			?>
-			<script type="text/javascript">
-				// <!-- <![CDATA[
+			<script>
 				function handleSelectorChange(type) {
 					$('#add,#titlelabel,#link_row,#link,#link_label,#visible_row,#show_visible,#span_row').show();
 					$('#include_li_label').hide();
+					$('#open_newtab_row').hide();
 					$('#type').val(type);
 					$('#link_label').html('<?php echo js_encode(gettext('URL')); ?>');
 					$('#titlelabel').html('<?php echo js_encode(gettext('Title')); ?>');
-					$('#XSRFToken').val('<?php echo getXSRFToken('update_menu'); ?>');
+					$('#XSRFTokenupdate_menu').val('<?php echo getXSRFToken('update_menu'); ?>');
 					switch (type) {
 						case 'all_items':
 							$('#albumselector,#pageselector,#categoryselector,#custompageselector,#titleinput,#titlelabel,#link_row,#visible_row,#span_row').hide();
@@ -120,6 +123,7 @@ $menuset = checkChosenMenuset();
 							$('#link').val('<?php if(class_exists("zenpage")) echo getNewsIndexURL(); ?>');
 							break;
 						case 'all_zenpagecategorys':
+						case 'all_zenpagecategories':
 							$('#albumselector,#pageselector,#categoryselector,#custompageselector,#titleinput,#titlelabel,#link_row,#visible_row,#span_row').hide();
 							$('#selector').html('<?php echo js_encode(gettext("All Zenpage categories")); ?>');
 							$('#description').html('<?php echo js_encode(gettext("This adds menu items for all Zenpage categories.")); ?>');
@@ -150,6 +154,7 @@ $menuset = checkChosenMenuset();
 							$('#link').removeAttr('disabled');
 							$('#link_label').html('<?php echo js_encode(gettext('URL')); ?>');
 							$('#titleinput').show();
+							$('#open_newtab_row').show();
 							break;
 						case 'menulabel':
 							$('#albumselector,#pageselector,#categoryselector,#custompageselector,#link_row').hide();
@@ -182,10 +187,8 @@ $menuset = checkChosenMenuset();
 							break;
 					}
 				}
-				//]]> -->
 			</script>
-			<script type="text/javascript">
-				//<!-- <![CDATA[
+			<script>
 				$(document).ready(function() {
 <?php
 if (is_array($result)) {
@@ -204,7 +207,6 @@ if (is_array($result)) {
 						handleSelectorChange($(this).val());
 					});
 				});
-				//]]> -->
 			</script>
 			<h1>
 				<?php
@@ -260,7 +262,7 @@ if (is_array($result)) {
 							<option value="all_zenpagepages"><?php echo gettext("All Zenpage pages"); ?></option>
 							<option value="zenpagepage"><?php echo gettext("Zenpage page"); ?></option>
 							<option value="zenpagenewsindex"><?php echo gettext("Zenpage news index"); ?></option>
-							<option value="all_zenpagecategorys"><?php echo gettext("All Zenpage news categories"); ?></option>
+							<option value="all_zenpagecategories"><?php echo gettext("All Zenpage news categories"); ?></option>
 							<option value="zenpagecategory"><?php echo gettext("Zenpage news category"); ?></option>
 							<?php
 						}
@@ -275,13 +277,12 @@ if (is_array($result)) {
 				} else {
 					$add = '&amp;update';
 				}
+				if ($menuset) {
+					$add .= '&amp;menuset=' . $menuset; 
+				}
 				?>
-				<form class="dirty-check" method="post" id="add" name="add" autocomplete="off" action="menu_tab_edit.php?save<?php
-				echo $add;
-				if ($menuset)
-					echo '&amp;menuset=' . $menuset;
-				?>" style="display: none">
-							<?php XSRFToken('update_menu'); ?>
+				<form class="dirty-check" method="post" id="add" name="add" action="menu_tab_edit.php?save<?php echo $add; ?>" style="display: none" autocomplete="off">
+					<?php XSRFToken('update_menu'); ?>
 					<input type="hidden" name="update" id="update" value="<?php echo html_encode($action); ?>" />
 					<input type="hidden" name="id" id="id" value="<?php echo $id; ?>" />
 					<input type="hidden" name="link-old" id="link-old" value="<?php echo html_encode($link); ?>" />
@@ -365,6 +366,19 @@ if (is_array($result)) {
 								<?php echo gettext('Class'); ?>
 								<input name="span_class" type="text" size="20" id="span_class" value="<?php echo html_encode($result['span_class']); ?>" />
 							</td>
+						</tr>
+						<tr id="open_newtab_row">
+							<td>
+								<label id="open_newtab_visible" style="display: inline">
+									<input name="open_newtab" type="checkbox" id="open_newtab" value="1" <?php
+									if (isset($result['open_newtab']) && $result['open_newtab'] == 1) {
+										echo "checked='checked'";
+									}
+									?> style="display: inline" />
+												 <?php echo gettext("Open in new tab"); ?>
+								</label>
+							</td>
+						
 						</tr>
 						<?php
 						if (is_array($result) && !empty($result['type'])) {

@@ -20,6 +20,12 @@
  * @file
  */
 
+namespace MediaWiki\Specials;
+
+use HttpError;
+use MediaWiki\LinkedData\PageDataRequestHandler;
+use MediaWiki\SpecialPage\UnlistedSpecialPage;
+
 /**
  * Special page to act as an endpoint for accessing raw page data.
  * The web server should generally be configured to make this accessible via a canonical URL/URI,
@@ -27,7 +33,7 @@
  *
  * @ingroup SpecialPage
  */
-class SpecialPageData extends SpecialPage {
+class SpecialPageData extends UnlistedSpecialPage {
 
 	/**
 	 * @var PageDataRequestHandler|null
@@ -97,10 +103,10 @@ class SpecialPageData extends SpecialPage {
 	public function showForm() {
 		$this->getOutput()->showErrorPage( 'pagedata-title', 'pagedata-text' );
 	}
-
-	public function isListed() {
-		// Do not list this page in Special:SpecialPages
-		return false;
-	}
-
 }
+
+/**
+ * Retain the old class name for backwards compatibility.
+ * @deprecated since 1.41
+ */
+class_alias( SpecialPageData::class, 'SpecialPageData' );

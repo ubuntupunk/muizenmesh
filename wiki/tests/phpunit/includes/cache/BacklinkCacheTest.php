@@ -1,12 +1,11 @@
 <?php
 
-use MediaWiki\Page\PageReferenceValue;
 use MediaWiki\Title\Title;
 
 /**
  * @group Database
  * @group Cache
- * @covers BacklinkCache
+ * @covers \BacklinkCache
  */
 class BacklinkCacheTest extends MediaWikiIntegrationTestCase {
 	private static $backlinkCacheTest;
@@ -31,7 +30,7 @@ class BacklinkCacheTest extends MediaWikiIntegrationTestCase {
 		);
 	}
 
-	public function provideCasesForHasLink() {
+	public static function provideCasesForHasLink() {
 		return [
 			[ true, 'BacklinkCacheTest_1', 'pagelinks' ],
 			[ false, 'BacklinkCacheTest_2', 'pagelinks' ],
@@ -41,7 +40,7 @@ class BacklinkCacheTest extends MediaWikiIntegrationTestCase {
 
 	/**
 	 * @dataProvider provideCasesForHasLink
-	 * @covers BacklinkCache::hasLinks
+	 * @covers \BacklinkCache::hasLinks
 	 */
 	public function testHasLink( bool $expected, string $title, string $table, string $msg = '' ) {
 		$blcFactory = $this->getServiceContainer()->getBacklinkCacheFactory();
@@ -49,7 +48,7 @@ class BacklinkCacheTest extends MediaWikiIntegrationTestCase {
 		$this->assertEquals( $expected, $backlinkCache->hasLinks( $table ), $msg );
 	}
 
-	public function provideCasesForGetNumLinks() {
+	public static function provideCasesForGetNumLinks() {
 		return [
 			[ 4, 'BacklinkCacheTest_1', 'pagelinks' ],
 			[ 1, 'BacklinkCacheTest_1', 'pagelinks', 1 ],
@@ -60,7 +59,7 @@ class BacklinkCacheTest extends MediaWikiIntegrationTestCase {
 
 	/**
 	 * @dataProvider provideCasesForGetNumLinks
-	 * @covers BacklinkCache::getNumLinks
+	 * @covers \BacklinkCache::getNumLinks
 	 */
 	public function testGetNumLinks( int $numLinks, string $title, string $table, $max = INF ) {
 		$blcFactory = $this->getServiceContainer()->getBacklinkCacheFactory();
@@ -68,7 +67,7 @@ class BacklinkCacheTest extends MediaWikiIntegrationTestCase {
 		$this->assertEquals( $numLinks, $backlinkCache->getNumLinks( $table, $max ) );
 	}
 
-	public function provideCasesForGetLinks() {
+	public static function provideCasesForGetLinks() {
 		return [
 			[
 				[ 'BacklinkCacheTest_2', 'BacklinkCacheTest_3', 'BacklinkCacheTest_4', 'BacklinkCacheTest_5' ],
@@ -103,26 +102,7 @@ class BacklinkCacheTest extends MediaWikiIntegrationTestCase {
 
 	/**
 	 * @dataProvider provideCasesForGetLinks
-	 * @covers BacklinkCache::getNumLinks
-	 */
-	public function testGetLinks(
-		array $expectedTitles, string $title, string $table, $startId = false, $endId = false, $max = INF
-	) {
-		$this->hideDeprecated( 'BacklinkCache::getLinks' );
-		$startId = $startId ? Title::newFromText( $startId )->getId() : false;
-		$endId = $endId ? Title::newFromText( $endId )->getId() : false;
-		$blcFactory = $this->getServiceContainer()->getBacklinkCacheFactory();
-		$backlinkCache = $blcFactory->getBacklinkCache( Title::newFromText( $title ) );
-		$titlesArray = iterator_to_array( $backlinkCache->getLinks( $table, $startId, $endId, $max ) );
-		$this->assertSame( count( $expectedTitles ), count( $titlesArray ) );
-		for ( $i = 0; $i < count( $titlesArray ); $i++ ) {
-			$this->assertEquals( $expectedTitles[$i], $titlesArray[$i]->getDbKey() );
-		}
-	}
-
-	/**
-	 * @dataProvider provideCasesForGetLinks
-	 * @covers BacklinkCache::getLinkPages
+	 * @covers \BacklinkCache::getLinkPages
 	 */
 	public function testGetLinkPages(
 		array $expectedTitles, string $title, string $table, $startId = false, $endId = false, $max = INF
@@ -132,14 +112,15 @@ class BacklinkCacheTest extends MediaWikiIntegrationTestCase {
 		$blcFactory = $this->getServiceContainer()->getBacklinkCacheFactory();
 		$backlinkCache = $blcFactory->getBacklinkCache( Title::newFromText( $title ) );
 		$titlesArray = iterator_to_array( $backlinkCache->getLinkPages( $table, $startId, $endId, $max ) );
-		$this->assertSame( count( $expectedTitles ), count( $titlesArray ) );
-		for ( $i = 0; $i < count( $titlesArray ); $i++ ) {
+		$this->assertSameSize( $expectedTitles, $titlesArray );
+		$numOfTitles = count( $titlesArray );
+		for ( $i = 0; $i < $numOfTitles; $i++ ) {
 			$this->assertEquals( $expectedTitles[$i], $titlesArray[$i]->getDbKey() );
 		}
 	}
 
 	/**
-	 * @covers BacklinkCache::partition
+	 * @covers \BacklinkCache::partition
 	 */
 	public function testPartition() {
 		$targetId = $this->getServiceContainer()->getLinkTargetLookup()->acquireLinkTargetId(
@@ -164,41 +145,6 @@ class BacklinkCacheTest extends MediaWikiIntegrationTestCase {
 			[ 56892, 56893 ],
 			[ 56894, false ]
 		], $partition );
-	}
-
-	/**
-	 * @covers BacklinkCache::getCascadeProtectedLinks
-	 */
-	public function testGetCascadeProtectedLinks() {
-		$this->hideDeprecated( 'BacklinkCache::getCascadeProtectedLinks' );
-		$blcFactory = $this->getServiceContainer()->getBacklinkCacheFactory();
-		$backlinkCache = $blcFactory->getBacklinkCache( Title::makeTitle( NS_TEMPLATE, 'BacklinkCacheTestA' ) );
-		$iterator = $backlinkCache->getCascadeProtectedLinks();
-		$array = iterator_to_array( $iterator );
-		$this->assertCount( 1, $array );
-		$this->assertTrue( self::$backlinkCacheTest['title']->isSamePageAs( $array[0] ) );
-	}
-
-	/**
-	 * @covers BacklinkCache::getCascadeProtectedLinkPages
-	 */
-	public function testGetCascadeProtectedLinkPages() {
-		$blcFactory = $this->getServiceContainer()->getBacklinkCacheFactory();
-		$backlinkCache = $blcFactory->getBacklinkCache( Title::makeTitle( NS_TEMPLATE, 'BacklinkCacheTestA' ) );
-		$iterator = $backlinkCache->getCascadeProtectedLinkPages();
-		$array = iterator_to_array( $iterator );
-		$this->assertCount( 1, $array );
-		$this->assertTrue( self::$backlinkCacheTest['title']->isSamePageAs( $array[0] ) );
-	}
-
-	/**
-	 * @covers BacklinkCache::get
-	 */
-	public function testGet() {
-		$this->hideDeprecated( 'BacklinkCache::get' );
-		$page = PageReferenceValue::localReference( NS_CATEGORY, "kittens" );
-		$cache = BacklinkCache::get( $page );
-		$this->assertTrue( $cache->getPage()->isSamePageAs( $page ) );
 	}
 
 }

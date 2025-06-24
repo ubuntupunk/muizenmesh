@@ -2,37 +2,44 @@
 
 namespace MediaWiki\Extension\AbuseFilter\View;
 
-use DeferredUpdates;
-use Html;
 use HTMLForm;
 use IContextSource;
 use LogEventsList;
 use LogPage;
 use ManualLogEntry;
+use MediaWiki\Deferred\DeferredUpdates;
 use MediaWiki\Extension\AbuseFilter\AbuseFilterPermissionManager;
 use MediaWiki\Extension\AbuseFilter\Pager\AbuseLogPager;
+use MediaWiki\Html\Html;
 use MediaWiki\Linker\LinkRenderer;
 use MediaWiki\MediaWikiServices;
+use Wikimedia\Rdbms\LBFactory;
 use Xml;
 
 class HideAbuseLog extends AbuseFilterView {
+
+	/** @var LBFactory */
+	private $lbFactory;
 
 	/** @var int[] */
 	private $hideIDs;
 
 	/**
+	 * @param LBFactory $lbFactory
 	 * @param AbuseFilterPermissionManager $afPermManager
 	 * @param IContextSource $context
 	 * @param LinkRenderer $linkRenderer
 	 * @param string $basePageName
 	 */
 	public function __construct(
+		LBFactory $lbFactory,
 		AbuseFilterPermissionManager $afPermManager,
 		IContextSource $context,
 		LinkRenderer $linkRenderer,
 		string $basePageName
 	) {
 		parent::__construct( $afPermManager, $context, $linkRenderer, $basePageName, [] );
+		$this->lbFactory = $lbFactory;
 		$this->hideIDs = array_keys( $this->getRequest()->getArray( 'hideids', [] ) );
 	}
 
@@ -82,7 +89,7 @@ class HideAbuseLog extends AbuseFilterView {
 
 		$hideReasonsOther = $this->msg( 'revdelete-reasonotherlist' )->text();
 		$hideReasons = $this->msg( 'revdelete-reason-dropdown-suppress' )->inContentLanguage()->text();
-		$hideReasons = Xml::listDropDownOptions( $hideReasons, [ 'other' => $hideReasonsOther ] );
+		$hideReasons = Xml::listDropdownOptions( $hideReasons, [ 'other' => $hideReasonsOther ] );
 
 		$formInfo = [
 			'showorhide' => [
@@ -106,7 +113,7 @@ class HideAbuseLog extends AbuseFilterView {
 			],
 		];
 
-		$actionURL = $this->getTitle( 'hide' )->getFullURL( [ 'hideids' => array_fill_keys( $this->hideIDs, 1 ) ] );
+		$actionURL = $this->getTitle( 'hide' )->getLocalURL( [ 'hideids' => array_fill_keys( $this->hideIDs, 1 ) ] );
 		HTMLForm::factory( 'ooui', $formInfo, $this->getContext() )
 			->setAction( $actionURL )
 			->setWrapperLegend( $this->msg( 'abusefilter-log-hide-legend' )->text() )
@@ -139,7 +146,7 @@ class HideAbuseLog extends AbuseFilterView {
 	 */
 	public function saveHideForm( array $fields ) {
 		// Determine which rows actually have to be changed
-		$dbw = wfGetDB( DB_PRIMARY );
+		$dbw = $this->lbFactory->getPrimaryDatabase();
 		$newValue = $fields['showorhide'] === 'hide' ? 1 : 0;
 		$actualIDs = $dbw->selectFieldValues(
 			'abuse_filter_log',

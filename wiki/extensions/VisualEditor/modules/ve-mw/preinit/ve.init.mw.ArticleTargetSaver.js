@@ -1,7 +1,7 @@
 /*!
  * VisualEditor MediaWiki ArticleTargetSaver.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see AUTHORS.txt
+ * @copyright See AUTHORS.txt
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
@@ -107,9 +107,9 @@
 			mw.libs.ve.deduplicateStyles( newDoc.body );
 
 			// Add doctype manually
-			// ve.serializeXhtml is loaded separately from utils.parsing
+			// ve.properOuterHtml is loaded separately in ve.utils.parsing.js
 			// eslint-disable-next-line no-undef
-			return '<!doctype html>' + ve.serializeXhtml( newDoc );
+			return '<!doctype html>' + ve.properOuterHtml( newDoc.documentElement );
 		},
 
 		/**
@@ -240,15 +240,17 @@
 					formatversion: 2,
 					errorformat: 'html',
 					errorlang: mw.config.get( 'wgUserLanguage' ),
-					errorsuselocal: true,
-					editingStatsId: window.ve && window.ve.init && window.ve.init.editingSessionId
+					errorsuselocal: true
 				},
 				data
 			);
 
 			var action = data.action;
 
-			var request = api.postWithToken( 'csrf', data, { contentType: 'multipart/form-data' } );
+			var request = api.postWithToken( 'csrf', data, {
+				contentType: 'multipart/form-data',
+				trackEditAttemptStepSessionId: true
+			} );
 
 			return request.then(
 				function ( response, jqxhr ) {

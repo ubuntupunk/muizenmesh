@@ -20,9 +20,12 @@
  * @file
  */
 
+use MediaWiki\Context\ContextSource;
+use MediaWiki\Context\IContextSource;
+use MediaWiki\MediaWikiServices;
 use MediaWiki\Page\PageIdentity;
 use MediaWiki\Title\Title;
-use Wikimedia\Rdbms\IDatabase;
+use Wikimedia\Rdbms\IReadableDatabase;
 use Wikimedia\Rdbms\IResultWrapper;
 
 /**
@@ -56,8 +59,7 @@ abstract class RevisionListBase extends ContextSource implements Iterator {
 			'title',
 			'1.37',
 			function (): Title {
-				// @phan-suppress-next-line PhanTypeMismatchReturnNullable castFrom does not return null here
-				return Title::castFromPageIdentity( $this->page );
+				return Title::newFromPageIdentity( $this->page );
 			},
 			function ( PageIdentity $page ) {
 				$this->page = $page;
@@ -77,7 +79,7 @@ abstract class RevisionListBase extends ContextSource implements Iterator {
 	 * @return string
 	 */
 	public function getPageName(): string {
-		return Title::castFromPageIdentity( $this->page )->getPrefixedText();
+		return Title::newFromPageIdentity( $this->page )->getPrefixedText();
 	}
 
 	/**
@@ -115,7 +117,9 @@ abstract class RevisionListBase extends ContextSource implements Iterator {
 	 */
 	public function reset() {
 		if ( !$this->res ) {
-			$this->res = $this->doQuery( wfGetDB( DB_REPLICA ) );
+			$this->res = $this->doQuery(
+				MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase()
+			);
 		} else {
 			$this->res->rewind();
 		}
@@ -153,7 +157,7 @@ abstract class RevisionListBase extends ContextSource implements Iterator {
 	}
 
 	public function valid(): bool {
-		return $this->res ? $this->res->valid() : false;
+		return $this->res && $this->res->valid();
 	}
 
 	/**
@@ -170,7 +174,7 @@ abstract class RevisionListBase extends ContextSource implements Iterator {
 
 	/**
 	 * Do the DB query to iterate through the objects.
-	 * @param IDatabase $db DB object to use for the query
+	 * @param IReadableDatabase $db DB object to use for the query
 	 * @return IResultWrapper
 	 */
 	abstract public function doQuery( $db );

@@ -1,10 +1,14 @@
 <?php
 
+use MediaWiki\Context\RequestContext;
+use MediaWiki\MainConfigNames;
+use MediaWiki\Specials\SpecialMyLanguage;
+use MediaWiki\Specials\SpecialPageLanguage;
 use MediaWiki\Title\Title;
 
 /**
  * @group Database
- * @covers SpecialMyLanguage
+ * @covers \MediaWiki\Specials\SpecialMyLanguage
  */
 class SpecialMyLanguageTest extends MediaWikiIntegrationTestCase {
 	public function addDBDataOnce() {
@@ -16,12 +20,13 @@ class SpecialMyLanguageTest extends MediaWikiIntegrationTestCase {
 			'Page/Another/zh',
 			'Page/Foreign',
 			'Page/Foreign/en',
+			'Page/Foreign/zh',
 			'Page/Redirect',
 		];
 		// In the real-world, they are in respective languages,
 		// but we don't need to set all of them for tests.
 		$pageLang = [
-			'Page/Foreign' => 'sq',
+			'Page/Foreign' => 'zh',
 		];
 		$pageContent = [
 			'Page/Redirect' => '#REDIRECT [[Page/Another#Section]]',
@@ -30,8 +35,8 @@ class SpecialMyLanguageTest extends MediaWikiIntegrationTestCase {
 		foreach ( $titles as $title ) {
 			$this->editPage(
 				$title,
-				new WikitextContent( $pageContent[$title] ?? 'UTContent' ),
-				'UTPageSummary',
+				new WikitextContent( $pageContent[$title] ?? 'SpecialMyLanguageTest content' ),
+				'SpecialMyLanguageTest Summary',
 				NS_MAIN,
 				$user
 			);
@@ -43,7 +48,7 @@ class SpecialMyLanguageTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
-	 * @covers SpecialMyLanguage::findTitle
+	 * @covers \MediaWiki\Specials\SpecialMyLanguage::findTitle
 	 * @dataProvider provideFindTitle
 	 * @param string $expected
 	 * @param string $subpage
@@ -58,7 +63,7 @@ class SpecialMyLanguageTest extends MediaWikiIntegrationTestCase {
 			$services->getRedirectLookup()
 		);
 		$special->getContext()->setLanguage( $userLang );
-		$this->setMwGlobals( 'wgPageLanguageUseDB', true );
+		$this->overrideConfigValue( MainConfigNames::PageLanguageUseDB, true );
 		// Test with subpages both enabled and disabled
 		$this->mergeMwGlobalArrayValue( 'wgNamespacesWithSubpages', [ NS_MAIN => true ] );
 		$this->assertTitle( $expected, $special->findTitle( $subpage ) );
@@ -102,12 +107,13 @@ class SpecialMyLanguageTest extends MediaWikiIntegrationTestCase {
 			[ null, 'Special:Blankpage', 'en', 'ar' ],
 			[ null, 'Media:Fail', 'en', 'ar' ],
 			[ 'Page/Foreign/en', 'Page/Foreign', 'en', 'en' ],
+			[ 'Page/Foreign', 'Page/Foreign', 'en', 'zh-hk' ],
 			[ 'Page/Another/ar#Section', 'Page/Redirect', 'en', 'ar' ],
 		];
 	}
 
 	/**
-	 * @covers SpecialMyLanguage::findTitleForTransclusion
+	 * @covers \MediaWiki\Specials\SpecialMyLanguage::findTitleForTransclusion
 	 * @dataProvider provideFindTitleForTransclusion
 	 * @param string $expected
 	 * @param string $subpage

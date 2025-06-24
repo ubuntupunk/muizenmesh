@@ -8,10 +8,10 @@ use MediaWiki\Extension\AbuseFilter\KeywordsManager;
 use MediaWiki\Extension\AbuseFilter\Variables\LazyVariableComputer;
 use MediaWiki\Extension\AbuseFilter\Variables\VariableHolder;
 use MediaWiki\Extension\AbuseFilter\Variables\VariablesManager;
+use MediaWiki\Title\TitleValue;
 use MediaWikiUnitTestCase;
 use NullStatsdDataFactory;
 use Psr\Log\LoggerInterface;
-use TitleValue;
 
 /**
  * @coversDefaultClass \MediaWiki\Extension\AbuseFilter\EditStashCache
@@ -58,7 +58,7 @@ class EditStashCacheTest extends MediaWikiUnitTestCase {
 		$this->addToAssertionCount( 1 );
 	}
 
-	public function provideRoundTrip() {
+	public static function provideRoundTrip() {
 		$simple = [ 'page_title' => 'Title', 'new_wikitext' => 'Foo Bar' ];
 		yield 'simple' => [ $simple, $simple ];
 		yield 'noisy' => [

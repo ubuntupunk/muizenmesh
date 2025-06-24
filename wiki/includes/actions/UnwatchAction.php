@@ -20,6 +20,7 @@
  * @ingroup Actions
  */
 
+use MediaWiki\Context\IContextSource;
 use MediaWiki\Watchlist\WatchlistManager;
 
 /**
@@ -29,8 +30,7 @@ use MediaWiki\Watchlist\WatchlistManager;
  */
 class UnwatchAction extends WatchAction {
 
-	/** @var WatchlistManager */
-	private $watchlistManager;
+	private WatchlistManager $watchlistManager;
 
 	/**
 	 * @param Article $article

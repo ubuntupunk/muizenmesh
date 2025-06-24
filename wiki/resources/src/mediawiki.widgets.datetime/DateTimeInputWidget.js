@@ -1,48 +1,45 @@
 ( function () {
 
-	// IE 9-11 calculates the width of the 'ch' unit without including the space around characters,
-	// causing fields sized to e.g. 4ch to be too narrow to fit 4 digits. https://caniuse.com/ch-unit
-	var digitWidth = $.client.profile().name === 'msie' ? 1.15 : 1;
-
 	/**
-	 * DateTimeInputWidgets can be used to input a date, a time, or a date and
-	 * time, in either UTC or the user's local timezone.
-	 * Please see the [OOUI documentation on MediaWiki] [1] for more information and examples.
+	 * A widget with a series of inputs for date and time.
+	 *
+	 * @classdesc DateTimeInputWidgets can be used to input a date, a time, or
+	 * a date and time, in either UTC or the user's local timezone.
+	 * Please see the [OOUI documentation on MediaWiki](https://www.mediawiki.org/wiki/OOUI/Widgets/Inputs)
+	 * for more information and examples.
 	 *
 	 * This widget can be used inside a HTML form, such as a OO.ui.FormLayout.
 	 *
-	 *     @example
-	 *     // Example of a text input widget
-	 *     var dateTimeInput = new mw.widgets.datetime.DateTimeInputWidget( {} )
-	 *     $( document.body ).append( dateTimeInput.$element );
-	 *
-	 * [1]: https://www.mediawiki.org/wiki/OOUI/Widgets/Inputs
+	 * @example
+	 * // Example of a text input widget
+	 * var dateTimeInput = new mw.widgets.datetime.DateTimeInputWidget( {} )
+	 * $( document.body ).append( dateTimeInput.$element );
 	 *
 	 * @class
 	 * @extends OO.ui.InputWidget
-	 * @mixins OO.ui.mixin.IconElement
-	 * @mixins OO.ui.mixin.IndicatorElement
-	 * @mixins OO.ui.mixin.PendingElement
-	 * @mixins OO.ui.mixin.FlaggedElement
+	 * @mixes OO.ui.mixin.IconElement
+	 * @mixes OO.ui.mixin.IndicatorElement
+	 * @mixes OO.ui.mixin.PendingElement
+	 * @mixes OO.ui.mixin.FlaggedElement
 	 *
 	 * @constructor
 	 * @param {Object} [config] Configuration options
-	 * @cfg {string} [type='datetime'] Whether to act like a 'date', 'time', or 'datetime' input.
+	 * @param {string} [config.type='datetime'] Whether to act like a 'date', 'time', or 'datetime' input.
 	 *  Affects values stored in the relevant `<input>` and the formatting and
 	 *  interpretation of values passed to/from getValue() and setValue(). It's up
 	 *  to the user to configure the DateTimeFormatter correctly.
-	 * @cfg {Object|mw.widgets.datetime.DateTimeFormatter} [formatter={}] Configuration options for
+	 * @param {Object|mw.widgets.datetime.DateTimeFormatter} [config.formatter={}] Configuration options for
 	 *  mw.widgets.datetime.ProlepticGregorianDateTimeFormatter (with 'format' defaulting to
 	 *  '@date', '@time', or '@datetime' depending on 'type'), or an
 	 *  mw.widgets.datetime.DateTimeFormatter instance to use.
-	 * @cfg {Object|null} [calendar={}] Configuration options for
+	 * @param {Object|null} [config.calendar={}] Configuration options for
 	 *  mw.widgets.datetime.CalendarWidget; note certain settings will be forced based on the
 	 *  settings passed to this widget. Set null to disable the calendar.
-	 * @cfg {boolean} [required=false] Whether a value is required.
-	 * @cfg {boolean} [clearable=true] Whether to provide for blanking the value.
-	 * @cfg {Date|null} [value=null] Default value for the widget
-	 * @cfg {Date|string|null} [min=null] Minimum allowed date
-	 * @cfg {Date|string|null} [max=null] Maximum allowed date
+	 * @param {boolean} [config.required=false] Whether a value is required.
+	 * @param {boolean} [config.clearable=true] Whether to provide for blanking the value.
+	 * @param {Date|null} [config.value=null] Default value for the widget
+	 * @param {Date|string|null} [config.min=null] Minimum allowed date
+	 * @param {Date|string|null} [config.max=null] Maximum allowed date
 	 */
 	mw.widgets.datetime.DateTimeInputWidget = function MwWidgetsDatetimeDateTimeInputWidget( config ) {
 		// Configuration initialization
@@ -191,7 +188,7 @@
 	/* Methods */
 
 	/**
-	 * Get the currently focused field, if any
+	 * Get the currently focused field, if any.
 	 *
 	 * @private
 	 * @return {jQuery}
@@ -201,7 +198,7 @@
 	};
 
 	/**
-	 * Convert a date string to a Date
+	 * Convert a date string to a Date.
 	 *
 	 * @private
 	 * @param {string} value
@@ -219,6 +216,7 @@
 				value = '1970-01-01T' + value + 'Z';
 				break;
 		}
+		// eslint-disable-next-line security/detect-unsafe-regex
 		m = /^(\d{4,})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?Z$/.exec( value );
 		if ( m ) {
 			if ( m[ 7 ] ) {
@@ -301,7 +299,7 @@
 	};
 
 	/**
-	 * Get the value of the input as a Date object
+	 * Get the value of the input as a Date object.
 	 *
 	 * @return {Date|null}
 	 */
@@ -310,7 +308,7 @@
 	};
 
 	/**
-	 * Set up the UI fields
+	 * Set up the UI fields.
 	 *
 	 * @private
 	 */
@@ -355,7 +353,7 @@
 			}
 
 			if ( spec.type === 'number' ) {
-				sz = ( spec.size * digitWidth ) + 'ch';
+				sz = spec.size + 'ch';
 			} else {
 				// Add a little for padding
 				sz = ( spec.size * 1.25 ) + 'ch';
@@ -440,7 +438,7 @@
 	};
 
 	/**
-	 * Update the UI fields from the current value
+	 * Update the UI fields from the current value.
 	 *
 	 * @private
 	 */
@@ -461,7 +459,7 @@
 
 				if ( spec.intercalarySize ) {
 					if ( spec.type === 'number' ) {
-						$field.width( ( spec.size * digitWidth ) + 'ch' );
+						$field.width( spec.size + 'ch' );
 					} else {
 						// Add a little for padding
 						$field.width( ( spec.size * 1.25 ) + 'ch' );
@@ -489,7 +487,7 @@
 					}
 					$field.toggleClass( 'oo-ui-element-hidden', sz <= 0 );
 					if ( spec.type === 'number' ) {
-						this.fields[ i ].width( ( sz * digitWidth ) + 'ch' );
+						this.fields[ i ].width( sz + 'ch' );
 					} else {
 						// Add a little for padding
 						this.fields[ i ].width( ( sz * 1.25 ) + 'ch' );
@@ -504,7 +502,7 @@
 	};
 
 	/**
-	 * Update the value with data from the UI fields
+	 * Update the value with data from the UI fields.
 	 *
 	 * @private
 	 */
@@ -555,7 +553,7 @@
 	};
 
 	/**
-	 * Handle change event
+	 * Handle change event.
 	 *
 	 * @private
 	 */
@@ -574,7 +572,7 @@
 	};
 
 	/**
-	 * Handle clear button click event
+	 * Handle clear button click event.
 	 *
 	 * @private
 	 */
@@ -583,7 +581,7 @@
 	};
 
 	/**
-	 * Handle click on the widget background
+	 * Handle click on the widget background.
 	 *
 	 * @private
 	 * @param {jQuery.Event} e Click event
@@ -768,7 +766,7 @@
 	};
 
 	/**
-	 * Handle calendar change event
+	 * Handle calendar change event.
 	 *
 	 * @private
 	 */

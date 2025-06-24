@@ -2,32 +2,32 @@
 
 namespace Cite;
 
-use Html;
 use Language;
+use MediaWiki\Html\Html;
+use MediaWiki\Parser\Sanitizer;
 use Message;
 use Parser;
-use Sanitizer;
+use StatusValue;
 
 /**
  * @license GPL-2.0-or-later
  */
 class ErrorReporter {
 
-	/**
-	 * @var ReferenceMessageLocalizer
-	 */
-	private $messageLocalizer;
+	private ReferenceMessageLocalizer $messageLocalizer;
+	private ?Language $cachedInterfaceLanguage = null;
 
-	/**
-	 * @var Language
-	 */
-	private $cachedInterfaceLanguage = null;
-
-	/**
-	 * @param ReferenceMessageLocalizer $messageLocalizer
-	 */
 	public function __construct( ReferenceMessageLocalizer $messageLocalizer ) {
 		$this->messageLocalizer = $messageLocalizer;
+	}
+
+	/**
+	 * @deprecated Intermediate helper function. Long-term all errors should be rendered, not only
+	 * the first one.
+	 */
+	public function firstError( Parser $parser, StatusValue $status ): string {
+		$error = $status->getErrors()[0];
+		return $this->halfParsed( $parser, $error['message'], ...$error['params'] );
 	}
 
 	/**
@@ -81,10 +81,6 @@ class ErrorReporter {
 
 	/**
 	 * Note the startling side effect of splitting ParserCache by user interface language!
-	 *
-	 * @param Parser $parser
-	 *
-	 * @return Language
 	 */
 	private function getInterfaceLanguageAndSplitCache( Parser $parser ): Language {
 		if ( !$this->cachedInterfaceLanguage ) {
@@ -93,13 +89,6 @@ class ErrorReporter {
 		return $this->cachedInterfaceLanguage;
 	}
 
-	/**
-	 * @param string $wikitext
-	 * @param string $key
-	 * @param Language $language
-	 *
-	 * @return string
-	 */
 	private function wrapInHtmlContainer(
 		string $wikitext,
 		string $key,
@@ -113,6 +102,9 @@ class ErrorReporter {
 		return Html::rawElement(
 			'span',
 			[
+				// The following classes are generated here:
+				// * mw-ext-cite-warning
+				// * mw-ext-cite-error
 				'class' => "$type mw-ext-cite-$type" . $extraClass,
 				'lang' => $language->getHtmlCode(),
 				'dir' => $language->getDir(),
@@ -122,7 +114,7 @@ class ErrorReporter {
 	}
 
 	/**
-	 * @param string $messageKey Expected to be a message key like "cite_error_ref_too_many_keys"
+	 * @param string $messageKey Expected to be a message key like "cite_error_ref_numeric_key"
 	 *
 	 * @return string[] Two elements, e.g. "error" and "ref_too_many_keys"
 	 */

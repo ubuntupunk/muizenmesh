@@ -1,9 +1,19 @@
 <?php
 
+namespace MediaWiki\Tests\Parser;
+
+use LogicException;
+use MediaWiki\Context\RequestContext;
 use MediaWiki\MainConfigNames;
-use MediaWiki\Page\PageReferenceValue;
-use MediaWiki\Tests\Parser\ParserCacheSerializationTestCases;
+use MediaWiki\Parser\ParserOutput;
+use MediaWiki\Parser\ParserOutputFlags;
+use MediaWiki\Parser\ParserOutputStringSets;
 use MediaWiki\Title\Title;
+use MediaWiki\Title\TitleValue;
+use MediaWiki\Utils\MWTimestamp;
+use MediaWikiLangTestCase;
+use MWDebug;
+use ParserOptions;
 use Wikimedia\Bcp47Code\Bcp47CodeValue;
 use Wikimedia\Parsoid\Core\SectionMetadata;
 use Wikimedia\Parsoid\Core\TOCData;
@@ -11,8 +21,8 @@ use Wikimedia\TestingAccessWrapper;
 use Wikimedia\Tests\SerializationTestTrait;
 
 /**
- * @covers ParserOutput
- * @covers CacheTime
+ * @covers \MediaWiki\Parser\ParserOutput
+ * @covers \CacheTime
  * @group Database
  *        ^--- trigger DB shadowing because we are using Title magic
  */
@@ -27,9 +37,6 @@ class ParserOutputTest extends MediaWikiLangTestCase {
 			MainConfigNames::ParserCacheExpireTime,
 			ParserCacheSerializationTestCases::FAKE_CACHE_EXPIRY
 		);
-		// Serialization tests still use these methods.
-		$this->hideDeprecated( 'ParserOutput::setTOCHTML' );
-		$this->hideDeprecated( 'ParserOutput::getTOCHTML' );
 	}
 
 	/**
@@ -93,16 +100,16 @@ class ParserOutputTest extends MediaWikiLangTestCase {
 	/**
 	 * Test to make sure ParserOutput::isLinkInternal behaves properly
 	 * @dataProvider provideIsLinkInternal
-	 * @covers ParserOutput::isLinkInternal
+	 * @covers \MediaWiki\Parser\ParserOutput::isLinkInternal
 	 */
 	public function testIsLinkInternal( $shouldMatch, $server, $url ) {
 		$this->assertEquals( $shouldMatch, ParserOutput::isLinkInternal( $server, $url ) );
 	}
 
 	/**
-	 * @covers ParserOutput::appendJsConfigVar
-	 * @covers ParserOutput::setJsConfigVar
-	 * @covers ParserOutput::getJsConfigVars
+	 * @covers \MediaWiki\Parser\ParserOutput::appendJsConfigVar
+	 * @covers \MediaWiki\Parser\ParserOutput::setJsConfigVar
+	 * @covers \MediaWiki\Parser\ParserOutput::getJsConfigVars
 	 */
 	public function testJsConfigVars() {
 		$po = new ParserOutput();
@@ -128,9 +135,9 @@ class ParserOutputTest extends MediaWikiLangTestCase {
 	}
 
 	/**
-	 * @covers ParserOutput::appendExtensionData
-	 * @covers ParserOutput::setExtensionData
-	 * @covers ParserOutput::getExtensionData
+	 * @covers \MediaWiki\Parser\ParserOutput::appendExtensionData
+	 * @covers \MediaWiki\Parser\ParserOutput::setExtensionData
+	 * @covers \MediaWiki\Parser\ParserOutput::getExtensionData
 	 */
 	public function testExtensionData() {
 		$po = new ParserOutput();
@@ -165,25 +172,28 @@ class ParserOutputTest extends MediaWikiLangTestCase {
 	}
 
 	/**
-	 * @covers ParserOutput::setPageProperty
-	 * @covers ParserOutput::getPageProperty
-	 * @covers ParserOutput::unsetPageProperty
-	 * @covers ParserOutput::getPageProperties
+	 * @covers \MediaWiki\Parser\ParserOutput::setPageProperty
+	 * @covers \MediaWiki\Parser\ParserOutput::setNumericPageProperty
+	 * @covers \MediaWiki\Parser\ParserOutput::setUnsortedPageProperty
+	 * @covers \MediaWiki\Parser\ParserOutput::getPageProperty
+	 * @covers \MediaWiki\Parser\ParserOutput::unsetPageProperty
+	 * @covers \MediaWiki\Parser\ParserOutput::getPageProperties
+	 * @dataProvider providePageProperties
 	 */
-	public function testProperties() {
+	public function testPageProperties( string $setPageProperty, $value1, $value2 ) {
 		$po = new ParserOutput();
 
-		$po->setPageProperty( 'foo', 'val' );
+		$po->$setPageProperty( 'foo', $value1 );
 
 		$properties = $po->getPageProperties();
-		$this->assertSame( 'val', $po->getPageProperty( 'foo' ) );
-		$this->assertSame( 'val', $properties['foo'] );
+		$this->assertSame( $value1, $po->getPageProperty( 'foo' ) );
+		$this->assertSame( $value1, $properties['foo'] );
 
-		$po->setPageProperty( 'foo', 'second val' );
+		$po->$setPageProperty( 'foo', $value2 );
 
 		$properties = $po->getPageProperties();
-		$this->assertSame( 'second val', $po->getPageProperty( 'foo' ) );
-		$this->assertSame( 'second val', $properties['foo'] );
+		$this->assertSame( $value2, $po->getPageProperty( 'foo' ) );
+		$this->assertSame( $value2, $properties['foo'] );
 
 		$po->unsetPageProperty( 'foo' );
 
@@ -192,9 +202,42 @@ class ParserOutputTest extends MediaWikiLangTestCase {
 		$this->assertArrayNotHasKey( 'foo', $properties );
 	}
 
+	public static function providePageProperties() {
+		yield 'Unsorted' => [ 'setUnsortedPageProperty', 'val', 'second val' ];
+		yield 'Numeric' => [ 'setNumericPageProperty', 42, 3.14 ];
+		yield 'Unsorted (old style)' => [ 'setPageProperty', 'val', 'second val' ];
+		yield 'Numeric (old style)' => [ 'setPageProperty', 123, 456 ];
+	}
+
 	/**
-	 * @covers ParserOutput::setLanguage
-	 * @covers ParserOutput::getLanguage
+	 * @covers \MediaWiki\Parser\ParserOutput::setNumericPageProperty
+	 */
+	public function testNumericPageProperties() {
+		$po = new ParserOutput();
+
+		$po->setNumericPageProperty( 'foo', '123' );
+
+		$properties = $po->getPageProperties();
+		$this->assertSame( 123, $po->getPageProperty( 'foo' ) );
+		$this->assertSame( 123, $properties['foo'] );
+	}
+
+	/**
+	 * @covers \MediaWiki\Parser\ParserOutput::setUnsortedPageProperty
+	 */
+	public function testUnsortedPageProperties() {
+		$po = new ParserOutput();
+
+		$po->setUnsortedPageProperty( 'foo', 123 );
+
+		$properties = $po->getPageProperties();
+		$this->assertSame( '123', $po->getPageProperty( 'foo' ) );
+		$this->assertSame( '123', $properties['foo'] );
+	}
+
+	/**
+	 * @covers \MediaWiki\Parser\ParserOutput::setLanguage
+	 * @covers \MediaWiki\Parser\ParserOutput::getLanguage
 	 */
 	public function testLanguage() {
 		$po = new ParserOutput();
@@ -215,15 +258,15 @@ class ParserOutputTest extends MediaWikiLangTestCase {
 	}
 
 	/**
-	 * @covers ParserOutput::getWrapperDivClass
-	 * @covers ParserOutput::addWrapperDivClass
-	 * @covers ParserOutput::clearWrapperDivClass
-	 * @covers ParserOutput::getText
+	 * @covers \MediaWiki\Parser\ParserOutput::getWrapperDivClass
+	 * @covers \MediaWiki\Parser\ParserOutput::addWrapperDivClass
+	 * @covers \MediaWiki\Parser\ParserOutput::clearWrapperDivClass
+	 * @covers \MediaWiki\Parser\ParserOutput::getText
 	 */
 	public function testWrapperDivClass() {
 		$po = new ParserOutput();
 
-		$po->setText( 'Kittens' );
+		$po->setRawText( 'Kittens' );
 		$this->assertStringContainsString( 'Kittens', $po->getText() );
 		$this->assertStringNotContainsString( '<div', $po->getText() );
 		$this->assertSame( 'Kittens', $po->getRawText() );
@@ -232,30 +275,30 @@ class ParserOutputTest extends MediaWikiLangTestCase {
 		$text = $po->getText();
 		$this->assertStringContainsString( 'Kittens', $text );
 		$this->assertStringContainsString( '<div', $text );
-		$this->assertStringContainsString( 'class="foo"', $text );
+		$this->assertStringContainsString( 'class="mw-content-ltr foo"', $text );
 
 		$po->addWrapperDivClass( 'bar' );
 		$text = $po->getText();
 		$this->assertStringContainsString( 'Kittens', $text );
 		$this->assertStringContainsString( '<div', $text );
-		$this->assertStringContainsString( 'class="foo bar"', $text );
+		$this->assertStringContainsString( 'class="mw-content-ltr foo bar"', $text );
 
 		$po->addWrapperDivClass( 'bar' ); // second time does nothing, no "foo bar bar".
 		$text = $po->getText( [ 'unwrap' => true ] );
 		$this->assertStringContainsString( 'Kittens', $text );
 		$this->assertStringNotContainsString( '<div', $text );
-		$this->assertStringNotContainsString( 'class="foo bar"', $text );
+		$this->assertStringNotContainsString( 'class="', $text );
 
 		$text = $po->getText( [ 'wrapperDivClass' => '' ] );
 		$this->assertStringContainsString( 'Kittens', $text );
 		$this->assertStringNotContainsString( '<div', $text );
-		$this->assertStringNotContainsString( 'class="foo bar"', $text );
+		$this->assertStringNotContainsString( 'class="', $text );
 
 		$text = $po->getText( [ 'wrapperDivClass' => 'xyzzy' ] );
 		$this->assertStringContainsString( 'Kittens', $text );
 		$this->assertStringContainsString( '<div', $text );
-		$this->assertStringContainsString( 'class="xyzzy"', $text );
-		$this->assertStringNotContainsString( 'class="foo bar"', $text );
+		$this->assertStringContainsString( 'class="mw-content-ltr xyzzy"', $text );
+		$this->assertStringNotContainsString( 'foo bar', $text );
 
 		$text = $po->getRawText();
 		$this->assertSame( 'Kittens', $text );
@@ -264,17 +307,23 @@ class ParserOutputTest extends MediaWikiLangTestCase {
 		$text = $po->getText();
 		$this->assertStringContainsString( 'Kittens', $text );
 		$this->assertStringNotContainsString( '<div', $text );
-		$this->assertStringNotContainsString( 'class="foo bar"', $text );
+		$this->assertStringNotContainsString( 'class="', $text );
 	}
 
 	/**
-	 * @covers ParserOutput::getText
+	 * This test aims at being replaced by its version in DefaultOutputTransformTest when ParserOutput::getText
+	 * gets deprecated.
+	 * @covers \MediaWiki\Parser\ParserOutput::getText
 	 * @dataProvider provideGetText
 	 * @param array $options Options to getText()
 	 * @param string $text Parser text
 	 * @param string $expect Expected output
 	 */
 	public function testGetText( $options, $text, $expect ) {
+		// Avoid other skins affecting the section edit links
+		$this->overrideConfigValue( MainConfigNames::DefaultSkin, 'fallback' );
+		RequestContext::resetMain();
+
 		$this->overrideConfigValues( [
 			MainConfigNames::ArticlePath => '/wiki/$1',
 			MainConfigNames::ScriptPath => '/w',
@@ -335,7 +384,7 @@ class ParserOutputTest extends MediaWikiLangTestCase {
 <h2><span class="mw-headline" id="Section_2">Section 2</span><mw:editsection page="Test Page" section="2">Section 2</mw:editsection></h2>
 <p>Two
 </p>
-<h3><span class="mw-headline" id="Section_2.1">Section 2.1</span><mw:editsection page="Talk:User:Bug_T261347" section="3">Section 2.1</mw:editsection></h3>
+<h3><span class="mw-headline" id="Section_2.1">Section 2.1</span></h3>
 <p>Two point one
 </p>
 <h2><span class="mw-headline" id="Section_3">Section 3</span><mw:editsection page="Test Page" section="4">Section 3</mw:editsection></h2>
@@ -419,7 +468,7 @@ EOF
 			],
 			'Disable TOC, but wrap' => [
 				[ 'allowTOC' => false, 'wrapperDivClass' => 'mw-parser-output' ], $text, <<<EOF
-<div class="mw-parser-output"><p>Test document.
+<div class="mw-content-ltr mw-parser-output" lang="en" dir="ltr"><p>Test document.
 </p>
 
 <h2><span class="mw-headline" id="Section_1">Section 1</span><span class="mw-editsection"><span class="mw-editsection-bracket">[</span><a href="/w/index.php?title=Test_Page&amp;action=edit&amp;section=1" title="Edit section: Section 1">edit</a><span class="mw-editsection-bracket">]</span></span></h2>
@@ -440,12 +489,12 @@ EOF
 				[], $dedupText, <<<EOF
 <p>This is a test document.</p>
 <style data-mw-deduplicate="duplicate1">.Duplicate1 {}</style>
-<link rel="mw-deduplicated-inline-style" href="mw-data:duplicate1"/>
+<link rel="mw-deduplicated-inline-style" href="mw-data:duplicate1">
 <style data-mw-deduplicate="duplicate2">.Duplicate2 {}</style>
-<link rel="mw-deduplicated-inline-style" href="mw-data:duplicate1"/>
-<link rel="mw-deduplicated-inline-style" href="mw-data:duplicate2"/>
+<link rel="mw-deduplicated-inline-style" href="mw-data:duplicate1">
+<link rel="mw-deduplicated-inline-style" href="mw-data:duplicate2">
 <style data-mw-not-deduplicate="duplicate1">.Duplicate1 {}</style>
-<link rel="mw-deduplicated-inline-style" href="mw-data:duplicate1"/>
+<link rel="mw-deduplicated-inline-style" href="mw-data:duplicate1">
 <style data-mw-deduplicate="duplicate3">.Duplicate1 {}</style>
 <style>.Duplicate1 {}</style>
 EOF
@@ -458,7 +507,7 @@ EOF
 	}
 
 	/**
-	 * @covers ParserOutput::hasText
+	 * @covers \MediaWiki\Parser\ParserOutput::hasText
 	 */
 	public function testHasText() {
 		$po = new ParserOutput( '' );
@@ -474,16 +523,18 @@ EOF
 		$this->assertTrue( $po->hasText() );
 
 		$po = new ParserOutput( null );
-		$po->setText( '' );
+		$po->setRawText( '' );
 		$this->assertTrue( $po->hasText() );
 
 		$po = new ParserOutput( 'foo' );
-		$po->setText( null );
+		$po->setRawText( null );
 		$this->assertFalse( $po->hasText() );
 	}
 
 	/**
-	 * @covers ParserOutput::getText
+	 * This test aims at being replaced by its version in DefaultOutputTransformTest when ParserOutput::getText
+	 * gets deprecated.
+	 * @covers \MediaWiki\Parser\ParserOutput::getText
 	 */
 	public function testGetText_failsIfNoText() {
 		$po = new ParserOutput( null );
@@ -492,7 +543,7 @@ EOF
 		$po->getText();
 	}
 
-	public function provideGetText_absoluteURLs() {
+	public static function provideGetText_absoluteURLs() {
 		yield 'empty' => [
 			'text' => '',
 			'expectedText' => '',
@@ -520,6 +571,8 @@ EOF
 	}
 
 	/**
+	 * This test aims at being replaced by its version in DefaultOutputTransformTest when ParserOutput::getText
+	 * gets deprecated.
 	 * @dataProvider provideGetText_absoluteURLs
 	 */
 	public function testGetText_absoluteURLs( string $text, string $expectedText ) {
@@ -529,7 +582,7 @@ EOF
 	}
 
 	/**
-	 * @covers ParserOutput::getRawText
+	 * @covers \MediaWiki\Parser\ParserOutput::getRawText
 	 */
 	public function testGetRawText_failsIfNoText() {
 		$po = new ParserOutput( null );
@@ -538,7 +591,7 @@ EOF
 		$po->getRawText();
 	}
 
-	public function provideMergeHtmlMetaDataFrom() {
+	public static function provideMergeHtmlMetaDataFrom() {
 		// title text ------------
 		$a = new ParserOutput();
 		$a->setTitleText( 'X' );
@@ -664,19 +717,11 @@ EOF
 		// TOC ------------
 		$a = new ParserOutput( '' );
 		$a->setSections( [ [ 'fromtitle' => 'A1' ], [ 'fromtitle' => 'A2' ] ] );
-		$a->getText(); // force TOC
 
 		$b = new ParserOutput( '' );
 		$b->setSections( [ [ 'fromtitle' => 'B1' ], [ 'fromtitle' => 'B2' ] ] );
-		$b->getText(); // force TOC
-
-		$emptyTOC = '<div id="toc" class="toc" role="navigation" aria-labelledby="mw-toc-heading"><input type="checkbox" role="button" id="toctogglecheckbox" class="toctogglecheckbox" style="display:none" /><div class="toctitle" lang="en" dir="ltr"><h2 id="mw-toc-heading">Contents</h2><span class="toctogglespan"><label class="toctogglelabel" for="toctogglecheckbox"></label></span></div>' . "\n" .
-		'<li class="toclevel-0"><a href="#"><span class="tocnumber"></span> <span class="toctext"></span></a></li>' . "\n" .
-		'<li class="toclevel-0"><a href="#"><span class="tocnumber"></span> <span class="toctext"></span></a>' . "\n" .
-		"</li></div>\n";
 
 		yield 'concat TOC' => [ $a, $b, [
-			'getTOCHTML' => $emptyTOC . $emptyTOC,
 			'getSections' => [
 				SectionMetadata::fromLegacy( [ 'fromtitle' => 'A1' ] )->toLegacy(),
 				SectionMetadata::fromLegacy( [ 'fromtitle' => 'A2' ] )->toLegacy(),
@@ -741,7 +786,7 @@ EOF
 
 	/**
 	 * @dataProvider provideMergeHtmlMetaDataFrom
-	 * @covers ParserOutput::mergeHtmlMetaDataFrom
+	 * @covers \MediaWiki\Parser\ParserOutput::mergeHtmlMetaDataFrom
 	 *
 	 * @param ParserOutput $a
 	 * @param ParserOutput $b
@@ -756,7 +801,6 @@ EOF
 		$a->mergeHtmlMetaDataFrom( $b );
 
 		// XXX: TOC joining should get smarter. Can we make it idempotent as well?
-		unset( $expected['getTOCHTML'] );
 		unset( $expected['getSections'] );
 
 		$this->assertFieldValues( $a, $expected );
@@ -787,8 +831,8 @@ EOF
 	}
 
 	/**
-	 * @covers ParserOutput::addLink
-	 * @covers ParserOutput::getLinks
+	 * @covers \MediaWiki\Parser\ParserOutput::addLink
+	 * @covers \MediaWiki\Parser\ParserOutput::getLinks
 	 */
 	public function testAddLink() {
 		$a = new ParserOutput();
@@ -803,7 +847,7 @@ EOF
 		$this->assertSame( $expected, $a->getLinks() );
 	}
 
-	public function provideMergeTrackingMetaDataFrom() {
+	public static function provideMergeTrackingMetaDataFrom() {
 		// links ------------
 		$a = new ParserOutput();
 		$a->addLink( Title::makeTitle( NS_MAIN, 'Kittens' ), 6 );
@@ -812,15 +856,15 @@ EOF
 
 		$a->addTemplate( Title::makeTitle( NS_TEMPLATE, 'Goats' ), 107, 1107 );
 
-		$a->addLanguageLink( 'de' );
-		$a->addLanguageLink( 'ru' );
+		$a->addLanguageLink( new TitleValue( NS_MAIN, 'de' ) );
+		$a->addLanguageLink( new TitleValue( NS_MAIN, 'ru' ) );
 		$a->addInterwikiLink( Title::makeTitle( NS_MAIN, 'Kittens DE', '', 'de' ) );
 		$a->addInterwikiLink( new TitleValue( NS_MAIN, 'Kittens RU', '', 'ru' ) );
 		$a->addExternalLink( 'https://kittens.wikimedia.test' );
 		$a->addExternalLink( 'https://goats.wikimedia.test' );
 
 		$a->addCategory( 'Foo', 'X' );
-		$a->addImage( 'Billy.jpg', '20180101000013', 'DEAD' );
+		$a->addImage( new TitleValue( NS_FILE, 'Billy.jpg' ), '20180101000013', 'DEAD' );
 
 		$b = new ParserOutput();
 		$b->addLink( Title::makeTitle( NS_MAIN, 'Goats' ), 7 );
@@ -831,15 +875,15 @@ EOF
 		$b->addTemplate( Title::makeTitle( NS_TEMPLATE, 'Dragons' ), 108, 1108 );
 		$a->addTemplate( new TitleValue( NS_MAIN, 'Dragons' ), 118, 1118 );
 
-		$b->addLanguageLink( 'fr' );
-		$b->addLanguageLink( 'ru' );
+		$b->addLanguageLink( new TitleValue( NS_MAIN, 'fr' ) );
+		$b->addLanguageLink( new TitleValue( NS_MAIN, 'ru' ) );
 		$b->addInterwikiLink( Title::makeTitle( NS_MAIN, 'Kittens FR', '', 'fr' ) );
 		$b->addInterwikiLink( new TitleValue( NS_MAIN, 'Dragons RU', '', 'ru' ) );
 		$b->addExternalLink( 'https://dragons.wikimedia.test' );
 		$b->addExternalLink( 'https://goats.wikimedia.test' );
 
 		$b->addCategory( 'Bar', 'Y' );
-		$b->addImage( 'Puff.jpg', '20180101000017', 'BEEF' );
+		$b->addImage( new TitleValue( NS_FILE, 'Puff.jpg' ), '20180101000017', 'BEEF' );
 
 		yield 'all kinds of links' => [ $a, $b, [
 			'getLinks' => [
@@ -880,7 +924,7 @@ EOF
 				'ru' => [ 'Kittens_RU' => 1, 'Dragons_RU' => 1, ],
 				'fr' => [ 'Kittens_FR' => 1 ],
 			],
-			'getCategories' => [ 'Foo' => 'X', 'Bar' => 'Y' ],
+			'getCategoryMap' => [ 'Foo' => 'X', 'Bar' => 'Y' ],
 			'getImages' => [ 'Billy.jpg' => 1, 'Puff.jpg' => 1 ],
 			'getFileSearchOptions' => [
 				'Billy.jpg' => [ 'time' => '20180101000013', 'sha1' => 'DEAD' ],
@@ -935,7 +979,7 @@ EOF
 
 	/**
 	 * @dataProvider provideMergeTrackingMetaDataFrom
-	 * @covers ParserOutput::mergeTrackingMetaDataFrom
+	 * @covers \MediaWiki\Parser\ParserOutput::mergeTrackingMetaDataFrom
 	 *
 	 * @param ParserOutput $a
 	 * @param ParserOutput $b
@@ -953,27 +997,7 @@ EOF
 	}
 
 	public function provideMergeInternalMetaDataFrom() {
-		// hooks
-		$a = new ParserOutput();
-
-		$this->hideDeprecated( 'ParserOutput::addOutputHook' );
-		$a->addOutputHook( 'foo', 'X' );
-		$a->addOutputHook( 'bar' );
-
-		$b = new ParserOutput();
-
-		$b->addOutputHook( 'foo', 'Y' );
-		$b->addOutputHook( 'bar' );
-		$b->addOutputHook( 'zoo' );
-
-		yield 'hooks' => [ $a, $b, [
-			'getOutputHooks' => [
-				[ 'foo', 'X' ],
-				[ 'bar', false ],
-				[ 'foo', 'Y' ],
-				[ 'zoo', false ],
-			],
-		] ];
+		MWDebug::filterDeprecationForTest( '/^CacheTime::setCacheTime called with -1 as an argument/' );
 
 		// flags & co
 		$a = new ParserOutput();
@@ -981,8 +1005,8 @@ EOF
 		$a->addWarningMsg( 'duplicate-args-warning', 'A', 'B', 'C' );
 		$a->addWarningMsg( 'template-loop-warning', 'D' );
 
-		$a->setFlag( 'foo' );
-		$a->setFlag( 'bar' );
+		$a->setOutputFlag( 'foo' );
+		$a->setOutputFlag( 'bar' );
 
 		$a->recordOption( 'Foo' );
 		$a->recordOption( 'Bar' );
@@ -991,11 +1015,9 @@ EOF
 
 		$b->addWarningMsg( 'template-equals-warning' );
 		$b->addWarningMsg( 'template-loop-warning', 'D' );
-		$this->hideDeprecated( 'ParserOutput::addWarning' );
-		$b->addWarning( 'Old School' ); // test the deprecated ::addWarning()
 
-		$b->setFlag( 'zoo' );
-		$b->setFlag( 'bar' );
+		$b->setOutputFlag( 'zoo' );
+		$b->setOutputFlag( 'bar' );
 
 		$b->recordOption( 'Zoo' );
 		$b->recordOption( 'Bar' );
@@ -1005,33 +1027,69 @@ EOF
 				wfMessage( 'duplicate-args-warning', 'A', 'B', 'C' )->text(),
 				wfMessage( 'template-loop-warning', 'D' )->text(),
 				wfMessage( 'template-equals-warning' )->text(),
-				'Old School',
 			],
 			'$mFlags' => [ 'foo' => true, 'bar' => true, 'zoo' => true ],
 			'getUsedOptions' => [ 'Foo', 'Bar', 'Zoo' ],
 		] ];
 
+		// cache time
+		$someTime = "20240207202040";
+		$someLaterTime = "20240207202112";
+		$a = new ParserOutput();
+		$a->setCacheTime( $someTime );
+		$b = new ParserOutput();
+		yield 'only left cache time' => [ $a, $b, [ 'getCacheTime' => $someTime ] ];
+
+		$a = new ParserOutput();
+		$b = new ParserOutput();
+		$b->setCacheTime( $someTime );
+		yield 'only right cache time' => [ $a, $b, [ 'getCacheTime' => $someTime ] ];
+
+		$a = new ParserOutput();
+		$b = new ParserOutput();
+		$a->setCacheTime( $someLaterTime );
+		$b->setCacheTime( $someTime );
+		yield 'left has later cache time' => [ $a, $b, [ 'getCacheTime' => $someLaterTime ] ];
+
+		$a = new ParserOutput();
+		$b = new ParserOutput();
+		$a->setCacheTime( $someTime );
+		$b->setCacheTime( $someLaterTime );
+		yield 'right has later cache time' => [ $a, $b, [ 'getCacheTime' => $someLaterTime ] ];
+
+		$a = new ParserOutput();
+		$b = new ParserOutput();
+		$a->setCacheTime( -1 );
+		$b->setCacheTime( $someTime );
+		yield 'left is uncacheable' => [ $a, $b, [ 'getCacheTime' => "-1" ] ];
+
+		$a = new ParserOutput();
+		$b = new ParserOutput();
+		$a->setCacheTime( $someTime );
+		$b->setCacheTime( -1 );
+		yield 'right is uncacheable' => [ $a, $b, [ 'getCacheTime' => "-1" ] ];
+
 		// timestamp ------------
 		$a = new ParserOutput();
-		$a->setTimestamp( '20180101000011' );
+		$a->setRevisionTimestamp( '20180101000011' );
 		$b = new ParserOutput();
 		yield 'only left timestamp' => [ $a, $b, [ 'getTimestamp' => '20180101000011' ] ];
 
 		$a = new ParserOutput();
 		$b = new ParserOutput();
-		$b->setTimestamp( '20180101000011' );
+		$b->setRevisionTimestamp( '20180101000011' );
 		yield 'only right timestamp' => [ $a, $b, [ 'getTimestamp' => '20180101000011' ] ];
 
 		$a = new ParserOutput();
-		$a->setTimestamp( '20180101000011' );
+		$a->setRevisionTimestamp( '20180101000011' );
 		$b = new ParserOutput();
-		$b->setTimestamp( '20180101000001' );
+		$b->setRevisionTimestamp( '20180101000001' );
 		yield 'left timestamp wins' => [ $a, $b, [ 'getTimestamp' => '20180101000011' ] ];
 
 		$a = new ParserOutput();
-		$a->setTimestamp( '20180101000001' );
+		$a->setRevisionTimestamp( '20180101000001' );
 		$b = new ParserOutput();
-		$b->setTimestamp( '20180101000011' );
+		$b->setRevisionTimestamp( '20180101000011' );
 		yield 'right timestamp wins' => [ $a, $b, [ 'getTimestamp' => '20180101000011' ] ];
 
 		// speculative rev id ------------
@@ -1111,17 +1169,20 @@ EOF
 				],
 			],
 		] ];
+
+		MWDebug::clearDeprecationFilters();
 	}
 
 	/**
 	 * @dataProvider provideMergeInternalMetaDataFrom
-	 * @covers ParserOutput::mergeInternalMetaDataFrom
+	 * @covers \MediaWiki\Parser\ParserOutput::mergeInternalMetaDataFrom
 	 *
 	 * @param ParserOutput $a
 	 * @param ParserOutput $b
 	 * @param array $expected
 	 */
 	public function testMergeInternalMetaDataFrom( ParserOutput $a, ParserOutput $b, $expected ) {
+		$this->filterDeprecated( '/^CacheTime::setCacheTime called with -1 as an argument/' );
 		$a->mergeInternalMetaDataFrom( $b );
 
 		$this->assertFieldValues( $a, $expected );
@@ -1133,9 +1194,9 @@ EOF
 	}
 
 	/**
-	 * @covers ParserOutput::mergeInternalMetaDataFrom
-	 * @covers ParserOutput::getTimes
-	 * @covers ParserOutput::resetParseStartTime
+	 * @covers \MediaWiki\Parser\ParserOutput::mergeInternalMetaDataFrom
+	 * @covers \MediaWiki\Parser\ParserOutput::getTimes
+	 * @covers \MediaWiki\Parser\ParserOutput::resetParseStartTime
 	 */
 	public function testMergeInternalMetaDataFrom_parseStartTime() {
 		/** @var object $a */
@@ -1199,8 +1260,62 @@ EOF
 	}
 
 	/**
-	 * @covers ParserOutput::getCacheTime
-	 * @covers ParserOutput::setCacheTime
+	 * @covers \MediaWiki\Parser\ParserOutput::mergeInternalMetaDataFrom
+	 * @covers \MediaWiki\Parser\ParserOutput::getTimes
+	 * @covers \MediaWiki\Parser\ParserOutput::resetParseStartTime
+	 * @covers \MediaWiki\Parser\ParserOutput::recordTimeProfile
+	 * @covers \MediaWiki\Parser\ParserOutput::getTimeProfile
+	 */
+	public function testMergeInternalMetaDataFrom_timeProfile() {
+		/** @var object $a */
+		$a = new ParserOutput();
+		$a = TestingAccessWrapper::newFromObject( $a );
+
+		$a->resetParseStartTime();
+		usleep( 1234 );
+		$a->recordTimeProfile();
+
+		$aClocks = $a->mTimeProfile;
+
+		// make sure a second call to recordTimeProfile has no effect
+		usleep( 1234 );
+		$a->recordTimeProfile();
+
+		foreach ( $aClocks as $clock => $duration ) {
+			$this->assertNotNull( $duration );
+			$this->assertGreaterThan( 0, $duration );
+			$this->assertSame( $aClocks[$clock], $a->getTimeProfile( $clock ) );
+		}
+
+		$b = new ParserOutput();
+
+		$a->mergeInternalMetaDataFrom( $b );
+		$mergedClocks = $a->mTimeProfile;
+
+		foreach ( $mergedClocks as $clock => $duration ) {
+			$this->assertSame( $aClocks[$clock], $duration, $clock );
+		}
+
+		// try again, with times in $b also set, and later than $a's
+		$b->resetParseStartTime();
+		usleep( 1234 );
+		$b->recordTimeProfile();
+
+		$b = TestingAccessWrapper::newFromObject( $b );
+		$bClocks = $b->mTimeProfile;
+
+		$a->mergeInternalMetaDataFrom( $b->object );
+		$mergedClocks = $a->mTimeProfile;
+
+		foreach ( $mergedClocks as $clock => $duration ) {
+			$this->assertGreaterThanOrEqual( $aClocks[$clock], $duration, $clock );
+			$this->assertGreaterThanOrEqual( $bClocks[$clock], $duration, $clock );
+		}
+	}
+
+	/**
+	 * @covers \MediaWiki\Parser\ParserOutput::getCacheTime
+	 * @covers \MediaWiki\Parser\ParserOutput::setCacheTime
 	 */
 	public function testGetCacheTime() {
 		$clock = MWTimestamp::convert( TS_UNIX, '20100101000000' );
@@ -1223,12 +1338,12 @@ EOF
 	}
 
 	/**
-	 * @covers ParserOutput::addExtraCSPScriptSrc
-	 * @covers ParserOutput::addExtraCSPDefaultSrc
-	 * @covers ParserOutput::addExtraCSPStyleSrc
-	 * @covers ParserOutput::getExtraCSPScriptSrcs
-	 * @covers ParserOutput::getExtraCSPDefaultSrcs
-	 * @covers ParserOutput::getExtraCSPStyleSrcs
+	 * @covers \MediaWiki\Parser\ParserOutput::addExtraCSPScriptSrc
+	 * @covers \MediaWiki\Parser\ParserOutput::addExtraCSPDefaultSrc
+	 * @covers \MediaWiki\Parser\ParserOutput::addExtraCSPStyleSrc
+	 * @covers \MediaWiki\Parser\ParserOutput::getExtraCSPScriptSrcs
+	 * @covers \MediaWiki\Parser\ParserOutput::getExtraCSPDefaultSrcs
+	 * @covers \MediaWiki\Parser\ParserOutput::getExtraCSPStyleSrcs
 	 */
 	public function testCSPSources() {
 		$po = new ParserOutput;
@@ -1248,28 +1363,106 @@ EOF
 		$this->assertEquals( [ 'fred.com', 'xyzzy.com' ], $po->getExtraCSPStyleSrcs(), 'Style' );
 	}
 
-	/**
-	 * @covers ParserOutput::addTrackingCategory
-	 */
-	public function testAddTrackingCategory() {
-		$this->hideDeprecated( 'ParserOutput::addTrackingCategory' );
-
+	public function testOutputStrings() {
 		$po = new ParserOutput;
-		$po->setPageProperty( 'defaultsort', 'foobar' );
 
-		$page = PageReferenceValue::localReference( NS_USER, 'Testing' );
+		$this->assertEquals( [], $po->getOutputStrings( ParserOutputStringSets::MODULE ) );
+		$this->assertEquals( [], $po->getOutputStrings( ParserOutputStringSets::MODULE_STYLE ) );
+		$this->assertEquals( [], $po->getOutputStrings( ParserOutputStringSets::EXTRA_CSP_SCRIPT_SRC ) );
+		$this->assertEquals( [], $po->getOutputStrings( ParserOutputStringSets::EXTRA_CSP_STYLE_SRC ) );
+		$this->assertEquals( [], $po->getOutputStrings( ParserOutputStringSets::EXTRA_CSP_DEFAULT_SRC ) );
 
-		$po->addTrackingCategory( 'index-category', $page ); // from CORE_TRACKING_CATEGORIES
-		$po->addTrackingCategory( 'sitenotice', $page ); // should be "-", which is ignored
-		$po->addTrackingCategory( 'brackets-start', $page ); // invalid text
-		// TODO: assert proper handling of non-existing messages
+		$this->assertEquals( [], $po->getModules() );
+		$this->assertEquals( [], $po->getModuleStyles() );
+		$this->assertEquals( [], $po->getExtraCSPScriptSrcs() );
+		$this->assertEquals( [], $po->getExtraCSPStyleSrcs() );
+		$this->assertEquals( [], $po->getExtraCSPDefaultSrcs() );
 
-		$expected = wfMessage( 'index-category' )
-			->page( $page )
-			->inContentLanguage()
-			->text();
+		$po->appendOutputStrings( ParserOutputStringSets::MODULE, [ 'a' ] );
+		$po->appendOutputStrings( ParserOutputStringSets::MODULE_STYLE, [ 'b' ] );
+		$po->appendOutputStrings( ParserOutputStringSets::EXTRA_CSP_SCRIPT_SRC, [ 'foo.com', 'bar.com' ] );
+		$po->appendOutputStrings( ParserOutputStringSets::EXTRA_CSP_DEFAULT_SRC, [ 'baz.com' ] );
+		$po->appendOutputStrings( ParserOutputStringSets::EXTRA_CSP_STYLE_SRC, [ 'fred.com' ] );
+		$po->appendOutputStrings( ParserOutputStringSets::EXTRA_CSP_STYLE_SRC, [ 'xyzzy.com' ] );
 
-		$expected = strtr( $expected, ' ', '_' );
-		$this->assertSame( [ $expected => 'foobar' ], $po->getCategories() );
+		$this->assertEquals( [ 'a' ], $po->getOutputStrings( ParserOutputStringSets::MODULE ) );
+		$this->assertEquals( [ 'b' ], $po->getOutputStrings( ParserOutputStringSets::MODULE_STYLE ) );
+		$this->assertEquals( [ 'foo.com', 'bar.com' ],
+			$po->getOutputStrings( ParserOutputStringSets::EXTRA_CSP_SCRIPT_SRC ) );
+		$this->assertEquals( [ 'baz.com' ],
+			$po->getOutputStrings( ParserOutputStringSets::EXTRA_CSP_DEFAULT_SRC ) );
+		$this->assertEquals( [ 'fred.com', 'xyzzy.com' ],
+			$po->getOutputStrings( ParserOutputStringSets::EXTRA_CSP_STYLE_SRC ) );
+
+		$this->assertEquals( [ 'a' ], $po->getModules() );
+		$this->assertEquals( [ 'b' ], $po->getModuleStyles() );
+		$this->assertEquals( [ 'foo.com', 'bar.com' ], $po->getExtraCSPScriptSrcs() );
+		$this->assertEquals( [ 'baz.com' ], $po->getExtraCSPDefaultSrcs() );
+		$this->assertEquals( [ 'fred.com', 'xyzzy.com' ], $po->getExtraCSPStyleSrcs() );
+	}
+
+	/**
+	 * @covers \MediaWiki\Parser\ParserOutput::getCacheTime()
+	 * @covers \MediaWiki\Parser\ParserOutput::setCacheTime()
+	 */
+	public function testCacheTime() {
+		$po = new ParserOutput();
+
+		// Should not have a cache time yet
+		$this->assertFalse( $po->hasCacheTime() );
+		// But calling ::get assigns a cache time
+		$po->getCacheTime();
+		$this->assertTrue( $po->hasCacheTime() );
+		// Reset cache time
+		$po->setCacheTime( "20240207202040" );
+		$this->assertSame( "20240207202040", $po->getCacheTime() );
+	}
+
+	/**
+	 * @covers \MediaWiki\Parser\ParserOutput::getRenderId()
+	 * @covers \MediaWiki\Parser\ParserOutput::setRenderId()
+	 */
+	public function testRenderId() {
+		$po = new ParserOutput();
+
+		// Should be null when unset
+		$this->assertNull( $po->getRenderId() );
+
+		// Sanity check for setter and getter
+		$po->setRenderId( "TestRenderId" );
+		$this->assertEquals( "TestRenderId", $po->getRenderId() );
+	}
+
+	/**
+	 * @covers \MediaWiki\Parser\ParserOutput::getRenderId()
+	 */
+	public function testRenderIdBackCompat() {
+		$po = new ParserOutput();
+
+		// Parser cache used to contain extension data under a different name
+		$po->setExtensionData( 'parsoid-render-id', "1234/LegacyRenderId" );
+		$this->assertEquals( "LegacyRenderId", $po->getRenderId() );
+	}
+
+	public function testSetFromParserOptions() {
+		// parser output set from canonical parser options
+		$pOptions = ParserOptions::newFromAnon();
+		$pOutput = new ParserOutput;
+		$pOutput->setFromParserOptions( $pOptions );
+		$this->assertSame( 'mw-parser-output', $pOutput->getWrapperDivClass() );
+		$this->assertFalse( $pOutput->getOutputFlag( ParserOutputFlags::IS_PREVIEW ) );
+		$this->assertTrue( $pOutput->isCacheable() );
+		$this->assertFalse( $pOutput->getOutputFlag( ParserOutputFlags::NO_SECTION_EDIT_LINKS ) );
+
+		// set the various parser options and verify in parser output
+		$pOptions->setWrapOutputClass( 'test-wrapper' );
+		$pOptions->setIsPreview( true );
+		$pOptions->setSuppressSectionEditLinks();
+		$pOutput = new ParserOutput;
+		$pOutput->setFromParserOptions( $pOptions );
+		$this->assertEquals( 'test-wrapper', $pOutput->getWrapperDivClass() );
+		$this->assertTrue( $pOutput->getOutputFlag( ParserOutputFlags::IS_PREVIEW ) );
+		$this->assertFalse( $pOutput->isCacheable() );
+		$this->assertTrue( $pOutput->getOutputFlag( ParserOutputFlags::NO_SECTION_EDIT_LINKS ) );
 	}
 }

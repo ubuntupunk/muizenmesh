@@ -5,8 +5,7 @@
  * Place a call on <var>printUserLogin_out()</var> where you want the link or form to appear.
  *
  * @author Stephen Billard (sbillard)
- * @package plugins
- * @subpackage user-login-out
+ * @package zpcore\plugins\userloginout
  */
 $plugin_is_filter = 900 | THEME_PLUGIN;
 $plugin_description = gettext("Provides a means for users to login/out from your theme pages.");
@@ -92,8 +91,7 @@ function printUserLogin_out($before = '', $after = '', $showLoginForm = NULL, $l
 					break;
 				case 2:
 					if ((getOption('colorbox_' . $_zp_gallery->getCurrentTheme() . '_' . stripSuffix($_zp_gallery_page))) && (zp_has_filter('theme_head', 'colorbox::css'))) { ?>
-					<script type="text/javascript">
-						// <!-- <![CDATA[
+					<script>
 						$(document).ready(function() {
 							$(".logonlink").colorbox({
 								inline: true,
@@ -103,7 +101,6 @@ function printUserLogin_out($before = '', $after = '', $showLoginForm = NULL, $l
 								open: $('#passwordform_enclosure .errorbox').length
 							});
 						});
-						// ]]> -->
 					</script>
 					<?php if ($before) { echo '<span class="beforetext">' . html_encodeTagged($before) . '</span>'; } ?>
 					<a href="#" class="logonlink" title="<?php echo $logintext; ?>"><?php echo $logintext; ?></a>

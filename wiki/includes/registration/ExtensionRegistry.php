@@ -4,13 +4,21 @@ use Composer\Semver\Semver;
 use MediaWiki\Settings\SettingsBuilder;
 use MediaWiki\Shell\Shell;
 use MediaWiki\ShellDisabledError;
+use MediaWiki\WikiMap\WikiMap;
 use Wikimedia\ScopedCallback;
 
 /**
- * The Registry loads JSON files, and uses a Processor
- * to extract information from them. It also registers
- * classes with the autoloader.
+ * @defgroup ExtensionRegistry ExtensionRegistry
  *
+ * For higher level documentation, see <https://www.mediawiki.org/wiki/Manual:Extension_registration/Architecture>.
+ */
+
+/**
+ * Load JSON files, and uses a Processor to extract information.
+ *
+ * This also adds the extension's classes to the AutoLoader.
+ *
+ * @ingroup ExtensionRegistry
  * @since 1.25
  */
 class ExtensionRegistry {
@@ -145,16 +153,41 @@ class ExtensionRegistry {
 	 */
 	private ?SettingsBuilder $settingsBuilder = null;
 
+	private static bool $accessDisabledForUnitTests = false;
+
 	/**
 	 * @codeCoverageIgnore
 	 * @return ExtensionRegistry
 	 */
 	public static function getInstance() {
+		if ( self::$accessDisabledForUnitTests ) {
+			throw new RuntimeException( 'Access is disabled in unit tests' );
+		}
 		if ( self::$instance === null ) {
 			self::$instance = new self();
 		}
 
 		return self::$instance;
+	}
+
+	/**
+	 * @internal
+	 */
+	public static function disableForTest(): void {
+		if ( !defined( 'MW_PHPUNIT_TEST' ) ) {
+			throw new RuntimeException( 'Can only be called in tests' );
+		}
+		self::$accessDisabledForUnitTests = true;
+	}
+
+	/**
+	 * @internal
+	 */
+	public static function enableForTest(): void {
+		if ( !defined( 'MW_PHPUNIT_TEST' ) ) {
+			throw new RuntimeException( 'Can only be called in tests' );
+		}
+		self::$accessDisabledForUnitTests = false;
 	}
 
 	/**
@@ -212,9 +245,15 @@ class ExtensionRegistry {
 
 	private function getCache(): BagOStuff {
 		if ( !$this->cache ) {
+			// NOTE: Copy of ObjectCacheFactory::getDefaultKeyspace
+			//
 			// Can't call MediaWikiServices here, as we must not cause services
 			// to be instantiated before extensions have loaded.
-			return ObjectCache::makeLocalServerCache();
+			global $wgCachePrefix;
+			$keyspace = ( is_string( $wgCachePrefix ) && $wgCachePrefix !== '' )
+				? $wgCachePrefix
+				: WikiMap::getCurrentWikiDbDomain()->getId();
+			return ObjectCache::makeLocalServerCache( $keyspace );
 		}
 
 		return $this->cache;
@@ -258,17 +297,13 @@ class ExtensionRegistry {
 		$this->lazyAttributes = [];
 	}
 
-	/**
-	 * @throws MWException If the queue is already marked as finished (no further things should
-	 *  be loaded then).
-	 */
 	public function loadFromQueue() {
 		if ( !$this->queued ) {
 			return;
 		}
 
 		if ( $this->finished ) {
-			throw new MWException(
+			throw new LogicException(
 				"The following paths tried to load late: "
 				. implode( ', ', array_keys( $this->queued ) )
 			);
@@ -382,7 +417,7 @@ class ExtensionRegistry {
 	 *
 	 * @param int[] $queue keys are filenames, values are ignored
 	 * @return array extracted info
-	 * @throws Exception
+	 * @throws InvalidArgumentException
 	 * @throws ExtensionDependencyError
 	 */
 	public function readFromQueue( array $queue ) {
@@ -393,26 +428,16 @@ class ExtensionRegistry {
 		foreach ( $queue as $path => $mtime ) {
 			$json = file_get_contents( $path );
 			if ( $json === false ) {
-				throw new Exception( "Unable to read $path, does it exist?" );
+				throw new InvalidArgumentException( "Unable to read $path, does it exist?" );
 			}
 			$info = json_decode( $json, /* $assoc = */ true );
 			if ( !is_array( $info ) ) {
-				throw new Exception( "$path is not a valid JSON file." );
+				throw new InvalidArgumentException( "$path is not a valid JSON file." );
 			}
 
-			if ( !isset( $info['manifest_version'] ) ) {
-				wfDeprecatedMsg(
-					"{$info['name']}'s extension.json or skin.json does not have manifest_version, " .
-					'this is deprecated since MediaWiki 1.29',
-					'1.29', false, false
-				);
-				$warnings = true;
-				// For backwards-compatibility, assume a version of 1
-				$info['manifest_version'] = 1;
-			}
 			$version = $info['manifest_version'];
 			if ( $version < self::OLDEST_MANIFEST_VERSION || $version > self::MANIFEST_VERSION ) {
-				throw new Exception( "$path: unsupported manifest_version: {$version}" );
+				throw new InvalidArgumentException( "$path: unsupported manifest_version: {$version}" );
 			}
 
 			// get all requirements/dependencies for this extension
@@ -625,11 +650,11 @@ class ExtensionRegistry {
 	public function setAttributeForTest( $name, array $value ) {
 		// @codeCoverageIgnoreStart
 		if ( !defined( 'MW_PHPUNIT_TEST' ) ) {
-			throw new RuntimeException( __METHOD__ . ' can only be used in tests' );
+			throw new LogicException( __METHOD__ . ' can only be used in tests' );
 		}
 		// @codeCoverageIgnoreEnd
 		if ( isset( $this->testAttributes[$name] ) ) {
-			throw new Exception( "The attribute '$name' has already been overridden" );
+			throw new InvalidArgumentException( "The attribute '$name' has already been overridden" );
 		}
 		$this->testAttributes[$name] = $value;
 		return new ScopedCallback( function () use ( $name ) {

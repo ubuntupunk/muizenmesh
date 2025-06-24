@@ -1,6 +1,6 @@
 <?php
-/**
- * 2007-2023 PayPal
+/*
+ * Since 2007 PayPal
  *
  * NOTICE OF LICENSE
  *
@@ -18,10 +18,11 @@
  *  versions in the future. If you wish to customize PrestaShop for your
  *  needs please refer to http://www.prestashop.com for more information.
  *
- *  @author 2007-2023 PayPal
+ *  @author Since 2007 PayPal
  *  @author 202 ecommerce <tech@202-ecommerce.com>
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
+ *
  */
 
 namespace PaypalAddons\classes\API;
@@ -33,11 +34,15 @@ use PaypalAddons\classes\API\Request\PaypalAddTrackingInfoRequest;
 use PaypalAddons\classes\API\Request\PaypalAuthorizationVoidRequest;
 use PaypalAddons\classes\API\Request\PaypalCaptureAuthorizeRequest;
 use PaypalAddons\classes\API\Request\PaypalConfirmPaymentSourceRequest;
+use PaypalAddons\classes\API\Request\PaypalCreateWebhookRequest;
 use PaypalAddons\classes\API\Request\PaypalDeleteVaultPaymentTokenRequest;
+use PaypalAddons\classes\API\Request\PaypalDeleteWebhookRequest;
 use PaypalAddons\classes\API\Request\PaypalGenerateIdTokenRequest;
 use PaypalAddons\classes\API\Request\PaypalGenerateVaultPaymentTokenRequest;
 use PaypalAddons\classes\API\Request\PaypalGetSellerStatusRequest;
 use PaypalAddons\classes\API\Request\PaypalGetVaultPaymentTokenRequest;
+use PaypalAddons\classes\API\Request\PaypalGetWebhookEventRequest;
+use PaypalAddons\classes\API\Request\PaypalGetWebhookListRequest;
 use PaypalAddons\classes\API\Request\PaypalOrderAuthorizeRequest;
 use PaypalAddons\classes\API\Request\PaypalOrderCaptureRequest;
 use PaypalAddons\classes\API\Request\PaypalOrderCreateRequest;
@@ -47,13 +52,15 @@ use PaypalAddons\classes\API\Request\PaypalOrderPatchRequest;
 use PaypalAddons\classes\API\Request\PaypalOrderPuiCreateRequest;
 use PaypalAddons\classes\API\Request\PaypalOrderRefundRequest;
 use PaypalAddons\classes\API\Request\PaypalPartnerReferralsRequest;
+use PaypalAddons\classes\API\Request\PaypalPatchWebhookRequest;
 use PaypalAddons\classes\API\Request\PaypalUpdateTrackingInfoRequest;
+use PaypalAddons\classes\API\Request\PaypalWebhookEventListRequest;
 
 if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-class PaypalApiManager implements PaypalApiManagerInterface, PaypalVaultApiManagerInterface
+class PaypalApiManager implements PaypalApiManagerInterface, PaypalVaultApiManagerInterface, PaypalWebhookApiManagerInterface
 {
     /** @var AbstractMethodPaypal */
     protected $method;
@@ -170,5 +177,35 @@ class PaypalApiManager implements PaypalApiManagerInterface, PaypalVaultApiManag
     public function getGenerateIdTokenRequest($paypalCustomerId)
     {
         return new PaypalGenerateIdTokenRequest($this->client, $this->method, $paypalCustomerId);
+    }
+
+    public function getWebhookEventList($params)
+    {
+        return new PaypalWebhookEventListRequest($this->client, $this->method, $params);
+    }
+
+    public function getWebhookEventDetail($id)
+    {
+        return new PaypalGetWebhookEventRequest($this->client, $this->method, $id);
+    }
+
+    public function getWebhookList()
+    {
+        return new PaypalGetWebhookListRequest($this->client, $this->method);
+    }
+
+    public function createWebhook($webhook = null)
+    {
+        return new PaypalCreateWebhookRequest($this->client, $this->method, $webhook);
+    }
+
+    public function patchWebhook($patch)
+    {
+        return new PaypalPatchWebhookRequest($this->client, $this->method, $patch);
+    }
+
+    public function deleteWebhook($id)
+    {
+        return new PaypalDeleteWebhookRequest($this->client, $this->method, $id);
     }
 }

@@ -2,6 +2,8 @@
 
 require_once __DIR__ . '/Maintenance.php';
 
+use MediaWiki\Site\SiteExporter;
+
 /**
  * Maintenance script for exporting site definitions from XML into the sites table.
  *
@@ -40,7 +42,7 @@ class ExportSites extends Maintenance {
 
 		$exporter = new SiteExporter( $handle );
 
-		$siteLookup = \MediaWiki\MediaWikiServices::getInstance()->getSiteLookup();
+		$siteLookup = $this->getServiceContainer()->getSiteLookup();
 		$exporter->exportSites( $siteLookup->getSites() );
 
 		fclose( $handle );

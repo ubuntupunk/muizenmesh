@@ -1,7 +1,7 @@
 /*!
  * VisualEditor UserInterface AuthorListPopupTool class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
@@ -190,7 +190,7 @@ ve.ui.AuthorListPopupTool.prototype.onSynchronizerAuthorDisconnect = function ( 
 /* Static Properties */
 
 ve.ui.AuthorListPopupTool.static.name = 'authorList';
-ve.ui.AuthorListPopupTool.static.group = 'utility';
+ve.ui.AuthorListPopupTool.static.group = 'users';
 ve.ui.AuthorListPopupTool.static.icon = 'userAvatar';
 ve.ui.AuthorListPopupTool.static.title = '1';
 ve.ui.AuthorListPopupTool.static.autoAddToCatchall = false;

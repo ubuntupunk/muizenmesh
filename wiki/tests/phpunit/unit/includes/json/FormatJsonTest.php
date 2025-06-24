@@ -1,7 +1,7 @@
 <?php
 
 /**
- * @covers FormatJson
+ * @covers \FormatJson
  */
 class FormatJsonTest extends MediaWikiUnitTestCase {
 
@@ -109,7 +109,7 @@ class FormatJsonTest extends MediaWikiUnitTestCase {
 		$this->assertNotEquals(
 			'\ud840\udc00',
 			strtolower( FormatJson::encode( "\u{20000}" ) ),
-			'Test encoding an broken json_encode character (U+20000)'
+			'Test encoding of broken json_encode character (U+20000)'
 		);
 	}
 
@@ -171,12 +171,10 @@ class FormatJsonTest extends MediaWikiUnitTestCase {
 		$this->assertJson( $json );
 
 		$st = FormatJson::parse( $json );
-		$this->assertInstanceOf( Status::class, $st );
 		$this->assertStatusGood( $st );
 		$this->assertStatusValue( $expected, $st );
 
 		$st = FormatJson::parse( $json, FormatJson::FORCE_ASSOC );
-		$this->assertInstanceOf( Status::class, $st );
 		$this->assertStatusGood( $st );
 		$this->assertStatusValue( $value, $st );
 	}
@@ -195,16 +193,10 @@ class FormatJsonTest extends MediaWikiUnitTestCase {
 	 * @dataProvider provideParseErrors
 	 */
 	public function testParseErrors( $value, $error ) {
-		$st = FormatJson::parse( $value );
-		$this->assertInstanceOf( Status::class, $st );
-		$this->assertStatusNotOK( $st );
-		$this->assertTrue(
-			$st->hasMessage( $error ),
-			"Does not have $error message"
-		);
+		$this->assertStatusError( $error, FormatJson::parse( $value ) );
 	}
 
-	public function provideStripComments() {
+	public static function provideStripComments() {
 		return [
 			[ '{"a":"b"}', '{"a":"b"}' ],
 			[ "{\"a\":\"b\"}\n", "{\"a\":\"b\"}\n" ],
@@ -231,7 +223,7 @@ class FormatJsonTest extends MediaWikiUnitTestCase {
 	}
 
 	/**
-	 * @covers FormatJson::stripComments
+	 * @covers \FormatJson::stripComments
 	 * @dataProvider provideStripComments
 	 * @param string $json
 	 * @param string $expect
@@ -240,7 +232,7 @@ class FormatJsonTest extends MediaWikiUnitTestCase {
 		$this->assertSame( $expect, FormatJson::stripComments( $json ) );
 	}
 
-	public function provideParseStripComments() {
+	public static function provideParseStripComments() {
 		return [
 			[ '/* blah */true', true ],
 			[ "// blah \ntrue", true ],
@@ -249,13 +241,12 @@ class FormatJsonTest extends MediaWikiUnitTestCase {
 	}
 
 	/**
-	 * @covers FormatJson::parse
-	 * @covers FormatJson::stripComments
+	 * @covers \FormatJson::parse
+	 * @covers \FormatJson::stripComments
 	 * @dataProvider provideParseStripComments
 	 */
 	public function testParseStripComments( $json, $expect ) {
 		$st = FormatJson::parse( $json, FormatJson::STRIP_COMMENTS );
-		$this->assertInstanceOf( Status::class, $st );
 		$this->assertStatusGood( $st );
 		$this->assertStatusValue( $expect, $st );
 	}
@@ -315,7 +306,7 @@ class FormatJsonTest extends MediaWikiUnitTestCase {
 		return $cases;
 	}
 
-	public function provideEmptyJsonKeyStrings() {
+	public static function provideEmptyJsonKeyStrings() {
 		return [
 			[
 				'{"":"foo"}',
@@ -345,8 +336,8 @@ class FormatJsonTest extends MediaWikiUnitTestCase {
 	}
 
 	/**
-	 * @covers FormatJson::encode
-	 * @covers FormatJson::decode
+	 * @covers \FormatJson::encode
+	 * @covers \FormatJson::decode
 	 * @dataProvider provideEmptyJsonKeyStrings
 	 *
 	 * Decoding behavior with empty keys can be surprising.
@@ -423,14 +414,14 @@ class FormatJsonTest extends MediaWikiUnitTestCase {
 		}
 
 		$st = FormatJson::parse( $value, FormatJson::TRY_FIXING );
-		$this->assertInstanceOf( Status::class, $st );
 		if ( $expected === false ) {
-			$this->assertStatusNotOK( $st, 'Expected isOK() == false' );
+			$this->assertStatusNotOK( $st );
 		} else {
-			$this->assertSame( $expectedGoodStatus, $st->isGood(),
-				'Expected isGood() == ' . ( $expectedGoodStatus ? 'true' : 'false' )
-			);
-			$this->assertStatusOK( $st, 'Expected isOK == true' );
+			if ( $expectedGoodStatus ) {
+				$this->assertStatusGood( $st );
+			} else {
+				$this->assertStatusOK( $st );
+			}
 			$val = FormatJson::encode( $st->getValue(), false, FormatJson::ALL_OK );
 			$this->assertEquals( $expected, $val );
 		}

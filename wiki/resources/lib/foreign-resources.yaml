@@ -34,15 +34,24 @@
 # - `file`: For a plain file.
 # - `multi-file`: For multiple plain files.
 # - `tar`: For a tarball archive (file may be compressed).
+# - `zip`: For a zipped archive (file may be compressed).
+# - `doc-only`: For documenting that a package is used, without managing it
+#
+# ### Shared fields
+#
+# The following fields are shared by all package types:
+# * `license` : SPDX license identifier
+# * `homepage` : [optional] Homepage URL of library, to be shown on Special:Version
+# * `authors` : [optional] Authors string of library, to be shown on Special:Version
+# * `version` : [optional] Version string of library, to be shown on Special:Version
 #
 # ### The "file" type
 #
-# * `license` : SPDX license identifier
-# * `homepage` : [optional] Homepage URL of library shown on Special:Version
-# * `version` : [optional] Version string of library shown on Special:Version
+# Besides the shared ones, the following fields are used:
 # * `src`: Full URL to the remote resource.
 # * `integrity`: Cryptographic hash (integrity metadata format per <https://www.w3.org/TR/SRI/>).
 # * `dest`: [optional] The file name to use in the module directory. Default: Basename of URL.
+# * `transforms`: [optional] File transformations (see below).
 #
 # For example, the following would produce resources/lib/mymodule/x.js:
 #
@@ -53,10 +62,9 @@
 #
 # ### The "multi-file" type
 #
-# * `license` : SPDX license identifier
-# * `homepage` : [optional] Homepage URL of library shown on Special:Version
-# * `version` : [optional] Version string of library shown on Special:Version
+# Besides the shared ones, the following fields are used:
 # * `files`: An object mapping destination paths to `src` and `integrity` keys.
+# * `transforms`: [optional] File transformations (see below).
 #
 # For example:
 #
@@ -72,15 +80,17 @@
 #
 # ### The "tar" type
 #
-# * `license` : SPDX license identifier
-# * `homepage` : [optional] Homepage URL of library shown on Special:Version
-# * `version` : [optional] Version string of library shown on Special:Version
+# Besides the shared ones, the following fields are used:
 # * `src`: Full URL to the remote resource.
 # * `integrity`: Cryptographic hash (integrity metadata format per <https://www.w3.org/TR/SRI/>).
 # * `dest`: [optional] The default is to extract all files from the package.
 #    To only extract some of the files or directories, use "dest" to specify
 #    files, directories, and/or glob patterns. You can use a site like https://unpkg.com/
 #    to easily inspect an npm package, like <https://unpkg.com/jquery-client@2.0.2/>.
+#    This field can also be used to extract files to a subdirectory (by default the files and
+#    directories listed in "dest" are extracted to the module directory root).
+# * `transforms`: [optional] File transformations (see below). This field is experimental
+#    and might end up being removed.
 #
 # For example:
 #
@@ -91,15 +101,41 @@
 #       dest:
 #         package/dist/x.js:
 #         package/dist/i18n:
-#         package/dist/style/*.css:
+#         package/dist/style/*.css: themes
 #
-# The would extract the "x.js" file, the "i18n" directory (recursive),
-# and any "*.css" files from the "style" directory.
+# This would extract the "x.js" file, the "i18n" directory (recursive),
+# and any "*.css" files from the "style" directory. They will end up in mymodule/x.js,
+# mymodule/i18n and mymodule/themes, respectively.
+#
+# ### The "doc-only" type
+#
+# This type can be used for packages which are managed in some custom way (e.g. they require a
+# manual build step). manageForeignResources.php will ignore these records, but they will still
+# be shown on Special:Version. Only the shared fields are used.
+#
+# ### File transformations
+#
+# Modification of upstream files is discouraged but sometimes unavoidable. The `transforms` key
+# lets you define per-file transformations, to be applied after fetching the upstream file.
+# It takes a map where the keys are destination file names, and the values are transformation
+# definitions or arrays of transformation definitions.
+#
+# IMPORTANT: File transformations are experimental and might end up being removed. Using them
+# is not recommended at this point.
+#
+# Currently only one transformation is supported: adding /*@nomin*/ to the beginning of a file
+# (which prevents the ResourceLoader minifier from touching it). Example:
+#
+# mymodule:
+#   ...
+#   transforms:
+#     foo.min.js: nomin
 #
 
 CLDRPluralRuleParser:
   license: MIT
   homepage: https://github.com/santhoshtr/CLDRPluralRuleParser
+  authors: Santhosh Thottingal
   version: 1.3.1-0dda851
   type: file
   src: https://raw.githubusercontent.com/santhoshtr/CLDRPluralRuleParser/0dda851/src/CLDRPluralRuleParser.js
@@ -108,65 +144,54 @@ CLDRPluralRuleParser:
 codex:
   license: GPL-2.0+
   homepage: https://doc.wikimedia.org/codex/
-  version: 0.6.2
+  authors: Design Systems team, Wikimedia Foundation
+  version: 1.3.6
   type: tar
-  src: https://registry.npmjs.org/@wikimedia/codex/-/codex-0.6.2.tgz
-  integrity: sha512-m7Nlh3xdtNJxsS+0dmVG9KMw1BaPnwpZB2xEWML4wX1MCs/fKYOUIQSxxARFfdRbWCfvrxuNLva5sMxXta9BBQ==
+  src: https://registry.npmjs.org/@wikimedia/codex/-/codex-1.3.6.tgz
+  integrity: sha384-7qDs2QEc9v/G07vhQow6FkK4LARI/MpAiOFMkB7v8YpUFY85fFTWUbevYwXMwkWs
   dest:
-    package/dist/codex.mjs:
-    package/dist/codex.umd.js:
-    package/dist/codex.style.css:
-    package/dist/codex.style-rtl.css:
-    package/dist/codex.style-legacy.css:
-    package/dist/codex.style-legacy-rtl.css:
+    package/dist/codex.cjs:
+    package/dist/codex.js:
+    package/dist/codex.umd.cjs:
+    package/dist/codex.*.css:
+    package/dist/modules/*: modules
+    package/dist/mixins/*: mixins
     package/LICENSE:
     package/README.md:
+    package/CHANGELOG.md:
 
 codex-design-tokens:
   license: GPL-2.0+
   homepage: https://doc.wikimedia.org/codex/
-  version: 0.6.2
+  authors: Design Systems team, Wikimedia Foundation
+  version: 1.3.6
   type: tar
-  src: https://registry.npmjs.org/@wikimedia/codex-design-tokens/-/codex-design-tokens-0.6.2.tgz
-  integrity: sha384-NIpnbaaGXKh2xwZBVgQ+tDDHr7rkwLr/f/ZofhqDNyKf9UPZAQKDsGlpGhKkvQxz
+  src: https://registry.npmjs.org/@wikimedia/codex-design-tokens/-/codex-design-tokens-1.3.6.tgz
+  integrity: sha384-dm62tinMLu1ZzR0L0Ero5DDh8dR/aelbP7Y9Z6YErVRDHub8CNUnKOZyX7BQQAUe
   dest:
-    package/dist/theme-wikimedia-ui.less:
-    package/dist/theme-wikimedia-ui-legacy.less:
+    package/dist/theme-*.less:
+    package/dist/theme-*-experimental.css:
     package/LICENSE:
     package/README.md:
 
 codex-icons:
   license: MIT
   homepage: https://doc.wikimedia.org/codex/
-  version: 0.6.2
+  authors: Design Systems team, Wikimedia Foundation
+  version: 1.3.6
   type: tar
-  src: https://registry.npmjs.org/@wikimedia/codex-icons/-/codex-icons-0.6.2.tgz
-  integrity: sha384-rSutJxRJni4aYFdKsj2xmdf4yTKjGl8unWYYgbwff7nGeoPhQH1s0BaFsugLf3lX
+  src: https://registry.npmjs.org/@wikimedia/codex-icons/-/codex-icons-1.3.6.tgz
+  integrity: sha384-mjlS1mr1i2ChG8+DTJHk6EQywwEjA4KlrPfI+GxpSdJPfoOMaM5EtyFQ9bLi2LnM
   dest:
     package/dist/codex-icons.json:
-    package/LICENSE:
-    package/README.md:
-
-codex-search:
-  license: GPL-2.0+
-  homepage: https://doc.wikimedia.org/codex/
-  version: 0.6.2
-  type: tar
-  src: https://registry.npmjs.org/@wikimedia/codex-search/-/codex-search-0.6.2.tgz
-  integrity: sha384-cUhX7Ww7YSqN5+XaXI4kzFmWjdFT5AgUutMu9moHFtGWMwIVbc7ey/TqYGWvRQnx
-  dest:
-    package/dist/codex-search.mjs:
-    package/dist/codex-search.umd.js:
-    package/dist/codex-search.style.css:
-    package/dist/codex-search.style-rtl.css:
-    package/dist/codex-search.style-legacy.css:
-    package/dist/codex-search.style-legacy-rtl.css:
+    package/dist/codex-icon-paths.less:
     package/LICENSE:
     package/README.md:
 
 url:
   license: MIT
   homepage: https://github.com/financial-times/polyfill-library
+  authors: Financial Times
   version: 3.111.0-0ece79ce32
   type: multi-file
   files:
@@ -183,6 +208,7 @@ url:
 fetch-polyfill:
   license: MIT
   homepage: https://github.com/github/fetch#readme
+  authors: GitHub, Inc.
   version: 3.6.2
   type: tar
   src: https://registry.npmjs.com/whatwg-fetch/-/whatwg-fetch-3.6.2.tgz
@@ -195,6 +221,7 @@ fetch-polyfill:
 intersection-observer:
   license: Apache-2.0
   homepage: https://github.com/GoogleChromeLabs/intersection-observer
+  authors: Philip Walton
   version: 0.12.0
   type: tar
   src: https://registry.npmjs.org/intersection-observer/-/intersection-observer-0.12.0.tgz
@@ -206,6 +233,7 @@ intersection-observer:
 jquery:
   license: MIT
   homepage: https://jquery.com
+  authors: OpenJS Foundation and other contributors
   version: 3.7.1
   type: multi-file
   files:
@@ -216,8 +244,9 @@ jquery:
 
 jquery.chosen:
   license: MIT
-  version: 1.8.2
   homepage: https://harvesthq.github.io/chosen/
+  authors: Patrick Filler for Harvest, Matthew Lettini, Patrick Filler, Ken Earley, Christophe Coevoet, Koen Punt, and T.J. Schuck.
+  version: 1.8.2
   type: multi-file
   files:
     LICENSE:
@@ -243,6 +272,7 @@ jquery.chosen:
 jquery.client:
   license: MIT
   homepage: https://www.npmjs.com/package/jquery-client
+  authors: Trevor Parscal, Timo Tijhof, and Roan Kattouw
   version: 3.0.0
   type: tar
   src: https://registry.npmjs.org/jquery-client/-/jquery-client-3.0.0.tgz
@@ -253,52 +283,10 @@ jquery.client:
     package/LICENSE-MIT:
     package/README.md:
 
-# # PATCHED:
-# # Changed to support SameSite and change decode logic. Seems permanent with upstream archived.
-# # Move to src instead?
-# jquery.cookie:
-#   license: MIT
-#   homepage: https://github.com/js-cookie/js-cookie
-#   version: 1.3.1
-#   type: multi-file
-#   files:
-#     jquery.cookie.js:
-#       src: https://raw.githubusercontent.com/carhartl/jquery-cookie/v1.3.1/jquery.cookie.js
-#       integrity: sha384-Xxq63E9KDgzUJ6WPNPqVeOtRIwZyx6y9DzEwY2u6LYKSnWrjSoGtWSKmTindYBf2
-#     MIT-LICENSE.txt:
-#       src: https://raw.githubusercontent.com/carhartl/jquery-cookie/v1.3.1/MIT-LICENSE.txt
-#       integrity: sha384-zYsGf3KJ7S0AhOICjcoh0kkn7aGZlzYUXXX5xz8dwR9KjLMM+/JPR2g/jVOGGeId
-#     CHANGELOG.md:
-#       src: https://raw.githubusercontent.com/carhartl/jquery-cookie/v1.3.1/CHANGELOG.md
-#       integrity: sha384-SQOHhLc7PHxHDQpGE/zv9XfXKL0A7OBu8kuyVDnHVp+zSoWyRw4xUJ+LSm5ql4kS
-
-jquery.form:
-  license: GPL-2.0+ OR MIT
-  homepage: https://github.com/jquery-form/form
-  version: 3.14-ff80d9ddf4
-  type: file
-  src: https://raw.githubusercontent.com/jquery-form/form/ff80d9ddf4/jquery.form.js
-  integrity: sha384-h4G2CrcSbixzMvrrK259cNBYaL/vS1D4+KdUN9NJDzQnTU1bQ6Avluget+Id13M7
-
-jquery.fullscreen:
-  license: GPL-2.0+
-  homepage: https://github.com/theopolisme/jquery-fullscreen
-  version: 2.1.0
-  type: file
-  src: https://raw.githubusercontent.com/theopolisme/jquery-fullscreen/v2.1.0/jquery.fullscreen.js
-  integrity: sha384-G4KPs2d99tgcsyUnJ3eeZ1r2hEKDwZfc4+/xowL/LIemq2VVwEE8HpVAWt4WYNLR
-
-jquery.hoverIntent:
-  license: MIT
-  homepage: https://github.com/briancherne/jquery-hoverIntent
-  version: 823603fdac
-  type: file
-  src: https://raw.githubusercontent.com/briancherne/jquery-hoverIntent/823603fdac/jquery.hoverIntent.js
-  integrity: sha384-lca0haN0hqFGGh2aYUhtAgX9dhVHfQnTADH4svDeM6gcXnL7aFGeAi1NYwipDMyS
-
 jquery.i18n:
   license: MIT OR GPL-2.0-or-later
   homepage: https://github.com/wikimedia/jquery.i18n
+  authors: Language Engineering team, Wikimedia Foundation
   version: 1.0.7
   type: tar
   src: https://codeload.github.com/wikimedia/jquery.i18n/tar.gz/70b5ee20a638cb8fe36baef8d51ac2eb577ce012
@@ -311,11 +299,18 @@ jquery.i18n:
     jquery.i18n-*/README.md:
     jquery.i18n-*/src:
 
-# TODO: jquery.ui (!)
+# Heavily modified; see the PATCHES file
+jquery.ui:
+  license: MIT
+  homepage: https://jqueryui.com
+  authors: OpenJS Foundation and other contributors
+  version: 1.9.2
+  type: doc-only
 
 moment:
   license: MIT
   homepage: https://momentjs.com
+  authors: JS Foundation and other contributors
   version: 2.25.2
   type: tar
   src: https://codeload.github.com/moment/moment/tar.gz/2.25.2
@@ -330,23 +325,23 @@ moment:
 mustache:
   license: MIT
   homepage: https://github.com/janl/mustache.js
-  version: 3.0.1
-  type: multi-file
-  files:
-    mustache.js:
-      src: https://raw.githubusercontent.com/janl/mustache.js/v3.0.1/mustache.js
-      integrity: sha384-YjAj6Nll7fkEWzxTlE9o3NWC9qdZt1Upat6Afjib9eLs8lTODpSKEBHeXq8o/VUH
-    LICENSE:
-      src: https://raw.githubusercontent.com/janl/mustache.js/v3.0.1/LICENSE
-      integrity: sha384-j2EDj6YtCRgFvYDtzo6pXzbskIj/K1Yg65BL0j3/L6UIHxbMtRMJwC/W+XoYx0FZ
+  authors: Michael Jackson, Jan Lehnardt, Phillip Johnsen, and other contributors
+  version: 4.2.0
+  type: tar
+  src: https://registry.npmjs.org/mustache/-/mustache-4.2.0.tgz
+  integrity: sha384-JKpbW4FTGK4zdRNitERF8271K0N5EMpnxY9/yrm8CEUPUE+DZsiBstkkzGd89uJG
+  dest:
+    package/mustache.js:
+    package/LICENSE:
 
 oojs:
   license: MIT
   homepage: https://www.mediawiki.org/wiki/OOjs
-  version: 6.0.0
+  authors: OOjs Team and other contributors
+  version: 7.0.1
   type: tar
-  src: https://registry.npmjs.org/oojs/-/oojs-6.0.0.tgz
-  integrity: sha384-J4GtN11YFt6zOVI6/SjOZ7gXzdYweZJorgUCr5SSV9vBTcth9V5JaZ83tI2jTvI2
+  src: https://registry.npmjs.org/oojs/-/oojs-7.0.1.tgz
+  integrity: sha384-2O0mmkNNV9RilbKtQjCL8wUfIf3Eb+/5CKQEsC4yCbf1NAV1MM67O2GxcC1/cj9Q
   dest:
     package/dist/oojs.js:
     package/AUTHORS.txt:
@@ -356,10 +351,11 @@ oojs:
 oojs-router:
   license: MIT
   homepage: https://www.mediawiki.org/wiki/OOjs_Router
-  version: 0.3.0
+  authors: OOjs Team and other contributors
+  version: 0.5.0
   type: tar
-  src: https://registry.npmjs.org/oojs-router/-/oojs-router-0.3.0.tgz
-  integrity: sha384-FeAuFD6G2sGGXCWvxncx9QOTEAoq5VQdNWkXEhvi4XAoOSqe8RGms5JgmL8Fl8FB
+  src: https://registry.npmjs.org/oojs-router/-/oojs-router-0.5.0.tgz
+  integrity: sha384-DhU20g/ayQzVWBjtflLRbk+deM1YBsIvYzjFthUOfQCXrYWJLH9bgm12eQZsC1gy
   dest:
     package/dist/oojs-router.js:
     package/LICENSE:
@@ -369,10 +365,11 @@ oojs-router:
 ooui:
   license: MIT
   homepage: https://www.mediawiki.org/wiki/OOUI
-  version: 0.46.3
+  authors: OOUI Team and other contributors
+  version: 0.49.0
   type: tar
-  src: https://registry.npmjs.org/oojs-ui/-/oojs-ui-0.46.3.tgz
-  integrity: sha384-rQrU7rZaKeMEnQQAGsAM3LoCtwzXnuJy69oZG20ELvBUK+sx7AZEXTbxd1LLAXc5
+  src: https://registry.npmjs.org/oojs-ui/-/oojs-ui-0.49.1.tgz
+  integrity: sha384-A+rqZuEBs57mX/Q5XApnmUG+jbQvq6GwA0Wi6Fipc7gpLqRORooUlm5aT3hFav75
 
   dest:
     # Main stuff
@@ -404,50 +401,57 @@ ooui:
 pako:
   license: MIT AND Zlib
   homepage: https://github.com/nodeca/pako
-  version: 2.0.4
+  authors: Andrei Tuputcyn, Vitaly Puzrin, Friedel Ziegelmayer, Kirill Efimov, Jean-loup Gailly, and Mark Adler
+  version: 2.1.0
   type: multi-file
   files:
-    pako_deflate.es5.js:
-      src: https://raw.githubusercontent.com/nodeca/pako/2.0.4/dist/pako_deflate.es5.js
-      integrity: sha384-msHzmf3Olqx90vEgQHrbqpn7Kx6Tv0L5VXKPQoq+yDnkrvKwzlufduA/rLk1suNV
+    pako_deflate.js:
+      src: https://raw.githubusercontent.com/nodeca/pako/2.1.0/dist/pako_deflate.js
+      integrity: sha384-OnIes9Zm3mAxdP2URZyV1WjDdCm6WcghykNJeIHvUSGUBwAYJuBE9oIMyHkDgWmL
+    pako_deflate.min.js:
+      src: https://raw.githubusercontent.com/nodeca/pako/2.1.0/dist/pako_deflate.min.js
+      integrity: sha384-g47DZI9UNr0h29/i2S4PKozocdFoRssd5kkkeDdXjsIWnoRo0iNfgnaVvKFzhMr+
     README.md:
-      src: https://raw.githubusercontent.com/nodeca/pako/2.0.4/README.md
+      src: https://raw.githubusercontent.com/nodeca/pako/2.1.0/README.md
       integrity: sha384-mQ9cShSJ6yG8JTPL7LkbnfUnTmc7LA2hnBMSNfb5X7xk6pTFzVTurK9gcSMgJu3B
     LICENSE:
-      src: https://raw.githubusercontent.com/nodeca/pako/2.0.4/LICENSE
+      src: https://raw.githubusercontent.com/nodeca/pako/2.1.0/LICENSE
       integrity: sha384-9tg5LwdfxM6Fpdp6Sep9VI0qXS7Eg5gQRPvNrfV3DKIkVVL3EwSK2atu+zRoEwJg
 
-promise-polyfill:
+pinia:
   license: MIT
-  homepage: https://github.com/taylorhakes/promise-polyfill
-  version: 8.1.3-65ed35b292
-  type: multi-file
-  files:
-    promise-polyfill.js:
-      # 65ed35b292 (Apr 18, 2020) between 8.1.3 (Jun 16, 2019) and 8.2.0 (Nov 3, 2020)
-      src: https://raw.githubusercontent.com/taylorhakes/promise-polyfill/65ed35b2927e97b262538054e5951d63893db05f/dist/polyfill.js
-      integrity: sha384-nQUslfDX7uz5YSWudfV8dG5d8whQpNMrLcbJPLjvq+McUl2VK7v0UOVnbfs/FrMl
-    LICENSE:
-      src: https://raw.githubusercontent.com/taylorhakes/promise-polyfill/65ed35b2927e97b262538054e5951d63893db05f/LICENSE
-      integrity: sha384-IiroT08PAyKPUM4VsNJI7G1o3SM1y+YBBj1lwdJURXYnjtx1OzYKJTNEWs2pE684
+  homepage: https://pinia.vuejs.org/
+  authors: Eduardo San Martin Morote
+  version: 2.0.16
+  type: tar
+  src: https://registry.npmjs.org/pinia/-/pinia-2.0.16.tgz
+  integrity: sha512-9/LMVO+/epny1NBfC77vnps4g3JRezxhhoF1xLUk8mZkUIxVnwfEAIRiAX8mYBTD/KCwZqnDMqXc8w3eU0FQGg==
+
+  dest:
+    package/README.md:
+    package/LICENSE:
+    package/dist/pinia.iife.js:
+    package/dist/pinia.iife.prod.js:
 
 qunitjs:
   license: MIT
   homepage: https://qunitjs.com
-  version: 2.19.4
+  authors: OpenJS Foundation and other contributors
+  version: 2.20.0
   type: multi-file
   # Integrity from link modals at https://code.jquery.com/qunit/
   files:
     qunit.js:
-      src: https://code.jquery.com/qunit/qunit-2.19.4.js
-      integrity: sha256-ZFjYNVAOk8Ozw+xXXCfNuf87Knngp3BVxFk3lBLD/Uc=
+      src: https://code.jquery.com/qunit/qunit-2.20.0.js
+      integrity: sha256-qDPbT8viaD6gCaTrUd7FOE5lU5S9H5U5bbuQMADnrRY=
     qunit.css:
-      src: https://code.jquery.com/qunit/qunit-2.19.4.css
-      integrity: sha256-qwmW00heo7d+2GZQ2eKAsTbPZ/Tw5emPGigowFrXpVk=
+      src: https://code.jquery.com/qunit/qunit-2.20.0.css
+      integrity: sha256-NN2oro7r8aYcRYA4fnBbijdLRS7Rc4Pz9ikcmlwWvl4=
 
 sinonjs:
   license: BSD-3-Clause
   homepage: https://sinonjs.org/
+  authors: Christian Johansen and other contributors
   version: 1.17.7
   type: file
   src: https://sinonjs.org/releases/sinon-1.17.7.js
@@ -457,11 +461,11 @@ sinonjs:
 vue:
   license: MIT
   homepage: https://vuejs.org/
-  version: 3.2.37
+  authors: Yuxi (Evan) You
+  version: 3.3.9
   type: tar
-  # This is the migration build of Vue 3.2.37 which provides compatibility for Vue 2 code
-  src: https://registry.npmjs.org/@vue/compat/-/compat-3.2.37.tgz
-  integrity: sha512-MIYkFAz3Fur1mtZBqrNMYTymlohCQ0ol6vtNb58cqExLSCt63xZaXyiZZYPvS6WaMXfbNBDPXMvU9tO922eFCA==
+  src: https://registry.npmjs.org/vue/-/vue-3.3.9.tgz
+  integrity: sha512-sy5sLCTR8m6tvUk1/ijri3Yqzgpdsmxgj6n6yl7GXXCXqVbmW2RCXe9atE4cEI6Iv7L89v5f35fZRRr5dChP9w==
   dest:
     package/README.md:
     package/LICENSE:
@@ -471,6 +475,7 @@ vue:
 vuex:
   license: MIT
   homepage: https://vuex.vuejs.org/
+  authors: Yuxi (Evan) You
   version: 4.0.2
   type: tar
   src: https://registry.npmjs.org/vuex/-/vuex-4.0.2.tgz

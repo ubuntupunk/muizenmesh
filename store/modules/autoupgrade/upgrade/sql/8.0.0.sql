@@ -4,6 +4,7 @@ SET NAMES 'utf8mb4';
 DROP TABLE IF EXISTS `PREFIX_referrer`;
 DROP TABLE IF EXISTS `PREFIX_referrer_cache`;
 DROP TABLE IF EXISTS `PREFIX_referrer_shop`;
+DROP TABLE IF EXISTS `PREFIX_attribute_impact`;
 
 /* Remove page Referrers */
 ## Remove Tabs
@@ -30,7 +31,7 @@ INSERT INTO `PREFIX_configuration` (`name`, `value`, `date_add`, `date_upd`) VAL
     ('PS_SECURITY_TOKEN', '1', NOW(), NOW())
 ;
 
-INSERT IGNORE INTO `PREFIX_hook` (`id_hook`, `name`, `title`, `description`, `position`) VALUES
+INSERT INTO `PREFIX_hook` (`id_hook`, `name`, `title`, `description`, `position`) VALUES
   (NULL, 'actionValidateOrderAfter', 'New Order', 'This hook is called after validating an order by core', '1'),
   (NULL, 'actionAdminOrdersTrackingNumberUpdate', 'After setting the tracking number for the order', 'This hook allows you to execute code after the unique tracking number for the order was added', '1'),
   (NULL, 'actionAdminSecurityControllerPostProcessBefore', 'On post-process in Admin Security Controller', 'This hook is called on Admin Security Controller post-process before processing any form', '1'),
@@ -44,10 +45,10 @@ INSERT IGNORE INTO `PREFIX_hook` (`id_hook`, `name`, `title`, `description`, `po
   (NULL, 'displayAdminThemesListAfter', 'BO themes list extra content', 'This hook displays content after the themes list in the back office', '1'),
   (NULL, 'displayModuleConfigureExtraButtons', 'Module configuration - After toolbar buttons', 'This hook allows to add toolbar''s additional content on module configuration page', '1'),
   (NULL, 'actionGetAlternativeSearchPanels', 'Additional search panel', 'This hook allows to add an additional search panel for external providers in PrestaShop back office', '1')
-;
+ON DUPLICATE KEY UPDATE `title` = VALUES(`title`), `description` = VALUES(`description`);
 
 /* Auto generated hooks added for version 8.0.0 */
-INSERT IGNORE INTO `PREFIX_hook` (`id_hook`, `name`, `title`, `description`, `position`) VALUES
+INSERT INTO `PREFIX_hook` (`id_hook`, `name`, `title`, `description`, `position`) VALUES
   (NULL, 'actionCreateProductFormBuilderModifier', 'Modify create product identifiable object form', 'This hook allows to modify create product identifiable object forms content by modifying form builder data or FormBuilder itself', '1'),
   (NULL, 'actionCombinationListFormBuilderModifier', 'Modify combination list identifiable object form', 'This hook allows to modify combination list identifiable object forms content by modifying form builder data or FormBuilder itself', '1'),
   (NULL, 'actionProductImageFormBuilderModifier', 'Modify product image identifiable object form', 'This hook allows to modify product image identifiable object forms content by modifying form builder data or FormBuilder itself', '1'),
@@ -174,7 +175,7 @@ INSERT IGNORE INTO `PREFIX_hook` (`id_hook`, `name`, `title`, `description`, `po
   (NULL, 'actionSecuritySessionCustomerGridPresenterModifier', 'Modify security session customer grid template data', 'This hook allows to modify data which is about to be used in template for security session customer grid', '1'),
   (NULL, 'actionStateGridPresenterModifier', 'Modify state grid template data', 'This hook allows to modify data which is about to be used in template for state grid', '1'),
   (NULL, 'actionTitleGridPresenterModifier', 'Modify title grid template data', 'This hook allows to modify data which is about to be used in template for title grid', '1')
-;
+ON DUPLICATE KEY UPDATE `title` = VALUES(`title`), `description` = VALUES(`description`);
 
 ALTER TABLE `PREFIX_employee_session` ADD `date_upd` DATETIME NOT NULL AFTER `token`;
 ALTER TABLE `PREFIX_employee_session` ADD `date_add` DATETIME NOT NULL AFTER `date_upd`;
@@ -191,10 +192,8 @@ ALTER TABLE `PREFIX_product` MODIFY COLUMN `redirect_type` ENUM(
     '404', '410', '301-product', '302-product', '301-category', '302-category'
 ) NOT NULL DEFAULT '404';
 ALTER TABLE `PREFIX_product_shop` MODIFY COLUMN `redirect_type` ENUM(
-    '404', '410', '301-product', '302-product', '301-category', '302-category'
-) NOT NULL DEFAULT '404';
-
-ALTER TABLE `PREFIX_tab` ADD route_name VARCHAR(256) DEFAULT NULL;
+    '', '404', '410', '301-product', '302-product', '301-category', '302-category'
+) NOT NULL DEFAULT '';
 
 /* PHP:ps_800_add_security_tab(); */;
 
@@ -237,3 +236,8 @@ UPDATE `PREFIX_carrier` SET `name` = 'Click and collect' WHERE `name` = '0';
 /* Remove deprecated columns */
 /* PHP:drop_column_if_exists('product_attribute', 'location'); */;
 /* PHP:drop_column_if_exists('product_attribute', 'quantity'); */;
+/* PHP:drop_column_if_exists('orders', 'shipping_number'); */;
+
+ALTER TABLE `PREFIX_tab` DROP hide_host_mode;
+ALTER TABLE `PREFIX_feature_flag` CHANGE label_wording label_wording VARCHAR(512) DEFAULT '' NOT NULL;
+ALTER TABLE `PREFIX_feature_flag` CHANGE description_wording description_wording VARCHAR(512) DEFAULT '' NOT NULL;

@@ -3,10 +3,9 @@
 /**
  * Database core class for the MySQLi library
  *
- * @package core
- * @subpackage classes\database
+ * @package zpcore\classes\database
  * 
- * @since ZenphotoCMS 1.6 - reworked as class
+ * @since 1.6 - reworked as class
  */
 class dbMySQLi extends dbBase {
 
@@ -23,13 +22,17 @@ class dbMySQLi extends dbBase {
 			if (!empty($this->mysql_socket)) {
 				$socket = $this->mysql_socket;
 			}
-			$this->connection = new mysqli($this->mysql_host, $this->mysql_user, $this->mysql_pass, $this->mysql_database, $this->mysql_port, $socket);
-			if ($this->connection->connect_error) {
-				$error_msg = sprintf(gettext('MySql Error: Zenphoto received the error %s when connecting to the database server.'), $this->connection->connect_error);
-				dbbase::logConnectionError($error_msg, $errorstop);
+			try {
+				$this->connection = new mysqli($this->mysql_host, $this->mysql_user, $this->mysql_pass, $this->mysql_database, $this->mysql_port, $socket);
+			} catch (Exception $e) {
+				dbbase::logConnectionError($e->getMessage(), $errorstop);
+				if (is_object($this->connection) && $this->connection->connect_error) {
+					$error_msg = sprintf(gettext('MySql Error: Zenphoto received the error %s when connecting to the database server.'), $this->connection->connect_error) ;
+					dbbase::logConnectionError($error_msg, $errorstop);
+				}
 				$this->connection = null;
 			}
-		} 
+		}
 		if ($this->connection) {
 			if ($this->use_utf8) {
 				if ($this->hasUtf8mb4Support('general')) {

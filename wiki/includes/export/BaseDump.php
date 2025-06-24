@@ -2,7 +2,7 @@
 /**
  * Helper class for the --prefetch option of dumpTextPass.php
  *
- * Copyright © 2005 Brion Vibber <brion@pobox.com>
+ * Copyright © 2005 Brooke Vibber <bvibber@wikimedia.org>
  * https://www.mediawiki.org/
  *
  * This program is free software; you can redistribute it and/or modify
@@ -102,10 +102,9 @@ class BaseDump {
 			if ( $slot !== SlotRecord::MAIN ) {
 				$lastSlot = SlotRecord::MAIN;
 				while ( $lastSlot !== $slot ) {
-					if ( !$this->skipTo( 'content', 'revision' ) ) {
-						return null;
-					}
-					if ( !$this->skipTo( 'role', 'revision' ) ) {
+					if ( !$this->skipTo( 'content', 'revision' ) ||
+						!$this->skipTo( 'role', 'revision' )
+					) {
 						return null;
 					}
 					$lastSlot = $this->nodeContents();

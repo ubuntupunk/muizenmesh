@@ -26,8 +26,8 @@ class PruneUnusedLinkTargetRows extends Maintenance {
 	}
 
 	public function execute() {
-		$dbw = $this->getDB( DB_PRIMARY );
-		$dbr = $this->getDB( DB_REPLICA );
+		$dbw = $this->getPrimaryDB();
+		$dbr = $this->getReplicaDB();
 		$maxLtId = (int)$dbr->newSelectQueryBuilder()
 			->select( 'MAX(lt_id)' )
 			->from( 'linktarget' )
@@ -40,7 +40,7 @@ class PruneUnusedLinkTargetRows extends Maintenance {
 
 		$this->output( "Deleting unused linktarget rows...\n" );
 		$deleted = 0;
-		$linksMigration = \MediaWiki\MediaWikiServices::getInstance()->getLinksMigration();
+		$linksMigration = $this->getServiceContainer()->getLinksMigration();
 		while ( $ltCounter < $maxLtId ) {
 			$batchMaxLtId = min( $ltCounter + $this->getBatchSize(), $maxLtId ) + 1;
 			$this->output( "Checking lt_id between $ltCounter and $batchMaxLtId...\n" );
@@ -48,8 +48,8 @@ class PruneUnusedLinkTargetRows extends Maintenance {
 				->select( [ 'lt_id' ] )
 				->from( 'linktarget' );
 			$queryBuilder->where( [
-				'lt_id < ' . $dbr->addQuotes( $batchMaxLtId ),
-				'lt_id > ' . $dbr->addQuotes( $ltCounter )
+				$dbr->expr( 'lt_id', '<', $batchMaxLtId ),
+				$dbr->expr( 'lt_id', '>', $ltCounter )
 			] );
 			foreach ( $linksMigration::$mapping as $table => $tableData ) {
 				$queryBuilder->leftJoin( $table, null, $tableData['target_id'] . '=lt_id' );
@@ -84,7 +84,10 @@ class PruneUnusedLinkTargetRows extends Maintenance {
 			}
 
 			if ( !$this->getOption( 'dry' ) ) {
-				$dbw->delete( 'linktarget', [ 'lt_id' => $ltIdsToDelete ], __METHOD__ );
+				$dbw->newDeleteQueryBuilder()
+					->deleteFrom( 'linktarget' )
+					->where( [ 'lt_id' => $ltIdsToDelete ] )
+					->caller( __METHOD__ )->execute();
 			}
 			$deleted += count( $ltIdsToDelete );
 			$ltCounter += $this->getBatchSize();

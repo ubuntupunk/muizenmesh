@@ -36,8 +36,7 @@
  * if no specific layout is seleced. News articles don't inherit anything because they don't directly belong to any parent item.
  *
  * @author Malte Müller (acrylian), Stephen Billard (sbillard)
- * @package plugins
- * @subpackage multiple-layouts
+ * @package zpcore\plugins\multiplelayouts
  */
 $plugin_is_filter = 5 | FEATURE_PLUGIN;
 $plugin_description = gettext("Multiple <em>Theme</em> layouts");
@@ -171,7 +170,7 @@ function checkParentLayouts($obj, $type) {
 		case 'multiple_layouts_pages':
 		case 'multiple_layouts_news_categories':
 			$parents = $obj->getParents();
-			if (count($parents) > 0) {
+			if ($parents && count($parents) > 0) {
 				$parents = array_reverse($parents); //reverse so we can check the direct parent first.
 				foreach ($parents as $parent) {
 					if ($type === 'multiple_layouts_pages') {

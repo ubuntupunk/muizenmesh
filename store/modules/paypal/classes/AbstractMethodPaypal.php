@@ -1,6 +1,6 @@
 <?php
-/**
- * 2007-2023 PayPal
+/*
+ * Since 2007 PayPal
  *
  * NOTICE OF LICENSE
  *
@@ -18,10 +18,11 @@
  *  versions in the future. If you wish to customize PrestaShop for your
  *  needs please refer to http://www.prestashop.com for more information.
  *
- *  @author 2007-2023 PayPal
+ *  @author Since 2007 PayPal
  *  @author 202 ecommerce <tech@202-ecommerce.com>
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
+ *
  */
 
 namespace PaypalAddons\classes;
@@ -37,8 +38,10 @@ use MethodMB;
 use Module;
 use PayPal;
 use PaypalAddons\classes\API\Model\VaultInfo;
+use PaypalAddons\classes\API\Model\WebhookPatch;
 use PaypalAddons\classes\API\PaypalApiManagerInterface;
 use PaypalAddons\classes\API\PaypalVaultApiManagerInterface;
+use PaypalAddons\classes\API\PaypalWebhookApiManagerInterface;
 use PaypalAddons\classes\API\Response\Error;
 use PaypalAddons\classes\API\Response\Response;
 use PaypalAddons\classes\API\Response\ResponseGenerateIdToken;
@@ -46,6 +49,8 @@ use PaypalAddons\classes\API\Response\ResponseOrderCapture;
 use PaypalAddons\classes\API\Response\ResponseOrderGet;
 use PaypalAddons\classes\API\Response\ResponseOrderRefund;
 use PaypalAddons\classes\API\Response\ResponseVaultPaymentToken;
+use PaypalAddons\classes\API\Response\ResponseWebhookEventDetail;
+use PaypalAddons\classes\API\Response\ResponseWebhookEventList;
 use PaypalAddons\classes\Constants\Vaulting;
 use PaypalAddons\classes\PUI\SignupLink;
 use PaypalAddons\classes\Shortcut\ShortcutCart;
@@ -58,6 +63,7 @@ use PaypalAddons\services\Order\RefundAmountCalculator;
 use PaypalAddons\services\PaypalContext;
 use PaypalAddons\services\ServicePaypalVaulting;
 use PaypalAddons\services\StatusMapping;
+use PaypalOrder;
 use PaypalPPBTlib\AbstractMethod;
 use PrestaShopLogger;
 use Throwable;
@@ -229,21 +235,29 @@ abstract class AbstractMethodPaypal extends AbstractMethod
         $vaultingFunctionality = $this->initVaultingFunctionality();
 
         if (!Validate::isLoadedObject($customer)) {
-            throw new Exception('Customer is not loaded object');
+            throw new PaypalException(PaypalException::INVALID_CUSTOMER, 'Customer is not loaded object');
         }
-
-        if ($this->getPaymentId() == false) {
-            throw new Exception('Payment ID isn\'t setted');
+        if (empty($this->getPaymentId())) {
+            throw new PaypalException(PaypalException::ARGUMENT_MISSING, 'Payment ID isn\'t setted');
         }
-
         if (false === $this->isCorrectCart($cart, $this->getPaymentId())) {
-            throw new Exception('The elements in the shopping cart were changed. Please try to pay again.');
+            throw new PaypalException(PaypalException::CART_CHANGED, 'The elements in the shopping cart were changed. Please try to pay again.');
+        }
+        if (PaypalOrder::paymentExists($this->getPaymentId())) {
+            throw new PaypalException(PaypalException::PAYMENT_EXISTS, 'Payment exists.');
+        }
+
+        if ($cart->isAllProductsInStock() !== true ||
+            (method_exists($cart, 'checkAllProductsAreStillAvailableInThisState') && $cart->checkAllProductsAreStillAvailableInThisState() !== true) ||
+            (method_exists($cart, 'checkAllProductsHaveMinimalQuantities') && $cart->checkAllProductsHaveMinimalQuantities() !== true)
+        ) {
+            throw new PaypalException(PaypalException::PRODUCT_UNAVAILABLE, sprintf('Cart with id %d contains products unavailable. Cannot capture the order.', (int) $cart->id));
         }
 
         $response = $this->completePayment();
 
-        if ($response->isSuccess() == false) {
-            throw new Exception($response->getError()->getMessage());
+        if ($response->isSuccess() === false) {
+            throw new Exception($response->getError()->getMessage(), $response->getError()->getCode());
         }
 
         if ($vaultingFunctionality->isAvailable() && $vaultingFunctionality->isEnabled()) {
@@ -256,7 +270,7 @@ abstract class AbstractMethodPaypal extends AbstractMethod
         $currency = $context->currency;
         $total = $response->getTotalPaid();
         $paypal = Module::getInstanceByName($this->name);
-        $order_state = $this->getOrderStatus();
+        $order_state = $this->getOrderStatus($response->getStatus());
         $paypal->validateOrder(
             $cart->id,
             $order_state,
@@ -278,6 +292,18 @@ abstract class AbstractMethodPaypal extends AbstractMethod
         /** @var ResponseOrderGet $getOrderResponse */
         $getOrderResponse = $this->paypalApiManager->getOrderGetRequest($this->getPaymentId())->execute();
         $response = new ResponseOrderCapture();
+        $scaState = null;
+
+        if ($getOrderResponse->isSuccess() === false) {
+            $error = new Error();
+            $error
+                ->setErrorCode(PaypalException::PAYMENT_ID_INVALID)
+                ->setMessage('Payment ID is invalid');
+            $response->setError($error)->setSuccess(false);
+            $response->setScaState(PayPal::SCA_STATE_FAILED);
+
+            return $response;
+        }
         // Make sure that the order is eligible for capture when the buyer was passed by security customer authentication
         if (!empty($getOrderResponse->getData()->result->payment_source->card->authentication_result)) {
             $authResult = $getOrderResponse->getData()->result->payment_source->card->authentication_result;
@@ -286,6 +312,8 @@ abstract class AbstractMethodPaypal extends AbstractMethod
             if (!empty($authResult->liability_shift)) {
                 if ($authResult->liability_shift === PayPal::SCA_LIABILITY_SHIFT_POSSIBLE) {
                     $isSuccessSCA = true;
+                    $scaState = PayPal::SCA_STATE_SUCCESS;
+                    $response->setScaState(PayPal::SCA_STATE_SUCCESS);
                 }
                 if ($authResult->liability_shift === PayPal::SCA_LIABILITY_SHIFT_NO) {
                     if (!empty($authResult->three_d_secure->enrollment_status)) {
@@ -297,39 +325,78 @@ abstract class AbstractMethodPaypal extends AbstractMethod
                                 PayPal::SCA_BYPASSED,
                             ]
                         );
+
+                        if ($isSuccessSCA) {
+                            $scaState = PayPal::SCA_STATE_NOT_PASSED;
+                            $response->setScaState(PayPal::SCA_STATE_NOT_PASSED);
+                        }
                     }
                 }
             }
 
             if ($isSuccessSCA === false) {
                 $error = new Error();
-                $error->setMessage('3DS verification is failed');
+                $error
+                    ->setErrorCode(PaypalException::SCA_FAIL)
+                    ->setMessage('3DS verification is failed');
                 $response->setError($error)->setSuccess(false);
+                $response->setScaState(PayPal::SCA_STATE_FAILED);
 
                 return $response;
             }
+        } else {
+            $scaState = PayPal::SCA_STATE_UNKNOWN;
         }
 
         if ($this instanceof MethodMB || $getOrderResponse->getStatus() !== 'COMPLETED') {
             if ($this->getIntent() == 'CAPTURE') {
-                return $this->paypalApiManager->getOrderCaptureRequest($this->getPaymentId())->execute();
+                $response = $this->paypalApiManager->getOrderCaptureRequest($this->getPaymentId())->execute();
             } else {
-                return $this->paypalApiManager->getOrderAuthorizeRequest($this->getPaymentId())->execute();
+                $response = $this->paypalApiManager->getOrderAuthorizeRequest($this->getPaymentId())->execute();
             }
+        } else {
+            $response->setSuccess(true)
+                ->setData($getOrderResponse->getData())
+                ->setPaymentId($this->getPaymentId())
+                ->setTransactionId($getOrderResponse->getTransactionId())
+                ->setCurrency($getOrderResponse->getPurchaseUnit()->getCurrency())
+                ->setCapture($this->getIntent() !== 'CAPTURE')
+                ->setTotalPaid($getOrderResponse->getPurchaseUnit()->getAmount())
+                ->setStatus($getOrderResponse->getStatus())
+                ->setPaymentMethod($getOrderResponse->getPaymentMethod())
+                ->setPaymentTool($getOrderResponse->getPaymentTool())
+                ->setMethod($getOrderResponse->getMethod())
+                ->setDateTransaction($getOrderResponse->getDateTransaction());
         }
 
-        $response->setSuccess(true)
-            ->setData($getOrderResponse->getData())
-            ->setPaymentId($this->getPaymentId())
-            ->setTransactionId($getOrderResponse->getTransactionId())
-            ->setCurrency($getOrderResponse->getPurchaseUnit()->getCurrency())
-            ->setCapture($this->getIntent() !== 'CAPTURE')
-            ->setTotalPaid($getOrderResponse->getPurchaseUnit()->getAmount())
-            ->setStatus($getOrderResponse->getStatus())
-            ->setPaymentMethod($getOrderResponse->getPaymentMethod())
-            ->setPaymentTool($getOrderResponse->getPaymentTool())
-            ->setMethod($getOrderResponse->getMethod())
-            ->setDateTransaction($getOrderResponse->getDateTransaction());
+        $response->setScaState($scaState);
+
+        if ($this->getIntent() == 'CAPTURE') {
+            if (empty($response->getData()->result->purchase_units[0]->payments->captures)) {
+                $error = new Error();
+                $error
+                    ->setErrorCode(PaypalException::CAPTURE_FAIL)
+                    ->setMessage('Failed to capture payment');
+                $response->setError($error)->setSuccess(false);
+
+                return $response;
+            }
+
+            foreach ($response->getData()->result->purchase_units[0]->payments->captures as $capture) {
+                if (false === in_array($capture->status, [PayPal::CAPTURE_STATUS_COMPLETED, PayPal::CAPTURE_STATUS_PENDING])) {
+                    $error = new Error();
+                    $error
+                        ->setErrorCode(PaypalException::CAPTURE_FAIL)
+                        ->setMessage('Failed to capture payment');
+                    $response->setError($error)->setSuccess(false);
+
+                    return $response;
+                }
+                if ($capture->status === PayPal::CAPTURE_STATUS_PENDING) {
+                    $response->setStatus(PayPal::CAPTURE_STATUS_PENDING);
+                }
+            }
+        }
 
         return $response;
     }
@@ -352,6 +419,7 @@ abstract class AbstractMethodPaypal extends AbstractMethod
             'transaction_id' => $data->getTransactionId(),
             'capture' => $data->isCapture(),
             'intent' => $this->getIntent(),
+            'scaState' => $data->getScaState(),
         ];
 
         $this->transaction_detail = $transaction_detail;
@@ -600,7 +668,6 @@ abstract class AbstractMethodPaypal extends AbstractMethod
     {
         $key = [];
         $products = $cart->getProducts();
-        $cartRules = $cart->getCartRules();
 
         if (empty($products) === false) {
             foreach ($products as $product) {
@@ -612,12 +679,6 @@ abstract class AbstractMethodPaypal extends AbstractMethod
                         $product['quantity'],
                     ]
                 );
-            }
-        }
-
-        if (false === empty($cartRules)) {
-            foreach ($cartRules as $cartRule) {
-                $key[] = isset($cartRule['id_cart_rule']) ? $cartRule['id_cart_rule'] : '';
             }
         }
 
@@ -690,7 +751,7 @@ abstract class AbstractMethodPaypal extends AbstractMethod
     /**
      * @return int id of the order status
      **/
-    public function getOrderStatus()
+    public function getOrderStatus($captureState = PayPal::CAPTURE_STATUS_COMPLETED)
     {
         if ($this->getWebhookOption()->isEnable() && $this->getWebhookOption()->isAvailable()) {
             return $this->getStatusMapping()->getWaitValidationStatus();
@@ -700,15 +761,19 @@ abstract class AbstractMethodPaypal extends AbstractMethod
             return $this->getStatusMapping()->getWaitValidationStatus();
         }
 
-        return $this->getStatusMapping()->getAcceptedStatus();
+        if ($captureState === PayPal::CAPTURE_STATUS_COMPLETED) {
+            return $this->getStatusMapping()->getAcceptedStatus();
+        }
+
+        return $this->getStatusMapping()->getWaitValidationStatus();
     }
 
-    public function updateOrderTrackingInfo(\PaypalOrder $paypalOrder)
+    public function updateOrderTrackingInfo(PaypalOrder $paypalOrder)
     {
         return $this->paypalApiManager->getUpdateTrackingInfoRequest($paypalOrder)->execute();
     }
 
-    public function addOrderTrackingInfo(\PaypalOrder $paypalOrder)
+    public function addOrderTrackingInfo(PaypalOrder $paypalOrder)
     {
         return $this->paypalApiManager->getAddTrackingInfoRequest($paypalOrder)->execute();
     }
@@ -828,6 +893,60 @@ abstract class AbstractMethodPaypal extends AbstractMethod
         }
 
         return null;
+    }
+
+    public function getWebhookEventList($params = [])
+    {
+        if ($this->paypalApiManager instanceof PaypalWebhookApiManagerInterface) {
+            return $this->paypalApiManager->getWebhookEventList($params)->execute();
+        }
+
+        return (new ResponseWebhookEventList())->setSuccess(false);
+    }
+
+    public function getWebhookEventDetail($id)
+    {
+        if ($this->paypalApiManager instanceof PaypalWebhookApiManagerInterface) {
+            return $this->paypalApiManager->getWebhookEventDetail($id)->execute();
+        }
+
+        return (new ResponseWebhookEventDetail())->setSuccess(false);
+    }
+
+    public function getWebhookList()
+    {
+        if ($this->paypalApiManager instanceof PaypalWebhookApiManagerInterface) {
+            return $this->paypalApiManager->getWebhookList()->execute();
+        }
+
+        return (new Response())->setSuccess(false);
+    }
+
+    public function createWebhook($webhook = null)
+    {
+        if ($this->paypalApiManager instanceof PaypalWebhookApiManagerInterface) {
+            return $this->paypalApiManager->createWebhook($webhook)->execute();
+        }
+
+        return (new Response())->setSuccess(false);
+    }
+
+    public function patchWebhook(WebhookPatch $patch)
+    {
+        if ($this->paypalApiManager instanceof PaypalWebhookApiManagerInterface) {
+            return $this->paypalApiManager->patchWebhook($patch)->execute();
+        }
+
+        return (new Response())->setSuccess(false);
+    }
+
+    public function deleteWebhook($id)
+    {
+        if ($this->paypalApiManager instanceof PaypalWebhookApiManagerInterface) {
+            return $this->paypalApiManager->deleteWebhook($id)->execute();
+        }
+
+        return (new Response())->setSuccess(false);
     }
 
     /** @return  string*/

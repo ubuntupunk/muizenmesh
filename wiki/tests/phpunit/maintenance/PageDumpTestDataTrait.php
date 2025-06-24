@@ -3,13 +3,13 @@
 namespace MediaWiki\Tests\Maintenance;
 
 use Exception;
-use MediaWiki\MediaWikiServices;
+use MediaWiki\Context\RequestContext;
+use MediaWiki\MainConfigNames;
 use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\Revision\SlotRecord;
 use MediaWiki\Title\Title;
-use MWException;
-use RequestContext;
 use RevisionDeleter;
+use RuntimeException;
 use Wikimedia\Rdbms\IDatabase;
 use WikitextContent;
 
@@ -51,23 +51,18 @@ trait PageDumpTestDataTrait {
 		// be sure, titles created here using english namespace names
 		$this->setContentLang( 'en' );
 
-		$this->tablesUsed[] = 'page';
-		$this->tablesUsed[] = 'revision';
-		$this->tablesUsed[] = 'ip_changes';
-		$this->tablesUsed[] = 'text';
-
 		try {
 			$this->namespace = $this->getDefaultWikitextNS();
 			$this->talk_namespace = NS_TALK;
 
 			if ( $this->namespace === $this->talk_namespace ) {
 				// @todo work around this.
-				throw new MWException( "The default wikitext namespace is the talk namespace. "
+				throw new RuntimeException( "The default wikitext namespace is the talk namespace. "
 					. " We can't currently deal with that." );
 			}
 
 			$wikiPageFactory = $this->getServiceContainer()->getWikiPageFactory();
-			$this->pageTitle1 = Title::newFromText( 'BackupDumperTestP1', $this->namespace );
+			$this->pageTitle1 = Title::makeTitle( $this->namespace, 'BackupDumperTestP1' );
 			$page = $wikiPageFactory->newFromTitle( $this->pageTitle1 );
 			$this->rev1_1 = $this->addMultiSlotRevision(
 				$page,
@@ -79,7 +74,7 @@ trait PageDumpTestDataTrait {
 			);
 			$this->pageId1 = $page->getId();
 
-			$this->pageTitle2 = Title::newFromText( 'BackupDumperTestP2', $this->namespace );
+			$this->pageTitle2 = Title::makeTitle( $this->namespace, 'BackupDumperTestP2' );
 			$page = $wikiPageFactory->newFromTitle( $this->pageTitle2 );
 			[ , , $this->rev2_1 ] = $this->addRevision( $page,
 				"BackupDumperTestP2Text1", "BackupDumperTestP2Summary1" );
@@ -105,29 +100,29 @@ trait PageDumpTestDataTrait {
 			] );
 
 			// re-load from database, with correct deletion status
-			$this->rev2_2 = MediaWikiServices::getInstance()->getRevisionLookup()->getRevisionById(
+			$this->rev2_2 = $this->getServiceContainer()->getRevisionLookup()->getRevisionById(
 				$this->rev2_2->getId()
 			);
 
-			$this->pageTitle3 = Title::newFromText( 'BackupDumperTestP3', $this->namespace );
+			$this->pageTitle3 = Title::makeTitle( $this->namespace, 'BackupDumperTestP3' );
 			$page = $wikiPageFactory->newFromTitle( $this->pageTitle3 );
 			[ , , $this->rev3_1 ] = $this->addRevision( $page,
 				"BackupDumperTestP3Text1", "BackupDumperTestP2Summary1" );
 			[ , , $this->rev3_2 ] = $this->addRevision( $page,
 				"BackupDumperTestP3Text2", "BackupDumperTestP2Summary2" );
 			$this->pageId3 = $page->getId();
-			MediaWikiServices::getInstance()->getDeletePageFactory()
+			$this->getServiceContainer()->getDeletePageFactory()
 				->newDeletePage( $page, $context->getAuthority() )
 				->deleteUnsafe( "Testing" );
 
-			$this->pageTitle4 = Title::newFromText( 'BackupDumperTestP1', $this->talk_namespace );
+			$this->pageTitle4 = Title::makeTitle( $this->talk_namespace, 'BackupDumperTestP1' );
 			$page = $wikiPageFactory->newFromTitle( $this->pageTitle4 );
 			[ , , $this->rev4_1 ] = $this->addRevision( $page,
 				"Talk about BackupDumperTestP1 Text1",
 				"Talk BackupDumperTestP1 Summary1" );
 			$this->pageId4 = $page->getId();
 
-			$this->pageTitle5 = Title::newFromText( 'BackupDumperTestP5' );
+			$this->pageTitle5 = Title::makeTitle( NS_MAIN, 'BackupDumperTestP5' );
 			$page = $wikiPageFactory->newFromTitle( $this->pageTitle5 );
 			[ , , $this->rev5_1 ] = $this->addRevision( $page,
 				"BackupDumperTestP5 Text1",
@@ -171,13 +166,13 @@ trait PageDumpTestDataTrait {
 	 * @return RevisionRecord
 	 */
 	protected function corruptRevisionData( IDatabase $db, RevisionRecord $revision ) {
-		$db->update(
-			'content',
-			[ 'content_address' => 'tt:0' ],
-			[ 'content_id' => $revision->getSlot( \MediaWiki\Revision\SlotRecord::MAIN )->getContentId() ]
-		);
+		$db->newUpdateQueryBuilder()
+			->update( 'content' )
+			->set( [ 'content_address' => 'tt:0' ] )
+			->where( [ 'content_id' => $revision->getSlot( SlotRecord::MAIN )->getContentId() ] )
+			->execute();
 
-		$revision = MediaWikiServices::getInstance()->getRevisionLookup()->getRevisionById(
+		$revision = $this->getServiceContainer()->getRevisionLookup()->getRevisionById(
 			$revision->getId()
 		);
 		return $revision;
@@ -192,7 +187,7 @@ trait PageDumpTestDataTrait {
 	 */
 	protected function setRevisionVarMappings( $prefix, RevisionRecord $rev, DumpAsserter $asserter ) {
 		$ts = wfTimestamp( TS_ISO_8601, $rev->getTimestamp() );
-		$title = MediaWikiServices::getInstance()->getTitleFormatter()->getPrefixedText(
+		$title = $this->getServiceContainer()->getTitleFormatter()->getPrefixedText(
 			$rev->getPageAsLinkTarget()
 		);
 
@@ -253,23 +248,23 @@ trait PageDumpTestDataTrait {
 	}
 
 	private function setSiteVarMappings( DumpAsserter $asserter ) {
-		global $wgSitename, $wgDBname, $wgCapitalLinks;
+		$config = $this->getServiceContainer()->getMainConfig();
 
 		$asserter->setVarMapping( 'mw_version', MW_VERSION );
 		$asserter->setVarMapping( 'schema_version', $asserter->getSchemaVersion() );
 
-		$asserter->setVarMapping( 'site_name', $wgSitename );
+		$asserter->setVarMapping( 'site_name', $config->get( MainConfigNames::Sitename ) );
 		$asserter->setVarMapping(
 			'project_namespace',
-			MediaWikiServices::getInstance()->getTitleFormatter()->getNamespaceName(
+			$this->getServiceContainer()->getTitleFormatter()->getNamespaceName(
 				NS_PROJECT,
 				'Dummy'
 			)
 		);
-		$asserter->setVarMapping( 'site_db', $wgDBname );
+		$asserter->setVarMapping( 'site_db', $config->get( MainConfigNames::DBname ) );
 		$asserter->setVarMapping(
 			'site_case',
-			$wgCapitalLinks ? 'first-letter' : 'case-sensitive'
+			$config->get( MainConfigNames::CapitalLinks ) ? 'first-letter' : 'case-sensitive'
 		);
 		$asserter->setVarMapping(
 			'site_base',
@@ -277,7 +272,7 @@ trait PageDumpTestDataTrait {
 		);
 		$asserter->setVarMapping(
 			'site_language',
-			MediaWikiServices::getInstance()->getContentLanguage()->getHtmlCode()
+			$this->getServiceContainer()->getContentLanguage()->getHtmlCode()
 		);
 	}
 }

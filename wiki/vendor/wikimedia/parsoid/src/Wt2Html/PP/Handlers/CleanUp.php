@@ -22,10 +22,9 @@ use Wikimedia\Parsoid\Wt2Html\TT\PreHandler;
 class CleanUp {
 	/**
 	 * @param Element $node
-	 * @param Env $env
 	 * @return bool|Element
 	 */
-	public static function stripMarkerMetas( Element $node, Env $env ) {
+	public static function stripMarkerMetas( Element $node ) {
 		// This meta tag can never have data-mw associated with it.
 		// If it were produced by a template, it would always have a <pre>
 		// wrapper around which carries any relevant data-mw & typeof properties.
@@ -54,7 +53,7 @@ class CleanUp {
 					// @see explanation in PreHandler::newIndentPreWS()
 					$dsr->openWidth = 1;
 				}
-				// Strip this in the cleanupAndSaveDataParsoid handler since
+				// Strip this in the cleanup handler since
 				// DOM passes till the end may need DSR info from this tag.
 				return true;
 			} else {
@@ -82,7 +81,7 @@ class CleanUp {
 		while ( $n ) {
 			if ( $n instanceof Comment ||
 				WTUtils::isSolTransparentLink( $n ) ||
-				( $n instanceof Text && preg_match( '/^[ \t]*$/D',  $n->nodeValue ) ) ||
+				( $n instanceof Text && preg_match( '/^[ \t]*$/D', $n->nodeValue ) ) ||
 				( DOMUtils::hasTypeOf( $n, 'mw:Nowiki' ) && self::isEmptyNode( $n ) ) ||
 				(
 					$n instanceof Element &&
@@ -100,15 +99,21 @@ class CleanUp {
 		return true;
 	}
 
+	// These template-wrapping attributes can be ignored while looking for
+	// empty elements. Note that data-mw & data-parsoid are unlikely to exist
+	// at this stage of DOM processing. This is conservative but safe.
+	// In this case, it is also sufficient since only p, li, tr can be deleted.
+	public const ALLOWED_TPL_WRAPPER_ATTRS = [
+		'about' => 1,
+		'typeof' => 1,
+	];
+
 	/**
 	 * @param Node $node
-	 * @param Env $env
 	 * @param DTState $state
 	 * @return bool|Node
 	 */
-	public static function handleEmptyElements(
-		Node $node, Env $env, DTState $state
-	) {
+	public static function handleEmptyElements( Node $node, DTState $state ) {
 		if ( !( $node instanceof Element ) ||
 			!isset( Consts::$Output['FlaggedEmptyElts'][DOMCompat::nodeName( $node )] ) ||
 			!self::isEmptyNode( $node )
@@ -116,29 +121,31 @@ class CleanUp {
 			return true;
 		}
 		foreach ( DOMUtils::attributes( $node ) as $name => $value ) {
-			if ( ( $name !== DOMDataUtils::DATA_OBJECT_ATTR_NAME ) &&
-				( !( $state->tplInfo ?? null ) || $name !== 'about' || !Utils::isParsoidObjectId( $value ) )
+			// Skip the Parsoid-added data attribute and template-wrapping attributes
+			if ( $name === DOMDataUtils::DATA_OBJECT_ATTR_NAME ||
+				( ( $state->tplInfo ?? null ) && isset( self::ALLOWED_TPL_WRAPPER_ATTRS[$name] ) )
 			) {
-				return true;
+				continue;
 			}
+
+			return true;
 		}
 
 		/**
 		 * The node is known to be empty and a deletion candidate
-		 * - If node is part of template content, it can be deleted
-		 *   (since we know it has no attributes, it won't be the
-		 *   first node that has about, typeof, and other attrs)
+		 * - If node is part of template content and is not the
+		 *   first encapsulation wrapper node, it can be deleted.
 		 * - If not, we add the mw-empty-elt class so that wikis
 		 *   can decide what to do with them.
 		 */
-		if ( $state->tplInfo ?? null ) {
+		if ( $state->tplInfo && $state->tplInfo->first !== $node ) {
 			$nextNode = $node->nextSibling;
 			$node->parentNode->removeChild( $node );
 			return $nextNode;
-		} else {
-			DOMCompat::getClassList( $node )->add( 'mw-empty-elt' );
-			return true;
 		}
+
+		DOMCompat::getClassList( $node )->add( 'mw-empty-elt' );
+		return true;
 	}
 
 	/**
@@ -230,17 +237,13 @@ class CleanUp {
 	}
 
 	/**
-	 * Perform some final cleanup and save data-parsoid attributes on each node.
+	 * Perform some final cleanup
 	 *
-	 * @param array $usedIdIndex
 	 * @param Node $node
-	 * @param Env $env
 	 * @param DTState $state
 	 * @return bool|Node The next node or true to continue with $node->nextSibling
 	 */
-	public static function cleanupAndSaveDataParsoid(
-		array $usedIdIndex, Node $node, Env $env, DTState $state
-	) {
+	public static function finalCleanup( Node $node, DTState $state ) {
 		if ( !( $node instanceof Element ) ) {
 			return true;
 		}
@@ -267,7 +270,7 @@ class CleanUp {
 		// handle the HTML markup.
 		$validDSR = DOMDataUtils::validDataMw( $node ) && Utils::isValidDSR( $dp->dsr ?? null );
 		$isPageProp = DOMCompat::nodeName( $node ) === 'meta' &&
-			str_starts_with( $node->getAttribute( 'property' ) ?? '', 'mw:PageProp/' );
+			str_starts_with( DOMCompat::getAttribute( $node, 'property' ) ?? '', 'mw:PageProp/' );
 		if ( $validDSR && !$isPageProp ) {
 			unset( $dp->src );
 		} elseif ( $isFirstEncapsulationWrapperNode && ( !$state->atTopLevel || empty( $dp->tsr ) ) ) {
@@ -301,68 +304,92 @@ class CleanUp {
 			$dp->dsr->start = $dp->dsr->end;
 		}
 
-		if ( $state->atTopLevel ) {
-			// Strip nowiki spans from encapsulated content but leave behind
-			// wrappers on root nodes since they have valid about ids and we
-			// don't want to break the about-chain by stripping the wrapper
-			// and associated ids (we cannot add an about id on the nowiki-ed
-			// content since that would be a text node).
-			if ( ( $state->tplInfo ?? null ) && !WTUtils::hasParsoidAboutId( $node ) &&
-				 DOMUtils::hasTypeOf( $node, 'mw:Nowiki' )
-			) {
-				DOMUtils::migrateChildren( $node, $node->parentNode, $node->nextSibling );
-				$next = $node->nextSibling;
-				$node->parentNode->removeChild( $node );
-				return $next;
-			}
+		// Strip nowiki spans from encapsulated content but leave behind
+		// wrappers on root nodes since they have valid about ids and we
+		// don't want to break the about-chain by stripping the wrapper
+		// and associated ids (we cannot add an about id on the nowiki-ed
+		// content since that would be a text node).
+		if ( ( $state->tplInfo ?? null ) && !WTUtils::isEncapsulatedDOMForestRoot( $node ) &&
+			 DOMUtils::hasTypeOf( $node, 'mw:Nowiki' )
+		) {
+			DOMUtils::migrateChildren( $node, $node->parentNode, $node->nextSibling );
+			$next = $node->nextSibling;
+			$node->parentNode->removeChild( $node );
+			return $next;
+		}
 
-			// Strip IndentPre marker metas
-			if ( PreHandler::isIndentPreWS( $node ) ) {
-				$nextNode = $node->nextSibling;
-				$node->parentNode->removeChild( $node );
-				return $nextNode;
-			}
+		// Strip IndentPre marker metas
+		if ( PreHandler::isIndentPreWS( $node ) ) {
+			$nextNode = $node->nextSibling;
+			$node->parentNode->removeChild( $node );
+			return $nextNode;
+		}
 
-			// Trim whitespace from some wikitext markup
-			// not involving explicit HTML tags (T157481)
-			if ( !WTUtils::hasLiteralHTMLMarker( $dp ) &&
-				isset( Consts::$WikitextTagsWithTrimmableWS[DOMCompat::nodeName( $node )] )
-			) {
-				self::trimWhiteSpace( $node, $dp->dsr ?? null );
-			}
+		// Trim whitespace from some wikitext markup
+		// not involving explicit HTML tags (T157481)
+		if ( !WTUtils::hasLiteralHTMLMarker( $dp ) &&
+			isset( Consts::$WikitextTagsWithTrimmableWS[DOMCompat::nodeName( $node )] )
+		) {
+			self::trimWhiteSpace( $node, $dp->dsr ?? null );
+		}
 
-			$discardDataParsoid = $env->discardDataParsoid;
-
-			// Strip data-parsoid from templated content, where unnecessary.
-			if ( ( $state->tplInfo ?? null ) &&
-				// Always keep info for the first node
-				!$isFirstEncapsulationWrapperNode &&
-				// We can't remove data-parsoid from inside <references> text,
-				// as that's the only HTML representation we have left for it.
-				!self::inNativeContent( $env, $node ) &&
-				// FIXME: We can't remove dp from nodes with stx information
-				// because the serializer uses stx information in some cases to
-				// emit the right newline separators.
-				//
-				// For example, "a\n\nb" and "<p>a</p><p>b/p>" both generate
-				// identical html but serialize to different wikitext.
-				//
-				// This is only needed for the last top-level node .
-				( empty( $dp->stx ) || ( $state->tplInfo->last ?? null ) !== $node )
-			) {
-				$discardDataParsoid = true;
-			}
-
-			DOMDataUtils::storeDataAttribs( $node, [
-					'discardDataParsoid' => $discardDataParsoid,
-					// Even though we're passing in the `env`, this is the only place
-					// we want the storage to happen, so don't refactor this in there.
-					'storeInPageBundle' => $env->pageBundle,
-					'idIndex' => $usedIdIndex,
-					'env' => $env
-				]
-			);
-		} // We only need the env in this case.
 		return true;
 	}
+
+	/**
+	 * Perform some final cleanup
+	 *
+	 * @param array $usedIdIndex
+	 * @param Node $node
+	 * @param Env $env
+	 * @param DTState $state
+	 * @return bool|Node The next node or true to continue with $node->nextSibling
+	 */
+	public static function saveDataParsoid(
+		array $usedIdIndex, Node $node, Env $env, DTState $state
+	) {
+		if ( !( $node instanceof Element ) ) {
+			return true;
+		}
+
+		$dp = DOMDataUtils::getDataParsoid( $node );
+		$isFirstEncapsulationWrapperNode = ( $state->tplInfo->first ?? null ) === $node ||
+			// Traversal isn't done with tplInfo for section tags, but we should
+			// still clean them up as if they are the head of encapsulation.
+			WTUtils::isParsoidSectionTag( $node );
+		$discardDataParsoid = $env->discardDataParsoid;
+
+		// Strip data-parsoid from templated content, where unnecessary.
+		if ( ( $state->tplInfo ?? null ) &&
+			// Always keep info for the first node
+			!$isFirstEncapsulationWrapperNode &&
+			// We can't remove data-parsoid from inside <references> text,
+			// as that's the only HTML representation we have left for it.
+			!self::inNativeContent( $env, $node ) &&
+			// FIXME: We can't remove dp from nodes with stx information
+			// because the serializer uses stx information in some cases to
+			// emit the right newline separators.
+			//
+			// For example, "a\n\nb" and "<p>a</p><p>b/p>" both generate
+			// identical html but serialize to different wikitext.
+			//
+			// This is only needed for the last top-level node .
+			( empty( $dp->stx ) || ( $state->tplInfo->last ?? null ) !== $node )
+		) {
+			$discardDataParsoid = true;
+		}
+
+		DOMDataUtils::storeDataAttribs( $node, [
+				'discardDataParsoid' => $discardDataParsoid,
+				// Even though we're passing in the `env`, this is the only place
+				// we want the storage to happen, so don't refactor this in there.
+				'storeInPageBundle' => $env->pageBundle,
+				'idIndex' => $usedIdIndex,
+				'env' => $env
+			]
+		);
+
+		return true;
+	}
+
 }

@@ -2,7 +2,7 @@
 
 namespace MediaWiki\Extension\AbuseFilter\Tests\Unit\Filter;
 
-use BadMethodCallException;
+use LogicException;
 use MediaWiki\Extension\AbuseFilter\Filter\Filter;
 use MediaWiki\Extension\AbuseFilter\Filter\Flags;
 use MediaWiki\Extension\AbuseFilter\Filter\LastEditInfo;
@@ -55,7 +55,7 @@ class MutableFilterTest extends MediaWikiUnitTestCase {
 	/**
 	 * @return array
 	 */
-	public function provideSetters() {
+	public static function provideSetters() {
 		return [
 			'rules' => [ 'rules', 'setRules', 'getRules' ],
 			'comments' => [ 'comments', 'setComments', 'getComments' ],
@@ -86,7 +86,7 @@ class MutableFilterTest extends MediaWikiUnitTestCase {
 			[ 'foo' => [] ],
 			new LastEditInfo( 42, 'User', '12345' )
 		);
-		$this->expectException( BadMethodCallException::class );
+		$this->expectException( LogicException::class );
 		$filter->setActionsNames( [ 'x' ] );
 	}
 

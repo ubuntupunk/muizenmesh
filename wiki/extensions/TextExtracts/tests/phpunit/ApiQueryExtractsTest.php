@@ -3,9 +3,13 @@
 namespace TextExtracts\Test;
 
 use ILanguageConverter;
+use MediaWiki\Config\ConfigFactory;
+use MediaWiki\Config\HashConfig;
 use MediaWiki\Languages\LanguageConverterFactory;
+use MediaWiki\Title\Title;
 use MediaWikiCoversValidator;
 use TextExtracts\ApiQueryExtracts;
+use Wikimedia\LightweightObjectStore\ExpirationAwareness;
 use Wikimedia\TestingAccessWrapper;
 
 /**
@@ -18,11 +22,11 @@ class ApiQueryExtractsTest extends \MediaWikiIntegrationTestCase {
 	use MediaWikiCoversValidator;
 
 	private function newInstance() {
-		$config = new \HashConfig( [
-			'ParserCacheExpireTime' => \IExpiringStore::TTL_INDEFINITE,
+		$config = new HashConfig( [
+			'ParserCacheExpireTime' => ExpirationAwareness::TTL_INDEFINITE,
 		] );
 
-		$configFactory = $this->createMock( \ConfigFactory::class );
+		$configFactory = $this->createMock( ConfigFactory::class );
 		$configFactory->method( 'makeConfig' )
 			->with( 'textextracts' )
 			->willReturn( $config );
@@ -67,7 +71,7 @@ class ApiQueryExtractsTest extends \MediaWikiIntegrationTestCase {
 	}
 
 	public function testMemCacheHelpers() {
-		$title = $this->createMock( \Title::class );
+		$title = $this->createMock( Title::class );
 		$title->method( 'getPageLanguage' )
 			->willReturn( $this->createMock( \Language::class ) );
 
@@ -124,7 +128,7 @@ class ApiQueryExtractsTest extends \MediaWikiIntegrationTestCase {
 		$this->assertSame( $expected, $instance->getFirstSection( $text, $isPlainText ) );
 	}
 
-	public function provideFirstSectionsToExtract() {
+	public static function provideFirstSectionsToExtract() {
 		return [
 			'Plain text match' => [
 				"First\nsection \1\2... \1\2...",
@@ -147,6 +151,16 @@ class ApiQueryExtractsTest extends \MediaWikiIntegrationTestCase {
 				false,
 				'Example <h11>...',
 			],
+			'__TOC__ before intro (HTML)' => [
+				'<h2 id="mw-toc-heading">Contents</h2>Intro<h2>Actual heading</h2>...',
+				false,
+				'<h2 id="mw-toc-heading">Contents</h2>Intro',
+			],
+			'__TOC__ before intro (plaintext)' => [
+				"\1\2_\2\1<h2 id=\"mw-toc-heading\">Contents</h2>Intro\1\2_\2\1<h2>Actual heading</h2>...",
+				true,
+				"\1\2_\2\1<h2 id=\"mw-toc-heading\">Contents</h2>Intro",
+			],
 		];
 	}
 
@@ -161,7 +175,7 @@ class ApiQueryExtractsTest extends \MediaWikiIntegrationTestCase {
 		$this->assertSame( $expected, $instance->truncate( $text ) );
 	}
 
-	public function provideTextsToTruncate() {
+	public static function provideTextsToTruncate() {
 		return [
 			[ '', [], '' ],
 			[ 'abc', [], 'abc' ],
@@ -219,7 +233,7 @@ class ApiQueryExtractsTest extends \MediaWikiIntegrationTestCase {
 		$this->assertSame( $expected, $instance->doSections( $text ) );
 	}
 
-	public function provideSectionsToFormat() {
+	public static function provideSectionsToFormat() {
 		$level = 3;
 		$marker = "\1\2$level\2\1";
 

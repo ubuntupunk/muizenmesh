@@ -1,7 +1,7 @@
 /*!
  * VisualEditor test utilities.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
 
 ( function () {
@@ -188,6 +188,7 @@
 	};
 
 	var voidGroup = '(' + ve.elementTypes.void.join( '|' ) + ')';
+	// eslint-disable-next-line security/detect-non-literal-regexp
 	var voidRegexp = new RegExp( '(<' + voidGroup + '[^>]*?(/?))>', 'g' );
 	var originalCreateDocumentFromHtml = ve.createDocumentFromHtml;
 	/**
@@ -449,8 +450,12 @@
 		var diffElement = new ve.ui.DiffElement( visualDiff );
 		assert.equalDomElement( diffElement.$document[ 0 ], $( '<div>' ).addClass( 've-ui-diffElement-document' ).html( caseItem.expected )[ 0 ], caseItem.msg );
 		assert.deepEqualWithDomElements(
-			diffElement.descriptions.items.map( function ( item ) { return item.$label.contents().toArray(); } ),
-			( caseItem.expectedDescriptions || [] ).map( function ( expected ) { return $.parseHTML( expected ); } ),
+			diffElement.descriptions.items.map( function ( item ) {
+				return item.$label.contents().toArray();
+			} ),
+			( caseItem.expectedDescriptions || [] ).map( function ( expected ) {
+				return $.parseHTML( expected );
+			} ),
 			caseItem.msg + ': sidebar'
 		);
 		assert.strictEqual(

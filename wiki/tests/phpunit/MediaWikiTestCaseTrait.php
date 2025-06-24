@@ -2,8 +2,10 @@
 
 use MediaWiki\HookContainer\HookContainer;
 use PHPUnit\Framework\Constraint\Constraint;
+use PHPUnit\Framework\ExpectationFailedException;
 use PHPUnit\Framework\MockObject\MockObject;
 use Psr\Container\ContainerInterface;
+use SebastianBergmann\Comparator\ComparisonFailure;
 use Wikimedia\ObjectFactory\ObjectFactory;
 use Wikimedia\Services\NoSuchServiceException;
 use Wikimedia\Timestamp\ConvertibleTimestamp;
@@ -119,6 +121,20 @@ trait MediaWikiTestCaseTrait {
 	}
 
 	/**
+	 * Skip the test if not running the necessary php version
+	 *
+	 * @since 1.42 (also backported to 1.39.8, 1.40.4 and 1.41.2)
+	 *
+	 * @param string $op
+	 * @param string $version
+	 */
+	protected function markTestSkippedIfPhp( $op, $version ) {
+		if ( version_compare( PHP_VERSION, $version, $op ) ) {
+			$this->markTestSkipped( "PHP $version isn't supported for this test" );
+		}
+	}
+
+	/**
 	 * Don't throw a warning if $function is deprecated and called later
 	 *
 	 * @since 1.19
@@ -195,7 +211,51 @@ trait MediaWikiTestCaseTrait {
 	}
 
 	/**
-	 * Assert that two arrays are equal. By default this means that both arrays need to hold
+	 * Assert that an associative array contains the subset of an expected array.
+	 *
+	 * The internal key order does not matter.
+	 * Values are compared with strict equality.
+	 *
+	 * @since 1.41
+	 * @param array $expected
+	 * @param array $actual
+	 * @param string $message
+	 */
+	protected function assertArrayContains(
+		array $expected,
+		array $actual,
+		$message = ''
+	) {
+		$patched = array_replace_recursive( $actual, $expected );
+
+		ksort( $patched );
+		ksort( $actual );
+		$result = ( $actual === $patched );
+
+		if ( !$result ) {
+			$comparisonFailure = new ComparisonFailure(
+				$patched,
+				$actual,
+				var_export( $patched, true ),
+				var_export( $actual, true )
+			);
+
+			$failureDescription = 'Failed asserting that array contains the expected submap.';
+			if ( $message != '' ) {
+				$failureDescription = $message . "\n" . $failureDescription;
+			}
+
+			throw new ExpectationFailedException(
+				$failureDescription,
+				$comparisonFailure
+			);
+		} else {
+			$this->assertTrue( true, $message );
+		}
+	}
+
+	/**
+	 * Assert that two arrays are equal. By default, this means that both arrays need to hold
 	 * the same set of values. Using additional arguments, order and associated key can also
 	 * be set as relevant.
 	 *
@@ -206,14 +266,9 @@ trait MediaWikiTestCaseTrait {
 	 * @param bool $ordered If the order of the values should match
 	 * @param bool $named If the keys should match
 	 * @param string $message
-	 * @param float $delta Deprecated in assertEquals()
-	 * @param int $maxDepth Deprecated in assertEquals()
-	 * @param bool $canonicalize Deprecated in assertEquals()
-	 * @param bool $ignoreCase Deprecated in assertEquals()
 	 */
 	public function assertArrayEquals(
-		array $expected, array $actual, $ordered = false, $named = false, string $message = '',
-		float $delta = 0.0, int $maxDepth = 10, bool $canonicalize = false, bool $ignoreCase = false
+		array $expected, array $actual, $ordered = false, $named = false, string $message = ''
 	) {
 		if ( !$ordered ) {
 			$this->objectAssociativeSort( $expected );
@@ -225,11 +280,7 @@ trait MediaWikiTestCaseTrait {
 			$actual = array_values( $actual );
 		}
 
-		$this->assertEquals(
-			$expected, $actual, $message,
-			// Deprecated args
-			$delta, $maxDepth, $canonicalize, $ignoreCase
-		);
+		$this->assertEquals( $expected, $actual, $message );
 	}
 
 	/**
@@ -401,5 +452,34 @@ trait MediaWikiTestCaseTrait {
 		$actual = str_replace( '>', ">\n", $actual );
 
 		$this->assertEquals( $expected, $actual, $msg );
+	}
+
+	/**
+	 * This method allows you to assert that the given callback emits a PHP error. It is a PHPUnit 10 compatible
+	 * replacement for expectNotice(), expectWarning(), expectError(), and the other methods deprecated in
+	 * https://github.com/sebastianbergmann/phpunit/issues/5062.
+	 *
+	 * @param int $errorLevel
+	 * @param callable $callback
+	 * @param string|null $msg String that must be contained in the error message
+	 */
+	protected function expectPHPError(
+		int $errorLevel,
+		callable $callback,
+		string $msg = null
+	): void {
+		try {
+			$errorEmitted = false;
+			set_error_handler( function ( $_, $actualMsg ) use ( $msg, &$errorEmitted ) {
+				if ( $msg !== null ) {
+					$this->assertStringContainsString( $msg, $actualMsg );
+				}
+				$errorEmitted = true;
+			}, $errorLevel );
+			$callback();
+			$this->assertTrue( $errorEmitted, "No PHP error was emitted." );
+		} finally {
+			restore_error_handler();
+		}
 	}
 }

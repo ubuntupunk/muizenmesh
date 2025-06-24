@@ -28,6 +28,7 @@ use MediaWiki\MainConfigNames;
 use MediaWiki\Title\Title;
 use Wikimedia\ParamValidator\ParamValidator;
 use Wikimedia\ParamValidator\TypeDef\IntegerDef;
+use Wikimedia\Rdbms\OrExpressionGroup;
 
 /**
  * This implements prop=redirects, prop=linkshere, prop=catmembers,
@@ -80,8 +81,7 @@ class ApiQueryBacklinksprop extends ApiQueryGeneratorBase {
 		],
 	];
 
-	/** @var LinksMigration */
-	private $linksMigration;
+	private LinksMigration $linksMigration;
 
 	/**
 	 * @param ApiQuery $query
@@ -114,7 +114,6 @@ class ApiQueryBacklinksprop extends ApiQueryGeneratorBase {
 		$db = $this->getDB();
 		$params = $this->extractRequestParams();
 		$prop = array_fill_keys( $params['prop'], true );
-		$emptyString = $db->addQuotes( '' );
 
 		$pageSet = $this->getPageSet();
 		$titles = $pageSet->getGoodAndMissingPages();
@@ -219,7 +218,7 @@ class ApiQueryBacklinksprop extends ApiQueryGeneratorBase {
 		$this->addWhere( "$bl_from = page_id" );
 
 		if ( $this->getModuleName() === 'redirects' ) {
-			$this->addWhere( "rd_interwiki = $emptyString OR rd_interwiki IS NULL" );
+			$this->addWhereFld( 'rd_interwiki', '' );
 		}
 
 		$this->addFields( array_keys( $sortby ) );
@@ -242,7 +241,7 @@ class ApiQueryBacklinksprop extends ApiQueryGeneratorBase {
 
 		$this->addFieldsIf( 'page_namespace', $miser_ns !== null );
 
-		if ( $hasNS ) {
+		if ( $hasNS && $map ) {
 			// Can't use LinkBatch because it throws away Special titles.
 			// And we already have the needed data structure anyway.
 			$this->addWhere( $db->makeWhereFrom2d( $map, $bl_namespace, $bl_title ) );
@@ -250,25 +249,22 @@ class ApiQueryBacklinksprop extends ApiQueryGeneratorBase {
 			$where = [];
 			foreach ( $titles as $t ) {
 				if ( $t->getNamespace() == $bl_namespace ) {
-					$where[] = "$bl_title = " . $db->addQuotes( $t->getDBkey() );
+					$where[] = $db->expr( $bl_title, '=', $t->getDBkey() );
 				}
 			}
-			$this->addWhere( $db->makeList( $where, LIST_OR ) );
+			$this->addWhere( new OrExpressionGroup( ...$where ) );
 		}
 
 		if ( $params['show'] !== null ) {
 			// prop=redirects only
 			$show = array_fill_keys( $params['show'], true );
-			if ( isset( $show['fragment'] ) && isset( $show['!fragment'] ) ||
-				isset( $show['redirect'] ) && isset( $show['!redirect'] )
+			if ( ( isset( $show['fragment'] ) && isset( $show['!fragment'] ) ) ||
+				( isset( $show['redirect'] ) && isset( $show['!redirect'] ) )
 			) {
 				$this->dieWithError( 'apierror-show' );
 			}
-			$this->addWhereIf( "rd_fragment != $emptyString", isset( $show['fragment'] ) );
-			$this->addWhereIf(
-				"rd_fragment = $emptyString OR rd_fragment IS NULL",
-				isset( $show['!fragment'] )
-			);
+			$this->addWhereIf( $db->expr( 'rd_fragment', '!=', '' ), isset( $show['fragment'] ) );
+			$this->addWhereIf( [ 'rd_fragment' => '' ], isset( $show['!fragment'] ) );
 			$this->addWhereIf( [ 'page_is_redirect' => 1 ], isset( $show['redirect'] ) );
 			$this->addWhereIf( [ 'page_is_redirect' => 0 ], isset( $show['!redirect'] ) );
 		}
@@ -280,7 +276,11 @@ class ApiQueryBacklinksprop extends ApiQueryGeneratorBase {
 		// (...)" and chooses the wrong index, so specify the correct index to
 		// use for the query. See T139056 for details.
 		if ( !empty( $settings['indexes'] ) ) {
-			if ( $params['namespace'] !== null && !empty( $settings['from_namespace'] ) ) {
+			if (
+				$params['namespace'] !== null &&
+				count( $params['namespace'] ) == 1 &&
+				!empty( $settings['from_namespace'] )
+			) {
 				// @phan-suppress-next-line PhanTypePossiblyInvalidDimOffset False positive
 				$this->addOption( 'USE INDEX', [ $settings['linktable'] => $idxWithFromNS ] );
 				// @phan-suppress-next-line PhanTypePossiblyInvalidDimOffset False positive
@@ -328,7 +328,7 @@ class ApiQueryBacklinksprop extends ApiQueryGeneratorBase {
 					);
 				}
 				// @phan-suppress-next-line PhanPossiblyUndeclaredVariable set when used
-				if ( $fld_fragment && $row->rd_fragment !== null && $row->rd_fragment !== '' ) {
+				if ( $fld_fragment && $row->rd_fragment !== '' ) {
 					$vals['fragment'] = $row->rd_fragment;
 				}
 				// @phan-suppress-next-line PhanPossiblyUndeclaredVariable set when used

@@ -22,10 +22,17 @@
  * @author Brian Wolff
  */
 
+namespace MediaWiki\Specials;
+
 use MediaWiki\Cache\LinkBatchFactory;
 use MediaWiki\Html\Html;
+use MediaWiki\Output\OutputPage;
+use MediaWiki\SpecialPage\QueryPage;
+use MediaWiki\SpecialPage\SpecialPage;
+use MimeAnalyzer;
+use Skin;
+use Wikimedia\Rdbms\IConnectionProvider;
 use Wikimedia\Rdbms\IDatabase;
-use Wikimedia\Rdbms\ILoadBalancer;
 use Wikimedia\Rdbms\IResultWrapper;
 
 /**
@@ -52,17 +59,16 @@ class SpecialMediaStatistics extends QueryPage {
 	 */
 	protected $totalSize = 0;
 
-	/** @var MimeAnalyzer */
-	private $mimeAnalyzer;
+	private MimeAnalyzer $mimeAnalyzer;
 
 	/**
 	 * @param MimeAnalyzer $mimeAnalyzer
-	 * @param ILoadBalancer $loadBalancer
+	 * @param IConnectionProvider $dbProvider
 	 * @param LinkBatchFactory $linkBatchFactory
 	 */
 	public function __construct(
 		MimeAnalyzer $mimeAnalyzer,
-		ILoadBalancer $loadBalancer,
+		IConnectionProvider $dbProvider,
 		LinkBatchFactory $linkBatchFactory
 	) {
 		parent::__construct( 'MediaStatistics' );
@@ -71,7 +77,7 @@ class SpecialMediaStatistics extends QueryPage {
 		$this->limit = self::MAX_LIMIT;
 		$this->shownavigation = false;
 		$this->mimeAnalyzer = $mimeAnalyzer;
-		$this->setDBLoadBalancer( $loadBalancer );
+		$this->setDatabaseProvider( $dbProvider );
 		$this->setLinkBatchFactory( $linkBatchFactory );
 	}
 
@@ -94,7 +100,7 @@ class SpecialMediaStatistics extends QueryPage {
 	 * @return array
 	 */
 	public function getQueryInfo() {
-		$dbr = $this->getDBLoadBalancer()->getConnectionRef( ILoadBalancer::DB_REPLICA );
+		$dbr = $this->getDatabaseProvider()->getReplicaDatabase();
 		$fakeTitle = $dbr->buildConcat( [
 			'img_media_type',
 			$dbr->addQuotes( ';' ),
@@ -374,17 +380,9 @@ class SpecialMediaStatistics extends QueryPage {
 		return 'media';
 	}
 
-	/**
-	 * This method isn't used, since we override outputResults, but
-	 * we need to implement since abstract in parent class.
-	 *
-	 * @param Skin $skin
-	 * @param stdClass $result Result row
-	 * @return bool|string|void
-	 * @suppress PhanPluginNeverReturnMethod
-	 */
+	/** @inheritDoc */
 	public function formatResult( $skin, $result ) {
-		throw new LogicException( "unimplemented" );
+		return false;
 	}
 
 	/**
@@ -404,3 +402,9 @@ class SpecialMediaStatistics extends QueryPage {
 		$res->seek( 0 );
 	}
 }
+
+/**
+ * Retain the old class name for backwards compatibility.
+ * @deprecated since 1.41
+ */
+class_alias( SpecialMediaStatistics::class, 'SpecialMediaStatistics' );

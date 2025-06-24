@@ -3,7 +3,7 @@
 namespace MediaWiki\Tests\Storage;
 
 use ChangeTags;
-use CommentStoreComment;
+use MediaWiki\CommentStore\CommentStoreComment;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Revision\MutableRevisionRecord;
 use MediaWiki\Revision\RevisionRecord;
@@ -55,7 +55,7 @@ class EditResultBuilderDbTest extends MediaWikiIntegrationTestCase {
 
 		$services = $this->getServiceContainer();
 		$this->revisionStore = $services->getRevisionStore();
-		$this->dbw = $services->getDBLoadBalancer()->getConnection( DB_PRIMARY );
+		$this->dbw = $this->getDb();
 
 		$this->wikiPage = $this->getExistingTestPage( self::PAGE_NAME );
 		$this->revisions = [];
@@ -91,14 +91,6 @@ class EditResultBuilderDbTest extends MediaWikiIntegrationTestCase {
 			self::CONTENT_B,
 			'20050101210041'
 		);
-
-		$this->tablesUsed = [
-			'page',
-			'revision',
-			'comment',
-			'text',
-			'content'
-		];
 	}
 
 	private function getLatestTestRevision(): RevisionRecord {
@@ -162,7 +154,7 @@ class EditResultBuilderDbTest extends MediaWikiIntegrationTestCase {
 		return $revision;
 	}
 
-	public function provideManualReverts(): array {
+	public static function provideManualReverts(): array {
 		return [
 			'reverting a single edit' => [
 				self::CONTENT_A,
@@ -273,7 +265,7 @@ class EditResultBuilderDbTest extends MediaWikiIntegrationTestCase {
 		);
 	}
 
-	public function provideNotManualReverts(): array {
+	public static function provideNotManualReverts(): array {
 		return [
 			'edit not changing anything' => [
 				self::CONTENT_B,

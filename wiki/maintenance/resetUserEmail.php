@@ -23,6 +23,10 @@
 
 require_once __DIR__ . '/Maintenance.php';
 
+use MediaWiki\Parser\Sanitizer;
+use MediaWiki\Status\Status;
+use MediaWiki\User\User;
+
 /**
  * Maintenance script that resets user email.
  *
@@ -39,6 +43,7 @@ class ResetUserEmail extends Maintenance {
 		$this->addArg( 'email', 'Email to assign' );
 
 		$this->addOption( 'no-reset-password', 'Don\'t reset the user\'s password' );
+		$this->addOption( 'email-password', 'Send a temporary password to the user\'s new email address' );
 	}
 
 	public function execute() {
@@ -72,6 +77,16 @@ class ResetUserEmail extends Maintenance {
 			] );
 			if ( !$status->isGood() ) {
 				$this->error( "Password couldn't be reset because:\n"
+					. $status->getMessage( false, false, 'en' )->text() );
+			}
+		}
+
+		if ( $this->hasOption( 'email-password' ) ) {
+			$passReset = $this->getServiceContainer()->getPasswordReset();
+			$sysUser = User::newSystemUser( 'Maintenance script', [ 'steal' => true ] );
+			$status = Status::wrap( $passReset->execute( $sysUser, $user->getName(), $email ) );
+			if ( !$status->isGood() ) {
+				$this->error( "Email couldn't be sent because:\n"
 					. $status->getMessage( false, false, 'en' )->text() );
 			}
 		}

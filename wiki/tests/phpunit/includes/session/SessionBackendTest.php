@@ -1,17 +1,35 @@
 <?php
 
-namespace MediaWiki\Session;
+namespace MediaWiki\Tests\Session;
 
-use Config;
+use BadMethodCallException;
+use CachedBagOStuff;
+use DummySessionProvider;
+use InvalidArgumentException;
+use MediaWiki\Config\Config;
+use MediaWiki\Config\HashConfig;
+use MediaWiki\Context\RequestContext;
 use MediaWiki\HookContainer\HookContainer;
+use MediaWiki\Request\FauxRequest;
+use MediaWiki\Session\PHPSessionHandler;
+use MediaWiki\Session\Session;
+use MediaWiki\Session\SessionBackend;
+use MediaWiki\Session\SessionId;
+use MediaWiki\Session\SessionInfo;
+use MediaWiki\Session\SessionManager;
+use MediaWiki\Session\SessionProvider;
+use MediaWiki\Session\UserInfo;
+use MediaWiki\User\User;
 use MediaWikiIntegrationTestCase;
-use User;
+use Psr\Log\NullLogger;
+use UnexpectedValueException;
+use Wikimedia\ScopedCallback;
 use Wikimedia\TestingAccessWrapper;
 
 /**
  * @group Session
  * @group Database
- * @covers MediaWiki\Session\SessionBackend
+ * @covers \MediaWiki\Session\SessionBackend
  */
 class SessionBackendTest extends MediaWikiIntegrationTestCase {
 	use SessionProviderTestTrait;
@@ -48,7 +66,7 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 	 */
 	protected function getBackend( User $user = null, $id = null ) {
 		if ( !$this->config ) {
-			$this->config = new \HashConfig();
+			$this->config = new HashConfig();
 			$this->manager = null;
 		}
 		if ( !$this->store ) {
@@ -56,7 +74,7 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 			$this->manager = null;
 		}
 
-		$logger = new \Psr\Log\NullLogger();
+		$logger = new NullLogger();
 		if ( !$this->manager ) {
 			$this->manager = new SessionManager( [
 				'store' => $this->store,
@@ -68,7 +86,7 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 		$hookContainer = $this->getHookContainer();
 
 		if ( !$this->provider ) {
-			$this->provider = new \DummySessionProvider();
+			$this->provider = new DummySessionProvider();
 		}
 		$this->initProvider( $this->provider, null, $this->config, $this->manager, $hookContainer );
 
@@ -84,7 +102,7 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 		$backend = new SessionBackend( $id, $info, $this->store, $logger, $hookContainer, 10 );
 		$priv = TestingAccessWrapper::newFromObject( $backend );
 		$priv->persist = false;
-		$priv->requests = [ 100 => new \MediaWiki\Request\FauxRequest() ];
+		$priv->requests = [ 100 => new FauxRequest() ];
 		$priv->requests[100]->setSessionId( $id );
 		$priv->usePhpSessionHandling = false;
 
@@ -97,6 +115,7 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 	}
 
 	public function testConstructor() {
+		$username = 'TestConstructor';
 		// Set variables
 		$this->getBackend();
 
@@ -104,16 +123,16 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 			'provider' => $this->provider,
 			'id' => self::SESSIONID,
 			'persisted' => true,
-			'userInfo' => UserInfo::newFromName( 'UTSysop', false ),
+			'userInfo' => UserInfo::newFromName( $username, false ),
 			'idIsSafe' => true,
 		] );
 		$id = new SessionId( $info->getId() );
-		$logger = new \Psr\Log\NullLogger();
+		$logger = new NullLogger();
 		$hookContainer = $this->getHookContainer();
 		try {
 			new SessionBackend( $id, $info, $this->store, $logger, $hookContainer, 10 );
 			$this->fail( 'Expected exception not thrown' );
-		} catch ( \InvalidArgumentException $ex ) {
+		} catch ( InvalidArgumentException $ex ) {
 			$this->assertSame(
 				'Refusing to create session for unverified user ' . $info->getUserInfo(),
 				$ex->getMessage()
@@ -122,14 +141,14 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 
 		$info = new SessionInfo( SessionInfo::MIN_PRIORITY, [
 			'id' => self::SESSIONID,
-			'userInfo' => UserInfo::newFromName( 'UTSysop', true ),
+			'userInfo' => UserInfo::newFromName( $username, true ),
 			'idIsSafe' => true,
 		] );
 		$id = new SessionId( $info->getId() );
 		try {
 			new SessionBackend( $id, $info, $this->store, $logger, $hookContainer, 10 );
 			$this->fail( 'Expected exception not thrown' );
-		} catch ( \InvalidArgumentException $ex ) {
+		} catch ( InvalidArgumentException $ex ) {
 			$this->assertSame( 'Cannot create session without a provider', $ex->getMessage() );
 		}
 
@@ -137,14 +156,14 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 			'provider' => $this->provider,
 			'id' => self::SESSIONID,
 			'persisted' => true,
-			'userInfo' => UserInfo::newFromName( 'UTSysop', true ),
+			'userInfo' => UserInfo::newFromName( $username, true ),
 			'idIsSafe' => true,
 		] );
 		$id = new SessionId( '!' . $info->getId() );
 		try {
 			new SessionBackend( $id, $info, $this->store, $logger, $hookContainer, 10 );
 			$this->fail( 'Expected exception not thrown' );
-		} catch ( \InvalidArgumentException $ex ) {
+		} catch ( InvalidArgumentException $ex ) {
 			$this->assertSame(
 				'SessionId and SessionInfo don\'t match',
 				$ex->getMessage()
@@ -155,7 +174,7 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 			'provider' => $this->provider,
 			'id' => self::SESSIONID,
 			'persisted' => true,
-			'userInfo' => UserInfo::newFromName( 'UTSysop', true ),
+			'userInfo' => UserInfo::newFromName( $username, true ),
 			'idIsSafe' => true,
 		] );
 		$id = new SessionId( $info->getId() );
@@ -164,7 +183,7 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 		$this->assertSame( $id, $backend->getSessionId() );
 		$this->assertSame( $this->provider, $backend->getProvider() );
 		$this->assertInstanceOf( User::class, $backend->getUser() );
-		$this->assertSame( 'UTSysop', $backend->getUser()->getName() );
+		$this->assertSame( $username, $backend->getUser()->getName() );
 		$this->assertSame( $info->wasPersisted(), $backend->isPersistent() );
 		$this->assertSame( $info->wasRemembered(), $backend->shouldRememberUser() );
 		$this->assertSame( $info->forceHTTPS(), $backend->shouldForceHTTPS() );
@@ -201,9 +220,9 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 
 		$manager = TestingAccessWrapper::newFromObject( $this->manager );
 
-		$request1 = new \MediaWiki\Request\FauxRequest();
+		$request1 = new FauxRequest();
 		$session1 = $backend->getSession( $request1 );
-		$request2 = new \MediaWiki\Request\FauxRequest();
+		$request2 = new FauxRequest();
 		$session2 = $backend->getSession( $request2 );
 
 		$this->assertInstanceOf( Session::class, $session1 );
@@ -224,13 +243,13 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 		try {
 			$backend->getRequest( $index );
 			$this->fail( 'Expected exception not thrown' );
-		} catch ( \InvalidArgumentException $ex ) {
+		} catch ( InvalidArgumentException $ex ) {
 			$this->assertSame( 'Invalid session index', $ex->getMessage() );
 		}
 		try {
 			$backend->suggestLoginUsername( $index );
 			$this->fail( 'Expected exception not thrown' );
-		} catch ( \InvalidArgumentException $ex ) {
+		} catch ( InvalidArgumentException $ex ) {
 			$this->assertSame( 'Invalid session index', $ex->getMessage() );
 		}
 
@@ -248,14 +267,14 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 		try {
 			$backend->setProviderMetadata( 'foo' );
 			$this->fail( 'Expected exception not thrown' );
-		} catch ( \InvalidArgumentException $ex ) {
+		} catch ( InvalidArgumentException $ex ) {
 			$this->assertSame( '$metadata must be an array or null', $ex->getMessage() );
 		}
 
 		try {
 			$backend->setProviderMetadata( (object)[] );
 			$this->fail( 'Expected exception not thrown' );
-		} catch ( \InvalidArgumentException $ex ) {
+		} catch ( InvalidArgumentException $ex ) {
 			$this->assertSame( '$metadata must be an array or null', $ex->getMessage() );
 		}
 
@@ -279,14 +298,14 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 	public function testResetId() {
 		$id = session_id();
 
-		$builder = $this->getMockBuilder( \DummySessionProvider::class )
+		$builder = $this->getMockBuilder( DummySessionProvider::class )
 			->onlyMethods( [ 'persistsSessionId', 'sessionIdWasReset' ] );
 
 		$this->provider = $builder->getMock();
 		$this->provider->method( 'persistsSessionId' )
 			->willReturn( false );
 		$this->provider->expects( $this->never() )->method( 'sessionIdWasReset' );
-		$backend = $this->getBackend( User::newFromName( 'UTSysop' ) );
+		$backend = $this->getBackend( User::newFromName( 'TestResetId' ) );
 		$manager = TestingAccessWrapper::newFromObject( $this->manager );
 		$sessionId = $backend->getSessionId();
 		$backend->resetId();
@@ -315,7 +334,7 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 	}
 
 	public function testPersist() {
-		$this->provider = $this->getMockBuilder( \DummySessionProvider::class )
+		$this->provider = $this->getMockBuilder( DummySessionProvider::class )
 			->onlyMethods( [ 'persistSession' ] )->getMock();
 		$this->provider->expects( $this->once() )->method( 'persistSession' );
 		$backend = $this->getBackend();
@@ -335,12 +354,12 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 	}
 
 	public function testUnpersist() {
-		$this->provider = $this->getMockBuilder( \DummySessionProvider::class )
+		$this->provider = $this->getMockBuilder( DummySessionProvider::class )
 			->onlyMethods( [ 'unpersistSession' ] )->getMock();
 		$this->provider->expects( $this->once() )->method( 'unpersistSession' );
 		$backend = $this->getBackend();
 		$wrap = TestingAccessWrapper::newFromObject( $backend );
-		$wrap->store = new \CachedBagOStuff( $this->store );
+		$wrap->store = new CachedBagOStuff( $this->store );
 		$wrap->persist = true;
 		$wrap->dataDirty = true;
 
@@ -388,7 +407,7 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 	public function testSetUser() {
 		$user = static::getTestSysop()->getUser();
 
-		$this->provider = $this->getMockBuilder( \DummySessionProvider::class )
+		$this->provider = $this->getMockBuilder( DummySessionProvider::class )
 			->onlyMethods( [ 'canChangeUser' ] )->getMock();
 		$this->provider->method( 'canChangeUser' )
 			->willReturn( false );
@@ -397,7 +416,7 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 		try {
 			$backend->setUser( $user );
 			$this->fail( 'Expected exception not thrown' );
-		} catch ( \BadMethodCallException $ex ) {
+		} catch ( BadMethodCallException $ex ) {
 			$this->assertSame(
 				'Cannot set user on this session; check $session->canSetUser() first',
 				$ex->getMessage()
@@ -491,7 +510,7 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 		// Save happens when delay is consumed
 		$this->onSessionMetadataCalled = false;
 		$priv->metaDirty = true;
-		\Wikimedia\ScopedCallback::consume( $delay );
+		ScopedCallback::consume( $delay );
 		$this->assertTrue( $this->onSessionMetadataCalled );
 
 		// Test multiple delays
@@ -502,11 +521,11 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 		$priv->metaDirty = true;
 		$priv->autosave();
 		$this->assertFalse( $this->onSessionMetadataCalled );
-		\Wikimedia\ScopedCallback::consume( $delay3 );
+		ScopedCallback::consume( $delay3 );
 		$this->assertFalse( $this->onSessionMetadataCalled );
-		\Wikimedia\ScopedCallback::consume( $delay1 );
+		ScopedCallback::consume( $delay1 );
 		$this->assertFalse( $this->onSessionMetadataCalled );
-		\Wikimedia\ScopedCallback::consume( $delay2 );
+		ScopedCallback::consume( $delay2 );
 		$this->assertTrue( $this->onSessionMetadataCalled );
 	}
 
@@ -519,7 +538,7 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 			->onlyMethods( [ 'onSessionMetadata' ] )->getMock();
 		$neverHook->expects( $this->never() )->method( 'onSessionMetadata' );
 
-		$builder = $this->getMockBuilder( \DummySessionProvider::class )
+		$builder = $this->getMockBuilder( DummySessionProvider::class )
 			->onlyMethods( [ 'persistSession', 'unpersistSession' ] );
 
 		$neverProvider = $builder->getMock();
@@ -737,7 +756,7 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 		try {
 			$backend->save();
 			$this->fail( 'Expected exception not thrown' );
-		} catch ( \UnexpectedValueException $ex ) {
+		} catch ( UnexpectedValueException $ex ) {
 			$this->assertSame(
 				'SessionMetadata hook changed metadata key "userId"',
 				$ex->getMessage()
@@ -767,7 +786,7 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 		$testData = [ 'foo' => 'foo!', 'bar', [ 'baz', null ] ];
 
 		// Not persistent
-		$this->provider = $this->getMockBuilder( \DummySessionProvider::class )
+		$this->provider = $this->getMockBuilder( DummySessionProvider::class )
 			->onlyMethods( [ 'persistSession' ] )->getMock();
 		$this->provider->expects( $this->never() )->method( 'persistSession' );
 		$this->onSessionMetadataCalled = false;
@@ -793,7 +812,7 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 		$this->assertNotEquals( 0, $wrap->expires );
 
 		// Persistent
-		$this->provider = $this->getMockBuilder( \DummySessionProvider::class )
+		$this->provider = $this->getMockBuilder( DummySessionProvider::class )
 			->onlyMethods( [ 'persistSession' ] )->getMock();
 		$this->provider->expects( $this->atLeastOnce() )->method( 'persistSession' );
 		$this->onSessionMetadataCalled = false;
@@ -820,7 +839,7 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 		$this->assertNotEquals( 0, $wrap->expires );
 
 		// Not persistent, not expiring
-		$this->provider = $this->getMockBuilder( \DummySessionProvider::class )
+		$this->provider = $this->getMockBuilder( DummySessionProvider::class )
 			->onlyMethods( [ 'persistSession' ] )->getMock();
 		$this->provider->expects( $this->never() )->method( 'persistSession' );
 		$this->onSessionMetadataCalled = false;
@@ -851,10 +870,9 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 			PHPSessionHandler::install( SessionManager::singleton() );
 		}
 		if ( !PHPSessionHandler::isEnabled() ) {
-			$rProp = new \ReflectionProperty( PHPSessionHandler::class, 'instance' );
-			$rProp->setAccessible( true );
-			$handler = TestingAccessWrapper::newFromObject( $rProp->getValue() );
-			$resetHandler = new \Wikimedia\ScopedCallback( static function () use ( $handler ) {
+			$staticAccess = TestingAccessWrapper::newFromClass( PHPSessionHandler::class );
+			$handler = TestingAccessWrapper::newFromObject( $staticAccess->instance );
+			$resetHandler = new ScopedCallback( static function () use ( $handler ) {
 				session_write_close();
 				$handler->enable = false;
 			} );
@@ -867,7 +885,7 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 		$resetSingleton = TestUtils::setSessionManagerSingleton( $this->manager );
 
 		$manager = TestingAccessWrapper::newFromObject( $this->manager );
-		$request = \RequestContext::getMain()->getRequest();
+		$request = RequestContext::getMain()->getRequest();
 		$manager->globalSession = $backend->getSession( $request );
 		$manager->globalSessionRequest = $request;
 
@@ -877,7 +895,7 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 		session_write_close();
 
 		$backend2 = $this->getBackend(
-			User::newFromName( 'UTSysop' ), 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+			User::newFromName( 'TestTakeOverGlobalSession' ), 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
 		);
 		TestingAccessWrapper::newFromObject( $backend2 )->usePhpSessionHandling = true;
 
@@ -891,23 +909,22 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 			PHPSessionHandler::install( SessionManager::singleton() );
 		}
 		if ( !PHPSessionHandler::isEnabled() ) {
-			$rProp = new \ReflectionProperty( PHPSessionHandler::class, 'instance' );
-			$rProp->setAccessible( true );
-			$handler = TestingAccessWrapper::newFromObject( $rProp->getValue() );
-			$resetHandler = new \Wikimedia\ScopedCallback( static function () use ( $handler ) {
+			$staticAccess = TestingAccessWrapper::newFromClass( PHPSessionHandler::class );
+			$handler = TestingAccessWrapper::newFromObject( $staticAccess->instance );
+			$resetHandler = new ScopedCallback( static function () use ( $handler ) {
 				session_write_close();
 				$handler->enable = false;
 			} );
 			$handler->enable = true;
 		}
 
-		$backend = $this->getBackend( User::newFromName( 'UTSysop' ) );
+		$backend = $this->getBackend( User::newFromName( 'TestResetIdOfGlobalSession' ) );
 		TestingAccessWrapper::newFromObject( $backend )->usePhpSessionHandling = true;
 
 		$resetSingleton = TestUtils::setSessionManagerSingleton( $this->manager );
 
 		$manager = TestingAccessWrapper::newFromObject( $this->manager );
-		$request = \RequestContext::getMain()->getRequest();
+		$request = RequestContext::getMain()->getRequest();
 		$manager->globalSession = $backend->getSession( $request );
 		$manager->globalSessionRequest = $request;
 
@@ -927,17 +944,16 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 			PHPSessionHandler::install( SessionManager::singleton() );
 		}
 		if ( !PHPSessionHandler::isEnabled() ) {
-			$rProp = new \ReflectionProperty( PHPSessionHandler::class, 'instance' );
-			$rProp->setAccessible( true );
-			$handler = TestingAccessWrapper::newFromObject( $rProp->getValue() );
-			$resetHandler = new \Wikimedia\ScopedCallback( static function () use ( $handler ) {
+			$staticAccess = TestingAccessWrapper::newFromClass( PHPSessionHandler::class );
+			$handler = TestingAccessWrapper::newFromObject( $staticAccess->instance );
+			$resetHandler = new ScopedCallback( static function () use ( $handler ) {
 				session_write_close();
 				$handler->enable = false;
 			} );
 			$handler->enable = true;
 		}
 
-		$backend = $this->getBackend( User::newFromName( 'UTSysop' ) );
+		$backend = $this->getBackend( User::newFromName( 'TestUnpersistOfGlobalSession' ) );
 		$wrap = TestingAccessWrapper::newFromObject( $backend );
 		$wrap->usePhpSessionHandling = true;
 		$wrap->persist = true;
@@ -945,7 +961,7 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 		$resetSingleton = TestUtils::setSessionManagerSingleton( $this->manager );
 
 		$manager = TestingAccessWrapper::newFromObject( $this->manager );
-		$request = \RequestContext::getMain()->getRequest();
+		$request = RequestContext::getMain()->getRequest();
 		$manager->globalSession = $backend->getSession( $request );
 		$manager->globalSessionRequest = $request;
 
@@ -962,7 +978,7 @@ class SessionBackendTest extends MediaWikiIntegrationTestCase {
 	}
 
 	public function testGetAllowedUserRights() {
-		$this->provider = $this->getMockBuilder( \DummySessionProvider::class )
+		$this->provider = $this->getMockBuilder( DummySessionProvider::class )
 			->onlyMethods( [ 'getAllowedUserRights' ] )
 			->getMock();
 		$this->provider->method( 'getAllowedUserRights' )

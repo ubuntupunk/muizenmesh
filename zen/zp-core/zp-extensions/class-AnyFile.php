@@ -9,15 +9,14 @@
  * The plugin is an extension of <var>TextObject</var>. For more details see the <i>class-textobject</i> plugin.
  *
  * @author Stephen Billard (sbillard)
- * @package plugins
- * @subpackage class-anyfile
+ * @package zpcore\plugins\classanyfile
  *
  */
 $plugin_is_filter = 990 | CLASS_PLUGIN;
 $plugin_description = gettext('Provides a means for handling arbitrary file types. (No rendering provided!)');
 $plugin_author = "Stephen Billard (sbillard)";
 $plugin_category = gettext('Media');
-
+$plugin_deprecated = gettext('This plugin will be restructured and moved to core in later versions');
 
 foreach (get_AnyFile_suffixes() as $suffix) {
 	Gallery::addImageHandler($suffix, 'AnyFile');

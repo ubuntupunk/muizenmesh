@@ -18,6 +18,9 @@
  * @file
  */
 
+use MediaWiki\Context\RequestContext;
+use MediaWiki\SpecialPage\SpecialPage;
+
 /**
  * Redirect a user to the login page
  *

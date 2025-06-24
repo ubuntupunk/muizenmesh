@@ -33,7 +33,7 @@ use Wikimedia\Rdbms\IDatabase;
  *
  * @since 1.35 (also backported to 1.33.3 and 1.34.1)
  */
-define( 'MW_VERSION', '1.40.1' );
+define( 'MW_VERSION', '1.42.1' );
 
 /** @{
  * Obsolete IDatabase::makeList() constants
@@ -152,13 +152,11 @@ define( 'MW_SUPPORTS_RESOURCE_MODULES', 1 );
  * - Parser::OT_HTML
  * - Parser::OT_WIKI
  * - Parser::OT_PREPROCESS
- * - Parser::OT_MSG
  * - Parser::OT_PLAIN
  */
 define( 'OT_HTML', 1 );
 define( 'OT_WIKI', 2 );
 define( 'OT_PREPROCESS', 3 );
-define( 'OT_MSG', 3 );  // b/c alias for OT_PREPROCESS
 define( 'OT_PLAIN', 4 );
 /** @} */
 
@@ -184,6 +182,17 @@ define( 'APCOND_IPINRANGE', 6 );
 define( 'APCOND_AGE_FROM_EDIT', 7 );
 define( 'APCOND_BLOCKED', 8 );
 define( 'APCOND_ISBOT', 9 );
+/** @} */
+
+/** @{
+ * Conditional user defaults conditions
+ *
+ * Strings are used to make the values easier to use in extension.json
+ * @since 1.42
+ */
+define( 'CUDCOND_AFTER', 'registered-after' );
+define( 'CUDCOND_ANON', 'anonymous-user' );
+define( 'CUDCOND_NAMED', 'named-user' );
 /** @} */
 
 /** @{

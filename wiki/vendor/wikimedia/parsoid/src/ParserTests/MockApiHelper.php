@@ -84,12 +84,27 @@ class MockApiHelper extends ApiHelper {
 			'duration' => 4.3666666666667,
 			'mime' => 'video/ogg; codecs="theora"',
 			'mediatype' => 'VIDEO',
-			'title' => 'Original Ogg file, 320 × 240 (590 kbps)',
-			'shorttitle' => 'Ogg source',
 			# hacky way to get seek parameters to return the correct info
 			'extraParams' => [
 				'seek=1.2' => 'seek%3D1.2',
 				'seek=85' => 'seek%3D3.3666666666667', # hard limited by duration
+			],
+		],
+		'Transcode.webm' => [
+			'size' => 12345,
+			'width' => 492,
+			'height' => 360,
+			'bits' => 0,
+			'duration' => 4,
+			'mime' => 'video/webm; codecs="vp8, vorbis"',
+			'mediatype' => 'VIDEO',
+			'derivatives' => [
+				[
+					'type' => 'video/webm; codecs="vp9, opus"',
+					'transcodekey' => '240p.vp9.webm',
+					'width' => 328,
+					'height' => 240,
+				],
 			],
 		],
 		'Audio.oga' => [
@@ -102,8 +117,6 @@ class MockApiHelper extends ApiHelper {
 			'duration' => 0.99875,
 			'mime' => 'audio/ogg; codecs="vorbis"',
 			'mediatype' => 'AUDIO',
-			'title' => 'Original Ogg file (41 kbps)',
-			'shorttitle' => 'Ogg source',
 		]
 	];
 
@@ -411,6 +424,7 @@ class MockApiHelper extends ApiHelper {
 		'File:Thumb.png' => 'Thumb.png',
 		'File:LoremIpsum.djvu' => 'LoremIpsum.djvu',
 		'File:Video.ogv' => 'Video.ogv',
+		'File:Transcode.webm' => 'Transcode.webm',
 		'File:Audio.oga' => 'Audio.oga',
 		'File:Bad.jpg' => 'Bad.jpg',
 	];
@@ -482,9 +496,6 @@ class MockApiHelper extends ApiHelper {
 	/** @var string wiki prefix for which we are mocking the api access */
 	private $prefix = 'enwiki';
 
-	/**
-	 * @param ?string $prefix
-	 */
 	public function __construct( ?string $prefix = null ) {
 		if ( $prefix ) {
 			$this->prefix = $prefix;
@@ -514,10 +525,6 @@ class MockApiHelper extends ApiHelper {
 		$this->articleCache[$key] = $article;
 	}
 
-	/**
-	 * @param array $params
-	 * @return array
-	 */
 	public function makeRequest( array $params ): array {
 		switch ( $params['action'] ?? null ) {
 			case 'query':
@@ -567,30 +574,30 @@ class MockApiHelper extends ApiHelper {
 	 * @param int|float|null &$theight Thumbnail height (inout parameter)
 	 */
 	public static function transformHelper( $width, $height, &$twidth, &$theight ) {
-			if ( $theight === null ) {
-				// File::scaleHeight in PHP
-				$theight = round( $height * $twidth / $width );
-			} elseif (
-				$twidth === null ||
-				// Match checks in ImageHandler.php::normaliseParams in core
-				( $twidth * $height > $theight * $width )
-			) {
-				// MediaHandler::fitBoxWidth in PHP
-				// This is crazy!
-				$idealWidth = $width * $theight / $height;
-				$roundedUp = ceil( $idealWidth );
-				if ( round( $roundedUp * $height / $width ) > $theight ) {
-					$twidth = floor( $idealWidth );
-				} else {
-					$twidth = $roundedUp;
-				}
+		if ( $theight === null ) {
+			// File::scaleHeight in PHP
+			$theight = round( $height * $twidth / $width );
+		} elseif (
+			$twidth === null ||
+			// Match checks in ImageHandler.php::normaliseParams in core
+			( $twidth * $height > $theight * $width )
+		) {
+			// MediaHandler::fitBoxWidth in PHP
+			// This is crazy!
+			$idealWidth = $width * $theight / $height;
+			$roundedUp = ceil( $idealWidth );
+			if ( round( $roundedUp * $height / $width ) > $theight ) {
+				$twidth = floor( $idealWidth );
 			} else {
-				if ( round( $height * $twidth / $width ) > $theight ) {
-					$twidth = ceil( $width * $theight / $height );
-				} else {
-					$theight = round( $height * $twidth / $width );
-				}
+				$twidth = $roundedUp;
 			}
+		} else {
+			if ( round( $height * $twidth / $width ) > $theight ) {
+				$twidth = ceil( $width * $theight / $height );
+			} else {
+				$theight = round( $height * $twidth / $width );
+			}
+		}
 	}
 
 	/**
@@ -763,21 +770,26 @@ class MockApiHelper extends ApiHelper {
 				}
 			}
 		}
-		// Make this look like a TMH response
-		if ( isset( $props['title'] ) || isset( $props['shorttitle'] ) ) {
+
+		if ( isset( $props['derivatives'] ) ) {
 			$info['derivatives'] = [
 				[
 					'src' => $info['url'],
 					'type' => $info['mime'],
 					'width' => strval( $info['width'] ),
 					'height' => strval( $info['height'] ),
-				]
+				],
 			];
-			if ( isset( $props['title'] ) ) {
-				$info['derivatives'][0]['title'] = $props['title'];
-			}
-			if ( isset( $props['shorttitle'] ) ) {
-				$info['derivatives'][0]['shorttitle'] = $props['shorttitle'];
+			foreach ( $props['derivatives'] as $derivative ) {
+				$info['derivatives'][] = [
+					'src' => self::IMAGE_BASE_URL . '/transcoded/' .
+						$md5prefix . $normFileName . '/' .
+						$normFileName . '.' . $derivative['transcodekey'],
+					'type' => $derivative['type'],
+					'transcodekey' => $derivative['transcodekey'],
+					'width' => strval( $derivative['width'] ),
+					'height' => strval( $derivative['height'] ),
+				];
 			}
 		}
 
@@ -787,15 +799,11 @@ class MockApiHelper extends ApiHelper {
 		];
 	}
 
-	/**
-	 * @param array $params
-	 * @return array
-	 */
 	private function processQuery( array $params ): array {
 		if ( ( $params['meta'] ?? null ) === 'siteinfo' ) {
 			if ( !isset( $this->cachedConfigs[$this->prefix] ) ) {
 				$this->cachedConfigs[$this->prefix] = json_decode(
-					file_get_contents( __DIR__ . "/../../baseconfig/2/$this->prefix.json" ), true );
+					file_get_contents( __DIR__ . "/../../baseconfig/$this->prefix.json" ), true );
 			}
 			return $this->cachedConfigs[$this->prefix];
 		}
@@ -918,11 +926,6 @@ class MockApiHelper extends ApiHelper {
 		return [ "error" => new Error( 'Uh oh!' ) ];
 	}
 
-	/**
-	 * @param string $text
-	 * @param bool $onlypst
-	 * @return array
-	 */
 	private function parse( string $text, bool $onlypst ): array {
 		// We're performing a subst
 		if ( $onlypst ) {
@@ -965,12 +968,6 @@ class MockApiHelper extends ApiHelper {
 		return [ 'parse' => $parse ];
 	}
 
-	/**
-	 * @param string $title
-	 * @param string $text
-	 * @param ?int $revid
-	 * @return ?array
-	 */
 	private function preProcess(
 		string $title, string $text, ?int $revid
 	): ?array {
@@ -990,10 +987,6 @@ class MockApiHelper extends ApiHelper {
 		}
 	}
 
-	/**
-	 * @param array $params
-	 * @return array
-	 */
 	private function fetchTemplateData( array $params ): array {
 		return [
 			// Assumes that titles is a single title

@@ -3,10 +3,9 @@
 /**
  * Database base class if no supported database is configured in PHP
  *
- * @package core
- * @subpackage classes\database
+ * @package zpcore\classes\database
  * 
- * @since ZenphotoCMS 1.6 - reworked as class
+ * @since 1.6 - reworked as class
  */
 class dbBase {
 	
@@ -62,7 +61,7 @@ class dbBase {
 			$config_valid += 1;
 		}
 		if (isset($config['mysql_pass']) && !empty($config['mysql_pass'])) {
-			$this->mysql_pass = $config['mysql_pass'];
+			$this->mysql_pass = str_replace('$', '\$', $config['mysql_pass']);
 			$config_valid += 1;
 		}
 		if ($config_valid == 4) {
@@ -82,7 +81,7 @@ class dbBase {
 	}
 	
 	/**
-	 * @deprecated ZenphotoCMS 2.0 - Use the class property $connection instead
+	 * @deprecated 2.0 - Use the class property $connection instead
 	 * @return object|false
 	 */
 	function connect() {
@@ -93,7 +92,7 @@ class dbBase {
 	/**
 	 * Logs an database error to the php error_log in case the ZPCMS own debuglog functions are not yet available
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * 
 	 * @param string $error_msg
 	 * @param bool $errorstop
@@ -340,7 +339,7 @@ class dbBase {
 	/**
 	 * Returns an array with the tables names of the database
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * @return array
 	 */
 	function getTables() {
@@ -360,7 +359,7 @@ class dbBase {
 	/**
 	 * Gets the names of the tables expected to exist in a Zenphoto database
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * @param string $prefix Null is default to use the prefix set in the current connection. 
 	 * 												In setup environment here pass the mysql prefix set in $_zp_conf_vars for further checks
 	 * @return array
@@ -393,7 +392,7 @@ class dbBase {
 	/**
 	 * Checks if a table exists in the database
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * @param string $table Table name without the prefix
 	 * @return boolean
 	 */
@@ -407,7 +406,7 @@ class dbBase {
 
 	/**
 	 * Checks if a table has no content and/or does not exist
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * 
 	 * @param string $table Table name without the prefix
 	 * @return boolean
@@ -429,7 +428,7 @@ class dbBase {
 	/**
 	 * Gets the detail info of all fields in a table
 	 * 
-	 * @since ZenphotoCMS 1.6 
+	 * @since 1.6 
 	 * @param string $table Name of the table to get the fields info of
 	 * @return array|false
 	 */
@@ -447,7 +446,7 @@ class dbBase {
 	}
 
 	/**
-	 * @deprecated ZenphotoCMS 2.0 - Use the method getFields() instead
+	 * @deprecated 2.0 - Use the method getFields() instead
 	 */
 	function listFields($table) {
 		deprecationNotice('Use the method getFields() instead');
@@ -495,7 +494,7 @@ class dbBase {
 	/**
 	 * Gets the plain database table prefix
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * 
 	 * @return string
 	 */
@@ -627,7 +626,7 @@ class dbBase {
 	/**
 	 * Gets the full version including prefixes and appendixes (as on MariaDB)
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 */
 	function getVersionComplete() {
 		if ($this->connection) {
@@ -657,7 +656,7 @@ class dbBase {
 	 * 
 	 * Uses the show method but always returns an array instead of false.
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * 
 	 * @param string $what 'charsets' (db/server charsets used), 'collations' (db/server collations used)
 	 * @return array
@@ -686,7 +685,7 @@ class dbBase {
 	 * 
 	 * Adapted from WordPress' wpdp::has_cap() 
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 *
 	 * @param string $which 'utf8mb4' or 'utf8mb4_520' (default) or 'general' to check for any
 	 * @return boolean
@@ -750,7 +749,7 @@ class dbBase {
 	/**
 	 * Checks if the database character set and the collation are using UTF8
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * @param $what 'database' or "server"
 	 * @param string $check_charset 'utf8', 'utf8mb4' or "any" for any utf8*
 	 * @return boolean
@@ -801,7 +800,7 @@ class dbBase {
 	 * 
 	 * Partly adapted from WordPress' maybe_convert_table_to_utf8mb4()
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * 
 	 * @param string $table Tablename including prefix
 	 * @param string $check_charset 'utf8', 'utf8mb4' or "any" for any utf8*
@@ -825,7 +824,7 @@ class dbBase {
 	 * 
 	 * Returns false if no columns could be fetched, otherwise an array even if empty
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * 
 	 * @param string $table Tablename including prefix
 	 * @param string $check_charset 'utf8', 'utf8mb4' or "any" for any utf8*
@@ -858,7 +857,7 @@ class dbBase {
 	 * 
 	 * Partly adapted from WordPress' maybe_convert_table_to_utf8mb4()
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * 
 	 * @param string $table Tablename including prefix
 	 * @param string $check_charset 'utf8', 'utf8mb4' or "any" for any utf8*
@@ -888,7 +887,7 @@ class dbBase {
 	 * 
 	 * Partly adapted from WordPress' maybe_convert_table_to_utf8mb4()
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * 
 	 * @param string $table Table name including prefix
 	 * @param bool $force_conversion default false so only tables that have no non utf8* columns are converted
@@ -918,6 +917,30 @@ class dbBase {
 			}
 		}
 		return false;
+	}
+	
+	/**
+	 * Returns the REGEX word boundary characters
+	 * - For MariaDB and MySQL < 8: Spencer lib variant [[:<:]] and [[:>:]]
+	 * - For MySQL 8+: ICU variant \\b
+	 * 
+	 * @since 1.6.3
+	 * 
+	 * @return array
+	 */
+	function getRegexWordBoundaryChars() {
+		$boundaries = array(
+				'open' => '[[:<:]]',
+				'close' => '[[:>:]]'
+		);
+		$version = $this->getVersion();
+		if (!$this->isMariaDB() && version_compare($version, '8.0.0', '>=')) {
+			$boundaries = array(
+					'open' => '\\b',
+					'close' => '\\b'
+			);
+		}
+		return $boundaries;
 	}
 
 }

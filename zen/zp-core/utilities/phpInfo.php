@@ -2,7 +2,7 @@
 /**
  * Displays the PHP configuration information
  * @author Stephen Billard (sbillard)
- * @package admin
+ * @package zpcore\admin\utilities
  */
 
 define ('OFFSET_PATH', 3);

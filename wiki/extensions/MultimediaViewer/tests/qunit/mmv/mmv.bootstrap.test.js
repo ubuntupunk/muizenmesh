@@ -1,5 +1,64 @@
+const { MultimediaViewerBootstrap } = require( 'mmv.bootstrap' );
+const { asyncMethod, waitForAsync, getMultimediaViewer } = require( './mmv.testhelpers.js' );
+
 ( function () {
 	QUnit.module( 'mmv.bootstrap', QUnit.newMwEnvironment( {
+		// mw.Title relies on these three config vars
+		// Restore them after each test run
+		config: {
+			wgFormattedNamespaces: {
+				'-2': 'Media',
+				'-1': 'Special',
+				0: '',
+				1: 'Talk',
+				2: 'User',
+				3: 'User talk',
+				4: 'Wikipedia',
+				5: 'Wikipedia talk',
+				6: 'File',
+				7: 'File talk',
+				8: 'MediaWiki',
+				9: 'MediaWiki talk',
+				10: 'Template',
+				11: 'Template talk',
+				12: 'Help',
+				13: 'Help talk',
+				14: 'Category',
+				15: 'Category talk',
+				// testing custom / localized namespace
+				100: 'Penguins'
+			},
+			wgNamespaceIds: {
+				/* eslint-disable camelcase */
+				media: -2,
+				special: -1,
+				'': 0,
+				talk: 1,
+				user: 2,
+				user_talk: 3,
+				wikipedia: 4,
+				wikipedia_talk: 5,
+				file: 6,
+				file_talk: 7,
+				mediawiki: 8,
+				mediawiki_talk: 9,
+				template: 10,
+				template_talk: 11,
+				help: 12,
+				help_talk: 13,
+				category: 14,
+				category_talk: 15,
+				image: 6,
+				image_talk: 7,
+				project: 4,
+				project_talk: 5,
+				// Testing custom namespaces and aliases
+				penguins: 100,
+				antarctic_waterfowl: 100
+				/* eslint-enable camelcase */
+			},
+			wgCaseSensitiveNamespaces: []
+		},
 		beforeEach: function () {
 			mw.config.set( 'wgMediaViewer', true );
 			mw.config.set( 'wgMediaViewerOnClick', true );
@@ -8,10 +67,10 @@
 	} ) );
 
 	function createGallery( imageSrc, caption ) {
-		var $div = $( '<div>' ).addClass( 'gallery' ).appendTo( '#qunit-fixture' ),
-			$galleryBox = $( '<div>' ).addClass( 'gallerybox' ).appendTo( $div ),
-			$thumbwrap = $( '<div>' ).addClass( 'thumb' ).appendTo( $galleryBox ),
-			$link = $( '<a>' ).addClass( 'image' ).appendTo( $thumbwrap );
+		const $div = $( '<div>' ).addClass( 'gallery' ).appendTo( '#qunit-fixture' );
+		const $galleryBox = $( '<div>' ).addClass( 'gallerybox' ).appendTo( $div );
+		const $thumbwrap = $( '<div>' ).addClass( 'thumb' ).appendTo( $galleryBox );
+		const $link = $( '<a>' ).addClass( 'image' ).appendTo( $thumbwrap );
 
 		$( '<img>' ).attr( 'src', ( imageSrc || 'thumb.jpg' ) ).appendTo( $link );
 		$( '<div>' ).addClass( 'gallerytext' ).text( caption || 'Foobar' ).appendTo( $galleryBox );
@@ -20,8 +79,8 @@
 	}
 
 	function createThumb( imageSrc, caption, alt ) {
-		var $div = $( '<div>' ).addClass( 'thumb' ).appendTo( '#qunit-fixture' ),
-			$link = $( '<a>' ).addClass( 'image' ).appendTo( $div );
+		const $div = $( '<div>' ).addClass( 'thumb' ).appendTo( '#qunit-fixture' );
+		const $link = $( '<a>' ).addClass( 'image' ).appendTo( $div );
 
 		$( '<div>' ).addClass( 'thumbcaption' ).appendTo( $div ).text( caption );
 		$( '<img>' ).attr( 'src', ( imageSrc || 'thumb.jpg' ) ).attr( 'alt', alt ).appendTo( $link );
@@ -30,19 +89,18 @@
 	}
 
 	function createNormal( imageSrc, caption ) {
-		var $link = $( '<a>' ).prop( 'title', caption ).addClass( 'image' ).appendTo( '#qunit-fixture' );
+		const $link = $( '<a>' ).prop( 'title', caption ).addClass( 'image' ).appendTo( '#qunit-fixture' );
 		$( '<img>' ).prop( 'src', ( imageSrc || 'thumb.jpg' ) ).appendTo( $link );
 		return $link;
 	}
 
 	function createMultipleImage( images ) {
-		var i, $div, $thumbimage, $link,
-			$contain = $( '<div>' ).addClass( 'thumb' ),
-			$thumbinner = $( '<div>' ).addClass( 'thumbinner' ).appendTo( $contain );
-		for ( i = 0; i < images.length; ++i ) {
-			$div = $( '<div>' ).appendTo( $thumbinner );
-			$thumbimage = $( '<div>' ).addClass( 'thumbimage' ).appendTo( $div );
-			$link = $( '<a>' ).addClass( 'image' ).appendTo( $thumbimage );
+		const $contain = $( '<div>' ).addClass( 'thumb' );
+		const $thumbinner = $( '<div>' ).addClass( 'thumbinner' ).appendTo( $contain );
+		for ( let i = 0; i < images.length; ++i ) {
+			const $div = $( '<div>' ).appendTo( $thumbinner );
+			const $thumbimage = $( '<div>' ).addClass( 'thumbimage' ).appendTo( $div );
+			const $link = $( '<a>' ).addClass( 'image' ).appendTo( $thumbimage );
 			$( '<img>' ).prop( 'src', images[ i ][ 0 ] ).appendTo( $link );
 			$( '<div>' ).addClass( 'thumbcaption' ).text( images[ i ][ 1 ] ).appendTo( $div );
 		}
@@ -50,7 +108,7 @@
 	}
 
 	function createBootstrap( viewer ) {
-		var bootstrap = new mw.mmv.MultimediaViewerBootstrap();
+		const bootstrap = new MultimediaViewerBootstrap();
 
 		bootstrap.processThumbs( $( '#qunit-fixture' ) );
 
@@ -59,15 +117,20 @@
 		bootstrap.ensureEventHandlersAreSetUp = function () {};
 
 		bootstrap.getViewer = function () {
-			return viewer || { initWithThumbs: function () {}, hash: function () {} };
+			return viewer || {
+				loadImageByTitle: function () {},
+				initWithThumbs: function () {},
+				hash: function () {},
+				router: { checkRoute: function () {} }
+			};
 		};
 
 		return bootstrap;
 	}
 
 	function hashTest( prefix, bootstrap, assert ) {
-		var hash = prefix + '/foo',
-			callCount = 0;
+		const hash = prefix + '/foo';
+		let callCount = 0;
 
 		bootstrap.loadViewer = function () {
 			callCount++;
@@ -76,7 +139,7 @@
 
 		// Hijack loadViewer, which will return a promise that we'll have to
 		// wait for if we want to see these tests through
-		mw.mmv.testHelpers.asyncMethod( bootstrap, 'loadViewer' );
+		asyncMethod( bootstrap, 'loadViewer' );
 
 		// invalid hash, should not trigger MMV load
 		location.hash = 'Foo';
@@ -87,10 +150,9 @@
 		// without us interfering with another immediate change
 		setTimeout( function () {
 			location.hash = hash;
-			bootstrap.hash();
 		} );
 
-		return mw.mmv.testHelpers.waitForAsync().then( function () {
+		return waitForAsync().then( function () {
 			assert.strictEqual( callCount, 1, 'Viewer should be loaded once' );
 			bootstrap.cleanupEventHandlers();
 			location.hash = '';
@@ -98,15 +160,14 @@
 	}
 
 	QUnit.test( 'Promise does not hang on ResourceLoader errors', function ( assert ) {
-		var bootstrap,
-			errorMessage = 'loading failed',
-			done = assert.async();
+		const errorMessage = 'loading failed';
+		const done = assert.async();
 
 		this.sandbox.stub( mw.loader, 'using' )
 			.callsArgWith( 2, new Error( errorMessage, [ 'mmv' ] ) )
 			.withArgs( 'mediawiki.notification' ).returns( $.Deferred().reject() ); // needed for mw.notify
 
-		bootstrap = createBootstrap();
+		const bootstrap = createBootstrap();
 		this.sandbox.stub( bootstrap, 'setupOverlay' );
 		this.sandbox.stub( bootstrap, 'cleanupOverlay' );
 
@@ -119,9 +180,8 @@
 	} );
 
 	QUnit.test( 'Clicks are not captured once the loading fails', function ( assert ) {
-		var event, returnValue,
-			bootstrap = new mw.mmv.MultimediaViewerBootstrap(),
-			clock = this.sandbox.useFakeTimers();
+		const bootstrap = new MultimediaViewerBootstrap();
+		const clock = this.sandbox.useFakeTimers();
 
 		this.sandbox.stub( mw.loader, 'using' )
 			.callsArgWith( 2, new Error( 'loading failed', [ 'mmv' ] ) )
@@ -130,40 +190,30 @@
 
 		// trigger first click, which will cause MMV to be loaded (which we've
 		// set up to fail)
-		event = new $.Event( 'click', { button: 0, which: 1 } );
-		returnValue = bootstrap.click( {}, event, mw.Title.newFromText( 'Foo' ) );
+		const event = new $.Event( 'click', { button: 0, which: 1 } );
+		const returnValue = bootstrap.click( event, mw.Title.newFromText( 'Foo' ) );
 		clock.tick( 10 );
 		assert.true( event.isDefaultPrevented(), 'First click is caught' );
 		assert.strictEqual( returnValue, false, 'First click is caught' );
-
-		// wait until MMW is loaded (or failed to load, in this case) before we
-		// trigger another click - which should then not be caught
-		event = new $.Event( 'click', { button: 0, which: 1 } );
-		returnValue = bootstrap.click( {}, event, mw.Title.newFromText( 'Foo' ) );
-		clock.tick( 10 );
-		assert.strictEqual( event.isDefaultPrevented(), false, 'Click after loading failure is not caught' );
-		assert.notStrictEqual( returnValue, false, 'Click after loading failure is not caught' );
-
 		clock.restore();
 	} );
 
 	// FIXME: Tests suspended as they do not pass in QUnit 2.x+ – T192932
 	QUnit.skip( 'Check viewer invoked when clicking on valid image links', function ( assert ) {
 		// TODO: Is <div class="gallery"><span class="image"><img/></span></div> valid ???
-		var div, $link, $link2, $link3, $link4, $link5, bootstrap,
-			viewer = { initWithThumbs: function () {}, loadImageByTitle: this.sandbox.stub() },
-			clock = this.sandbox.useFakeTimers();
+		const viewer = { initWithThumbs: function () {}, loadImageByTitle: this.sandbox.stub() };
+		const clock = this.sandbox.useFakeTimers();
 
 		// Create gallery with valid link image
-		div = createGallery();
-		$link = div.find( 'a.image' );
+		const div = createGallery();
+		const $link = div.find( 'a.image' );
 
 		// Valid isolated thumbnail
-		$link2 = $( '<a>' ).addClass( 'image' ).appendTo( '#qunit-fixture' );
+		const $link2 = $( '<a>' ).addClass( 'image' ).appendTo( '#qunit-fixture' );
 		$( '<img>' ).attr( 'src', 'thumb2.jpg' ).appendTo( $link2 );
 
 		// Non-valid fragment
-		$link3 = $( '<a>' ).addClass( 'noImage' ).appendTo( div );
+		const $link3 = $( '<a>' ).addClass( 'noImage' ).appendTo( div );
 		$( '<img>' ).attr( 'src', 'thumb3.jpg' ).appendTo( $link3 );
 
 		mw.config.set( 'wgTitle', 'Thumb4.jpg' );
@@ -179,13 +229,13 @@
 		);
 
 		// Create a new bootstrap object to trigger the DOM scan, etc.
-		bootstrap = createBootstrap( viewer );
+		const bootstrap = createBootstrap( viewer );
 		this.sandbox.stub( bootstrap, 'setupOverlay' );
 
-		$link4 = $( '.fullMedia .mw-mmv-view-expanded' );
+		const $link4 = $( '.fullMedia .mw-mmv-view-expanded' );
 		assert.ok( $link4.length, 'Link for viewing expanded file was set up.' );
 
-		$link5 = $( '.fullMedia .mw-mmv-view-config' );
+		const $link5 = $( '.fullMedia .mw-mmv-view-config' );
 		assert.ok( $link5.length, 'Link for opening enable/disable configuration was set up.' );
 
 		// Click on valid link
@@ -240,13 +290,12 @@
 	} );
 
 	QUnit.test( 'Skip images with invalid extensions', function ( assert ) {
-		var div, link,
-			viewer = { initWithThumbs: function () {}, loadImageByTitle: this.sandbox.stub() },
-			clock = this.sandbox.useFakeTimers();
+		const viewer = { initWithThumbs: function () {}, loadImageByTitle: this.sandbox.stub() };
+		const clock = this.sandbox.useFakeTimers();
 
 		// Create gallery with image that has invalid name extension
-		div = createGallery( 'thumb.badext' );
-		link = div.find( 'a.image' );
+		const div = createGallery( 'thumb.badext' );
+		const link = div.find( 'a.image' );
 
 		// Create a new bootstrap object to trigger the DOM scan, etc.
 		createBootstrap( viewer );
@@ -262,18 +311,17 @@
 
 	// FIXME: Tests suspended as they do not pass in QUnit 2.x+ – T192932
 	QUnit.skip( 'Accept only left clicks without modifier keys, skip the rest', function ( assert ) {
-		var $div, $link, bootstrap,
-			viewer = { initWithThumbs: function () {}, loadImageByTitle: this.sandbox.stub() },
-			clock = this.sandbox.useFakeTimers();
+		const viewer = { initWithThumbs: function () {}, loadImageByTitle: this.sandbox.stub() };
+		const clock = this.sandbox.useFakeTimers();
 
 		// Create gallery with image that has valid name extension
-		$div = createGallery();
+		const $div = createGallery();
 
 		// Create a new bootstrap object to trigger the DOM scan, etc.
-		bootstrap = createBootstrap( viewer );
+		const bootstrap = createBootstrap( viewer );
 		this.sandbox.stub( bootstrap, 'setupOverlay' );
 
-		$link = $div.find( 'a.image' );
+		const $link = $div.find( 'a.image' );
 
 		// Handle valid left click, it should try to load the image
 		$link.trigger( { type: 'click', which: 1 } );
@@ -301,45 +349,40 @@
 	} );
 
 	QUnit.test( 'Ensure that the correct title is loaded when clicking', function ( assert ) {
-		var bootstrap,
-			viewer = { initWithThumbs: function () {}, loadImageByTitle: this.sandbox.stub() },
-			$div = createGallery( 'foo.jpg' ),
-			$link = $div.find( 'a.image' ),
-			clock = this.sandbox.useFakeTimers();
+		const viewer = { initWithThumbs: function () {}, loadImageByTitle: this.sandbox.stub() };
+		const clock = this.sandbox.useFakeTimers();
 
 		// Create a new bootstrap object to trigger the DOM scan, etc.
-		bootstrap = createBootstrap( viewer );
+		const bootstrap = createBootstrap( viewer );
 		this.sandbox.stub( bootstrap, 'setupOverlay' );
 
-		$link.trigger( { type: 'click', which: 1 } );
+		bootstrap.route( 'File:Foo.jpg' );
 		clock.tick( 10 );
 		assert.true( bootstrap.setupOverlay.called, 'Overlay was set up' );
 		assert.strictEqual( viewer.loadImageByTitle.firstCall.args[ 0 ].getPrefixedDb(), 'File:Foo.jpg', 'Titles are identical' );
 
+		clock.tick( 10 );
 		clock.restore();
 	} );
 
 	// FIXME: Tests suspended as they do not pass in QUnit 2.x+ – T192932
 	QUnit.skip( 'Validate new LightboxImage object has sensible constructor parameters', function ( assert ) {
-		var bootstrap,
-			$div,
-			$link,
-			viewer = mw.mmv.testHelpers.getMultimediaViewer(),
-			fname = 'valid',
-			imgSrc = '/' + fname + '.jpg/300px-' + fname + '.jpg',
-			imgRegex = new RegExp( imgSrc + '$' ),
-			clock = this.sandbox.useFakeTimers();
+		const viewer = getMultimediaViewer();
+		const fname = 'valid';
+		const imgSrc = '/' + fname + '.jpg/300px-' + fname + '.jpg';
+		const imgRegex = new RegExp( imgSrc + '$' );
+		const clock = this.sandbox.useFakeTimers();
 
-		$div = createThumb( imgSrc, 'Blah blah', 'meow' );
-		$link = $div.find( 'a.image' );
+		const $div = createThumb( imgSrc, 'Blah blah', 'meow' );
+		const $link = $div.find( 'a.image' );
 
 		// Create a new bootstrap object to trigger the DOM scan, etc.
-		bootstrap = createBootstrap( viewer );
+		const bootstrap = createBootstrap( viewer );
 		this.sandbox.stub( bootstrap, 'setupOverlay' );
 		this.sandbox.stub( viewer, 'createNewImage' );
 		viewer.loadImage = function () {};
 		viewer.createNewImage = function ( fileLink, filePageLink, fileTitle, index, thumb, caption, alt ) {
-			var html = thumb.outerHTML;
+			const html = thumb.outerHTML;
 
 			// FIXME: fileLink doesn't match imgRegex (null)
 			assert.ok( fileLink.match( imgRegex ), 'Thumbnail URL used in creating new image object' );
@@ -359,54 +402,26 @@
 		clock.reset();
 	} );
 
-	QUnit.test( 'Only load the viewer on a valid hash (modern browsers)', function ( assert ) {
-		var bootstrap;
-
+	QUnit.test( 'Only load the viewer on a valid hash', function ( assert ) {
 		location.hash = '';
 
-		bootstrap = createBootstrap();
+		const bootstrap = createBootstrap();
 
 		return hashTest( '/media', bootstrap, assert );
 	} );
 
-	QUnit.test( 'Only load the viewer on a valid hash (old browsers)', function ( assert ) {
-		var bootstrap;
-
+	QUnit.test( 'Load the viewer on a legacy hash', function ( assert ) {
 		location.hash = '';
 
-		bootstrap = createBootstrap();
-		bootstrap.browserHistory = undefined;
-
-		return hashTest( '/media', bootstrap, assert );
-	} );
-
-	QUnit.test( 'Load the viewer on a legacy hash (modern browsers)', function ( assert ) {
-		var bootstrap;
-
-		location.hash = '';
-
-		bootstrap = createBootstrap();
-
-		return hashTest( 'mediaviewer', bootstrap, assert );
-	} );
-
-	QUnit.test( 'Load the viewer on a legacy hash (old browsers)', function ( assert ) {
-		var bootstrap;
-
-		location.hash = '';
-
-		bootstrap = createBootstrap();
-		bootstrap.browserHistory = undefined;
+		const bootstrap = createBootstrap();
 
 		return hashTest( 'mediaviewer', bootstrap, assert );
 	} );
 
 	QUnit.test( 'Overlay is set up on hash change', function ( assert ) {
-		var bootstrap;
-
 		location.hash = '#/media/foo';
 
-		bootstrap = createBootstrap();
+		const bootstrap = createBootstrap();
 		this.sandbox.stub( bootstrap, 'setupOverlay' );
 
 		bootstrap.hash();
@@ -415,11 +430,9 @@
 	} );
 
 	QUnit.test( 'Overlay is not set up on an irrelevant hash change', function ( assert ) {
-		var bootstrap;
-
 		location.hash = '#foo';
 
-		bootstrap = createBootstrap();
+		const bootstrap = createBootstrap();
 		this.sandbox.stub( bootstrap, 'setupOverlay' );
 		bootstrap.loadViewer();
 		bootstrap.setupOverlay.reset();
@@ -430,10 +443,10 @@
 	} );
 
 	QUnit.test( 'Restoring article scroll position', function ( assert ) {
-		var stubbedScrollTop,
-			bootstrap = createBootstrap(),
-			$window = $( window ),
-			done = assert.async();
+		let stubbedScrollTop;
+		const bootstrap = createBootstrap();
+		const $window = $( window );
+		const done = assert.async();
 
 		this.sandbox.stub( $.fn, 'scrollTop', function ( scrollTop ) {
 			if ( scrollTop !== undefined ) {
@@ -460,15 +473,14 @@
 	} );
 
 	QUnit.test( 'Preload JS/CSS dependencies on thumb hover', function ( assert ) {
-		var $div, bootstrap,
-			clock = this.sandbox.useFakeTimers(),
-			viewer = { initWithThumbs: function () {} };
+		const clock = this.sandbox.useFakeTimers();
+		const viewer = { initWithThumbs: function () {} };
 
 		// Create gallery with image that has valid name extension
-		$div = createThumb();
+		const $div = createThumb();
 
 		// Create a new bootstrap object to trigger the DOM scan, etc.
-		bootstrap = createBootstrap( viewer );
+		const bootstrap = createBootstrap( viewer );
 
 		this.sandbox.stub( mw.loader, 'load' );
 
@@ -488,9 +500,9 @@
 	} );
 
 	QUnit.test( 'isAllowedThumb', function ( assert ) {
-		var $container = $( '<div>' ),
-			$thumb = $( '<img>' ).appendTo( $container ),
-			bootstrap = createBootstrap();
+		const $container = $( '<div>' );
+		const $thumb = $( '<img>' ).appendTo( $container );
+		const bootstrap = createBootstrap();
 
 		assert.strictEqual( bootstrap.isAllowedThumb( $thumb ), true, 'Normal image in a div is allowed.' );
 
@@ -508,12 +520,15 @@
 	} );
 
 	QUnit.test( 'findCaption', function ( assert ) {
-		var gallery = createGallery( 'foo.jpg', 'Baz' ),
-			thumb = createThumb( 'foo.jpg', 'Quuuuux' ),
-			link = createNormal( 'foo.jpg', 'Foobar' ),
-			multiple = createMultipleImage( [ [ 'foo.jpg', 'Image #1' ], [ 'bar.jpg', 'Image #2' ],
-				[ 'foobar.jpg', 'Image #3' ] ] ),
-			bootstrap = createBootstrap();
+		const gallery = createGallery( 'foo.jpg', 'Baz' );
+		const thumb = createThumb( 'foo.jpg', 'Quuuuux' );
+		const link = createNormal( 'foo.jpg', 'Foobar' );
+		const multiple = createMultipleImage( [
+			[ 'foo.jpg', 'Image #1' ],
+			[ 'bar.jpg', 'Image #2' ],
+			[ 'foobar.jpg', 'Image #3' ]
+		] );
+		const bootstrap = createBootstrap();
 
 		assert.strictEqual( bootstrap.findCaption( gallery.find( '.thumb' ), gallery.find( 'a.image' ) ), 'Baz', 'A gallery caption is found.' );
 		assert.strictEqual( bootstrap.findCaption( thumb, thumb.find( 'a.image' ) ), 'Quuuuux', 'A thumbnail caption is found.' );

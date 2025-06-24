@@ -21,6 +21,10 @@
  * @ingroup SpecialPage
  */
 
+namespace MediaWiki\Specials;
+
+use MediaWiki\SpecialPage\SpecialPage;
+
 /**
  * @ingroup SpecialPage
  * @since 1.27
@@ -58,3 +62,6 @@ class SpecialApiSandbox extends SpecialPage {
 		return 'wiki';
 	}
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( SpecialApiSandbox::class, 'SpecialApiSandbox' );

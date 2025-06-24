@@ -6,10 +6,15 @@
 	"license-name": "WTFPL",
 	"type": "api",
 	"requires": {
-		"MediaWiki": ">= 1.40.0"
+		"MediaWiki": ">= 1.42.0"
 	},
 	"APIPropModules": {
-		"pageimages": "PageImages\\ApiQueryPageImages"
+		"pageimages": {
+			"class": "PageImages\\ApiQueryPageImages",
+			"services": [
+				"RepoGroup"
+			]
+		}
 	},
 	"MessagesDirs": {
 		"PageImages": [
@@ -31,12 +36,14 @@
 		"ParserModifyImageHTML": "parser",
 		"ParserTestGlobals": "parser",
 		"SearchResultProvideThumbnail": "search",
-		"SpecialMobileEditWatchlist::images": "PageImages\\PageImages::onSpecialMobileEditWatchlistImages"
+		"SpecialMobileEditWatchlist::images": "mobile"
 	},
 	"HookHandlers": {
 		"main": {
 			"class": "PageImages\\PageImages",
 			"services": [
+				"DBLoadBalancerFactory",
+				"RepoGroup",
 				"UserOptionsLookup"
 			]
 		},
@@ -45,7 +52,10 @@
 			"services": [
 				"RepoGroup",
 				"MainWANObjectCache",
-				"HttpRequestFactory"
+				"HttpRequestFactory",
+				"DBLoadBalancerFactory",
+				"TitleFactory",
+				"LinksMigration"
 			]
 		},
 		"search": {
@@ -55,10 +65,18 @@
 				"PageProps",
 				"RepoGroup"
 			]
+		},
+		"mobile": {
+			"class": "PageImages\\Hooks\\MobileFrontendHookHandlers"
 		}
 	},
 	"JobClasses": {
-		"InitImageDataJob": "PageImages\\Job\\InitImageDataJob"
+		"InitImageDataJob": {
+			"class": "PageImages\\Job\\InitImageDataJob",
+			"services": [
+				"DBLoadBalancerFactory"
+			]
+		}
 	},
 	"config": {
 		"PageImagesScores": {

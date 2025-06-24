@@ -1,10 +1,16 @@
 <?php
 
+namespace MediaWiki\Tests\SpecialPage;
+
 use MediaWiki\MainConfigNames;
+use MediaWiki\SpecialPage\SpecialPage;
 use MediaWiki\Title\Title;
+use MediaWiki\User\User;
+use MediaWikiIntegrationTestCase;
+use UserNotLoggedIn;
 
 /**
- * @covers SpecialPage
+ * @covers \MediaWiki\SpecialPage\SpecialPage
  *
  * @group Database
  *
@@ -30,29 +36,37 @@ class SpecialPageTest extends MediaWikiIntegrationTestCase {
 		$this->assertEquals( $expected, $title );
 	}
 
-	public function getTitleForProvider() {
+	public static function getTitleForProvider() {
 		return [
 			[ 'UserLogin', 'Userlogin' ]
 		];
 	}
 
 	public function testInvalidGetTitleFor() {
-		$this->expectNotice();
-		$title = SpecialPage::getTitleFor( 'cat' );
-		$expected = Title::makeTitle( NS_SPECIAL, 'Cat' );
-		$this->assertEquals( $expected, $title );
+		$this->expectPHPError(
+			E_USER_NOTICE,
+			function () {
+				$title = SpecialPage::getTitleFor( 'cat' );
+				$expected = Title::makeTitle( NS_SPECIAL, 'Cat' );
+				$this->assertEquals( $expected, $title );
+			}
+		);
 	}
 
 	/**
 	 * @dataProvider getTitleForWithWarningProvider
 	 */
 	public function testGetTitleForWithWarning( $expected, $name ) {
-		$this->expectNotice();
-		$title = SpecialPage::getTitleFor( $name );
-		$this->assertEquals( $expected, $title );
+		$this->expectPHPError(
+			E_USER_NOTICE,
+			function () use ( $name, $expected ) {
+				$title = SpecialPage::getTitleFor( $name );
+				$this->assertEquals( $expected, $title );
+			}
+		);
 	}
 
-	public function getTitleForWithWarningProvider() {
+	public static function getTitleForWithWarningProvider() {
 		return [
 			[ Title::makeTitle( NS_SPECIAL, 'UserLogin' ), 'UserLogin' ]
 		];
@@ -76,7 +90,7 @@ class SpecialPageTest extends MediaWikiIntegrationTestCase {
 		$specialPage->requireLogin( ...array_filter( [ $reason, $title ] ) );
 	}
 
-	public function requireLoginAnonProvider() {
+	public static function requireLoginAnonProvider() {
 		$lang = 'en';
 
 		$expected1 = wfMessage( 'exception-nologin-text' )->inLanguage( $lang )->text();
@@ -92,7 +106,7 @@ class SpecialPageTest extends MediaWikiIntegrationTestCase {
 	public function testRequireLoginNotAnon() {
 		$specialPage = new SpecialPage( 'Watchlist', 'viewmywatchlist' );
 
-		$user = User::newFromName( "UTSysop" );
+		$user = $this->getTestSysop()->getUser();
 		$specialPage->getContext()->setUser( $user );
 
 		$specialPage->requireLogin();

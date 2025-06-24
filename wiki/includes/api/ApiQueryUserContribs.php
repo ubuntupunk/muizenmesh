@@ -30,8 +30,10 @@ use MediaWiki\Storage\NameTableAccessException;
 use MediaWiki\Storage\NameTableStore;
 use MediaWiki\Title\Title;
 use MediaWiki\User\ActorMigration;
+use MediaWiki\User\ExternalUserNames;
 use MediaWiki\User\UserIdentity;
 use MediaWiki\User\UserIdentityLookup;
+use MediaWiki\User\UserIdentityValue;
 use MediaWiki\User\UserNameUtils;
 use Wikimedia\IPUtils;
 use Wikimedia\ParamValidator\ParamValidator;
@@ -45,26 +47,13 @@ use Wikimedia\Rdbms\SelectQueryBuilder;
  */
 class ApiQueryUserContribs extends ApiQueryBase {
 
-	/** @var CommentStore */
-	private $commentStore;
-
-	/** @var UserIdentityLookup */
-	private $userIdentityLookup;
-
-	/** @var UserNameUtils */
-	private $userNameUtils;
-
-	/** @var RevisionStore */
-	private $revisionStore;
-
-	/** @var NameTableStore */
-	private $changeTagDefStore;
-
-	/** @var ActorMigration */
-	private $actorMigration;
-
-	/** @var CommentFormatter */
-	private $commentFormatter;
+	private CommentStore $commentStore;
+	private UserIdentityLookup $userIdentityLookup;
+	private UserNameUtils $userNameUtils;
+	private RevisionStore $revisionStore;
+	private NameTableStore $changeTagDefStore;
+	private ActorMigration $actorMigration;
+	private CommentFormatter $commentFormatter;
 
 	/**
 	 * @param ApiQuery $query
@@ -154,7 +143,9 @@ class ApiQueryUserContribs extends ApiQueryBase {
 						->caller( $fname )
 						->limit( $limit )
 						->whereUserNamePrefix( $this->params['userprefix'] )
-						->where( $fromName ? $dbSecondary->buildComparison( $op, [ 'actor_name' => $fromName ] ) : [] )
+						->where( $fromName !== false
+							? $dbSecondary->buildComparison( $op, [ 'actor_name' => $fromName ] )
+							: [] )
 						->orderByName( $sort )
 						->fetchUserIdentities();
 
@@ -270,7 +261,7 @@ class ApiQueryUserContribs extends ApiQueryBase {
 							$fromName = $ipAddr;
 							break;
 						}
-						yield User::newFromName( $ipAddr, false );
+						yield UserIdentityValue::newAnonymous( $ipAddr );
 					}
 				} while ( $fromName !== false );
 			} );
@@ -386,7 +377,7 @@ class ApiQueryUserContribs extends ApiQueryBase {
 		$this->resetQueryParams();
 		$db = $this->getDB();
 
-		$revQuery = $this->revisionStore->getQueryInfo( [ 'page' ] );
+		$queryBuilder = $this->revisionStore->newSelectQueryBuilder( $db )->joinComment()->joinPage();
 		$revWhere = $this->actorMigration->getWhere( $db, 'rev_user', $users );
 
 		$orderUserField = 'rev_actor';
@@ -394,9 +385,7 @@ class ApiQueryUserContribs extends ApiQueryBase {
 		$tsField = 'rev_timestamp';
 		$idField = 'rev_id';
 
-		$this->addTables( $revQuery['tables'] );
-		$this->addJoinConds( $revQuery['joins'] );
-		$this->addFields( $revQuery['fields'] );
+		$this->getQueryBuilder()->merge( $queryBuilder );
 		$this->addWhere( $revWhere['conds'] );
 		// Force the appropriate index to avoid bad query plans (T307815 and T307295)
 		if ( isset( $revWhere['orconds']['newactor'] ) ) {
@@ -475,10 +464,10 @@ class ApiQueryUserContribs extends ApiQueryBase {
 				$this->dieWithError( 'apierror-show' );
 			}
 
-			$this->addWhereIf( 'rev_minor_edit = 0', isset( $show['!minor'] ) );
+			$this->addWhereIf( [ 'rev_minor_edit' => 0 ], isset( $show['!minor'] ) );
 			$this->addWhereIf( 'rev_minor_edit != 0', isset( $show['minor'] ) );
 			$this->addWhereIf(
-				'rc_patrolled = ' . RecentChange::PRC_UNPATROLLED,
+				[ 'rc_patrolled' => RecentChange::PRC_UNPATROLLED ],
 				isset( $show['!patrolled'] )
 			);
 			$this->addWhereIf(
@@ -490,13 +479,13 @@ class ApiQueryUserContribs extends ApiQueryBase {
 				isset( $show['!autopatrolled'] )
 			);
 			$this->addWhereIf(
-				'rc_patrolled = ' . RecentChange::PRC_AUTOPATROLLED,
+				[ 'rc_patrolled' => RecentChange::PRC_AUTOPATROLLED ],
 				isset( $show['autopatrolled'] )
 			);
 			$this->addWhereIf( $idField . ' != page_latest', isset( $show['!top'] ) );
 			$this->addWhereIf( $idField . ' = page_latest', isset( $show['top'] ) );
 			$this->addWhereIf( 'rev_parent_id != 0', isset( $show['!new'] ) );
-			$this->addWhereIf( 'rev_parent_id = 0', isset( $show['new'] ) );
+			$this->addWhereIf( [ 'rev_parent_id' => 0 ], isset( $show['new'] ) );
 		}
 		$this->addOption( 'LIMIT', $limit + 1 );
 
@@ -684,7 +673,7 @@ class ApiQueryUserContribs extends ApiQueryBase {
 			],
 			'user' => [
 				ParamValidator::PARAM_TYPE => 'user',
-				UserDef::PARAM_ALLOWED_USER_TYPES => [ 'name', 'ip', 'interwiki' ],
+				UserDef::PARAM_ALLOWED_USER_TYPES => [ 'name', 'ip', 'temp', 'interwiki' ],
 				ParamValidator::PARAM_ISMULTI => true
 			],
 			'userids' => [

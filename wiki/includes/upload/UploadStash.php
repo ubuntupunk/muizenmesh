@@ -20,6 +20,7 @@
  * @file
  */
 
+use MediaWiki\Context\RequestContext;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\User\UserIdentity;
@@ -198,12 +199,13 @@ class UploadStash {
 	 * @param string $path Path to file you want stashed
 	 * @param string|null $sourceType The type of upload that generated this file
 	 *   (currently, I believe, 'file' or null)
+	 * @param array|null $fileProps File props or null to regenerate
 	 * @throws UploadStashBadPathException
 	 * @throws UploadStashFileException
 	 * @throws UploadStashNotLoggedInException
 	 * @return UploadStashFile|null File, or null on failure
 	 */
-	public function stashFile( $path, $sourceType = null ) {
+	public function stashFile( $path, $sourceType = null, $fileProps = null ) {
 		if ( !is_file( $path ) ) {
 			wfDebug( __METHOD__ . " tried to stash file at '$path', but it doesn't exist" );
 			throw new UploadStashBadPathException(
@@ -211,8 +213,11 @@ class UploadStash {
 			);
 		}
 
-		$mwProps = new MWFileProps( MediaWikiServices::getInstance()->getMimeAnalyzer() );
-		$fileProps = $mwProps->getPropsFromPath( $path, true );
+		// File props is expensive to generate for large files, so reuse if possible.
+		if ( !$fileProps ) {
+			$mwProps = new MWFileProps( MediaWikiServices::getInstance()->getMimeAnalyzer() );
+			$fileProps = $mwProps->getPropsFromPath( $path, true );
+		}
 		wfDebug( __METHOD__ . " stashing file at '$path'" );
 
 		// we will be initializing from some tmpnam files that don't have extensions.
@@ -312,11 +317,10 @@ class UploadStash {
 			'us_status' => 'finished'
 		];
 
-		$dbw->insert(
-			'uploadstash',
-			$insertRow,
-			__METHOD__
-		);
+		$dbw->newInsertQueryBuilder()
+			->insertInto( 'uploadstash' )
+			->row( $insertRow )
+			->caller( __METHOD__ )->execute();
 
 		// store the insertid in the class variable so immediate retrieval
 		// (possibly laggy) isn't necessary.
@@ -346,11 +350,10 @@ class UploadStash {
 
 		wfDebug( __METHOD__ . ' clearing all rows for user ' . $this->user->getId() );
 		$dbw = $this->repo->getPrimaryDB();
-		$dbw->delete(
-			'uploadstash',
-			[ 'us_user' => $this->user->getId() ],
-			__METHOD__
-		);
+		$dbw->newDeleteQueryBuilder()
+			->deleteFrom( 'uploadstash' )
+			->where( [ 'us_user' => $this->user->getId() ] )
+			->caller( __METHOD__ )->execute();
 
 		# destroy objects.
 		$this->files = [];
@@ -413,11 +416,10 @@ class UploadStash {
 
 		$dbw = $this->repo->getPrimaryDB();
 
-		$dbw->delete(
-			'uploadstash',
-			[ 'us_key' => $key ],
-			__METHOD__
-		);
+		$dbw->newDeleteQueryBuilder()
+			->deleteFrom( 'uploadstash' )
+			->where( [ 'us_key' => $key ] )
+			->caller( __METHOD__ )->execute();
 
 		/** @todo Look into UnregisteredLocalFile and find out why the rv here is
 		 *  sometimes wrong (false when file was removed). For now, ignore.
@@ -457,7 +459,7 @@ class UploadStash {
 		// finish the read before starting writes.
 		$keys = [];
 		foreach ( $res as $row ) {
-			array_push( $keys, $row->us_key );
+			$keys[] = $row->us_key;
 		}
 
 		return $keys;
@@ -545,7 +547,12 @@ class UploadStash {
 	 * @return bool
 	 */
 	protected function initFile( $key ) {
-		$file = new UploadStashFile( $this->repo, $this->fileMetadata[$key]['us_path'], $key );
+		$file = new UploadStashFile(
+			$this->repo,
+			$this->fileMetadata[$key]['us_path'],
+			$key,
+			$this->fileMetadata[$key]['us_sha1']
+		);
 		if ( $file->getSize() === 0 ) {
 			throw new UploadStashZeroLengthFileException(
 				wfMessage( 'uploadstash-zero-length' )

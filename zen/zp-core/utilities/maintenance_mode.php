@@ -3,7 +3,7 @@
  * Maintenance mode utility based on the former site_upgrade plugin 
  * 
  * @author Stephen Billard (sbillard), adapted by Malte Müller (acrylian)
- * @package admin
+ * @package zpcore\admin\utilities
  */
 
 define ('OFFSET_PATH', 3);
@@ -73,7 +73,7 @@ printAdminHeader('overview');
 	}
 	?>
 	<p><?php echo $button['title']; ?></p>
-	<form id="maintenance_mode-form" name="maintenance_mode-form" method="post">
+	<form id="maintenance_mode-form" class="dirty-check" name="maintenance_mode-form" method="post">
 		<?php XSRFToken('maintenance_mode'); ?>
 		<ul>
 			<li><label><input type="radio" name="maintenance_mode" value="open"<?php checked('open', $sitestate); ?>><strong><?php echo gettext('Open the site'); ?></strong></label></li>

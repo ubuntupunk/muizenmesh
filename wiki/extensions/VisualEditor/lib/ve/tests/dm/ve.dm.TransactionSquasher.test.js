@@ -1,7 +1,7 @@
 /*!
  * VisualEditor DataModel TransactionSquasher tests.
  *
- * @copyright 2011-2018 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
 
 QUnit.module( 've.dm.TransactionSquasher' );
@@ -224,6 +224,20 @@ QUnit.test( 'squash', function ( assert ) {
 			), [
 				{ type: 'paragraph' },
 				{ type: '/paragraph' }
+			] ] ]
+		},
+		{
+			message: 'add attribute whose value is a reference type, then change it',
+			transactions: [
+				[ [ '', [
+					{ type: 'foo', attributes: { bar: { baz: 42 } } },
+					{ type: '/foo' }
+				] ] ],
+				[ { type: 'attribute', key: 'bar', from: { baz: 42 }, to: { baz: 99 } }, 1 ]
+			],
+			squashed: [ [ '', [
+				{ type: 'foo', attributes: { bar: { baz: 99 } } },
+				{ type: '/foo' }
 			] ] ]
 		},
 		{

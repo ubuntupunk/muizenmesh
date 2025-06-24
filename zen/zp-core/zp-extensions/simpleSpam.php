@@ -5,8 +5,7 @@
  * It uses a word black list and checks for excessive URLs
  *
  * @author Stephen Billard (sbillard)
- * @package plugins
- * @subpackage simplespam
+ * @package zpcore\plugins\simplespam
  */
 $plugin_is_filter = 5 | CLASS_PLUGIN;
 $plugin_description = gettext("Simple SPAM filter.");
@@ -27,10 +26,10 @@ if ($plugin_disable) {
  */
 class zpSimpleSpam {
 
-	var $name = 'simpleSpam';
-	var $wordsToDieOn = array('cialis', 'ebony', 'nude', 'porn', 'porno', 'pussy', 'upskirt', 'ringtones', 'phentermine', 'viagra', 'levitra'); /* the word black list */
-	var $patternsToDieOn = array('\[url=.*\]');
-	var $excessiveURLCount = 5;
+	public $name = 'simpleSpam';
+	public $wordsToDieOn = array('cialis', 'ebony', 'nude', 'porn', 'porno', 'pussy', 'upskirt', 'ringtones', 'phentermine', 'viagra', 'levitra'); /* the word black list */
+	public $patternsToDieOn = array('\[url=.*\]');
+	public $excessiveURLCount = 5;
 
 	/**
 	 * The SpamFilter class instantiation function.

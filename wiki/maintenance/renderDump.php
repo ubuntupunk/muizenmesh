@@ -6,7 +6,7 @@
  *
  * Templates etc are pulled from the local wiki database, not from the dump.
  *
- * Copyright (C) 2006 Brion Vibber <brion@pobox.com>
+ * Copyright (C) 2006 Brooke Vibber <bvibber@wikimedia.org>
  * https://www.mediawiki.org/
  *
  * This program is free software; you can redistribute it and/or modify
@@ -28,7 +28,9 @@
  * @ingroup Maintenance
  */
 
-use MediaWiki\MediaWikiServices;
+use MediaWiki\Permissions\UltimateAuthority;
+use MediaWiki\Revision\MutableRevisionRecord;
+use MediaWiki\User\User;
 
 require_once __DIR__ . '/Maintenance.php';
 
@@ -66,10 +68,12 @@ class DumpRenderer extends Maintenance {
 			$this->fatalError( 'Parser class configuration temporarily disabled.' );
 		}
 
+		$user = User::newSystemUser( User::MAINTENANCE_SCRIPT_USER, [ 'steal' => true ] );
+
 		$source = new ImportStreamSource( $this->getStdin() );
-		$importer = MediaWikiServices::getInstance()
+		$importer = $this->getServiceContainer()
 			->getWikiImporterFactory()
-			->getWikiImporter( $source );
+			->getWikiImporter( $source, new UltimateAuthority( $user ) );
 
 		$importer->setRevisionCallback(
 			[ $this, 'handleRevision' ] );
@@ -108,14 +112,23 @@ class DumpRenderer extends Maintenance {
 			$this->prefix,
 			$this->count,
 			$sanitized );
-		$this->output( sprintf( "%s\n", $filename, $display ) );
+		$this->output( sprintf( "%s\t%s\n", $filename, $display ) );
 
 		$user = new User();
 		$options = ParserOptions::newFromUser( $user );
 
 		$content = $rev->getContent();
-		$contentRenderer = MediaWikiServices::getInstance()->getContentRenderer();
-		$output = $contentRenderer->getParserOutput( $content, $title, null, $options );
+		$contentRenderer = $this->getServiceContainer()->getContentRenderer();
+		// ContentRenderer expects a RevisionRecord, and all we have is a
+		// WikiRevision from the dump.  Make a fake MutableRevisionRecord to
+		// satisfy it -- the only thing ::getParserOutput actually needs is
+		// the revision ID and revision timestamp.
+		$mutableRev = new MutableRevisionRecord( $rev->getTitle() );
+		$mutableRev->setId( $rev->getID() );
+		$mutableRev->setTimestamp( $rev->getTimestamp() );
+		$output = $contentRenderer->getParserOutput(
+			$content, $title, $mutableRev, $options
+		);
 
 		file_put_contents( $filename,
 			"<!DOCTYPE html>\n" .

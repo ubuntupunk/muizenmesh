@@ -3,7 +3,6 @@
 namespace MediaWiki\Rest\Handler;
 
 use LogicException;
-use MediaWiki\MediaWikiServices;
 use MediaWiki\Rest\Handler\Helper\HtmlOutputRendererHelper;
 use MediaWiki\Rest\Handler\Helper\PageRestHelperFactory;
 use MediaWiki\Rest\Handler\Helper\RevisionContentHelper;
@@ -35,17 +34,14 @@ class RevisionHTMLHandler extends SimpleHandler {
 	}
 
 	protected function postValidationSetup() {
-		// TODO: Once Authority supports rate limit (T310476), just inject the Authority.
-		$user = MediaWikiServices::getInstance()->getUserFactory()
-			->newFromUserIdentity( $this->getAuthority()->getUser() );
-
-		$this->contentHelper->init( $user, $this->getValidatedParams() );
+		$authority = $this->getAuthority();
+		$this->contentHelper->init( $authority, $this->getValidatedParams() );
 
 		$page = $this->contentHelper->getPage();
 		$revision = $this->contentHelper->getTargetRevision();
 
 		if ( $page && $revision ) {
-			$this->htmlHelper->init( $page, $this->getValidatedParams(), $user, $revision );
+			$this->htmlHelper->init( $page, $this->getValidatedParams(), $authority, $revision );
 
 			$request = $this->getRequest();
 			$acceptLanguage = $request->getHeaderLine( 'Accept-Language' ) ?: null;
@@ -85,12 +81,12 @@ class RevisionHTMLHandler extends SimpleHandler {
 				$response->setHeader( 'Content-Type', 'text/html' );
 				$this->htmlHelper->putHeaders( $response, $setContentLanguageHeader );
 				$this->contentHelper->setCacheControl( $response, $parserOutput->getCacheExpiry() );
-				$response->setBody( new StringStream( $parserOutput->getText() ) );
+				$response->setBody( new StringStream( $parserOutput->getRawText() ) );
 				break;
 			case 'with_html':
 				$parserOutput = $this->htmlHelper->getHtml();
 				$body = $this->contentHelper->constructMetadata();
-				$body['html'] = $parserOutput->getText();
+				$body['html'] = $parserOutput->getRawText();
 				$response = $this->getResponseFactory()->createJson( $body );
 				// For JSON content, it doesn't make sense to set content language header
 				$this->htmlHelper->putHeaders( $response, !$setContentLanguageHeader );

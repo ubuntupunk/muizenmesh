@@ -1,6 +1,6 @@
 <?php
-/**
- * 2007-2023 PayPal
+/*
+ * Since 2007 PayPal
  *
  * NOTICE OF LICENSE
  *
@@ -18,31 +18,87 @@
  *  versions in the future. If you wish to customize PrestaShop for your
  *  needs please refer to http://www.prestashop.com for more information.
  *
- *  @author 2007-2023 PayPal
+ *  @author Since 2007 PayPal
  *  @author 202 ecommerce <tech@202-ecommerce.com>
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
+ *
  */
 
 namespace PaypalAddons\classes\API\ExtensionSDK;
 
-use PayPalHttp\HttpRequest;
+use PaypalAddons\classes\API\HttpAdoptedResponse;
+use PaypalAddons\classes\API\HttpResponse;
+use PaypalAddons\classes\API\Request\HttpRequestInterface;
+use PaypalAddons\classes\API\WrapperInterface;
+use PaypalAddons\services\Builder\BuilderInterface;
 
 if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-class ConfirmPaymentSource extends HttpRequest
+class ConfirmPaymentSource implements HttpRequestInterface, WrapperInterface
 {
-    public function __construct($orderId)
+    protected $headers = [];
+    /** @var BuilderInterface */
+    protected $bodyBuilder;
+    /** @var string */
+    protected $orderId;
+
+    public function __construct($orderId, BuilderInterface $bodyBuilder)
     {
-        parent::__construct(
-            sprintf(
-                '/v2/checkout/orders/%s/confirm-payment-source',
-                (string) $orderId
-            ),
-            'POST'
-        );
+        $this->orderId = (string) $orderId;
+        $this->bodyBuilder = $bodyBuilder;
         $this->headers['Content-Type'] = 'application/json';
+    }
+
+    public function getPath()
+    {
+        return sprintf('/v2/checkout/orders/%s/confirm-payment-source', urlencode($this->orderId));
+    }
+
+    /** @return array*/
+    public function getHeaders()
+    {
+        return $this->headers;
+    }
+
+    /**
+     * @param array $headers
+     *
+     * @return self
+     */
+    public function setHeaders($headers)
+    {
+        if (is_array($headers)) {
+            $this->headers = $headers;
+        }
+
+        return $this;
+    }
+
+    public function getBody()
+    {
+        $body = $this->bodyBuilder->build();
+
+        if (is_array($body)) {
+            $body = json_encode($body);
+        }
+
+        return $body;
+    }
+
+    public function getMethod()
+    {
+        return 'POST';
+    }
+
+    public function wrap($object)
+    {
+        if ($object instanceof HttpResponse) {
+            return new HttpAdoptedResponse($object);
+        }
+
+        return $object;
     }
 }

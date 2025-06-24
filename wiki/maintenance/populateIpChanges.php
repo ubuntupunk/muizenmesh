@@ -75,9 +75,12 @@ TEXT
 		$start = $this->getOption( 'rev-id', 0 );
 		$end = $maxRevId > 0
 			? $maxRevId
-			: $dbw->selectField( 'revision', 'MAX(rev_id)', '', __METHOD__ );
+			: $dbw->newSelectQueryBuilder()
+				->select( 'MAX(rev_id)' )
+				->from( 'revision' )
+				->caller( __METHOD__ )->fetchField();
 
-		if ( empty( $end ) ) {
+		if ( !$end ) {
 			$this->output( "No revisions found, aborting.\n" );
 			return true;
 		}
@@ -128,7 +131,11 @@ TEXT
 			}
 
 			if ( $insertRows ) {
-				$dbw->insert( 'ip_changes', $insertRows, __METHOD__, [ 'IGNORE' ] );
+				$dbw->newInsertQueryBuilder()
+					->insertInto( 'ip_changes' )
+					->ignore()
+					->rows( $insertRows )
+					->caller( __METHOD__ )->execute();
 
 				$inserted += $dbw->affectedRows();
 			}

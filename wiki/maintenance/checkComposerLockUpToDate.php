@@ -2,7 +2,9 @@
 
 require_once __DIR__ . '/Maintenance.php';
 
-use Composer\Semver\Semver;
+use MediaWiki\Composer\LockFileChecker;
+use Wikimedia\Composer\ComposerJson;
+use Wikimedia\Composer\ComposerLock;
 
 /**
  * Checks whether your composer-installed dependencies are up to date
@@ -36,29 +38,26 @@ class CheckComposerLockUpToDate extends Maintenance {
 		$json = new ComposerJson( $jsonLocation );
 
 		// Check all the dependencies to see if any are old
-		$found = false;
-		$installed = $lock->getInstalledDependencies();
-		foreach ( $json->getRequiredDependencies() as $name => $version ) {
-			if ( isset( $installed[$name] ) ) {
-				if ( !Semver::satisfies( $installed[$name]['version'], $version ) ) {
-					$this->output(
-						"$name: {$installed[$name]['version']} installed, $version required.\n"
-					);
-					$found = true;
-				}
-			} else {
-				$this->output( "$name: not installed, $version required.\n" );
-				$found = true;
-			}
-		}
-		if ( $found ) {
-			$this->fatalError(
-				'Error: your composer.lock file is not up to date. ' .
-					'Run "composer update --no-dev" to install newer dependencies'
-			);
-		} else {
+		$checker = new LockFileChecker( $json, $lock );
+		$result = $checker->check();
+		if ( $result->isGood() ) {
 			// We couldn't find any out-of-date dependencies, so assume everything is ok!
 			$this->output( "Your composer.lock file is up to date with current dependencies!\n" );
+		} else {
+			// NOTE: wfMessage will fail if MediaWikiServices is not yet initialized.
+			// This can happen when this class is called directly from bootstrap code,
+			// e.g. by TestSetup. We get around this by having testSetup use quiet mode.
+			if ( !$this->isQuiet() ) {
+				foreach ( $result->getErrors() as $error ) {
+					$this->error(
+						wfMessage( $error['message'], ...$error['params'] )->inLanguage( 'en' )->plain() . "\n"
+					);
+				}
+			}
+			$this->fatalError(
+				'Error: your composer.lock file is not up to date. ' .
+				'Run "composer update --no-dev" to install newer dependencies'
+			);
 		}
 	}
 }

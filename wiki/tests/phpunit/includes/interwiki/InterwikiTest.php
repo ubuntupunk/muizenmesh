@@ -1,9 +1,10 @@
 <?php
 
 use MediaWiki\MainConfigNames;
+use Wikimedia\Rdbms\Platform\ISQLPlatform;
 
 /**
- * @covers Interwiki
+ * @covers \Interwiki
  * @group Database
  */
 class InterwikiTest extends MediaWikiIntegrationTestCase {
@@ -42,10 +43,12 @@ class InterwikiTest extends MediaWikiIntegrationTestCase {
 	//// tests for static data access methods below ///////////////////////////////////////////////
 
 	private function populateDB( $iwrows ) {
-		$dbw = wfGetDB( DB_PRIMARY );
-		$dbw->delete( 'interwiki', '*', __METHOD__ );
+		$dbw = $this->getDb();
+		$dbw->newDeleteQueryBuilder()
+			->deleteFrom( 'interwiki' )
+			->where( ISQLPlatform::ALL_ROWS )
+			->caller( __METHOD__ )->execute();
 		$dbw->insert( 'interwiki', array_values( $iwrows ), __METHOD__ );
-		$this->tablesUsed[] = 'interwiki';
 	}
 
 	private function setWgInterwikiCache( $interwikiCache ) {

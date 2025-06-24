@@ -4,8 +4,7 @@
  * basic functions used by zenphoto i.php
  * Keep this file to the minimum to allow the largest available memory for processing images!
  * Headers not sent yet!
- * @package core
- * @subpackage functions\functions-basic
+ * @package zpcore\functions\basic
  *
  */
 // force UTF-8 Ø
@@ -59,9 +58,15 @@ if ($const_webpath == '/' || $const_webpath == '.') {
 	$const_webpath = '';
 }
 
-if (defined('SERVERPATH')) {
-	$const_serverpath = SERVERPATH;
+if (!defined('WEBPATH')) {
+	define('WEBPATH', $const_webpath);
 }
+unset($const_webpath);
+
+if (!defined('SERVERPATH')) {
+	define('SERVERPATH', $const_serverpath);
+}
+unset($const_serverpath);
 
 // Contexts (Bitwise and combinable)
 define("ZP_INDEX", 1);
@@ -110,24 +115,14 @@ set_error_handler("zpErrorHandler");
 set_exception_handler("zpErrorHandler");
 $_zp_mutex = new zpMutex('cF');
 
-if (!defined('WEBPATH')) {
-	define('WEBPATH', $const_webpath);
-}
-unset($const_webpath);
-
-if (!defined('SERVERPATH')) {
-	define('SERVERPATH', $const_serverpath);
-}
-unset($const_serverpath);
-
 // Including the config file more than once is OK, and avoids $conf missing.
 if (OFFSET_PATH != 2 && !file_exists(SERVERPATH . '/' . DATA_FOLDER . '/' . CONFIGFILE)) {
 	require_once(dirname(__FILE__) . '/functions-reconfigure.php');
 	reconfigureAction(1);
 } else {
 	require_once SERVERPATH . '/' . DATA_FOLDER . '/' . CONFIGFILE;
-
 }
+
 
 // If the server protocol is not set, set it to the default.
 if (!isset($_zp_conf_vars['server_protocol'])) {
@@ -136,7 +131,11 @@ if (!isset($_zp_conf_vars['server_protocol'])) {
 
 //NOTE: SERVER_PROTOCOL is the option, PROTOCOL is what should be used in links
 if (isset($_zp_conf_vars['server_protocol'])) {
-	define('SERVER_PROTOCOL', $_zp_conf_vars['server_protocol']);
+	if ($_zp_conf_vars['server_protocol'] == 'https' || $_zp_conf_vars['server_protocol'] == 'https_admin') {
+		define('SERVER_PROTOCOL', 'https');
+	} else {
+		define('SERVER_PROTOCOL', 'http');
+	}
 } else {
 	define('SERVER_PROTOCOL', 'http');
 }
@@ -338,7 +337,20 @@ define('THUMB_WATERMARK', getOption('Image_watermark'));
 define('OPEN_IMAGE_CACHE', !getOption('protected_image_cache'));
 define('IMAGE_CACHE_SUFFIX', getOption('image_cache_suffix'));
 
-define('DATE_FORMAT', convertStrftimeFormat(getOption('date_format')));
+$time_display_disabled = getOption('time_display_disabled');
+define('DATE_FORMAT', trim(strval(getOption('date_format'))));
+define('TIME_FORMAT', trim(strval(getOption('time_format'))));
+define('DATETIME_FORMAT', DATE_FORMAT . ' ' . TIME_FORMAT);
+if (getOption('date_format_localized') && in_array(DATE_FORMAT, array('locale_preferreddate_time', 'locale_preferreddate_notime'))) {
+	deprecationNotice(gettext("The date format options 'locale_preferreddate_time' and 'locale_preferreddate_notime' are deprecated and will be removed in Zenphoto 1.7. Please set individual date and time formats."));
+	define('DATETIME_DISPLAYFORMAT', DATE_FORMAT);
+} else {
+	if ($time_display_disabled) {
+		define('DATETIME_DISPLAYFORMAT', DATE_FORMAT);
+	} else {
+		define('DATETIME_DISPLAYFORMAT', DATETIME_FORMAT);
+	}
+}
 
 define('IM_SUFFIX', getOption('mod_rewrite_image_suffix'));
 define('UTF8_IMAGE_URI', getOption('UTF8_image_URI'));
@@ -367,8 +379,8 @@ define('MENU_TRUNCATE_INDICATOR', getOption('menu_truncate_indicator'));
 function js_encode($this_string) {
 	global $_zp_utf8;
 	$this_string = strval($this_string);
-	$this_string = preg_replace("/\r?\n/", "\\n", $this_string);
 	$this_string = utf8::encode_javascript($this_string);
+	$this_string = preg_replace("/\r?\n/", "\\n", $this_string);
 	return $this_string;
 }
 
@@ -513,8 +525,8 @@ function loadLocalOptions($albumid, $theme) {
  * Replaces/renames an option. If the old option exits, it creates the new option with the old option's value as the default 
  * unless the new option has already been set otherwise. Independently it always deletes the old option.
  * 
- * @since Zenphoto 1.5.1
- * @since ZenphotoCMS 1.5.8 - renamed from replaceOption() to renameOption()
+ * @since 1.5.1
+ * @since 1.5.8 - renamed from replaceOption() to renameOption()
  * 
  * @param string $oldkey Old option name
  * @param string $newkey New option name
@@ -1009,7 +1021,7 @@ function getImageArgs($set) {
  * @param array $watermarks
  * @return array
  * 
- * @since Zenphoto 1.5.1 Moved from cacheManager/functions.php
+ * @since 1.5.1 Moved from cacheManager/functions.php
  */
 function getImageProcessorURIFromCacheName($match, $watermarks) {
 	$set = array();
@@ -1052,9 +1064,20 @@ function getImageProcessorURIFromCacheName($match, $watermarks) {
 		$set['wmk'] = '!';
 	}
 	$image = preg_replace('~.*/' . CACHEFOLDER . '/~', '', implode('_', $params)) . '.' . getSuffix($match);
-	//	strip out the obfustication
+	//	strip out the obfuscation
 	$album = dirname($image);
 	$image = preg_replace('~^[0-9a-f]{' . CACHE_HASH_LENGTH . '}\.~', '', basename($image));
+	if (IMAGE_CACHE_SUFFIX) {
+		$candidates = glob(ALBUM_FOLDER_SERVERPATH . $album . "/" . stripSuffix($image) . ".*");
+		if (is_array($candidates)) {
+			foreach ($candidates as $file) {
+				if (Gallery::validImage($file)) {
+					$image = basename($file);
+					break;
+				}
+			}
+		}
+	}
 	$image = $album . '/' . $image;
 	return array($image, getImageArgs($set));
 }
@@ -1083,6 +1106,78 @@ function getImageURI($args, $album, $image, $mtime) {
 	} else {
 		return getImageProcessorURI($args, $album, $image);
 	}
+}
+
+/**
+ * Extracts integer value (1-9) from the exifOrientation value stored (e.g. '7: 90 deg CCW Mirrored') in the database for images or returns the value if it is an integer
+ * 
+ * @since 1.6.1
+ * 
+ * @param string|integer $exiforientation String or integer  value as stored in the db (e.g. '7: 90 deg CCW Mirrored' or just "7")
+ * @return int
+ */
+function extractImageExifOrientation($exiforientation = '') {
+	if (is_string($exiforientation)) {
+		return intval(substr($exiforientation, 0, 1));
+	} else {
+		return intval($exiforientation);
+	}
+	return 0;
+}
+
+/**
+ * Returns an array with two indexes "rotate" (= degree to rotate) and "flip" ("horizontal" or "vertical") 
+ * or false if nothing applies
+ * 
+ * @since 1.6.1
+ * 
+ * @param integer $orientation The exif rotation value 0-9
+ * @return boolean|array
+ */
+function getImageFlipRotate($rotation) {
+	$flip_rotate = array(
+			'rotate' => false,
+			'flip' => false
+	);
+	if ($rotation) {
+		switch ($rotation) {
+			default:
+			case 1:
+				// Horizontal (normal) or not set -> nothing to do
+				return false;
+			case 2:
+				// Mirror horizontal
+				$flip_rotate['flip'] = 'horizontal';
+				break;
+			case 3:
+				// Rotate 180
+				$flip_rotate['rotate'] = 180;
+				break;
+			case 4:
+				// Mirror vertical
+				$flip_rotate['flip'] = 'vertical';
+				break;
+			case 5:
+				// Mirror horizontal and rotate 270 CW
+				$flip_rotate['flip'] = 'horizontal';
+				$flip_rotate['rotate'] = 270;
+				break;
+			case 6:
+				// Rotate 90 CW
+				$flip_rotate['rotate'] = 90;
+				break;
+			case 7:
+				// Mirror horizontal and rotate 90 CW
+				$flip_rotate['flip'] = 'horizontal';
+				$flip_rotate['rotate'] = 90;
+				break;
+			case 8:
+				// Rotate 270 CW
+				$flip_rotate['rotate'] = 270;
+				break;
+		}
+	}
+	return $flip_rotate;
 }
 
 /**
@@ -1151,16 +1246,24 @@ function rewrite_path($rewrite, $plain, $webpath = NULL) {
 		} else {
 			$webpath = WEBPATH;
 		}
+	} else {
+		if (class_exists('seo_locale')) {
+			$fullpath = false;
+			if ($webpath == FULLWEBPATH) {
+				$fullpath = true;
+			} 
+			$webpath = seo_locale::localePath($fullpath);
+		} 
 	}
 	if (MOD_REWRITE) {
 		$path = $rewrite;
 	} else {
 		$path = $plain;
 	}
-	if ($path[0] == "/") {
+	if ($path[0] == '/') {
 		$path = substr($path, 1);
 	}
-	return $webpath . "/" . $path;
+	return $webpath . '/' . $path;
 }
 
 /**
@@ -1282,7 +1385,7 @@ function getAlbumFolder($root = SERVERPATH) {
 /**
  * Returns the fully qualified path to the backup folder
  * 
- * @since ZenphotoCMS 1.6
+ * @since 1.6
  * 
  * @param string $root the base from whence the path dereives
  * @return string
@@ -1294,7 +1397,7 @@ function getBackupFolder($root = SERVERPATH) {
 /**
  * Returns the fully qualified path to the root albums or backup folder
  * 
- * @since ZenphotoCMS 1.6
+ * @since 1.6
  * 
  * @param string $folder The folder path to get: "albumfolder" or "backupfolder"
  * @param string $root the base from whence the path dereives
@@ -1387,23 +1490,29 @@ function switchLog($log) {
  * or would create havoc in the HTML.
  * Creates (or adds to) a file named debug.log which is located in the zenphoto core folder
  *
- * @param string $message the debug information
+ * @param string|array|object $message the debug information. This can also be an array or object. For detailed info about the content use debuglogVar().
  * @param bool $reset set to true to reset the log to zero before writing the message
+ * @param string $logname Optional custom log name to log to, default "debug"
  */
-function debugLog($message, $reset = false) {
+function debugLog($message, $reset = false, $logname = 'debug') {
 	if (defined('SERVERPATH')) {
 		global $_zp_mutex;
-		$path = SERVERPATH . '/' . DATA_FOLDER . '/debug.log';
+		$logname = str_replace('_', '-', $logname);
+		if (getOption('daily_logs')) {
+			$logname .= '_' . date('Y-m-d');
+		}
+		$path = SERVERPATH . '/' . DATA_FOLDER . '/' . $logname . '.log';
 		$me = getmypid();
-		if (is_object($_zp_mutex))
+		if (is_object($_zp_mutex)) {
 			$_zp_mutex->lock();
+		}
 		if ($reset || ($size = @filesize($path)) == 0 || (defined('DEBUG_LOG_SIZE') && DEBUG_LOG_SIZE && $size > DEBUG_LOG_SIZE)) {
 			if (!$reset && $size > 0) {
 				switchLog('debug');
 			}
 			$f = fopen($path, 'w');
 			if ($f) {
-				if (!class_exists('zpFunctions') || hasPrimaryScripts()) {
+				if (hasPrimaryScripts()) {
 					$clone = '';
 				} else {
 					$clone = ' ' . gettext('clone');
@@ -1414,7 +1523,10 @@ function debugLog($message, $reset = false) {
 			$f = fopen($path, 'a');
 			if ($f) {
 				fwrite($f, '{' . $me . ':' . gmdate('D, d M Y H:i:s') . " GMT}\n");
-			}	
+			}
+		}
+		if (is_array($message) || is_object($message)) {
+			$message = print_r($message, true);
 		}
 		if ($f) {
 			fwrite($f, "  " . $message . "\n");
@@ -1424,8 +1536,9 @@ function debugLog($message, $reset = false) {
 				@chmod($path, LOGS_MOD);
 			}
 		}
-		if (is_object($_zp_mutex))
+		if (is_object($_zp_mutex)) {
 			$_zp_mutex->unlock();
+		}
 	}
 }
 
@@ -1502,7 +1615,10 @@ function imgSrcURI($uri) {
  * @return string
  */
 function getSuffix($filename) {
-	return strtolower(substr(strrchr($filename, "."), 1));
+	if (is_string($filename)) {
+		return strtolower(substr(strrchr($filename, "."), 1));
+	}
+	return $filename;
 }
 
 /**
@@ -1512,7 +1628,10 @@ function getSuffix($filename) {
  * @return string
  */
 function stripSuffix($filename) {
-	return str_replace(strrchr($filename, "."), '', $filename);
+	if (is_string($filename)) {
+		return str_replace(strrchr($filename, "."), '', $filename);
+	}
+	return $filename;
 }
 
 /**
@@ -1602,7 +1721,7 @@ function getWatermarkPath($wm) {
 /**
  * Checks to see if access was through a secure protocol
  * 
- * @since Zenphoto 1.5.1 Extended/adapted from WordPress' `is_ssl()` function: https://developer.wordpress.org/reference/functions/is_ssl/
+ * @since 1.5.1 Extended/adapted from WordPress' `is_ssl()` function: https://developer.wordpress.org/reference/functions/is_ssl/
  * 
  * @return bool
  */
@@ -1902,7 +2021,7 @@ function httpsRedirect($type = 'backend') {
 	$redirect_url = SERVER_HTTP_HOST . getRequestURI();
 	switch ($type) {
 		case 'backend':
-			if (SERVER_PROTOCOL == 'https_admin' || SERVER_PROTOCOL == 'https') {
+			if (SERVER_PROTOCOL == 'https') {
 				// force https login
 				if (!secureServer()) {
 					redirectURL($redirect_url);
@@ -1920,7 +2039,7 @@ function httpsRedirect($type = 'backend') {
 /**
  * General url redirection handler using header()
  * 
- * @since ZenphotoCMS 1.5.2
+ * @since 1.5.2
  * 
  * @param string $url A full qualified url
  * @param string $statuscode Default null (no status header). Enter the status header code to send. Currently supported: 
@@ -2005,10 +2124,10 @@ function sanitizeRedirect($redirectTo) {
  * 
  * Note: Invalid static calls to non static class methods cannot be catched unless the native PHP extension Reflection is available.
  * 
- * @since ZenphotoCMS 1.6
+ * @since 1.6
  *
  * @param string|array $function A function name, static class method calls like classname::methodname, an array with a class name and static method name or a cass object and a non static class name
- * @param array $parameter Parameters of the function/method as one dimensional array
+ * @param array|mixed $parameter Parameters of the function/method as one dimensional array. Alternatively you also add separate argments like the original function defines them
  */
 function callUserFunction($function, $parameter = array()) {
 	$callablename = $functioncall = null;
@@ -2065,7 +2184,7 @@ function callUserFunction($function, $parameter = array()) {
 /**
  * Logs a deprecated notice including traces in the debuglog
  * 
- * @since ZenphotoCMS 1.6 - based on deprecated_functions::notify() from the deprecated_functions plugin written by sbillard 
+ * @since 1.6 - based on deprecated_functions::notify() from the deprecated_functions plugin written by sbillard 
  * 
  * @param string $use Additional message, e.g. what to use instead
  * @param bool|string $parameter Set to true if this should notify about deprecated parameter usage (default false), You can also set the name of the parameter if you want to notify about a specific parameter change only
@@ -2118,7 +2237,7 @@ function deprecationNotice($use, $parameter = false) {
  * 
  * zpFormattedDate() can handle these internally
  * 
- * @since ZenphotoCMS 1.6
+ * @since 1.6
  * 
  * @param string $format strftime() date format string
  * @return string
@@ -2176,4 +2295,26 @@ function convertStrftimeFormat($format = '') {
 	);
 	$oldformat = array_keys($catalogue);
 	return str_replace($oldformat, $catalogue, strval($format));
+}
+
+/**
+ *
+ * Returns true if the install is not a "clone"
+ */
+function hasPrimaryScripts() {
+	if (!defined('PRIMARY_INSTALLATION')) {
+		if (function_exists('readlink') && ($zen = str_replace('\\', '/', @readlink(SERVERPATH . '/' . ZENFOLDER)))) {
+			// no error reading the link info
+			$os = strtoupper(PHP_OS);
+			$sp = SERVERPATH;
+			if (substr($os, 0, 3) == 'WIN' || $os == 'DARWIN') { // canse insensitive file systems
+				$sp = strtolower($sp);
+				$zen = strtolower($zen);
+			}
+			define('PRIMARY_INSTALLATION', $sp == dirname($zen));
+		} else {
+			define('PRIMARY_INSTALLATION', true);
+		}
+	}
+	return PRIMARY_INSTALLATION;
 }

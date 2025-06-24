@@ -148,10 +148,15 @@ class DOMCompatTest extends \PHPUnit\Framework\TestCase {
 		$x = $doc->getElementById( 'x' );
 		$this->assertSame( $x, DOMCompat::getElementById( $doc, 'x' ) );
 
-		// https://bugs.php.net/bug.php?id=77686
 		$x->parentNode->removeChild( $x );
-		$this->assertSame( $x, $doc->getElementById( 'x' ) );
-		$this->assertNull( DOMCompat::getElementById( $doc, 'x' ) );
+
+		// https://bugs.php.net/bug.php?id=77686
+		if ( version_compare( PHP_VERSION, '8.1.20', '>' ) ) {
+			$this->assertNull( $doc->getElementById( 'x' ) );
+		} else {
+			$this->assertSame( $x, $doc->getElementById( 'x' ) );
+			$this->assertNull( DOMCompat::getElementById( $doc, 'x' ) );
+		}
 	}
 
 	/**
@@ -192,7 +197,7 @@ class DOMCompatTest extends \PHPUnit\Framework\TestCase {
 		$result = DOMCompat::querySelector( $context, $selector );
 
 		$expectedDataId = $expectedDataIds[0] ?? null;
-		$actualDataId = $result ? $result->getAttribute( 'data-id' ) : null;
+		$actualDataId = $result ? DOMCompat::getAttribute( $result, 'data-id' ) : null;
 		$this->assertSame( $expectedDataId, $actualDataId );
 	}
 
@@ -212,7 +217,7 @@ class DOMCompatTest extends \PHPUnit\Framework\TestCase {
 
 		$actualDataIds = [];
 		foreach ( $results as $result ) {
-			$actualDataIds[] = $result->getAttribute( 'data-id' );
+			$actualDataIds[] = DOMCompat::getAttribute( $result, 'data-id' );
 		}
 		$this->assertSame( $expectedDataIds, $actualDataIds );
 	}
@@ -469,10 +474,12 @@ HTML;
 
 		$this->assertSame( '<html><body><div id="a"></div>2</body></html>',
 			DOMCompat::getOuterHTML( $doc->documentElement ) );
-		// FIXME these fail due to https://bugs.php.net/bug.php?id=77686
-		$this->markTestSkipped( 'TODO work around PHP #77686' );
-		$this->assertNull( $doc->getElementById( 'b' ) );
-		$this->assertNull( $doc->getElementById( 'c' ) );
+
+		// https://bugs.php.net/bug.php?id=77686
+		if ( version_compare( PHP_VERSION, '8.1.20', '>' ) ) {
+			$this->assertNull( $doc->getElementById( 'b' ) );
+			$this->assertNull( $doc->getElementById( 'c' ) );
+		}
 	}
 
 	/**
@@ -555,7 +562,7 @@ HTML;
 		$this->assertSame( [ 'e', 'f', 'g' ], iterator_to_array( $classList ) );
 		$classList->add( 'a' );
 		$classList->remove( 'g' );
-		$this->assertSame( 'e f a', $x->getAttribute( 'class' ) );
+		$this->assertSame( 'e f a', DOMCompat::getAttribute( $x, 'class' ) );
 	}
 
 	/**
@@ -652,6 +659,6 @@ HTML;
 		// not the workaround version in DOMCompat::getElementById()
 		$q = $doc->getElementById( 'this-is-an-id' );
 		$this->assertNotEquals( null, $q );
-		$this->assertEquals( 'this-is-an-id', $q->getAttribute( 'id' ) );
+		$this->assertEquals( 'this-is-an-id', DOMCompat::getAttribute( $q, 'id' ) );
 	}
 }

@@ -1,20 +1,38 @@
 <?php
 
+namespace MediaWiki\Tests\Parser;
+
+use Language;
 use MediaWiki\Category\TrackingCategories;
 use MediaWiki\Config\ServiceOptions;
+use MediaWiki\HookContainer\HookContainer;
 use MediaWiki\Http\HttpRequestFactory;
+use MediaWiki\Languages\LanguageConverterFactory;
+use MediaWiki\Linker\LinkRendererFactory;
 use MediaWiki\Page\File\BadFileLookup;
 use MediaWiki\Page\PageReference;
 use MediaWiki\Page\PageReferenceValue;
 use MediaWiki\Parser\MagicWord;
 use MediaWiki\Parser\MagicWordFactory;
+use MediaWiki\Parser\Parser;
 use MediaWiki\Preferences\SignatureValidatorFactory;
+use MediaWiki\SpecialPage\SpecialPageFactory;
+use MediaWiki\Tidy\TidyDriverBase;
+use MediaWiki\Title\NamespaceInfo;
 use MediaWiki\Title\Title;
+use MediaWiki\Title\TitleFormatter;
+use MediaWiki\User\Options\UserOptionsLookup;
+use MediaWiki\User\UserFactory;
 use MediaWiki\User\UserNameUtils;
 use MediaWiki\Utils\UrlUtils;
+use MediaWikiIntegrationTestCase;
+use ParserFactory;
+use Psr\Log\NullLogger;
+use ReflectionObject;
+use WANObjectCache;
 
 /**
- * @covers Parser::__construct
+ * @covers \Parser::__construct
  */
 class ParserTest extends MediaWikiIntegrationTestCase {
 	/**
@@ -24,57 +42,49 @@ class ParserTest extends MediaWikiIntegrationTestCase {
 	private function createConstructorArguments() {
 		$options = new ServiceOptions(
 			Parser::CONSTRUCTOR_OPTIONS,
-			array_combine(
-				Parser::CONSTRUCTOR_OPTIONS,
-				array_fill( 0, count( Parser::CONSTRUCTOR_OPTIONS ), null )
-			)
+			array_fill_keys( Parser::CONSTRUCTOR_OPTIONS, null )
 		);
+
+		$contLang = $this->createMock( Language::class );
+		$mw = new MagicWord( null, [], true, $contLang );
 
 		// Stub out a MagicWordFactory so the Parser can initialize its
 		// function hooks when it is created.
-		$mwFactory = $this->getMockBuilder( MagicWordFactory::class )
-			->disableOriginalConstructor()
-			->onlyMethods( [ 'get', 'getVariableIDs' ] )
-			->getMock();
-		$mwFactory
-			->method( 'get' )->willReturnCallback( function ( $arg ) {
-				$mw = $this->getMockBuilder( MagicWord::class )
-					->disableOriginalConstructor()
-					->onlyMethods( [ 'getSynonyms' ] )
-					->getMock();
-				$mw->method( 'getSynonyms' )->willReturn( [] );
-				return $mw;
-			} );
-		$mwFactory
-			->method( 'getVariableIDs' )->willReturn( [] );
+		$mwFactory = $this->createNoOpMock( MagicWordFactory::class,
+			[ 'get', 'getVariableIDs', 'getSubstArray', 'newArray' ] );
+		$mwFactory->method( 'get' )->willReturn( $mw );
+		$mwFactory->method( 'getVariableIDs' )->willReturn( [] );
+
+		$urlUtils = $this->createNoOpMock( UrlUtils::class, [ 'validProtocols' ] );
+		$urlUtils->method( 'validProtocols' )->willReturn( '' );
 
 		return [
 			$options,
 			$mwFactory,
-			$this->createMock( Language::class ),
-			$this->createMock( ParserFactory::class ),
-			$this->createMock( UrlUtils::class ),
-			$this->createMock( MediaWiki\SpecialPage\SpecialPageFactory::class ),
-			$this->createMock( MediaWiki\Linker\LinkRendererFactory::class ),
-			$this->createMock( NamespaceInfo::class ),
-			new Psr\Log\NullLogger(),
-			$this->createMock( BadFileLookup::class ),
-			$this->createMock( MediaWiki\Languages\LanguageConverterFactory::class ),
-			$this->createMock( MediaWiki\HookContainer\HookContainer::class ),
-			$this->createMock( MediaWiki\Tidy\TidyDriverBase::class ),
-			$this->createMock( WANObjectCache::class ),
-			$this->createMock( MediaWiki\User\UserOptionsLookup::class ),
-			$this->createMock( MediaWiki\User\UserFactory::class ),
-			$this->createMock( TitleFormatter::class ),
-			$this->createMock( HttpRequestFactory::class ),
-			$this->createMock( TrackingCategories::class ),
-			$this->createMock( SignatureValidatorFactory::class ),
-			$this->createMock( UserNameUtils::class )
+			$contLang,
+			$this->createNoOpMock( ParserFactory::class ),
+			$urlUtils,
+			$this->createNoOpMock( SpecialPageFactory::class ),
+			$this->createNoOpMock( LinkRendererFactory::class ),
+			$this->createNoOpMock( NamespaceInfo::class ),
+			new NullLogger(),
+			$this->createNoOpMock( BadFileLookup::class ),
+			$this->createNoOpMock( LanguageConverterFactory::class, [ 'isConversionDisabled' ] ),
+			$this->createNoOpMock( HookContainer::class, [ 'run' ] ),
+			$this->createNoOpMock( TidyDriverBase::class ),
+			$this->createNoOpMock( WANObjectCache::class ),
+			$this->createNoOpMock( UserOptionsLookup::class ),
+			$this->createNoOpMock( UserFactory::class ),
+			$this->createNoOpMock( TitleFormatter::class ),
+			$this->createNoOpMock( HttpRequestFactory::class ),
+			$this->createNoOpMock( TrackingCategories::class ),
+			$this->createNoOpMock( SignatureValidatorFactory::class ),
+			$this->createNoOpMock( UserNameUtils::class )
 		];
 	}
 
 	/**
-	 * @covers Parser::__construct
+	 * @covers \Parser::__construct
 	 */
 	public function testConstructorArguments() {
 		$args = $this->createConstructorArguments();
@@ -91,7 +101,7 @@ class ParserTest extends MediaWikiIntegrationTestCase {
 		foreach ( $refObject->getProperties() as $prop ) {
 			$prop->setAccessible( true );
 			foreach ( $args as $idx => $mockTest ) {
-				if ( $prop->getValue( $parser ) === $mockTest ) {
+				if ( $prop->isInitialized( $parser ) && $prop->getValue( $parser ) === $mockTest ) {
 					unset( $args[$idx] );
 				}
 			}
@@ -127,9 +137,9 @@ class ParserTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
-	 * @covers Parser::setPage
-	 * @covers Parser::getPage
-	 * @covers Parser::getTitle
+	 * @covers \Parser::setPage
+	 * @covers \Parser::getPage
+	 * @covers \Parser::getTitle
 	 */
 	public function testSetPage() {
 		$parser = $this->newParser();
@@ -142,9 +152,9 @@ class ParserTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
-	 * @covers Parser::setPage
-	 * @covers Parser::getPage
-	 * @covers Parser::getTitle
+	 * @covers \Parser::setPage
+	 * @covers \Parser::getPage
+	 * @covers \Parser::getTitle
 	 */
 	public function testSetTitle() {
 		$parser = $this->newParser();

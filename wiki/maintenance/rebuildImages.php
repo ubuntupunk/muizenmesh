@@ -7,7 +7,7 @@
  *   --missing  Crawl the uploads dir for images without records, and
  *              add them only.
  *
- * Copyright © 2005 Brion Vibber <brion@pobox.com>
+ * Copyright © 2005 Brooke Vibber <bvibber@wikimedia.org>
  * https://www.mediawiki.org/
  *
  * This program is free software; you can redistribute it and/or modify
@@ -26,13 +26,14 @@
  * http://www.gnu.org/copyleft/gpl.html
  *
  * @file
- * @author Brion Vibber <brion at pobox.com>
+ * @author Brooke Vibber <bvibber@wikimedia.org>
  * @ingroup Maintenance
  */
 
 require_once __DIR__ . '/Maintenance.php';
 
-use MediaWiki\MediaWikiServices;
+use MediaWiki\Specials\SpecialUpload;
+use MediaWiki\User\User;
 use Wikimedia\Rdbms\IMaintainableDatabase;
 
 /**
@@ -76,10 +77,10 @@ class ImageBuilder extends Maintenance {
 	}
 
 	public function execute() {
-		$this->dbw = $this->getDB( DB_PRIMARY );
+		$this->dbw = $this->getPrimaryDB();
 		$this->dryrun = $this->hasOption( 'dry-run' );
 		if ( $this->dryrun ) {
-			MediaWiki\MediaWikiServices::getInstance()->getReadOnlyMode()
+			$this->getServiceContainer()->getReadOnlyMode()
 				->setReason( 'Dry run mode, image upgrades are suppressed' );
 		}
 
@@ -95,7 +96,7 @@ class ImageBuilder extends Maintenance {
 	 */
 	private function getRepo() {
 		if ( $this->repo === null ) {
-			$this->repo = MediaWikiServices::getInstance()->getRepoGroup()
+			$this->repo = $this->getServiceContainer()->getRepoGroup()
 				->newCustomLocalRepo( [
 					// make sure to update old, but compatible img_metadata fields.
 					'updateCompatibleMetadata' => true
@@ -150,11 +151,14 @@ class ImageBuilder extends Maintenance {
 	}
 
 	private function buildTable( $table, $queryInfo, $callback ) {
-		$count = $this->dbw->selectField( $table, 'count(*)', '', __METHOD__ );
+		$count = $this->dbw->newSelectQueryBuilder()
+			->select( 'count(*)' )
+			->from( $table )
+			->caller( __METHOD__ )->fetchField();
 		$this->init( $count, $table );
 		$this->output( "Processing $table...\n" );
 
-		$result = $this->getDB( DB_REPLICA )->select(
+		$result = $this->getReplicaDB()->select(
 			$queryInfo['tables'], $queryInfo['fields'], [], __METHOD__, [], $queryInfo['joins']
 		);
 
@@ -206,10 +210,11 @@ class ImageBuilder extends Maintenance {
 
 	public function checkMissingImage( $fullpath ) {
 		$filename = wfBaseName( $fullpath );
-		$row = $this->dbw->selectRow( 'image',
-			[ 'img_name' ],
-			[ 'img_name' => $filename ],
-			__METHOD__ );
+		$row = $this->dbw->newSelectQueryBuilder()
+			->select( [ 'img_name' ] )
+			->from( 'image' )
+			->where( [ 'img_name' => $filename ] )
+			->caller( __METHOD__ )->fetchRow();
 
 		if ( !$row ) {
 			// file not registered
@@ -219,7 +224,7 @@ class ImageBuilder extends Maintenance {
 
 	private function addMissingImage( $filename, $fullpath ) {
 		$timestamp = $this->dbw->timestamp( $this->getRepo()->getFileTimestamp( $fullpath ) );
-		$services = MediaWikiServices::getInstance();
+		$services = $this->getServiceContainer();
 
 		$altname = $services->getContentLanguage()->checkTitleEncoding( $filename );
 		if ( $altname != $filename ) {

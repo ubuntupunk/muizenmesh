@@ -18,9 +18,13 @@
  * @file
  */
 
+use MediaWiki\Deferred\DeferredUpdates;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\Page\WikiPageFactory;
+use MediaWiki\Permissions\PermissionStatus;
+use MediaWiki\Status\Status;
 use MediaWiki\Title\Title;
+use MediaWiki\Title\TitleFormatter;
 
 /**
  * API interface for page purging
@@ -30,11 +34,8 @@ class ApiPurge extends ApiBase {
 	/** @var ApiPageSet|null */
 	private $mPageSet = null;
 
-	/** @var WikiPageFactory */
-	private $wikiPageFactory;
-
-	/** @var TitleFormatter */
-	private $titleFormatter;
+	private WikiPageFactory $wikiPageFactory;
+	private TitleFormatter $titleFormatter;
 
 	/**
 	 * @param ApiMain $mainModule
@@ -57,10 +58,10 @@ class ApiPurge extends ApiBase {
 	 * Purges the cache of a page
 	 */
 	public function execute() {
-		$user = $this->getUser();
+		$authority = $this->getAuthority();
 
 		// Fail early if the user is sitewide blocked.
-		$block = $user->getBlock();
+		$block = $authority->getBlock();
 		if ( $block && $block->isSitewide() ) {
 			$this->dieBlocked( $block );
 		}
@@ -76,7 +77,8 @@ class ApiPurge extends ApiBase {
 		$pageSet->execute();
 
 		$result = $pageSet->getInvalidTitlesAndRevisions();
-		$userName = $user->getName();
+		$userName = $authority->getUser()->getName();
+		$now = wfTimestampNow();
 
 		foreach ( $pageSet->getGoodPages() as $pageIdentity ) {
 			$title = $this->titleFormatter->getPrefixedText( $pageIdentity );
@@ -85,16 +87,22 @@ class ApiPurge extends ApiBase {
 				'title' => $title,
 			];
 			$page = $this->wikiPageFactory->newFromTitle( $pageIdentity );
-			if ( !$user->pingLimiter( 'purge' ) ) {
+
+			$authStatus = PermissionStatus::newEmpty();
+			if ( $authority->authorizeAction( 'purge', $authStatus ) ) {
 				// Directly purge and skip the UI part of purge()
 				$page->doPurge();
 				$r['purged'] = true;
 			} else {
-				$this->addWarning( 'apierror-ratelimited' );
+				if ( $authStatus->isRateLimitExceeded() ) {
+					$this->addWarning( 'apierror-ratelimited' );
+				} else {
+					$this->addWarning( Status::wrap( $authStatus )->getMessage() );
+				}
 			}
 
 			if ( $forceLinkUpdate || $forceRecursiveLinkUpdate ) {
-				if ( !$user->pingLimiter( 'linkpurge' ) ) {
+				if ( $authority->authorizeAction( 'linkpurge', $authStatus ) ) {
 					# Logging to better see expensive usage patterns
 					if ( $forceRecursiveLinkUpdate ) {
 						LoggerFactory::getInstance( 'RecursiveLinkPurge' )->info(
@@ -115,11 +123,17 @@ class ApiPurge extends ApiBase {
 						'causeAction' => 'api-purge',
 						'causeAgent' => $userName,
 						'defer' => DeferredUpdates::PRESEND,
+						'freshness' => $now,
 					] );
 					$r['linkupdate'] = true;
 				} else {
-					$this->addWarning( 'apierror-ratelimited' );
-					$forceLinkUpdate = false;
+					if ( $authStatus->isRateLimitExceeded() ) {
+						$this->addWarning( 'apierror-ratelimited' );
+						$forceLinkUpdate = false;
+						$forceRecursiveLinkUpdate = false;
+					} else {
+						$this->addWarning( Status::wrap( $authStatus )->getMessage() );
+					}
 				}
 			}
 

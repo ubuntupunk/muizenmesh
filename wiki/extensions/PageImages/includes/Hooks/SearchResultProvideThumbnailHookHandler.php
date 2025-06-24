@@ -3,10 +3,10 @@
 namespace PageImages\Hooks;
 
 use MediaWiki\Page\PageIdentity;
+use MediaWiki\Page\PageProps;
 use MediaWiki\Search\Hook\SearchResultProvideThumbnailHook;
 use MediaWiki\Search\SearchResultThumbnailProvider;
 use PageImages\PageImages;
-use PageProps;
 use RepoGroup;
 
 class SearchResultProvideThumbnailHookHandler implements SearchResultProvideThumbnailHook {
@@ -73,7 +73,7 @@ class SearchResultProvideThumbnailHookHandler implements SearchResultProvideThum
 	 */
 	public function onSearchResultProvideThumbnail( array $pageIdentities, &$results, int $size = null ): void {
 		$fileNamesByPageId = $this->getFileNamesByPageId( $pageIdentities );
-		$results = $results ?? [];
+		$results ??= [];
 		foreach ( $fileNamesByPageId as $pageId => $fileName ) {
 			$file = $this->repoGroup->findFile( $fileName );
 			if ( !$file ) {

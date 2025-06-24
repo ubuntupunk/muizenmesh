@@ -1,6 +1,6 @@
 <?php
-/**
- * 2007-2023 PayPal
+/*
+ * Since 2007 PayPal
  *
  * NOTICE OF LICENSE
  *
@@ -18,22 +18,24 @@
  *  versions in the future. If you wish to customize PrestaShop for your
  *  needs please refer to http://www.prestashop.com for more information.
  *
- *  @author 2007-2023 PayPal
+ *  @author Since 2007 PayPal
  *  @author 202 ecommerce <tech@202-ecommerce.com>
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
+ *
  */
 
 namespace PaypalAddons\classes\API\Request;
 
 use Exception;
 use PaypalAddons\classes\AbstractMethodPaypal;
+use PaypalAddons\classes\API\Client\HttpClient;
 use PaypalAddons\classes\API\ExtensionSDK\AddTrackingInfo;
+use PaypalAddons\classes\API\HttpAdoptedResponse;
 use PaypalAddons\classes\API\Response\Error;
 use PaypalAddons\classes\API\Response\Response;
+use PaypalAddons\classes\PaypalException;
 use PaypalAddons\services\Builder\AddTrackingInfoRequestBuilder;
-use PayPalCheckoutSdk\Core\PayPalHttpClient;
-use PayPalHttp\HttpException;
 use Throwable;
 
 if (!defined('_PS_VERSION_')) {
@@ -44,7 +46,7 @@ class PaypalAddTrackingInfoRequest extends RequestAbstract
 {
     protected $paypalOrder;
 
-    public function __construct(PayPalHttpClient $client, AbstractMethodPaypal $method, \PaypalOrder $paypalOrder)
+    public function __construct(HttpClient $client, AbstractMethodPaypal $method, \PaypalOrder $paypalOrder)
     {
         parent::__construct($client, $method);
 
@@ -56,10 +58,12 @@ class PaypalAddTrackingInfoRequest extends RequestAbstract
         $response = $this->initResponse();
 
         try {
-            $sendTrackingInfoRequest = new AddTrackingInfo();
-            $sendTrackingInfoRequest->headers = array_merge($this->getHeaders(), $sendTrackingInfoRequest->headers);
-            $sendTrackingInfoRequest->body = $this->initBuilder()->build();
+            $sendTrackingInfoRequest = new AddTrackingInfo($this->initBuilder());
             $exec = $this->client->execute($sendTrackingInfoRequest);
+
+            if ($exec instanceof HttpAdoptedResponse) {
+                $exec = $exec->getAdoptedResponse();
+            }
 
             if ($exec->statusCode >= 200 && $exec->statusCode < 300) {
                 $response->setSuccess(true);
@@ -68,7 +72,7 @@ class PaypalAddTrackingInfoRequest extends RequestAbstract
             }
 
             $response->setData($exec);
-        } catch (HttpException $e) {
+        } catch (PaypalException $e) {
             $error = new Error();
             $resultDecoded = json_decode($e->getMessage(), true);
 

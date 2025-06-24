@@ -20,20 +20,26 @@
 
 namespace MediaWiki\Preferences;
 
+use ExtensionRegistry;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Html\Html;
 use MediaWiki\MainConfigNames;
+use MediaWiki\MediaWikiServices;
 use MediaWiki\Parser\ParserOutputFlags;
+use MediaWiki\Parser\Parsoid\Config\PageConfigFactory;
+use MediaWiki\Revision\MutableRevisionRecord;
+use MediaWiki\Revision\SlotRecord;
+use MediaWiki\SpecialPage\SpecialPage;
 use MediaWiki\SpecialPage\SpecialPageFactory;
+use MediaWiki\Title\Title;
 use MediaWiki\Title\TitleFactory;
 use MediaWiki\User\UserIdentity;
 use MessageLocalizer;
-use MultiHttpClient;
+use OOUI\ButtonWidget;
 use ParserFactory;
 use ParserOptions;
-use ParsoidVirtualRESTService;
-use SpecialPage;
-use VirtualRESTServiceClient;
+use Wikimedia\Parsoid\Parsoid;
+use WikitextContent;
 
 /**
  * @since 1.35
@@ -54,12 +60,15 @@ class SignatureValidator {
 	private $popts;
 	/** @var ParserFactory */
 	private $parserFactory;
+	private Parsoid $parsoid;
+	private PageConfigFactory $pageConfigFactory;
 	/** @var ServiceOptions */
 	private $serviceOptions;
 	/** @var SpecialPageFactory */
 	private $specialPageFactory;
 	/** @var TitleFactory */
 	private $titleFactory;
+	private ExtensionRegistry $extensionRegistry;
 
 	/**
 	 * @param ServiceOptions $options
@@ -67,8 +76,11 @@ class SignatureValidator {
 	 * @param ?MessageLocalizer $localizer
 	 * @param ParserOptions $popts
 	 * @param ParserFactory $parserFactory
+	 * @param Parsoid $parsoid
+	 * @param PageConfigFactory $pageConfigFactory
 	 * @param SpecialPageFactory $specialPageFactory
 	 * @param TitleFactory $titleFactory
+	 * @param ExtensionRegistry $extensionRegistry
 	 */
 	public function __construct(
 		ServiceOptions $options,
@@ -76,19 +88,25 @@ class SignatureValidator {
 		?MessageLocalizer $localizer,
 		ParserOptions $popts,
 		ParserFactory $parserFactory,
+		Parsoid $parsoid,
+		PageConfigFactory $pageConfigFactory,
 		SpecialPageFactory $specialPageFactory,
-		TitleFactory $titleFactory
+		TitleFactory $titleFactory,
+		ExtensionRegistry $extensionRegistry
 	) {
 		$this->user = $user;
 		$this->localizer = $localizer;
 		$this->popts = $popts;
 		$this->parserFactory = $parserFactory;
+		$this->parsoid = $parsoid;
+		$this->pageConfigFactory = $pageConfigFactory;
 		// Configuration
 		$this->serviceOptions = $options;
 		$this->serviceOptions->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
 		// TODO SpecialPage::getTitleFor should also be available via SpecialPageFactory
 		$this->specialPageFactory = $specialPageFactory;
 		$this->titleFactory = $titleFactory;
+		$this->extensionRegistry = $extensionRegistry;
 	}
 
 	/**
@@ -116,6 +134,17 @@ class SignatureValidator {
 
 		$errors = $this->localizer ? [] : false;
 
+		$hiddenCats = [];
+		if ( $this->extensionRegistry->isLoaded( 'Linter' ) ) { // T360809
+			$services = MediaWikiServices::getInstance();
+			$linterCategories = $services->getMainConfig()->get( 'LinterCategories' );
+			foreach ( $linterCategories as $name => $cat ) {
+				if ( $cat['priority'] === 'none' ) {
+					$hiddenCats[$name] = true;
+				}
+			}
+		}
+
 		$lintErrors = $this->checkLintErrors( $signature );
 		if ( $lintErrors ) {
 			$allowedLintErrors = $this->serviceOptions->get(
@@ -130,6 +159,9 @@ class SignatureValidator {
 				if ( in_array( $error['type'], $allowedLintErrors, true ) ) {
 					continue;
 				}
+				if ( $hiddenCats[$error['type']] ?? false ) {
+					continue;
+				}
 				if ( !$this->localizer ) {
 					$errors = true;
 					break;
@@ -137,16 +169,27 @@ class SignatureValidator {
 
 				$details = $this->getLintErrorDetails( $error );
 				$location = $this->getLintErrorLocation( $error );
+				// THESE MESSAGE IDS SHOULD BE KEPT IN SYNC WITH
+				// those declared in Extension:Linter -- in particular
+				// there should be a linterror-<cat> declared here for every
+				// linter-pager-<cat>-details declared in Linter's qqq.json.
+				// T360809: this redundancy should be eventually eliminated
+
 				// Messages used here:
 				// * linterror-bogus-image-options
 				// * linterror-deletable-table-tag
+				// * linterror-fostered
 				// * linterror-html5-misnesting
+				// * linterror-inline-media-caption
+				// * linterror-large-tables
 				// * linterror-misc-tidy-replacement-issues
 				// * linterror-misnested-tag
 				// * linterror-missing-end-tag
+				// * linterror-missing-end-tag-in-heading
 				// * linterror-multi-colon-escape
 				// * linterror-multiline-html-table-in-list
 				// * linterror-multiple-unclosed-formatting-tags
+				// * linterror-night-mode-unaware-background-color
 				// * linterror-obsolete-tag
 				// * linterror-pwrap-bug-workaround
 				// * linterror-self-closed-tag
@@ -154,8 +197,9 @@ class SignatureValidator {
 				// * linterror-tidy-font-bug
 				// * linterror-tidy-whitespace-bug
 				// * linterror-unclosed-quotes-in-heading
+				// * linterror-wikilink-in-extlink
 				$label = $this->localizer->msg( "linterror-{$error['type']}" )->parse();
-				$docsLink = new \OOUI\ButtonWidget( [
+				$docsLink = new ButtonWidget( [
 					'href' =>
 						"https://www.mediawiki.org/wiki/Special:MyLanguage/Help:Lint_errors/{$error['type']}",
 					'target' => '_blank',
@@ -246,44 +290,18 @@ class SignatureValidator {
 		// This has to use Parsoid because PHP Parser doesn't produce this information,
 		// it just fixes up the result quietly.
 
-		// This request is not cached, but that's okay, because $signature is short (other code checks
-		// the length against $wgMaxSigChars).
+		$page = Title::newMainPage();
+		$fakeRevision = new MutableRevisionRecord( $page );
+		$fakeRevision->setSlot(
+			SlotRecord::newUnsaved(
+				SlotRecord::MAIN,
+				new WikitextContent( $signature )
+			)
+		);
 
-		$vrsConfig = $this->serviceOptions->get( MainConfigNames::VirtualRestConfig );
-		if ( isset( $vrsConfig['modules']['parsoid'] ) ) {
-			$params = $vrsConfig['modules']['parsoid'];
-			if ( isset( $vrsConfig['global'] ) ) {
-				$params = array_merge( $vrsConfig['global'], $params );
-			}
-			$parsoidVrs = new ParsoidVirtualRESTService( $params );
-
-			$vrsClient = new VirtualRESTServiceClient( new MultiHttpClient( [] ) );
-			$vrsClient->mount( '/parsoid/', $parsoidVrs );
-
-			$request = [
-				'method' => 'POST',
-				'url' => '/parsoid/local/v3/transform/wikitext/to/lint',
-				'body' => [
-					'wikitext' => $signature,
-				],
-				'headers' => [
-					// Are both of these are really needed?
-					'User-Agent' => 'MediaWiki/' . MW_VERSION,
-					'Api-User-Agent' => 'MediaWiki/' . MW_VERSION,
-				],
-			];
-
-			$response = $vrsClient->run( $request );
-			if ( $response['code'] === 200 ) {
-				$json = json_decode( $response['body'], true );
-				// $json is an array of error objects
-				if ( $json ) {
-					return $json;
-				}
-			}
-		}
-
-		return [];
+		return $this->parsoid->wikitext2lint(
+			$this->pageConfigFactory->create( $page, null, $fakeRevision )
+		);
 	}
 
 	/**

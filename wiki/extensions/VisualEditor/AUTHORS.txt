@@ -1,3 +1,5 @@
+@copyright 2011-2023 VisualEditor Team and others; see http://ve.mit-license.org
+
 Principal Authors (major contributors, alphabetically)
 
 Alex Monk <krenair@gmail.com>
@@ -182,6 +184,11 @@ socket.io-client
  — https://github.com/socketio/socket.io-client
  – MIT License
  – Guillermo Rauch and other contributors
+
+spark-md5
+ – https://github.com/satazor/js-spark-md5
+ – BSD-3-Clause (dual with WTFv2)
+ – André Cruz
 
 Tree Differ
  – https://github.com/tchanders/treeDiffer.js

@@ -21,8 +21,6 @@
  * @ingroup Maintenance
  */
 
-use MediaWiki\MediaWikiServices;
-
 require_once __DIR__ . '/Maintenance.php';
 
 /**
@@ -69,19 +67,21 @@ class MigrateFileRepoLayout extends Maintenance {
 		// Do current and archived versions...
 		$conds = [];
 		if ( $since ) {
-			$conds[] = 'img_timestamp >= ' . $dbw->addQuotes( $dbw->timestamp( $since ) );
+			$conds[] = $dbw->expr( 'img_timestamp', '>=', $dbw->timestamp( $since ) );
 		}
 
 		$batchSize = $this->getBatchSize();
 		$batch = [];
 		$lastName = '';
 		do {
-			$res = $dbw->select( 'image',
-				[ 'img_name', 'img_sha1' ],
-				array_merge( [ 'img_name > ' . $dbw->addQuotes( $lastName ) ], $conds ),
-				__METHOD__,
-				[ 'LIMIT' => $batchSize, 'ORDER BY' => 'img_name' ]
-			);
+			$res = $dbw->newSelectQueryBuilder()
+				->select( [ 'img_name', 'img_sha1' ] )
+				->from( 'image' )
+				->where( $dbw->expr( 'img_name', '>', $lastName ) )
+				->andWhere( $conds )
+				->orderBy( 'img_name' )
+				->limit( $batchSize )
+				->caller( __METHOD__ )->fetchResultSet();
 
 			foreach ( $res as $row ) {
 				$lastName = $row->img_name;
@@ -161,17 +161,20 @@ class MigrateFileRepoLayout extends Maintenance {
 		// Do deleted versions...
 		$conds = [];
 		if ( $since ) {
-			$conds[] = 'fa_deleted_timestamp >= ' . $dbw->addQuotes( $dbw->timestamp( $since ) );
+			$conds[] = $dbw->expr( 'fa_deleted_timestamp', '>=', $dbw->timestamp( $since ) );
 		}
 
 		$batch = [];
 		$lastId = 0;
 		do {
-			$res = $dbw->select( 'filearchive', [ 'fa_storage_key', 'fa_id', 'fa_name' ],
-				array_merge( [ 'fa_id > ' . $dbw->addQuotes( $lastId ) ], $conds ),
-				__METHOD__,
-				[ 'LIMIT' => $batchSize, 'ORDER BY' => 'fa_id' ]
-			);
+			$res = $dbw->newSelectQueryBuilder()
+				->select( [ 'fa_storage_key', 'fa_id', 'fa_name' ] )
+				->from( 'filearchive' )
+				->where( $dbw->expr( 'fa_id', '>', $lastId ) )
+				->andWhere( $conds )
+				->orderBy( 'fa_id' )
+				->limit( $batchSize )
+				->caller( __METHOD__ )->fetchResultSet();
 
 			foreach ( $res as $row ) {
 				$lastId = $row->fa_id;
@@ -220,7 +223,7 @@ class MigrateFileRepoLayout extends Maintenance {
 	}
 
 	protected function getRepo() {
-		return MediaWikiServices::getInstance()->getRepoGroup()->getLocalRepo();
+		return $this->getServiceContainer()->getRepoGroup()->getLocalRepo();
 	}
 
 	/**

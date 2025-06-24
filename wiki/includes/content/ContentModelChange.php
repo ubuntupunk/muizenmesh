@@ -1,6 +1,9 @@
 <?php
 
 use MediaWiki\Content\IContentHandlerFactory;
+use MediaWiki\Context\DerivativeContext;
+use MediaWiki\Context\IContextSource;
+use MediaWiki\Context\RequestContext;
 use MediaWiki\HookContainer\HookContainer;
 use MediaWiki\HookContainer\HookRunner;
 use MediaWiki\Page\PageIdentity;
@@ -8,6 +11,7 @@ use MediaWiki\Permissions\Authority;
 use MediaWiki\Permissions\PermissionStatus;
 use MediaWiki\Revision\RevisionLookup;
 use MediaWiki\Revision\SlotRecord;
+use MediaWiki\Status\Status;
 use MediaWiki\User\UserFactory;
 
 /**
@@ -246,7 +250,6 @@ class ContentModelChange {
 	 * @param string $comment
 	 * @param bool $bot Mark as a bot edit if the user can
 	 * @return Status
-	 * @throws ThrottledError
 	 */
 	public function doContentModelChange(
 		IContextSource $context,
@@ -261,11 +264,6 @@ class ContentModelChange {
 		$page = $this->page;
 		$title = $page->getTitle();
 		$user = $this->userFactory->newFromAuthority( $this->performer );
-
-		// TODO: fold into authorizeChange
-		if ( $user->pingLimiter( 'editcontentmodel' ) ) {
-			throw new ThrottledError();
-		}
 
 		// Create log entry
 		$log = new ManualLogEntry( 'contentmodel', $this->logAction );

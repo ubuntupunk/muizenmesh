@@ -3,7 +3,7 @@
  * A Zenphoto plugin that provides scriptless and privacy friendly sharing buttons for:
  * 
  * - Facebook
- * - Twitter
+ * - X (formerly Twitter)
  * - Pinterest 
  * - Linkedin
  * - Xing
@@ -38,10 +38,8 @@
  * Place <code><?php ScriptlessSocialSharing::printButtons(); ?></code> on your theme files where you wish the buttons to appear.
  *
  * @author Malte Müller (acrylian)
- * @copyright 2018 Malte Müller
  * @license GPL v3 or later
- * @package plugins
- * @subpackage scriptless-socialsharing
+ * @package zpcore\plugins\scriptlesssocialsharing
  */
 $plugin_is_filter = 9 | THEME_PLUGIN;
 $plugin_description = gettext('A Zenphoto plugin that provides scriptless and privacy friendly sharing buttons for Facebook, Twitter, Google+, Pinterest, Linkedin, Xing, Reddit, Stumbleupon, Tumblr, WhatsApp (iOS only) and e-mail. (Note: No share counts because of that!).');
@@ -66,7 +64,7 @@ class scriptlessSocialsharingOptions {
 						'order' => 0,
 						'checkboxes' => array(
 								'Facebook' => 'scriptless_socialsharing_facebook',
-								'Twitter' => 'scriptless_socialsharing_twitter',
+								'X (Twitter)' => 'scriptless_socialsharing_twitter',
 								'Pinterest' => 'scriptless_socialsharing_pinterest',
 								'Linkedin' => 'scriptless_socialsharing_linkedin',
 								'Xing' => 'scriptless_socialsharing_xing',
@@ -216,9 +214,9 @@ class scriptlessSocialsharing {
 				$via = '&amp;via=' . html_encode(getOption('scriptless_socialsharing_twittername'));
 			}
 			$buttons[] = array(
-					'class' => 'sharingicon-twitter',
-					'title' => 'Twitter',
-					'url' => 'https://twitter.com/intent/tweet?text=' . $title . $via . '&amp;url=' . $url
+					'class' => 'sharingicon-x',
+					'title' => 'X (Twitter)',
+					'url' => 'https://x.com/intent/tweet?text=' . $title . $via . '&amp;url=' . $url
 			);
 		}
 		if (getOption('scriptless_socialsharing_pinterest')) {
@@ -268,7 +266,7 @@ class scriptlessSocialsharing {
 			$buttons[] = array(
 					'class' => 'sharingicon-whatsapp',
 					'title' => 'Whatsapp',
-					'url' => 'WhatsApp://send?text=' . $url
+					'url' => 'https://wa.me/?text=' . $url
 			);
 		}
 		if (getOption('scriptless_socialsharing_digg')) {
@@ -359,13 +357,7 @@ class scriptlessSocialsharing {
 							?>
 						</a>
 					</li>
-					<?php 
-					if ($button['class'] == 'sharingicon-whatsapp') { ?>
-						<script>
-							(navigator.userAgent.match(/(iPhone)/g)) ? $('.whatsappLink').removeClass('hidden') : null;
-						</script>
-					<?php 
-					} 
+					<?php  
 				} ?>
 			</ul>
 		<?php

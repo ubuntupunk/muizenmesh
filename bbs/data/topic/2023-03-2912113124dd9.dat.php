@@ -6,7 +6,7 @@ array (
   'title' => 'Loadshedding Solutions',
   'mail' => 'ubuntupunk@gmail.com',
   'content' => 'Some loadshedding solutions',
-  'view' => 81,
+  'view' => 3027,
   'forum' => 'muizenmesh-forum',
   'reply' => 
   array (

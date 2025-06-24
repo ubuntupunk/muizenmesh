@@ -10,14 +10,15 @@
 			expires: DEFAULT_DURATION,
 			secure: false
 		},
-		setDefaults = require( 'mediawiki.cookie' ).setDefaults,
+		mwCookie = require( 'mediawiki.cookie' ),
+		setDefaults = mwCookie.setDefaults,
 		expiryDate = new Date();
 
 	expiryDate.setTime( NOW + ( DEFAULT_DURATION * 1000 ) );
 
 	QUnit.module( 'mediawiki.cookie', {
 		beforeEach: function () {
-			jqcookie = sinon.stub( $, 'cookie' ).returns( null );
+			jqcookie = sinon.stub( mwCookie.jar, 'cookie' ).returns( null );
 			this.clock = sinon.useFakeTimers( NOW );
 			this.savedDefaults = setDefaults( defaults );
 		},
@@ -138,47 +139,6 @@
 			path: 'myPath',
 			secure: true
 		}, 'Options (incl. expires)' );
-	} );
-
-	QUnit.test( 'set with sameSiteLegacy', function ( assert ) {
-		var lastCall, prevCall;
-
-		mw.cookie.set( 'foo1', 'bar', {
-			prefix: 'myPrefix',
-			secure: true,
-			sameSiteLegacy: true
-		} );
-		assert.strictEqual( jqcookie.callCount, 1 );
-		assert.strictEqual( jqcookie.lastCall.args[ 0 ], 'myPrefixfoo1' );
-
-		mw.cookie.set( 'foo2', 'bar', {
-			prefix: 'myPrefix',
-			secure: true,
-			sameSite: 'foo',
-			sameSiteLegacy: true
-		} );
-		assert.strictEqual( jqcookie.callCount, 2 );
-		assert.strictEqual( jqcookie.lastCall.args[ 0 ], 'myPrefixfoo2' );
-
-		mw.cookie.set( 'foo3', 'bar', {
-			prefix: 'myPrefix',
-			secure: true,
-			sameSite: 'None',
-			sameSiteLegacy: true
-		} );
-		assert.strictEqual( jqcookie.callCount, 4 );
-		lastCall = jqcookie.lastCall;
-		prevCall = jqcookie.getCall( jqcookie.callCount - 2 );
-		assert.strictEqual( prevCall.args[ 0 ], 'myPrefixfoo3' );
-		assert.strictEqual( prevCall.args[ 1 ], 'bar' );
-		assert.strictEqual( prevCall.args[ 2 ].secure, true );
-		assert.strictEqual( prevCall.args[ 2 ].sameSite, 'None' );
-		assert.strictEqual( prevCall.args[ 2 ].sameSiteLegacy, undefined );
-		assert.strictEqual( lastCall.args[ 0 ], 'myPrefixss0-foo3' );
-		assert.strictEqual( lastCall.args[ 1 ], 'bar' );
-		assert.strictEqual( lastCall.args[ 2 ].secure, true );
-		assert.strictEqual( lastCall.args[ 2 ].sameSite, undefined );
-		assert.strictEqual( lastCall.args[ 2 ].sameSiteLegacy, undefined );
 	} );
 
 	QUnit.test( 'get( key ) - no values', function ( assert ) {

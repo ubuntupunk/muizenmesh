@@ -4,7 +4,7 @@ declare( strict_types = 1 );
 namespace Wikimedia\Parsoid\Config;
 
 use Wikimedia\Bcp47Code\Bcp47Code;
-use Wikimedia\Parsoid\Utils\Utils;
+use Wikimedia\Parsoid\Core\LinkTarget;
 
 /**
  * Page-level configuration interface for Parsoid
@@ -34,51 +34,42 @@ abstract class PageConfig {
 	abstract public function getContentModel(): string;
 
 	/**
-	 * Whether the page has a lintable content model
+	 * Whether to suppress the Table of Contents for this page
+	 * (a function of content model).
 	 * @return bool
 	 */
-	abstract public function hasLintableContentModel(): bool;
+	public function getSuppressTOC(): bool {
+		// This will eventually be abstract; for now default to 'false'
+		return false;
+	}
 
 	/**
-	 * The page's title, as a string.
-	 * @return string With namespace, spaces not underscores
+	 * The page's title, as a LinkTarget.
+	 * @return LinkTarget
 	 */
-	abstract public function getTitle(): string;
+	abstract public function getLinkTarget(): LinkTarget;
 
 	/**
 	 * The page's namespace ID
 	 * @return int
+	 * @deprecated Use ::getLinkTarget()->getNamespace() instead
 	 */
-	abstract public function getNs(): int;
+	public function getNs(): int {
+		return $this->getLinkTarget()->getNamespace();
+	}
 
 	/**
 	 * The page's ID, if any
-	 * @return int 0 if the page doesn't exist
+	 * @return int 0 if the page doesn't (yet?) exist
 	 */
 	abstract public function getPageId(): int;
-
-	// Implementors are expected to override *one of*
-	// ::getPageLanguage() or ::getPageLanguageBcp47()
-
-	/**
-	 * The page's language code.
-	 *
-	 * @return string a MediaWiki-internal language code
-	 * @deprecated Use ::getPageLanguageBcp47() (T320662)
-	 */
-	public function getPageLanguage(): string {
-		return Utils::bcp47ToMwCode( $this->getPageLanguageBcp47() );
-	}
 
 	/**
 	 * The page's language code.
 	 *
 	 * @return Bcp47Code a BCP-47 language code
 	 */
-	public function getPageLanguageBcp47(): Bcp47Code {
-		// @phan-suppress-next-line PhanDeprecatedFunction
-		return Utils::mwCodeToBcp47( $this->getPageLanguage() );
-	}
+	abstract public function getPageLanguageBcp47(): Bcp47Code;
 
 	/**
 	 * The page's language direction
@@ -136,30 +127,10 @@ abstract class PageConfig {
 
 	/**
 	 * Get the page's language variant
-	 * This is a *mediawiki-internal* language code, not a BCP-47 code.
-	 * @return string|null
-	 * @deprecated Use ::getVariantBcp47() (T320662)
-	 */
-	public function getVariant(): ?string {
-		return Utils::bcp47ToMwCode( $this->getVariantBcp47() );
-	}
-
-	/**
-	 * Get the page's language variant
 	 * @return ?Bcp47Code a BCP-47 language code
 	 */
 	public function getVariantBcp47(): ?Bcp47Code {
 		return $this->htmlVariant; # stored as BCP-47
-	}
-
-	/**
-	 * Set the page's language variant.  (Records the fact that
-	 * conversion has been done in the parser pipeline.)
-	 * @param string $htmlVariant a MediaWiki-internal language code
-	 * @deprecated Use ::setVariantBcp47() (T320662)
-	 */
-	public function setVariant( $htmlVariant ): void {
-		$this->setVariantBcp47( Utils::mwCodeToBcp47( $htmlVariant ) );
 	}
 
 	/**

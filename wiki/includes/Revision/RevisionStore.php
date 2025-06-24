@@ -47,16 +47,16 @@ use MediaWiki\Permissions\Authority;
 use MediaWiki\Storage\BadBlobException;
 use MediaWiki\Storage\BlobAccessException;
 use MediaWiki\Storage\BlobStore;
+use MediaWiki\Storage\NameTableAccessException;
 use MediaWiki\Storage\NameTableStore;
 use MediaWiki\Storage\RevisionSlotsUpdate;
 use MediaWiki\Storage\SqlBlobStore;
 use MediaWiki\Title\Title;
 use MediaWiki\Title\TitleFactory;
-use MediaWiki\User\ActorMigration;
 use MediaWiki\User\ActorStore;
 use MediaWiki\User\UserIdentity;
+use MediaWiki\Utils\MWTimestamp;
 use MWException;
-use MWTimestamp;
 use MWUnknownContentModelException;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
@@ -70,11 +70,12 @@ use WANObjectCache;
 use Wikimedia\Assert\Assert;
 use Wikimedia\IPUtils;
 use Wikimedia\Rdbms\Database;
-use Wikimedia\Rdbms\DBConnRef;
 use Wikimedia\Rdbms\IDatabase;
 use Wikimedia\Rdbms\ILoadBalancer;
 use Wikimedia\Rdbms\IReadableDatabase;
 use Wikimedia\Rdbms\IResultWrapper;
+use Wikimedia\Rdbms\Platform\ISQLPlatform;
+use Wikimedia\Rdbms\SelectQueryBuilder;
 
 /**
  * Service for looking up page revisions.
@@ -85,8 +86,7 @@ use Wikimedia\Rdbms\IResultWrapper;
  * @note This was written to act as a drop-in replacement for the corresponding
  *       static methods in the old Revision class (which was later removed in 1.37).
  */
-class RevisionStore
-	implements IDBAccessObject, RevisionFactory, RevisionLookup, LoggerAwareInterface {
+class RevisionStore implements RevisionFactory, RevisionLookup, LoggerAwareInterface {
 
 	use LegacyArticleIdAccess;
 
@@ -129,11 +129,6 @@ class RevisionStore
 	 * @var CommentStore
 	 */
 	private $commentStore;
-
-	/**
-	 * @var ActorMigration
-	 */
-	private $actorMigration;
 
 	/** @var ActorStore */
 	private $actorStore;
@@ -182,7 +177,6 @@ class RevisionStore
 	 * @param NameTableStore $contentModelStore
 	 * @param NameTableStore $slotRoleStore
 	 * @param SlotRoleRegistry $slotRoleRegistry
-	 * @param ActorMigration $actorMigration
 	 * @param ActorStore $actorStore
 	 * @param IContentHandlerFactory $contentHandlerFactory
 	 * @param PageStore $pageStore
@@ -202,7 +196,6 @@ class RevisionStore
 		NameTableStore $contentModelStore,
 		NameTableStore $slotRoleStore,
 		SlotRoleRegistry $slotRoleRegistry,
-		ActorMigration $actorMigration,
 		ActorStore $actorStore,
 		IContentHandlerFactory $contentHandlerFactory,
 		PageStore $pageStore,
@@ -220,7 +213,6 @@ class RevisionStore
 		$this->contentModelStore = $contentModelStore;
 		$this->slotRoleStore = $slotRoleStore;
 		$this->slotRoleRegistry = $slotRoleRegistry;
-		$this->actorMigration = $actorMigration;
 		$this->actorStore = $actorStore;
 		$this->wikiId = $wikiId;
 		$this->logger = new NullLogger();
@@ -253,20 +245,23 @@ class RevisionStore
 	/**
 	 * @param int $queryFlags a bit field composed of READ_XXX flags
 	 *
-	 * @return DBConnRef
+	 * @return IDatabase
 	 */
 	private function getDBConnectionRefForQueryFlags( $queryFlags ) {
-		[ $mode, ] = DBAccessObjectUtils::getDBOptions( $queryFlags );
-		return $this->getDBConnectionRef( $mode );
+		if ( ( $queryFlags & IDBAccessObject::READ_LATEST ) == IDBAccessObject::READ_LATEST ) {
+			return $this->getDBConnection( DB_PRIMARY );
+		} else {
+			return $this->getDBConnection( DB_REPLICA );
+		}
 	}
 
 	/**
 	 * @param int $mode DB_PRIMARY or DB_REPLICA
 	 * @param string|array $groups
-	 * @return DBConnRef
+	 * @return IDatabase
 	 */
-	private function getDBConnectionRef( $mode, $groups = [] ) {
-		return $this->loadBalancer->getConnectionRef( $mode, $groups, $this->wikiId );
+	private function getDBConnection( $mode, $groups = [] ) {
+		return $this->loadBalancer->getConnection( $mode, $groups, $this->wikiId );
 	}
 
 	/**
@@ -285,15 +280,14 @@ class RevisionStore
 	 * @return Title
 	 * @throws RevisionAccessException
 	 */
-	public function getTitle( $pageId, $revId, $queryFlags = self::READ_NORMAL ) {
+	public function getTitle( $pageId, $revId, $queryFlags = IDBAccessObject::READ_NORMAL ) {
 		// TODO: Hard-deprecate this once getPage() returns a PageRecord. T195069
 		if ( $this->wikiId !== WikiAwareEntity::LOCAL ) {
 			wfDeprecatedMsg( 'Using a Title object to refer to a page on another site.', '1.36' );
 		}
 
 		$page = $this->getPage( $pageId, $revId, $queryFlags );
-		// @phan-suppress-next-line PhanTypeMismatchReturnNullable castFrom does not return null here
-		return $this->titleFactory->castFromPageIdentity( $page );
+		return $this->titleFactory->newFromPageIdentity( $page );
 	}
 
 	/**
@@ -306,15 +300,15 @@ class RevisionStore
 	 * @return PageIdentity
 	 * @throws RevisionAccessException
 	 */
-	private function getPage( ?int $pageId, ?int $revId, int $queryFlags = self::READ_NORMAL ) {
+	private function getPage( ?int $pageId, ?int $revId, int $queryFlags = IDBAccessObject::READ_NORMAL ) {
 		if ( !$pageId && !$revId ) {
 			throw new InvalidArgumentException( '$pageId and $revId cannot both be 0 or null' );
 		}
 
 		// This method recalls itself with READ_LATEST if READ_NORMAL doesn't get us a Title
 		// So ignore READ_LATEST_IMMUTABLE flags and handle the fallback logic in this method
-		if ( DBAccessObjectUtils::hasFlags( $queryFlags, self::READ_LATEST_IMMUTABLE ) ) {
-			$queryFlags = self::READ_NORMAL;
+		if ( DBAccessObjectUtils::hasFlags( $queryFlags, IDBAccessObject::READ_LATEST_IMMUTABLE ) ) {
+			$queryFlags = IDBAccessObject::READ_NORMAL;
 		}
 
 		// Loading by ID is best
@@ -339,8 +333,8 @@ class RevisionStore
 		}
 
 		// If we still don't have a title, fallback to primary DB if that wasn't already happening.
-		if ( $queryFlags === self::READ_NORMAL ) {
-			$title = $this->getPage( $pageId, $revId, self::READ_LATEST );
+		if ( $queryFlags === IDBAccessObject::READ_NORMAL ) {
+			$title = $this->getPage( $pageId, $revId, IDBAccessObject::READ_LATEST );
 			if ( $title ) {
 				$this->logger->info(
 					__METHOD__ . ' fell back to READ_LATEST and got a Title.',
@@ -372,8 +366,7 @@ class RevisionStore
 			//       over and over later on.
 			//       When there is less need to convert to Title, this special case can
 			//       be removed.
-			// @phan-suppress-next-line PhanTypeMismatchReturnNullable castFrom does not return null here
-			return $this->titleFactory->castFromPageIdentity( $page );
+			return $this->titleFactory->newFromPageIdentity( $page );
 		} else {
 			return $page;
 		}
@@ -737,12 +730,15 @@ class RevisionStore
 		$revisionId
 	) {
 		if ( !$user->isRegistered() && IPUtils::isValid( $user->getName() ) ) {
-			$ipcRow = [
-				'ipc_rev_id'        => $revisionId,
-				'ipc_rev_timestamp' => $dbw->timestamp( $rev->getTimestamp() ),
-				'ipc_hex'           => IPUtils::toHex( $user->getName() ),
-			];
-			$dbw->insert( 'ip_changes', $ipcRow, __METHOD__ );
+			$dbw->newInsertQueryBuilder()
+				->insertInto( 'ip_changes' )
+				->row( [
+					'ipc_rev_id'        => $revisionId,
+					'ipc_rev_timestamp' => $dbw->timestamp( $rev->getTimestamp() ),
+					'ipc_hex'           => IPUtils::toHex( $user->getName() ),
+				] )
+				->caller( __METHOD__ )->execute();
+
 		}
 	}
 
@@ -763,23 +759,16 @@ class RevisionStore
 	) {
 		$revisionRow = $this->getBaseRevisionRow( $dbw, $rev, $parentId );
 
-		[ $commentFields, $commentCallback ] =
-			$this->commentStore->insertWithTempTable(
-				$dbw,
-				'rev_comment',
-				$rev->getComment( RevisionRecord::RAW )
-			);
-		$revisionRow += $commentFields;
+		$revisionRow += $this->commentStore->insert(
+			$dbw,
+			'rev_comment',
+			$rev->getComment( RevisionRecord::RAW )
+		);
 
-		[ $actorFields, $actorCallback ] =
-			$this->actorMigration->getInsertValuesWithTempTable(
-				$dbw,
-				'rev_user',
-				$rev->getUser( RevisionRecord::RAW )
-			);
-		$revisionRow += $actorFields;
-
-		$dbw->insert( 'revision', $revisionRow, __METHOD__ );
+		$dbw->newInsertQueryBuilder()
+			->insertInto( 'revision' )
+			->row( $revisionRow )
+			->caller( __METHOD__ )->execute();
 
 		if ( !isset( $revisionRow['rev_id'] ) ) {
 			// only if auto-increment was used
@@ -820,7 +809,10 @@ class RevisionStore
 						__METHOD__
 					);
 
-					$dbw->delete( 'revision', [ 'rev_id' => $revisionRow['rev_id'] ], __METHOD__ );
+					$dbw->newDeleteQueryBuilder()
+						->deleteFrom( 'revision' )
+						->where( [ 'rev_id' => $revisionRow['rev_id'] ] )
+						->caller( __METHOD__ )->execute();
 
 					// The locking here is mostly to make MySQL bypass the REPEATABLE-READ transaction
 					// isolation (weird MySQL "feature"). It does seem to block concurrent auto-incrementing
@@ -852,13 +844,13 @@ class RevisionStore
 					// transactions will throw a duplicate key error here. It doesn't seem worth trying
 					// to avoid that.
 					$revisionRow['rev_id'] = $maxRevId + 1;
-					$dbw->insert( 'revision', $revisionRow, __METHOD__ );
+					$dbw->newInsertQueryBuilder()
+						->insertInto( 'revision' )
+						->row( $revisionRow )
+						->caller( __METHOD__ )->execute();
 				}
 			}
 		}
-
-		$commentCallback( $revisionRow['rev_id'] );
-		$actorCallback( $revisionRow['rev_id'], $revisionRow );
 
 		return $revisionRow;
 	}
@@ -879,6 +871,10 @@ class RevisionStore
 		$revisionRow = [
 			'rev_page'       => $rev->getPageId( $this->wikiId ),
 			'rev_parent_id'  => $parentId,
+			'rev_actor'      => $this->actorStore->acquireActorId(
+				$rev->getUser( RevisionRecord::RAW ),
+				$dbw
+			),
 			'rev_minor_edit' => $rev->isMinor() ? 1 : 0,
 			'rev_timestamp'  => $dbw->timestamp( $rev->getTimestamp() ),
 			'rev_deleted'    => $rev->getVisibility(),
@@ -937,15 +933,17 @@ class RevisionStore
 	 * @param int $contentId
 	 */
 	private function insertSlotRowOn( SlotRecord $slot, IDatabase $dbw, $revisionId, $contentId ) {
-		$slotRow = [
-			'slot_revision_id' => $revisionId,
-			'slot_role_id' => $this->slotRoleStore->acquireId( $slot->getRole() ),
-			'slot_content_id' => $contentId,
-			// If the slot has a specific origin use that ID, otherwise use the ID of the revision
-			// that we just inserted.
-			'slot_origin' => $slot->hasOrigin() ? $slot->getOrigin() : $revisionId,
-		];
-		$dbw->insert( 'slots', $slotRow, __METHOD__ );
+		$dbw->newInsertQueryBuilder()
+			->insertInto( 'slots' )
+			->row( [
+				'slot_revision_id' => $revisionId,
+				'slot_role_id' => $this->slotRoleStore->acquireId( $slot->getRole() ),
+				'slot_content_id' => $contentId,
+				// If the slot has a specific origin use that ID, otherwise use the ID of the revision
+				// that we just inserted.
+				'slot_origin' => $slot->hasOrigin() ? $slot->getOrigin() : $revisionId,
+			] )
+			->caller( __METHOD__ )->execute();
 	}
 
 	/**
@@ -955,13 +953,15 @@ class RevisionStore
 	 * @return int content row ID
 	 */
 	private function insertContentRowOn( SlotRecord $slot, IDatabase $dbw, $blobAddress ) {
-		$contentRow = [
-			'content_size' => $slot->getSize(),
-			'content_sha1' => $slot->getSha1(),
-			'content_model' => $this->contentModelStore->acquireId( $slot->getModel() ),
-			'content_address' => $blobAddress,
-		];
-		$dbw->insert( 'content', $contentRow, __METHOD__ );
+		$dbw->newInsertQueryBuilder()
+			->insertInto( 'content' )
+			->row( [
+				'content_size' => $slot->getSize(),
+				'content_sha1' => $slot->getSha1(),
+				'content_model' => $this->contentModelStore->acquireId( $slot->getModel() ),
+				'content_address' => $blobAddress,
+			] )
+			->caller( __METHOD__ )->execute();
 		return intval( $dbw->insertId() );
 	}
 
@@ -1034,13 +1034,12 @@ class RevisionStore
 		// T51581: Lock the page table row to ensure no other process
 		// is adding a revision to the page at the same time.
 		// Avoid locking extra tables, compare T191892.
-		$pageLatest = $dbw->selectField(
-			'page',
-			'page_latest',
-			[ 'page_id' => $pageId ],
-			__METHOD__,
-			[ 'FOR UPDATE' ]
-		);
+		$pageLatest = $dbw->newSelectQueryBuilder()
+			->select( 'page_latest' )
+			->forUpdate()
+			->from( 'page' )
+			->where( [ 'page_id' => $pageId ] )
+			->caller( __METHOD__ )->fetchField();
 
 		if ( !$pageLatest ) {
 			$msg = 'T235589: Failed to select table row during null revision creation' .
@@ -1057,7 +1056,7 @@ class RevisionStore
 		$oldRevision = $this->loadRevisionFromConds(
 			$dbw,
 			[ 'rev_id' => intval( $pageLatest ) ],
-			self::READ_LATEST,
+			IDBAccessObject::READ_LATEST,
 			$page
 		);
 
@@ -1114,7 +1113,11 @@ class RevisionStore
 	 * @return null|RecentChange
 	 */
 	public function getRecentChange( RevisionRecord $rev, $flags = 0 ) {
-		[ $dbType, ] = DBAccessObjectUtils::getDBOptions( $flags );
+		if ( ( $flags & IDBAccessObject::READ_LATEST ) == IDBAccessObject::READ_LATEST ) {
+			$dbType = DB_PRIMARY;
+		} else {
+			$dbType = DB_REPLICA;
+		}
 
 		$rc = RecentChange::newFromConds(
 			[
@@ -1422,7 +1425,7 @@ class RevisionStore
 		$revQuery = $this->getSlotsQueryInfo( [ 'content' ] );
 
 		[ $dbMode, $dbOptions ] = DBAccessObjectUtils::getDBOptions( $queryFlags );
-		$db = $this->getDBConnectionRef( $dbMode );
+		$db = $this->getDBConnection( $dbMode );
 
 		$res = $db->select(
 			$revQuery['tables'],
@@ -1435,7 +1438,7 @@ class RevisionStore
 			$revQuery['joins']
 		);
 
-		if ( !$res->numRows() && !( $queryFlags & self::READ_LATEST ) ) {
+		if ( !$res->numRows() && !( $queryFlags & IDBAccessObject::READ_LATEST ) ) {
 			// If we found no slots, try looking on the primary database (T212428, T252156)
 			$this->logger->info(
 				__METHOD__ . ' falling back to READ_LATEST.',
@@ -1446,7 +1449,7 @@ class RevisionStore
 			);
 			return $this->loadSlotRecordsFromDb(
 				$revId,
-				$queryFlags | self::READ_LATEST,
+				$queryFlags | IDBAccessObject::READ_LATEST,
 				$page
 			);
 		}
@@ -1540,7 +1543,6 @@ class RevisionStore
 	 * @param PageIdentity $page
 	 *
 	 * @return RevisionSlots
-	 * @throws MWException
 	 */
 	private function newRevisionSlots(
 		$revId,
@@ -1580,7 +1582,6 @@ class RevisionStore
 	 *   override ar_parent_id.
 	 *
 	 * @return RevisionRecord
-	 * @throws MWException
 	 */
 	public function newRevisionFromArchiveRow(
 		$row,
@@ -1596,7 +1597,7 @@ class RevisionStore
 	 *
 	 * MCR migration note: this replaced Revision::newFromRow
 	 *
-	 * @param \stdClass $row A database row generated from a query based on getQueryInfo()
+	 * @param \stdClass $row A database row generated from a query based on RevisionSelectQueryBuilder
 	 * @param int $queryFlags
 	 * @param PageIdentity|null $page Preloaded page object
 	 * @param bool $fromCache if true, the returned RevisionRecord will ensure that no stale
@@ -1629,7 +1630,6 @@ class RevisionStore
 	 *   override ar_parent_id.
 	 *
 	 * @return RevisionRecord
-	 * @throws MWException
 	 */
 	public function newRevisionFromArchiveRowAndSlots(
 		stdClass $row,
@@ -1640,7 +1640,7 @@ class RevisionStore
 	) {
 		if ( !$page && isset( $overrides['title'] ) ) {
 			if ( !( $overrides['title'] instanceof PageIdentity ) ) {
-				throw new MWException( 'title field override must contain a PageIdentity object.' );
+				throw new InvalidArgumentException( 'title field override must contain a PageIdentity object.' );
 			}
 
 			$page = $overrides['title'];
@@ -1691,7 +1691,7 @@ class RevisionStore
 	/**
 	 * @see newFromRevisionRow()
 	 *
-	 * @param stdClass $row A database row generated from a query based on getQueryInfo()
+	 * @param stdClass $row A database row generated from a query based on RevisionSelectQueryBuilder
 	 * @param null|stdClass[]|RevisionSlots $slots
 	 *  - Database rows generated from a query based on getSlotsQueryInfo
 	 *    with the 'content' flag set. Or
@@ -1702,7 +1702,6 @@ class RevisionStore
 	 *   data is returned from getters, by querying the database as needed
 	 *
 	 * @return RevisionRecord
-	 * @throws MWException
 	 * @throws RevisionAccessException
 	 * @see RevisionFactory::newRevisionFromRow
 	 */
@@ -1778,7 +1777,7 @@ class RevisionStore
 						$db,
 						[ 'rev_id' => intval( $revId ) ]
 					);
-					if ( !$row && !( $queryFlags & self::READ_LATEST ) ) {
+					if ( !$row && !( $queryFlags & IDBAccessObject::READ_LATEST ) ) {
 						// If we found no slots, try looking on the primary database (T259738)
 						$this->logger->info(
 							'RevisionStoreCacheRecord refresh callback falling back to READ_LATEST.',
@@ -1787,7 +1786,7 @@ class RevisionStore
 								'exception' => new RuntimeException(),
 							]
 						);
-						$dbw = $this->getDBConnectionRefForQueryFlags( self::READ_LATEST );
+						$dbw = $this->getDBConnectionRefForQueryFlags( IDBAccessObject::READ_LATEST );
 						$row = $this->fetchRevisionRowFromConds(
 							$dbw,
 							[ 'rev_id' => intval( $revId ) ]
@@ -1835,7 +1834,7 @@ class RevisionStore
 			$pageRec = $this->pageStore->getPageByName(
 				$page->getNamespace(),
 				$page->getDBkey(),
-				PageStore::READ_LATEST
+				IDBAccessObject::READ_LATEST
 			);
 			$masterPageId = $pageRec->getId( $this->wikiId );
 			$masterLatest = $pageRec->getLatest( $this->wikiId );
@@ -1896,7 +1895,7 @@ class RevisionStore
 	/**
 	 * Construct a RevisionRecord instance for each row in $rows,
 	 * and return them as an associative array indexed by revision ID.
-	 * Use getQueryInfo() or getArchiveQueryInfo() to construct the
+	 * Use RevisionSelectQueryBuilder or getArchiveQueryInfo() to construct the
 	 * query that produces the rows.
 	 *
 	 * @param IResultWrapper|\stdClass[] $rows the rows to construct revision records from
@@ -1916,7 +1915,7 @@ class RevisionStore
 	 *        from Article Id associated with the page, an InvalidArgumentException is thrown.
 	 *
 	 * @return StatusValue a status with a RevisionRecord[] of successfully fetched revisions
-	 * 					   and an array of errors for the revisions failed to fetch.
+	 *                     and an array of errors for the revisions failed to fetch.
 	 */
 	public function newRevisionsFromBatch(
 		$rows,
@@ -1984,7 +1983,7 @@ class RevisionStore
 			$rowsByRevId[$row->$revIdField] = $row;
 		}
 
-		if ( empty( $rowsByRevId ) ) {
+		if ( !$rowsByRevId ) {
 			$result->setResult( true, [] );
 			return $result;
 		}
@@ -1997,7 +1996,7 @@ class RevisionStore
 				: $this->getArticleId( $page );
 
 			$titlesByPageKey[$pageKey] = $page;
-		} elseif ( !empty( $pageIdsToFetchTitles ) ) {
+		} elseif ( $pageIdsToFetchTitles ) {
 			// Note: when we fetch titles by ID, the page key is also the ID.
 			// We should never get here if $archiveMode is true.
 			Assert::invariant( !$archiveMode, 'Titles are not loaded by ID in archive mode.' );
@@ -2013,10 +2012,9 @@ class RevisionStore
 		}
 
 		// which method to use for creating RevisionRecords
-		$newRevisionRecord = [
-			$this,
-			$archiveMode ? 'newRevisionFromArchiveRowAndSlots' : 'newRevisionFromRowAndSlots'
-		];
+		$newRevisionRecord = $archiveMode
+			? [ $this, 'newRevisionFromArchiveRowAndSlots' ]
+			: [ $this, 'newRevisionFromRowAndSlots' ];
 
 		if ( !isset( $options['slots'] ) ) {
 			$result->setResult(
@@ -2151,7 +2149,7 @@ class RevisionStore
 
 		// Nothing to do.
 		// Note that $rowsOrIds may not be "empty" even if $revIds is, e.g. if it's a ResultWrapper.
-		if ( empty( $revIds ) ) {
+		if ( !$revIds ) {
 			$result->setResult( true, [] );
 			return $result;
 		}
@@ -2162,17 +2160,23 @@ class RevisionStore
 		$slotQueryConds = [ $revIdField => $revIds ];
 
 		if ( isset( $options['slots'] ) && is_array( $options['slots'] ) ) {
-			if ( empty( $options['slots'] ) ) {
+			$slotIds = [];
+			foreach ( $options['slots'] as $slot ) {
+				try {
+					$slotIds[] = $this->slotRoleStore->getId( $slot );
+				} catch ( NameTableAccessException $exception ) {
+					// Do not fail when slot has no id (unused slot)
+					// This also means for this slot are never data in the database
+				}
+			}
+			if ( $slotIds === [] ) {
 				// Degenerate case: return no slots for each revision.
 				$result->setResult( true, array_fill_keys( $revIds, [] ) );
 				return $result;
 			}
 
 			$roleIdField = $slotQueryInfo['keys']['role_id'];
-			$slotQueryConds[$roleIdField] = array_map(
-				[ $this->slotRoleStore, 'getId' ],
-				$options['slots']
-			);
+			$slotQueryConds[$roleIdField] = $slotIds;
 		}
 
 		$db = $this->getDBConnectionRefForQueryFlags( $queryFlags );
@@ -2311,12 +2315,12 @@ class RevisionStore
 		// Make sure new pending/committed revision are visible later on
 		// within web requests to certain avoid bugs like T93866 and T94407.
 		if ( !$rev
-			&& !( $flags & self::READ_LATEST )
+			&& !( $flags & IDBAccessObject::READ_LATEST )
 			&& $this->loadBalancer->hasStreamingReplicaServers()
 			&& $this->loadBalancer->hasOrMadeRecentPrimaryChanges()
 		) {
-			$flags = self::READ_LATEST;
-			$dbw = $this->getDBConnectionRef( DB_PRIMARY );
+			$flags = IDBAccessObject::READ_LATEST;
+			$dbw = $this->getDBConnection( DB_PRIMARY );
 			$rev = $this->loadRevisionFromConds( $dbw, $conditions, $flags, $page, $options );
 		}
 
@@ -2357,7 +2361,6 @@ class RevisionStore
 	 * RevisionStore is bound to.
 	 *
 	 * @param IReadableDatabase $db
-	 * @throws MWException
 	 */
 	private function checkDatabaseDomain( IReadableDatabase $db ) {
 		$dbDomain = $db->getDomainID();
@@ -2366,7 +2369,7 @@ class RevisionStore
 			return;
 		}
 
-		throw new MWException( "DB connection domain '$dbDomain' does not match '$storeDomain'" );
+		throw new RuntimeException( "DB connection domain '$dbDomain' does not match '$storeDomain'" );
 	}
 
 	/**
@@ -2390,18 +2393,16 @@ class RevisionStore
 	) {
 		$this->checkDatabaseDomain( $db );
 
-		$revQuery = $this->getQueryInfo( [ 'page', 'user' ] );
-		if ( ( $flags & self::READ_LOCKING ) == self::READ_LOCKING ) {
-			$options[] = 'FOR UPDATE';
+		$queryBuilder = $this->newSelectQueryBuilder( $db )
+			->joinComment()
+			->joinPage()
+			->joinUser()
+			->where( $conditions )
+			->options( $options );
+		if ( ( $flags & IDBAccessObject::READ_LOCKING ) == IDBAccessObject::READ_LOCKING ) {
+			$queryBuilder->forUpdate();
 		}
-		return $db->selectRow(
-			$revQuery['tables'],
-			$revQuery['fields'],
-			$conditions,
-			__METHOD__,
-			$options,
-			$revQuery['joins']
-		);
+		return $queryBuilder->caller( __METHOD__ )->fetchRow();
 	}
 
 	/**
@@ -2414,6 +2415,7 @@ class RevisionStore
 	 * self::getRevisionRowCacheKey should be updated.
 	 *
 	 * @since 1.31
+	 * @deprecated since 1.41 use RevisionStore::newSelectQueryBuilder() instead.
 	 *
 	 * @param array $options Any combination of the following strings
 	 *  - 'page': Join with the page table, and select fields to identify the page
@@ -2432,10 +2434,16 @@ class RevisionStore
 			'joins'  => [],
 		];
 
-		$ret['tables'][] = 'revision';
+		$ret['tables'] = array_merge( $ret['tables'], [
+			'revision',
+			'actor_rev_user' => 'actor',
+		] );
 		$ret['fields'] = array_merge( $ret['fields'], [
 			'rev_id',
 			'rev_page',
+			'rev_actor' => 'rev_actor',
+			'rev_user' => 'actor_rev_user.actor_user',
+			'rev_user_text' => 'actor_rev_user.actor_name',
 			'rev_timestamp',
 			'rev_minor_edit',
 			'rev_deleted',
@@ -2443,16 +2451,12 @@ class RevisionStore
 			'rev_parent_id',
 			'rev_sha1',
 		] );
+		$ret['joins']['actor_rev_user'] = [ 'JOIN', "actor_rev_user.actor_id = rev_actor" ];
 
 		$commentQuery = $this->commentStore->getJoin( 'rev_comment' );
 		$ret['tables'] = array_merge( $ret['tables'], $commentQuery['tables'] );
 		$ret['fields'] = array_merge( $ret['fields'], $commentQuery['fields'] );
 		$ret['joins'] = array_merge( $ret['joins'], $commentQuery['joins'] );
-
-		$actorQuery = $this->actorMigration->getJoin( 'rev_user' );
-		$ret['tables'] = array_merge( $ret['tables'], $actorQuery['tables'] );
-		$ret['fields'] = array_merge( $ret['fields'], $actorQuery['fields'] );
-		$ret['joins'] = array_merge( $ret['joins'], $actorQuery['joins'] );
 
 		if ( in_array( 'page', $options, true ) ) {
 			$ret['tables'][] = 'page';
@@ -2472,8 +2476,10 @@ class RevisionStore
 			$ret['fields'] = array_merge( $ret['fields'], [
 				'user_name',
 			] );
-			$u = $actorQuery['fields']['rev_user'];
-			$ret['joins']['user'] = [ 'LEFT JOIN', [ "$u != 0", "user_id = $u" ] ];
+			$ret['joins']['user'] = [
+				'LEFT JOIN',
+				[ 'actor_rev_user.actor_user != 0', 'user_id = actor_rev_user.actor_user' ]
+			];
 		}
 
 		if ( in_array( 'text', $options, true ) ) {
@@ -2483,6 +2489,20 @@ class RevisionStore
 		}
 
 		return $ret;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function newSelectQueryBuilder( IReadableDatabase $dbr ): RevisionSelectQueryBuilder {
+		return new RevisionSelectQueryBuilder( $dbr );
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function newArchiveSelectQueryBuilder( IReadableDatabase $dbr ): ArchiveSelectQueryBuilder {
+		return new ArchiveSelectQueryBuilder( $dbr );
 	}
 
 	/**
@@ -2591,6 +2611,7 @@ class RevisionStore
 	 * MCR migration note: this replaced Revision::getArchiveQueryInfo
 	 *
 	 * @since 1.31
+	 * @deprecated since 1.41 use RevisionStore::newArchiveSelectQueryBuilder() instead.
 	 *
 	 * @return array[] With three keys:
 	 *   - tables: (string[]) to include in the `$table` to `IDatabase->select()` or `SelectQueryBuilder::tables`
@@ -2639,18 +2660,17 @@ class RevisionStore
 	 *         of the corresponding revision.
 	 */
 	public function getRevisionSizes( array $revIds ) {
-		$dbr = $this->getDBConnectionRef( DB_REPLICA );
+		$dbr = $this->getDBConnection( DB_REPLICA );
 		$revLens = [];
 		if ( !$revIds ) {
 			return $revLens; // empty
 		}
 
-		$res = $dbr->select(
-			'revision',
-			[ 'rev_id', 'rev_len' ],
-			[ 'rev_id' => $revIds ],
-			__METHOD__
-		);
+		$res = $dbr->newSelectQueryBuilder()
+			->select( [ 'rev_id', 'rev_len' ] )
+			->from( 'revision' )
+			->where( [ 'rev_id' => $revIds ] )
+			->caller( __METHOD__ )->fetchResultSet();
 
 		foreach ( $res as $row ) {
 			$revLens[$row->rev_id] = intval( $row->rev_len );
@@ -2683,14 +2703,21 @@ class RevisionStore
 			return null;
 		}
 
-		[ $dbType, ] = DBAccessObjectUtils::getDBOptions( $flags );
-		$db = $this->getDBConnectionRef( $dbType );
+		if ( ( $flags & IDBAccessObject::READ_LATEST ) == IDBAccessObject::READ_LATEST ) {
+			$dbType = DB_PRIMARY;
+		} else {
+			$dbType = DB_REPLICA;
+		}
+		$db = $this->getDBConnection( $dbType );
 
 		$ts = $rev->getTimestamp() ?? $this->getTimestampFromId( $revisionIdValue, $flags );
 		if ( $ts === false ) {
 			// XXX Should this be moved into getTimestampFromId?
-			$ts = $db->selectField( 'archive', 'ar_timestamp',
-				[ 'ar_rev_id' => $revisionIdValue ], __METHOD__ );
+			$ts = $db->newSelectQueryBuilder()
+				->select( 'ar_timestamp' )
+				->from( 'archive' )
+				->where( [ 'ar_rev_id' => $revisionIdValue ] )
+				->caller( __METHOD__ )->fetchField();
 			if ( $ts === false ) {
 				// XXX Is this reachable? How can we have a page id but no timestamp?
 				return null;
@@ -2733,7 +2760,7 @@ class RevisionStore
 	 *
 	 * @return RevisionRecord|null
 	 */
-	public function getPreviousRevision( RevisionRecord $rev, $flags = self::READ_NORMAL ) {
+	public function getPreviousRevision( RevisionRecord $rev, $flags = IDBAccessObject::READ_NORMAL ) {
 		return $this->getRelativeRevision( $rev, $flags, 'prev' );
 	}
 
@@ -2748,7 +2775,7 @@ class RevisionStore
 	 *      IDBAccessObject::READ_LATEST: Select the data from the primary DB
 	 * @return RevisionRecord|null
 	 */
-	public function getNextRevision( RevisionRecord $rev, $flags = self::READ_NORMAL ) {
+	public function getNextRevision( RevisionRecord $rev, $flags = IDBAccessObject::READ_NORMAL ) {
 		return $this->getRelativeRevision( $rev, $flags, 'next' );
 	}
 
@@ -2771,18 +2798,19 @@ class RevisionStore
 		}
 		# Use page_latest if ID is not given
 		if ( !$rev->getId( $this->wikiId ) ) {
-			$prevId = $db->selectField(
-				'page', 'page_latest',
-				[ 'page_id' => $rev->getPageId( $this->wikiId ) ],
-				__METHOD__
-			);
+			$prevId = $db->newSelectQueryBuilder()
+				->select( 'page_latest' )
+				->from( 'page' )
+				->where( [ 'page_id' => $rev->getPageId( $this->wikiId ) ] )
+				->caller( __METHOD__ )->fetchField();
 		} else {
-			$prevId = $db->selectField(
-				'revision', 'rev_id',
-				[ 'rev_page' => $rev->getPageId( $this->wikiId ), 'rev_id < ' . $rev->getId( $this->wikiId ) ],
-				__METHOD__,
-				[ 'ORDER BY' => 'rev_id DESC' ]
-			);
+			$prevId = $db->newSelectQueryBuilder()
+				->select( 'rev_id' )
+				->from( 'revision' )
+				->where( [ 'rev_page' => $rev->getPageId( $this->wikiId ) ] )
+				->andWhere( 'rev_id < ' . $rev->getId( $this->wikiId ) )
+				->orderBy( 'rev_id DESC' )
+				->caller( __METHOD__ )->fetchField();
 		}
 		return intval( $prevId );
 	}
@@ -2818,7 +2846,11 @@ class RevisionStore
 		$db = $this->getDBConnectionRefForQueryFlags( $flags );
 
 		$timestamp =
-			$db->selectField( 'revision', 'rev_timestamp', [ 'rev_id' => $id ], __METHOD__ );
+			$db->newSelectQueryBuilder()
+				->select( 'rev_timestamp' )
+				->from( 'revision' )
+				->where( [ 'rev_id' => $id ] )
+				->caller( __METHOD__ )->fetchField();
 
 		return ( $timestamp !== false ) ? MWTimestamp::convert( TS_MW, $timestamp ) : false;
 	}
@@ -2835,11 +2867,11 @@ class RevisionStore
 	public function countRevisionsByPageId( IReadableDatabase $db, $id ) {
 		$this->checkDatabaseDomain( $db );
 
-		$row = $db->selectRow( 'revision',
-			[ 'revCount' => 'COUNT(*)' ],
-			[ 'rev_page' => $id ],
-			__METHOD__
-		);
+		$row = $db->newSelectQueryBuilder()
+			->select( [ 'revCount' => 'COUNT(*)' ] )
+			->from( 'revision' )
+			->where( [ 'rev_page' => $id ] )
+			->caller( __METHOD__ )->fetchRow();
 		if ( $row ) {
 			return intval( $row->revCount );
 		}
@@ -2888,20 +2920,14 @@ class RevisionStore
 			return false;
 		}
 
-		$revQuery = $this->getQueryInfo();
-		$res = $db->select(
-			$revQuery['tables'],
-			[
-				'rev_user' => $revQuery['fields']['rev_user'],
-			],
-			[
+		$queryBuilder = $this->newSelectQueryBuilder( $db )
+			->where( [
 				'rev_page' => $pageId,
-				'rev_timestamp > ' . $db->addQuotes( $db->timestamp( $since ) )
-			],
-			__METHOD__,
-			[ 'ORDER BY' => 'rev_timestamp ASC', 'LIMIT' => 50 ],
-			$revQuery['joins']
-		);
+				$db->expr( 'rev_timestamp', '>', $db->timestamp( $since ) )
+			] )
+			->orderBy( 'rev_timestamp', SelectQueryBuilder::SORT_ASC )
+			->limit( 50 );
+		$res = $queryBuilder->caller( __METHOD__ )->fetchResultSet();
 		foreach ( $res as $row ) {
 			if ( $row->rev_user != $userId ) {
 				return false;
@@ -2924,7 +2950,7 @@ class RevisionStore
 	 * @return RevisionRecord|false Returns false if missing
 	 */
 	public function getKnownCurrentRevision( PageIdentity $page, $revId = 0 ) {
-		$db = $this->getDBConnectionRef( DB_REPLICA );
+		$db = $this->getDBConnection( DB_REPLICA );
 		$revIdPassed = $revId;
 		$pageId = $this->getArticleId( $page );
 		if ( !$pageId ) {
@@ -2945,10 +2971,10 @@ class RevisionStore
 		if ( !$revId ) {
 			$this->logger->warning(
 				'No latest revision known for page {page} even though it exists with page ID {page_id}', [
-				'page' => $page->__toString(),
-				'page_id' => $pageId,
-				'wiki_id' => $this->getWikiId() ?: 'local',
-			] );
+					'page' => $page->__toString(),
+					'page_id' => $pageId,
+					'wiki_id' => $this->getWikiId() ?: 'local',
+				] );
 			return false;
 		}
 
@@ -3060,7 +3086,7 @@ class RevisionStore
 	/**
 	 * Converts revision limits to query conditions.
 	 *
-	 * @param IDatabase $dbr
+	 * @param ISQLPlatform $dbr
 	 * @param RevisionRecord|null $old Old revision.
 	 *  If null is provided, count starting from the first revision (inclusive).
 	 * @param RevisionRecord|null $new New revision.
@@ -3072,7 +3098,7 @@ class RevisionStore
 	 * @return array
 	 */
 	private function getRevisionLimitConditions(
-		IDatabase $dbr,
+		ISQLPlatform $dbr,
 		RevisionRecord $old = null,
 		RevisionRecord $new = null,
 		$options = []
@@ -3158,29 +3184,24 @@ class RevisionStore
 		}
 
 		$db = $this->getDBConnectionRefForQueryFlags( $flags );
-		$conds = array_merge(
-			[
+		$queryBuilder = $db->newSelectQueryBuilder()
+			->select( 'rev_id' )
+			->from( 'revision' )
+			->where( [
 				'rev_page' => $pageId,
 				$db->bitAnd( 'rev_deleted', RevisionRecord::DELETED_TEXT ) . ' = 0'
-			],
-			$this->getRevisionLimitConditions( $db, $old, $new, $options )
-		);
+			] )
+			->andWhere( $this->getRevisionLimitConditions( $db, $old, $new, $options ) );
 
-		$queryOptions = [];
 		if ( $order !== null ) {
-			$queryOptions['ORDER BY'] = [ "rev_timestamp $order", "rev_id $order" ];
+			$queryBuilder->orderBy( [ 'rev_timestamp', 'rev_id' ], $order );
 		}
 		if ( $max !== null ) {
-			$queryOptions['LIMIT'] = $max + 1; // extra to detect truncation
+			// extra to detect truncation
+			$queryBuilder->limit( $max + 1 );
 		}
 
-		$values = $db->selectFieldValues(
-			'revision',
-			'rev_id',
-			$conds,
-			__METHOD__,
-			$queryOptions
-		);
+		$values = $queryBuilder->caller( __METHOD__ )->fetchFieldValues();
 		return array_map( 'intval', $values );
 	}
 
@@ -3222,7 +3243,7 @@ class RevisionStore
 		// optimization as edge cases exist when there are revisions between
 		//a revision and it's parent. See T185167 for more details.
 		if ( $old && $new && $new->getId( $this->wikiId ) === $old->getId( $this->wikiId ) ) {
-			if ( empty( $options ) ) {
+			if ( !$options ) {
 				return [];
 			} elseif ( $performer ) {
 				return [ $new->getUser( RevisionRecord::FOR_THIS_USER, $performer ) ];
@@ -3231,7 +3252,7 @@ class RevisionStore
 			}
 		}
 
-		$dbr = $this->getDBConnectionRef( DB_REPLICA );
+		$dbr = $this->getDBConnection( DB_REPLICA );
 		$conds = array_merge(
 			[
 				'rev_page' => $pageId,
@@ -3245,7 +3266,6 @@ class RevisionStore
 			$queryOpts['LIMIT'] = $max + 1;
 		}
 
-		$actorQuery = $this->actorMigration->getJoin( 'rev_user' );
 		return array_map( function ( $row ) {
 			return $this->actorStore->newActorFromRowFields(
 				$row->rev_user,
@@ -3253,11 +3273,16 @@ class RevisionStore
 				$row->rev_actor
 			);
 		}, iterator_to_array( $dbr->select(
-			array_merge( [ 'revision' ], $actorQuery['tables'] ),
-			$actorQuery['fields'],
-			$conds, __METHOD__,
+			[ 'revision', 'revision_actor' => 'actor' ],
+			[
+				'rev_actor',
+				'rev_user' => 'revision_actor.actor_user',
+				'rev_user_text' => 'revision_actor.actor_name',
+			],
+			$conds,
+			__METHOD__,
 			$queryOpts,
-			$actorQuery['joins']
+			[ 'revision_actor' => [ 'JOIN', 'revision_actor.actor_id = rev_actor' ] ]
 		) ) );
 	}
 
@@ -3333,7 +3358,7 @@ class RevisionStore
 			return 0;
 		}
 
-		$dbr = $this->getDBConnectionRef( DB_REPLICA );
+		$dbr = $this->getDBConnection( DB_REPLICA );
 		$conds = array_merge(
 			[
 				'rev_page' => $pageId,
@@ -3348,7 +3373,11 @@ class RevisionStore
 				[ 'LIMIT' => $max + 1 ] // extra to detect truncation
 			);
 		} else {
-			return (int)$dbr->selectField( 'revision', 'count(*)', $conds, __METHOD__ );
+			return (int)$dbr->newSelectQueryBuilder()
+				->select( 'count(*)' )
+				->from( 'revision' )
+				->where( $conds )
+				->caller( __METHOD__ )->fetchField();
 		}
 	}
 
@@ -3368,33 +3397,25 @@ class RevisionStore
 		int $searchLimit
 	): ?RevisionRecord {
 		$revision->assertWiki( $this->wikiId );
-		$db = $this->getDBConnectionRef( DB_REPLICA );
-		$revQuery = $this->getQueryInfo();
-		$subquery = $db->buildSelectSubquery(
-			$revQuery['tables'],
-			$revQuery['fields'],
-			[ 'rev_page' => $revision->getPageId( $this->wikiId ) ],
-			__METHOD__,
-			[
-				'ORDER BY' => [
-					'rev_timestamp DESC',
-					// for cases where there are multiple revs with same timestamp
-					'rev_id DESC'
-				],
-				'LIMIT' => $searchLimit,
-				// skip the most recent edit, we can't revert to it anyway
-				'OFFSET' => 1
-			],
-			$revQuery['joins']
-		);
+		$db = $this->getDBConnection( DB_REPLICA );
+		$subquery = $this->newSelectQueryBuilder( $db )
+			->joinComment()
+			->where( [ 'rev_page' => $revision->getPageId( $this->wikiId ) ] )
+			// Include 'rev_id' in the ordering in case there are multiple revs with same timestamp
+			->orderBy( [ 'rev_timestamp', 'rev_id' ], SelectQueryBuilder::SORT_DESC )
+			// T354015
+			->useIndex( [ 'revision' => 'rev_page_timestamp' ] )
+			->limit( $searchLimit )
+			// skip the most recent edit, we can't revert to it anyway
+			->offset( 1 )
+			->caller( __METHOD__ );
 
-		// selectRow effectively uses LIMIT 1 clause, returning only the first result
-		$revisionRow = $db->selectRow(
-			[ 'recent_revs' => $subquery ],
-			'*',
-			[ 'rev_sha1' => $revision->getSha1() ],
-			__METHOD__
-		);
+		// fetchRow effectively uses LIMIT 1 clause, returning only the first result
+		$revisionRow = $db->newSelectQueryBuilder()
+			->select( '*' )
+			->from( $subquery, 'recent_revs' )
+			->where( [ 'rev_sha1' => $revision->getSha1() ] )
+			->caller( __METHOD__ )->fetchRow();
 
 		return $revisionRow ? $this->newRevisionFromRow( $revisionRow ) : null;
 	}

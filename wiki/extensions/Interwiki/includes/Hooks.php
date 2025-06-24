@@ -3,9 +3,10 @@
 namespace MediaWiki\Extension\Interwiki;
 
 use MediaWiki\MediaWikiServices;
-use WikiMap;
+use MediaWiki\Permissions\Hook\UserGetAllRightsHook;
+use MediaWiki\WikiMap\WikiMap;
 
-class Hooks {
+class Hooks implements UserGetAllRightsHook {
 	/** @var bool */
 	private static $shouldSkipIWCheck = false;
 	/** @var bool */
@@ -48,7 +49,7 @@ class Hooks {
 	/**
 	 * @param array &$rights
 	 */
-	public static function onUserGetAllRights( array &$rights ) {
+	public function onUserGetAllRights( &$rights ) {
 		global $wgInterwikiViewOnly;
 		if ( !$wgInterwikiViewOnly ) {
 			// New user right, required to modify the interwiki table through Special:Interwiki
@@ -58,18 +59,22 @@ class Hooks {
 
 	public static function onInterwikiLoadPrefix( $prefix, &$iwData ) {
 		global $wgInterwikiCentralDB, $wgInterwikiCentralInterlanguageDB;
-		$isInterlanguageLink = MediaWikiServices::getInstance()->getLanguageNameUtils()->getLanguageName( $prefix );
+
+		$services = MediaWikiServices::getInstance();
+		$connectionProvider = $services->getConnectionProvider();
+		$isInterlanguageLink = $services->getLanguageNameUtils()->getLanguageName( $prefix );
 		if ( !$isInterlanguageLink && !self::$shouldSkipIWCheck ) {
 			// Check if prefix exists locally and skip
-			$lookup = MediaWikiServices::getInstance()->getInterwikiLookup();
+			$lookup = $services->getInterwikiLookup();
 			foreach ( $lookup->getAllPrefixes( null ) as $id => $localPrefixInfo ) {
 				if ( $prefix === $localPrefixInfo['iw_prefix'] ) {
 					return true;
 				}
 			}
-			// @phan-suppress-next-line PhanTypeMismatchArgument
-			$dbr = wfGetDB( DB_REPLICA, [], $wgInterwikiCentralDB );
-			$res = $dbr->selectRow(
+
+			$dbrCentralDB = $connectionProvider->getReplicaDatabase( $wgInterwikiCentralDB ?? false );
+
+			$res = $dbrCentralDB->selectRow(
 				'interwiki',
 				'*',
 				[ 'iw_prefix' => $prefix ],
@@ -84,9 +89,9 @@ class Hooks {
 			return false;
 		} elseif ( $isInterlanguageLink && !self::$shouldSkipILCheck ) {
 			// Global interlanguage link? Whoo!
-			// @phan-suppress-next-line PhanTypeMismatchArgument
-			$dbr = wfGetDB( DB_REPLICA, [], $wgInterwikiCentralInterlanguageDB );
-			$res = $dbr->selectRow(
+			$dbrCentralLangDB = $connectionProvider->getReplicaDatabase( $wgInterwikiCentralInterlanguageDB ?? false );
+
+			$res = $dbrCentralLangDB->selectRow(
 				'interwiki',
 				'*',
 				[ 'iw_prefix' => $prefix ],

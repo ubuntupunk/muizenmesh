@@ -18,17 +18,21 @@
  * http://www.gnu.org/copyleft/gpl.html
  *
  * @file
- * @author <brion@pobox.com>
+ * @author Brooke Vibber
  * @author <mail@tgries.de>
  * @author Tim Starling
  * @author Luke Welling lwelling@wikimedia.org
  */
 
+use MediaWiki\HookContainer\HookRunner;
 use MediaWiki\Mail\UserEmailContact;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Permissions\Authority;
+use MediaWiki\SpecialPage\SpecialPage;
 use MediaWiki\Title\Title;
+use MediaWiki\User\User;
+use MediaWiki\User\UserArray;
 use MediaWiki\User\UserIdentity;
 
 /**
@@ -67,44 +71,33 @@ class EmailNotification {
 	 */
 	private const ALL_CHANGES = 'all_changes';
 
-	/** @var string */
-	protected $subject = '';
+	protected string $subject = '';
 
-	/** @var string */
-	protected $body = '';
+	protected string $body = '';
 
-	/** @var MailAddress|null */
-	protected $replyto;
+	protected ?MailAddress $replyto;
 
-	/** @var MailAddress|null */
-	protected $from;
+	protected ?MailAddress $from;
 
-	/** @var string|null */
-	protected $timestamp;
+	protected ?string $timestamp;
 
-	/** @var string */
-	protected $summary = '';
+	protected string $summary = '';
 
-	/** @var bool|null */
-	protected $minorEdit;
+	protected ?bool $minorEdit;
 
 	/** @var int|null|bool */
 	protected $oldid;
 
-	/** @var bool */
-	protected $composed_common = false;
+	protected bool $composed_common = false;
 
-	/** @var string */
-	protected $pageStatus = '';
+	protected string $pageStatus = '';
 
 	/** @var MailAddress[] */
-	protected $mailTargets = [];
+	protected array $mailTargets = [];
 
-	/** @var Title */
-	protected $title;
+	protected Title $title;
 
-	/** @var User */
-	protected $editor;
+	protected User $editor;
 
 	/**
 	 * Extensions that have hooks for
@@ -153,14 +146,17 @@ class EmailNotification {
 
 		// update wl_notificationtimestamp for watchers
 		$watchers = [];
-		if ( $config->get( MainConfigNames::EnotifWatchlist ) ||
-			$config->get( MainConfigNames::ShowUpdatedMarker )
-		) {
+		if ( $config->get( MainConfigNames::EnotifWatchlist ) || $config->get( MainConfigNames::ShowUpdatedMarker ) ) {
 			$watchers = $mwServices->getWatchedItemStore()->updateNotificationTimestamp(
 				$editor->getUser(),
 				$title,
 				$timestamp
 			);
+		}
+
+		// Don't send email for bots
+		if ( $mwServices->getUserFactory()->newFromAuthority( $editor )->isBot() ) {
+			return false;
 		}
 
 		$sendEmail = true;
@@ -219,7 +215,6 @@ class EmailNotification {
 	 * @param int $oldid Revision ID
 	 * @param array $watchers Array of user IDs
 	 * @param string $pageStatus
-	 * @throws MWException
 	 */
 	public function actuallyNotifyOnPageChange(
 		Authority $editor,
@@ -252,9 +247,10 @@ class EmailNotification {
 
 		$formattedPageStatus = [ 'deleted', 'created', 'moved', 'restored', 'changed' ];
 
-		Hooks::runner()->onUpdateUserMailerFormattedPageStatus( $formattedPageStatus );
+		$hookRunner = new HookRunner( $mwServices->getHookContainer() );
+		$hookRunner->onUpdateUserMailerFormattedPageStatus( $formattedPageStatus );
 		if ( !in_array( $this->pageStatus, $formattedPageStatus ) ) {
-			throw new MWException( 'Not a valid page status!' );
+			throw new UnexpectedValueException( 'Not a valid page status!' );
 		}
 
 		$userTalkId = false;
@@ -288,7 +284,7 @@ class EmailNotification {
 						//       see: https://phabricator.wikimedia.org/T208895
 						&& !( $config->get( MainConfigNames::BlockDisablesLogin ) &&
 							$watchingUser->getBlock() )
-						&& Hooks::runner()->onSendWatchlistEmailNotification( $watchingUser, $title, $this )
+						&& $hookRunner->onSendWatchlistEmailNotification( $watchingUser, $title, $this )
 					) {
 						$this->compose( $watchingUser, self::WATCHLIST, $messageCache );
 					}
@@ -330,6 +326,8 @@ class EmailNotification {
 			wfDebug( __METHOD__ . ": user talk page edited, but user does not exist" );
 		} elseif ( $targetUser->getId() == $editor->getId() ) {
 			wfDebug( __METHOD__ . ": user edited their own talk page, no notification sent" );
+		} elseif ( $targetUser->isTemp() ) {
+			wfDebug( __METHOD__ . ": talk page owner is a temporary user so doesn't have email" );
 		} elseif ( $config->get( MainConfigNames::BlockDisablesLogin ) &&
 			$targetUser->getBlock()
 		) {
@@ -341,7 +339,9 @@ class EmailNotification {
 		) {
 			if ( !$targetUser->isEmailConfirmed() ) {
 				wfDebug( __METHOD__ . ": talk page owner doesn't have validated email" );
-			} elseif ( !Hooks::runner()->onAbortTalkPageEmailNotification( $targetUser, $title ) ) {
+			} elseif ( !( new HookRunner( $services->getHookContainer() ) )
+				->onAbortTalkPageEmailNotification( $targetUser, $title )
+			) {
 				wfDebug( __METHOD__ . ": talk page update notification is aborted for this user" );
 			} else {
 				wfDebug( __METHOD__ . ": sending talk page update notification" );
@@ -389,14 +389,16 @@ class EmailNotification {
 					)->inContentLanguage()->text();
 			}
 			$keys['$OLDID'] = $this->oldid;
-			// Deprecated since MediaWiki 1.21, not used by default. Kept for backwards-compatibility.
-			$keys['$CHANGEDORCREATED'] = wfMessage( 'changed' )->inContentLanguage()->text();
+			$keys['$PAGELOG'] = '';
 		} else {
-			# clear $OLDID placeholder in the message template
+			// If there is no revision to link to, link to the page log, which should have details. See T115183.
 			$keys['$OLDID'] = '';
 			$keys['$NEWPAGE'] = '';
-			// Deprecated since MediaWiki 1.21, not used by default. Kept for backwards-compatibility.
-			$keys['$CHANGEDORCREATED'] = wfMessage( 'created' )->inContentLanguage()->text();
+			$keys['$PAGELOG'] = "\n\n" . wfMessage(
+					'enotif_pagelog',
+					SpecialPage::getTitleFor( 'Log' )->getCanonicalURL( [ 'page' => $this->title->getPrefixedDBkey() ] )
+				)->inContentLanguage()->text();
+
 		}
 
 		$keys['$PAGETITLE'] = $this->title->getPrefixedText();
@@ -406,12 +408,15 @@ class EmailNotification {
 			'';
 		$keys['$UNWATCHURL'] = $this->title->getCanonicalURL( 'action=unwatch' );
 
-		if ( !$this->editor->isRegistered() ) {
+		if ( $this->editor->isAnon() ) {
 			# real anon (user:xxx.xxx.xxx.xxx)
 			$keys['$PAGEEDITOR'] = wfMessage( 'enotif_anon_editor', $this->editor->getName() )
 				->inContentLanguage()->text();
 			$keys['$PAGEEDITOR_EMAIL'] = wfMessage( 'noemailtitle' )->inContentLanguage()->text();
-
+		} elseif ( $this->editor->isTemp() ) {
+			$keys['$PAGEEDITOR'] = wfMessage( 'enotif_temp_editor', $this->editor->getName() )
+				->inContentLanguage()->text();
+			$keys['$PAGEEDITOR_EMAIL'] = wfMessage( 'noemailtitle' )->inContentLanguage()->text();
 		} else {
 			$keys['$PAGEEDITOR'] = $config->get( MainConfigNames::EnotifUseRealName ) &&
 					$this->editor->getRealName() !== ''
@@ -513,9 +518,9 @@ class EmailNotification {
 	 *
 	 * @param UserEmailContact $watchingUser
 	 * @param string $source
-	 * @return Status
+	 * @return StatusValue
 	 */
-	private function sendPersonalised( UserEmailContact $watchingUser, $source ) {
+	private function sendPersonalised( UserEmailContact $watchingUser, $source ): StatusValue {
 		// From the PHP manual:
 		//   Note: The to parameter cannot be an address in the form of
 		//   "Something <someone@example.com>". The mail command will not parse
@@ -550,24 +555,33 @@ class EmailNotification {
 			$headers['List-Help'] = 'https://www.mediawiki.org/wiki/Special:MyLanguage/Help:Watchlist';
 		}
 
-		return UserMailer::send( $to, $this->from, $this->subject, $body, [
-			'replyTo' => $this->replyto,
-			'headers' => $headers,
-		] );
+		return $mwServices
+			->getEmailer()
+			->send(
+				[ $to ],
+				$this->from,
+				$this->subject,
+				$body,
+				null,
+				[
+					'replyTo' => $this->replyto,
+					'headers' => $headers,
+				]
+			);
 	}
 
 	/**
 	 * Same as sendPersonalised but does impersonal mail suitable for bulk
 	 * mailing.  Takes an array of MailAddress objects.
 	 * @param MailAddress[] $addresses
-	 * @return Status|null
+	 * @return ?StatusValue
 	 */
-	private function sendImpersonal( $addresses ) {
-		if ( empty( $addresses ) ) {
+	private function sendImpersonal( array $addresses ): ?StatusValue {
+		if ( count( $addresses ) === 0 ) {
 			return null;
 		}
-
-		$contLang = MediaWikiServices::getInstance()->getContentLanguage();
+		$services = MediaWikiServices::getInstance();
+		$contLang = $services->getContentLanguage();
 		$body = str_replace(
 			[
 				'$WATCHINGUSERNAME',
@@ -582,9 +596,18 @@ class EmailNotification {
 			$this->body
 		);
 
-		return UserMailer::send( $addresses, $this->from, $this->subject, $body, [
-			'replyTo' => $this->replyto,
-		] );
+		return $services
+			->getEmailer()
+			->send(
+				$addresses,
+				$this->from,
+				$this->subject,
+				$body,
+				null,
+				[
+					'replyTo' => $this->replyto,
+				]
+			);
 	}
 
 }

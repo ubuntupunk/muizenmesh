@@ -3,7 +3,7 @@
  *
  * Class containing element linear data and an hash-value store.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
 
 /**
@@ -26,10 +26,12 @@ OO.inheritClass( ve.dm.ElementLinearData, ve.dm.FlatLinearData );
 
 /* Static Members */
 
+// eslint-disable-next-line security/detect-non-literal-regexp
 ve.dm.ElementLinearData.static.startWordRegExp = new RegExp(
 	'^(' + unicodeJS.characterclass.patterns.word + ')'
 );
 
+// eslint-disable-next-line security/detect-non-literal-regexp
 ve.dm.ElementLinearData.static.endWordRegExp = new RegExp(
 	'(' + unicodeJS.characterclass.patterns.word + ')$'
 );

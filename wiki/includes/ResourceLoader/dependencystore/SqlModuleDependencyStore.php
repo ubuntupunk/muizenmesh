@@ -24,6 +24,7 @@ use InvalidArgumentException;
 use Wikimedia\Rdbms\DBConnRef;
 use Wikimedia\Rdbms\IDatabase;
 use Wikimedia\Rdbms\ILoadBalancer;
+use Wikimedia\Rdbms\OrExpressionGroup;
 
 /**
  * Track per-module file dependencies in the core module_deps table
@@ -104,15 +105,13 @@ class SqlModuleDependencyStore extends DependencyStore {
 		// @TODO: use a single query with VALUES()/aliases support in DB wrapper
 		// See https://dev.mysql.com/doc/refman/8.0/en/insert-on-duplicate.html
 		foreach ( $rows as $row ) {
-			$dbw->upsert(
-				'module_deps',
-				$row,
-				[ [ 'md_module', 'md_skin' ] ],
-				[
-					'md_deps' => $row['md_deps'],
-				],
-				__METHOD__
-			);
+			$dbw->newInsertQueryBuilder()
+				->insertInto( 'module_deps' )
+				->row( $row )
+				->onDuplicateKeyUpdate()
+				->uniqueIndexFields( [ 'md_module', 'md_skin' ] )
+				->set( [ 'md_deps' => $row['md_deps'] ] )
+				->caller( __METHOD__ )->execute();
 		}
 	}
 
@@ -128,18 +127,16 @@ class SqlModuleDependencyStore extends DependencyStore {
 		$disjunctionConds = [];
 		foreach ( (array)$entities as $entity ) {
 			[ $module, $variant ] = $this->getEntityNameComponents( $entity );
-			$disjunctionConds[] = $dbw->makeList(
-				[ 'md_skin' => $variant, 'md_module' => $module ],
-				$dbw::LIST_AND
-			);
+			$disjunctionConds[] = $dbw
+				->expr( 'md_skin', '=', $variant )
+				->and( 'md_module', '=', $module );
 		}
 
 		if ( $disjunctionConds ) {
-			$dbw->delete(
-				'module_deps',
-				$dbw->makeList( $disjunctionConds, $dbw::LIST_OR ),
-				__METHOD__
-			);
+			$dbw->newDeleteQueryBuilder()
+				->deleteFrom( 'module_deps' )
+				->where( new OrExpressionGroup( ...$disjunctionConds ) )
+				->caller( __METHOD__ )->execute();
 		}
 	}
 
@@ -157,10 +154,9 @@ class SqlModuleDependencyStore extends DependencyStore {
 
 		$disjunctionConds = [];
 		foreach ( $modulesByVariant as $variant => $modules ) {
-			$disjunctionConds[] = $db->makeList(
-				[ 'md_skin' => $variant, 'md_module' => $modules ],
-				$db::LIST_AND
-			);
+			$disjunctionConds[] = $db
+				->expr( 'md_skin', '=', $variant )
+				->and( 'md_module', '=', $modules );
 		}
 
 		$depsBlobByEntity = [];
@@ -169,7 +165,7 @@ class SqlModuleDependencyStore extends DependencyStore {
 			$res = $db->newSelectQueryBuilder()
 				->select( [ 'md_module', 'md_skin', 'md_deps' ] )
 				->from( 'module_deps' )
-				->where( $db->makeList( $disjunctionConds, $db::LIST_OR ) )
+				->where( new OrExpressionGroup( ...$disjunctionConds ) )
 				->caller( __METHOD__ )->fetchResultSet();
 
 			foreach ( $res as $row ) {

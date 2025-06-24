@@ -11,11 +11,20 @@ use Wikimedia\TestingAccessWrapper;
  * @group Database
  */
 class DatabasePostgresTest extends MediaWikiIntegrationTestCase {
+	private const SRC_TABLE = 'tmp_src_tbl';
+	private const DST_TABLE = 'tmp_dst_tbl';
 
 	protected function setUp(): void {
 		parent::setUp();
 		if ( !$this->db instanceof DatabasePostgres ) {
 			$this->markTestSkipped( 'Not PostgreSQL' );
+		}
+	}
+
+	public function addDBDataOnce() {
+		if ( $this->db instanceof DatabasePostgres ) {
+			$this->createSourceTable();
+			$this->createDestTable();
 		}
 	}
 
@@ -42,7 +51,11 @@ class DatabasePostgresTest extends MediaWikiIntegrationTestCase {
 		$this->assertSame( 2, $this->db->affectedRows() );
 		$this->assertSame(
 			[ '1', '2', '3', '5' ],
-			$this->db->selectFieldValues( 'foo', 'i', [], __METHOD__, [ 'ORDER BY' => 'i' ] )
+			$this->db->newSelectQueryBuilder()
+				->select( 'i' )
+				->from( 'foo' )
+				->orderBy( 'i' )
+				->caller( __METHOD__ )->fetchFieldValues()
 		);
 		$this->db->rollback( __METHOD__ );
 
@@ -61,7 +74,11 @@ class DatabasePostgresTest extends MediaWikiIntegrationTestCase {
 		}
 		$this->assertSame(
 			[ '1', '2' ],
-			$this->db->selectFieldValues( 'foo', 'i', [], __METHOD__, [ 'ORDER BY' => 'i' ] )
+			$this->db->newSelectQueryBuilder()
+				->select( 'i' )
+				->from( 'foo' )
+				->orderBy( 'i' )
+				->caller( __METHOD__ )->fetchFieldValues()
 		);
 		$this->db->rollback( __METHOD__ );
 	}
@@ -69,7 +86,7 @@ class DatabasePostgresTest extends MediaWikiIntegrationTestCase {
 	/**
 	 * FIXME: See https://phabricator.wikimedia.org/T259084.
 	 * @group Broken
-	 * @covers Wikimedia\Rdbms\DatabasePostgres::insert
+	 * @covers \Wikimedia\Rdbms\DatabasePostgres::insert
 	 */
 	public function testInsertIgnoreOld() {
 		if ( $this->db->getServerVersion() < 9.5 ) {
@@ -90,7 +107,7 @@ class DatabasePostgresTest extends MediaWikiIntegrationTestCase {
 	/**
 	 * FIXME: See https://phabricator.wikimedia.org/T259084.
 	 * @group Broken
-	 * @covers Wikimedia\Rdbms\DatabasePostgres::insert
+	 * @covers \Wikimedia\Rdbms\DatabasePostgres::insert
 	 */
 	public function testInsertIgnoreNew() {
 		if ( $this->db->getServerVersion() < 9.5 ) {
@@ -127,7 +144,11 @@ class DatabasePostgresTest extends MediaWikiIntegrationTestCase {
 		$this->assertSame( 2, $this->db->affectedRows() );
 		$this->assertSame(
 			[ '1', '2', '3', '5' ],
-			$this->db->selectFieldValues( 'bar', 'i', [], __METHOD__, [ 'ORDER BY' => 'i' ] )
+			$this->db->newSelectQueryBuilder()
+				->select( 'i' )
+				->from( 'bar' )
+				->orderBy( 'i' )
+				->caller( __METHOD__ )->fetchFieldValues()
 		);
 		$this->db->rollback( __METHOD__ );
 
@@ -145,7 +166,11 @@ class DatabasePostgresTest extends MediaWikiIntegrationTestCase {
 		}
 		$this->assertSame(
 			[ '1', '2' ],
-			$this->db->selectFieldValues( 'bar', 'i', [], __METHOD__, [ 'ORDER BY' => 'i' ] )
+			$this->db->newSelectQueryBuilder()
+				->select( 'i' )
+				->from( 'bar' )
+				->orderBy( 'i' )
+				->caller( __METHOD__ )->fetchFieldValues()
 		);
 		$this->db->rollback( __METHOD__ );
 	}
@@ -153,7 +178,7 @@ class DatabasePostgresTest extends MediaWikiIntegrationTestCase {
 	/**
 	 * FIXME: See https://phabricator.wikimedia.org/T259084.
 	 * @group Broken
-	 * @covers Wikimedia\Rdbms\DatabasePostgres::doInsertSelectNative
+	 * @covers \Wikimedia\Rdbms\DatabasePostgres::doInsertSelectNative
 	 */
 	public function testInsertSelectIgnoreOld() {
 		if ( $this->db->getServerVersion() < 9.5 ) {
@@ -174,7 +199,7 @@ class DatabasePostgresTest extends MediaWikiIntegrationTestCase {
 	/**
 	 * FIXME: See https://phabricator.wikimedia.org/T259084.
 	 * @group Broken
-	 * @covers Wikimedia\Rdbms\DatabasePostgres::doInsertSelectNative
+	 * @covers \Wikimedia\Rdbms\DatabasePostgres::doInsertSelectNative
 	 */
 	public function testInsertSelectIgnoreNew() {
 		if ( $this->db->getServerVersion() < 9.5 ) {
@@ -191,6 +216,195 @@ class DatabasePostgresTest extends MediaWikiIntegrationTestCase {
 		$dbFactory = $this->getServiceContainer()->getDatabaseFactory();
 		$this->assertTrue(
 			$dbFactory->attributesFromType( 'postgres' )[Database::ATTR_SCHEMAS_AS_TABLE_GROUPS]
+		);
+	}
+
+	/**
+	 * @covers \Wikimedia\Rdbms\Database::insert()
+	 * @covers \Wikimedia\Rdbms\Database::insertId()
+	 */
+	public function testInsertIdAfterInsert() {
+		$rows = [ [ 'k' => 'Luca', 'v' => mt_rand( 1, 100 ), 't' => time() ] ];
+
+		$this->db->insert( self::DST_TABLE, $rows, __METHOD__ );
+		$this->assertSame( 1, $this->db->affectedRows() );
+		$this->assertSame( 1, $this->db->insertId() );
+
+		$this->assertNWhereKEqualsLuca( 1, self::DST_TABLE );
+		$this->assertSame( 1, $this->db->affectedRows() );
+	}
+
+	/**
+	 * @covers \Wikimedia\Rdbms\Database::insert()
+	 * @covers \Wikimedia\Rdbms\Database::insertId()
+	 */
+	public function testInsertIdAfterInsertIgnore() {
+		$rows = [ [ 'k' => 'Luca', 'v' => mt_rand( 1, 100 ), 't' => time() ] ];
+
+		$this->db->insert( self::DST_TABLE, $rows, __METHOD__, 'IGNORE' );
+		$this->assertSame( 1, $this->db->affectedRows() );
+		$this->assertSame( 1, $this->db->insertId() );
+		$this->assertNWhereKEqualsLuca( 1, self::DST_TABLE );
+
+		$this->db->insert( self::DST_TABLE, $rows, __METHOD__, 'IGNORE' );
+		$this->assertSame( 0, $this->db->affectedRows() );
+		$this->assertSame( 0, $this->db->insertId() );
+
+		$this->assertNWhereKEqualsLuca( 1, self::DST_TABLE );
+		$this->assertSame( 1, $this->db->affectedRows() );
+	}
+
+	/**
+	 * @covers \Wikimedia\Rdbms\Database::replace()
+	 * @covers \Wikimedia\Rdbms\Database::insertId()
+	 */
+	public function testInsertIdAfterReplace() {
+		$rows = [ [ 'k' => 'Luca', 'v' => mt_rand( 1, 100 ), 't' => time() ] ];
+
+		$this->db->replace( self::DST_TABLE, 'k', $rows, __METHOD__ );
+		$this->assertSame( 1, $this->db->affectedRows() );
+		$this->assertSame( 1, $this->db->insertId() );
+		$this->assertNWhereKEqualsLuca( 1, self::DST_TABLE );
+
+		$this->db->replace( self::DST_TABLE, 'k', $rows, __METHOD__ );
+		$this->assertSame( 1, $this->db->affectedRows() );
+		$this->assertSame( 2, $this->db->insertId() );
+
+		$this->assertNWhereKEqualsLuca( 2, self::DST_TABLE );
+		$this->assertSame( 1, $this->db->affectedRows() );
+	}
+
+	/**
+	 * @covers \Wikimedia\Rdbms\Database::upsert()
+	 * @covers \Wikimedia\Rdbms\Database::insertId()
+	 */
+	public function testInsertIdAfterUpsert() {
+		$rows = [ [ 'k' => 'Luca', 'v' => mt_rand( 1, 100 ), 't' => time() ] ];
+		$set = [
+			'v = ' . $this->db->buildExcludedValue( 'v' ),
+			't = ' . $this->db->buildExcludedValue( 't' ) . ' + 1'
+		];
+
+		$this->db->upsert( self::DST_TABLE, $rows, 'k', $set, __METHOD__ );
+		$this->assertSame( 1, $this->db->affectedRows() );
+		$this->assertSame( 1, $this->db->insertId() );
+		$this->assertNWhereKEqualsLuca( 1, self::DST_TABLE );
+
+		$this->db->upsert( self::DST_TABLE, $rows, 'k', $set, __METHOD__ );
+		$this->assertSame( 1, $this->db->affectedRows() );
+		$this->assertSame( 1, $this->db->insertId() );
+
+		$this->assertNWhereKEqualsLuca( 1, self::DST_TABLE );
+		$this->assertSame( 1, $this->db->affectedRows() );
+	}
+
+	/**
+	 * @covers \Wikimedia\Rdbms\Database::insertSelect()
+	 * @covers \Wikimedia\Rdbms\Database::insertId()
+	 */
+	public function testInsertIdAfterInsertSelect() {
+		$rows = [ [ 'sk' => 'Luca', 'sv' => mt_rand( 1, 100 ), 'st' => time() ] ];
+		$this->db->insert( self::SRC_TABLE, $rows, __METHOD__, 'IGNORE' );
+		$this->assertSame( 1, $this->db->affectedRows() );
+		$this->assertSame( 1, $this->db->insertId() );
+		$this->assertSame( 1, (int)$this->db->newSelectQueryBuilder()
+			->select( 'sn' )
+			->from( self::SRC_TABLE )
+			->where( [ 'sk' => 'Luca' ] )
+			->fetchField() );
+
+		$this->db->insertSelect(
+			self::DST_TABLE,
+			self::SRC_TABLE,
+			[ 'k' => 'sk', 'v' => 'sv', 't' => 'st' ],
+			[ 'sk' => 'Luca' ],
+			__METHOD__,
+			'IGNORE'
+		);
+		$this->assertSame( 1, $this->db->affectedRows() );
+		$this->assertSame( 1, $this->db->insertId() );
+
+		$this->assertNWhereKEqualsLuca( 1, self::DST_TABLE );
+		$this->assertSame( 1, $this->db->affectedRows() );
+	}
+
+	/**
+	 * @covers \Wikimedia\Rdbms\Database::insertSelect()
+	 * @covers \Wikimedia\Rdbms\Database::insertId()
+	 */
+	public function testInsertIdAfterInsertSelectIgnore() {
+		$rows = [ [ 'sk' => 'Luca', 'sv' => mt_rand( 1, 100 ), 'st' => time() ] ];
+		$this->db->insert( self::SRC_TABLE, $rows, __METHOD__, 'IGNORE' );
+		$this->assertSame( 1, $this->db->affectedRows() );
+		$this->assertSame( 1, $this->db->insertId() );
+		$this->assertSame( 1, (int)$this->db->newSelectQueryBuilder()
+			->select( 'sn' )
+			->from( self::SRC_TABLE )
+			->where( [ 'sk' => 'Luca' ] )
+			->fetchField() );
+
+		$this->db->insertSelect(
+			self::DST_TABLE,
+			self::SRC_TABLE,
+			[ 'k' => 'sk', 'v' => 'sv', 't' => 'st' ],
+			[ 'sk' => 'Luca' ],
+			__METHOD__,
+			'IGNORE'
+		);
+		$this->assertSame( 1, $this->db->affectedRows() );
+		$this->assertSame( 1, $this->db->insertId() );
+		$this->assertNWhereKEqualsLuca( 1, self::DST_TABLE );
+
+		$this->db->insertSelect(
+			self::DST_TABLE,
+			self::SRC_TABLE,
+			[ 'k' => 'sk', 'v' => 'sv', 't' => 'st' ],
+			[ 'sk' => 'Luca' ],
+			__METHOD__,
+			'IGNORE'
+		);
+		$this->assertSame( 0, $this->db->affectedRows() );
+		$this->assertSame( 0, $this->db->insertId() );
+
+		$this->assertNWhereKEqualsLuca( 1, self::DST_TABLE );
+		$this->assertSame( 1, $this->db->affectedRows() );
+	}
+
+	private function assertNWhereKEqualsLuca( $expected, $table ) {
+		$this->assertSame( $expected, (int)$this->db->newSelectQueryBuilder()
+			->select( 'n' )
+			->from( $table )
+			->where( [ 'k' => 'Luca' ] )
+			->fetchField() );
+	}
+
+	private function createSourceTable() {
+		$encTable = $this->db->tableName( 'tmp_src_tbl' );
+
+		$this->db->query( "DROP TABLE IF EXISTS $encTable" );
+		$this->db->query(
+			"CREATE TEMPORARY TABLE $encTable (" .
+			"sn serial not null, " .
+			"sk text unique not null, " .
+			"sv integer, " .
+			"st integer, " .
+			"PRIMARY KEY(sn)" .
+			")"
+		);
+	}
+
+	private function createDestTable() {
+		$encTable = $this->db->tableName( 'tmp_dst_tbl' );
+
+		$this->db->query( "DROP TABLE IF EXISTS $encTable" );
+		$this->db->query(
+			"CREATE TEMPORARY TABLE $encTable (" .
+			"n serial not null, " .
+			"k text unique not null, " .
+			"v integer, " .
+			"t integer, " .
+			"PRIMARY KEY(n)" .
+			")"
 		);
 	}
 }

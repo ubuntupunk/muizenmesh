@@ -1,11 +1,15 @@
 <?php
 
+namespace MediaWiki\Tests\Api;
+
+use MediaWiki\User\User;
+
 /**
  * @group API
  * @group Database
  * @group medium
  *
- * @covers ApiLogout
+ * @covers \ApiLogout
  */
 class ApiLogoutTest extends ApiTestCase {
 
@@ -22,7 +26,7 @@ class ApiLogoutTest extends ApiTestCase {
 	public function testUserLogoutBadToken() {
 		$user = $this->getTestSysop()->getUser();
 
-		$this->setExpectedApiException( 'apierror-badtoken' );
+		$this->expectApiErrorCode( 'badtoken' );
 		try {
 			$token = 'invalid token';
 			$this->doUserLogout( $token, $user );

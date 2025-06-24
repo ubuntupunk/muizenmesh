@@ -23,12 +23,16 @@
  * @ingroup Search
  */
 
+namespace MediaWiki\Deferred;
+
+use Content;
+use IDBAccessObject;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Page\ExistingPageRecord;
 use MediaWiki\Page\PageIdentity;
-use MediaWiki\Page\PageStore;
+use SearchEngine;
 
 /**
  * Database independent search index updater
@@ -53,18 +57,9 @@ class SearchUpdate implements DeferrableUpdate {
 	 * @param PageIdentity $page Page to update
 	 * @param Content|null $c Content of the page to update.
 	 */
-	public function __construct( $id, $page, $c = null ) {
+	public function __construct( $id, $page, ?Content $c = null ) {
 		$this->page = $page;
-
 		$this->id = $id;
-		// is_string() check is back-compat for ApprovedRevs
-		if ( is_string( $c ) ) {
-			wfDeprecated( __METHOD__ . " with a string for the content", '1.34' );
-			$c = new TextContent( $c );
-		} elseif ( is_bool( $c ) ) {
-			wfDeprecated( __METHOD__ . " with a boolean for the content", '1.34' );
-			$c = null;
-		}
 		$this->content = $c;
 	}
 
@@ -125,7 +120,7 @@ class SearchUpdate implements DeferrableUpdate {
 		# Strip HTML markup
 		$text = preg_replace( "/<\\/?\\s*[A-Za-z][^>]*?>/",
 			' ', $contLang->lc( " " . $text . " " ) );
-		$text = preg_replace( "/(^|\\n)==\\s*([^\\n]+)\\s*==(\\s)/sD",
+		$text = preg_replace( "/(^|\\n)==\\s*([^\\n]+)\\s*==(\\s)/",
 			"\\1\\2 \\2 \\2\\3", $text ); # Emphasize headings
 
 		# Strip external URLs
@@ -175,7 +170,7 @@ class SearchUpdate implements DeferrableUpdate {
 	}
 
 	/**
-	 * Get ExistingPageRecord for the SearchUpdate $id using PageStore::READ_LATEST
+	 * Get ExistingPageRecord for the SearchUpdate $id using IDBAccessObject::READ_LATEST
 	 * and ensure using the same ExistingPageRecord object if there are multiple
 	 * SearchEngine types.
 	 *
@@ -186,7 +181,7 @@ class SearchUpdate implements DeferrableUpdate {
 	private function getLatestPage() {
 		if ( !isset( $this->latestPage ) ) {
 			$this->latestPage = MediaWikiServices::getInstance()->getPageStore()
-				->getPageById( $this->id, PageStore::READ_LATEST );
+				->getPageById( $this->id, IDBAccessObject::READ_LATEST );
 		}
 
 		return $this->latestPage;
@@ -222,3 +217,6 @@ class SearchUpdate implements DeferrableUpdate {
 		return $search->normalizeText( trim( $t ) );
 	}
 }
+
+/** @deprecated class alias since 1.42 */
+class_alias( SearchUpdate::class, 'SearchUpdate' );

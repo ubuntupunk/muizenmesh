@@ -1,14 +1,38 @@
 <?php
 
+namespace MediaWiki\Tests\Api;
+
+use ApiBase;
+use ApiContinuationManager;
+use ApiErrorFormatter;
+use ApiErrorFormatter_BackCompat;
+use ApiMain;
+use ApiRawMessage;
+use ApiUsageException;
+use FormatJson;
+use Generator;
+use InvalidArgumentException;
+use LogicException;
+use MediaWiki\Config\Config;
+use MediaWiki\Config\HashConfig;
+use MediaWiki\Config\MultiConfig;
+use MediaWiki\Context\RequestContext;
 use MediaWiki\Language\RawMessage;
 use MediaWiki\MainConfigNames;
 use MediaWiki\Permissions\Authority;
 use MediaWiki\Request\FauxRequest;
 use MediaWiki\Request\FauxResponse;
+use MediaWiki\Request\WebRequest;
+use MediaWiki\ShellDisabledError;
 use MediaWiki\StubObject\StubGlobalUser;
 use MediaWiki\Tests\Unit\Permissions\MockAuthorityTrait;
+use MediaWiki\User\User;
+use MWExceptionHandler;
+use StatusValue;
+use UnexpectedValueException;
 use Wikimedia\Rdbms\DBConnRef;
 use Wikimedia\Rdbms\DBQueryError;
+use Wikimedia\Rdbms\IDatabase;
 use Wikimedia\Rdbms\ILoadBalancer;
 use Wikimedia\TestingAccessWrapper;
 use Wikimedia\Timestamp\ConvertibleTimestamp;
@@ -18,7 +42,7 @@ use Wikimedia\Timestamp\ConvertibleTimestamp;
  * @group Database
  * @group medium
  *
- * @covers ApiMain
+ * @covers \ApiMain
  */
 class ApiMainTest extends ApiTestCase {
 	use MockAuthorityTrait;
@@ -186,7 +210,7 @@ class ApiMainTest extends ApiTestCase {
 	public function testAddRequestedFieldsCurTimestamp() {
 		// Fake timestamp for better testability, CI can sometimes take
 		// unreasonably long to run the simple test request here.
-		$reset = ConvertibleTimestamp::setFakeTime( '20190102030405' );
+		ConvertibleTimestamp::setFakeTime( '20190102030405' );
 
 		$req = new FauxRequest( [
 			'action' => 'query',
@@ -217,8 +241,7 @@ class ApiMainTest extends ApiTestCase {
 	}
 
 	public function testSetupModuleUnknown() {
-		$this->expectException( ApiUsageException::class );
-		$this->expectExceptionMessage( 'Unrecognized value for parameter "action": unknownaction.' );
+		$this->expectApiErrorCode( 'badvalue' );
 
 		$req = new FauxRequest( [ 'action' => 'unknownaction' ] );
 		$api = new ApiMain( $req );
@@ -226,8 +249,7 @@ class ApiMainTest extends ApiTestCase {
 	}
 
 	public function testSetupModuleNoTokenProvided() {
-		$this->expectException( ApiUsageException::class );
-		$this->expectExceptionMessage( 'The "token" parameter must be set.' );
+		$this->expectApiErrorCode( 'missingparam' );
 
 		$req = new FauxRequest( [
 			'action' => 'edit',
@@ -239,8 +261,7 @@ class ApiMainTest extends ApiTestCase {
 	}
 
 	public function testSetupModuleInvalidTokenProvided() {
-		$this->expectException( ApiUsageException::class );
-		$this->expectExceptionMessage( 'Invalid CSRF token.' );
+		$this->expectApiErrorCode( 'badtoken' );
 
 		$req = new FauxRequest( [
 			'action' => 'edit',
@@ -253,7 +274,7 @@ class ApiMainTest extends ApiTestCase {
 	}
 
 	public function testSetupModuleNeedsTokenTrue() {
-		$this->expectException( MWException::class );
+		$this->expectException( LogicException::class );
 		$this->expectExceptionMessage(
 			"Module 'testmodule' must be updated for the new token handling. " .
 				"See documentation for ApiBase::needsToken for details."
@@ -274,7 +295,7 @@ class ApiMainTest extends ApiTestCase {
 	}
 
 	public function testSetupModuleNeedsTokenNeedntBePosted() {
-		$this->expectException( MWException::class );
+		$this->expectException( LogicException::class );
 		$this->expectExceptionMessage( "Module 'testmodule' must require POST to use tokens." );
 
 		$mock = $this->createMock( ApiBase::class );
@@ -324,7 +345,7 @@ class ApiMainTest extends ApiTestCase {
 		$mock->method( 'getModuleName' )->willReturn( 'testmodule' );
 		$mock->method( 'getConditionalRequestData' )
 			->willReturn( wfTimestamp( TS_MW, $now - 3600 ) );
-		$mock->expects( $this->exactly( 0 ) )->method( 'execute' );
+		$mock->expects( $this->never() )->method( 'execute' );
 
 		$req = new FauxRequest( [
 			'action' => 'testmodule',
@@ -380,8 +401,7 @@ class ApiMainTest extends ApiTestCase {
 	}
 
 	public function testCheckMaxLagExceeded() {
-		$this->expectException( ApiUsageException::class );
-		$this->expectExceptionMessage( 'Waiting for a database server: 4 seconds lagged.' );
+		$this->expectApiErrorCode( 'maxlag' );
 
 		$this->overrideConfigValue( MainConfigNames::ShowHostnames, false );
 
@@ -389,8 +409,7 @@ class ApiMainTest extends ApiTestCase {
 	}
 
 	public function testCheckMaxLagExceededWithHostNames() {
-		$this->expectException( ApiUsageException::class );
-		$this->expectExceptionMessage( 'Waiting for somehost: 4 seconds lagged.' );
+		$this->expectApiErrorCode( 'maxlag' );
 
 		$this->overrideConfigValue( MainConfigNames::ShowHostnames, true );
 
@@ -422,7 +441,7 @@ class ApiMainTest extends ApiTestCase {
 			], null, null, $performer );
 			$this->assertFalse( $error ); // That no error was expected
 		} catch ( ApiUsageException $e ) {
-			$this->assertTrue( self::apiExceptionHasCode( $e, $error ),
+			$this->assertApiErrorCode( $error, $e,
 				"Error '{$e->getMessage()}' matched expected '$error'" );
 		}
 	}
@@ -444,7 +463,7 @@ class ApiMainTest extends ApiTestCase {
 			], null, null, $user );
 			$this->fail( 'Expected exception not thrown' );
 		} catch ( ApiUsageException $e ) {
-			$this->assertTrue( self::apiExceptionHasCode( $e, 'assertnameduserfailed' ) );
+			$this->assertApiErrorCode( 'assertnameduserfailed', $e );
 		}
 	}
 
@@ -460,7 +479,7 @@ class ApiMainTest extends ApiTestCase {
 			], null, null, new User );
 			$this->fail( 'Expected exception not thrown' );
 		} catch ( ApiUsageException $e ) {
-			$this->assertTrue( self::apiExceptionHasCode( $e, 'toomanyvalues' ) );
+			$this->assertApiErrorCode( 'toomanyvalues', $e );
 		}
 
 		// Now test that the assert happens first
@@ -472,7 +491,7 @@ class ApiMainTest extends ApiTestCase {
 			], null, null, new User );
 			$this->fail( 'Expected exception not thrown' );
 		} catch ( ApiUsageException $e ) {
-			$this->assertTrue( self::apiExceptionHasCode( $e, 'assertuserfailed' ),
+			$this->assertApiErrorCode( 'assertuserfailed', $e,
 				"Error '{$e->getMessage()}' matched expected 'assertuserfailed'" );
 		}
 	}
@@ -711,8 +730,7 @@ class ApiMainTest extends ApiTestCase {
 	}
 
 	public function testCheckExecutePermissionsReadProhibited() {
-		$this->expectException( ApiUsageException::class );
-		$this->expectExceptionMessage( 'You need read permission to use this module.' );
+		$this->expectApiErrorCode( 'readapidenied' );
 
 		$this->setGroupPermissions( '*', 'read', false );
 
@@ -721,8 +739,7 @@ class ApiMainTest extends ApiTestCase {
 	}
 
 	public function testCheckExecutePermissionWriteDisabled() {
-		$this->expectException( ApiUsageException::class );
-		$this->expectExceptionMessage( 'Editing of this wiki through the API is disabled.' );
+		$this->expectApiErrorCode( 'noapiwrite' );
 		$main = new ApiMain( new FauxRequest( [
 			'action' => 'edit',
 			'title' => 'Some page',
@@ -733,8 +750,7 @@ class ApiMainTest extends ApiTestCase {
 	}
 
 	public function testCheckExecutePermissionWriteApiProhibited() {
-		$this->expectException( ApiUsageException::class );
-		$this->expectExceptionMessage( "You're not allowed to edit this wiki through the API." );
+		$this->expectApiErrorCode( 'writeapidenied' );
 		$this->setGroupPermissions( '*', 'writeapi', false );
 
 		$main = new ApiMain( new FauxRequest( [
@@ -747,11 +763,7 @@ class ApiMainTest extends ApiTestCase {
 	}
 
 	public function testCheckExecutePermissionPromiseNonWrite() {
-		$this->expectException( ApiUsageException::class );
-		$this->expectExceptionMessage(
-			'The "Promise-Non-Write-API-Action" HTTP header cannot be sent ' .
-				'to write-mode API modules.'
-		);
+		$this->expectApiErrorCode( 'promised-nonwrite-api' );
 
 		$req = new FauxRequest( [
 			'action' => 'edit',
@@ -765,8 +777,7 @@ class ApiMainTest extends ApiTestCase {
 	}
 
 	public function testCheckExecutePermissionHookAbort() {
-		$this->expectException( ApiUsageException::class );
-		$this->expectExceptionMessage( 'Main Page' );
+		$this->expectApiErrorCode( 'mainpage' );
 
 		$this->setTemporaryHook( 'ApiCheckCanExecute', static function ( $unused1, $unused2, &$message ) {
 			$message = 'mainpage';
@@ -972,12 +983,16 @@ class ApiMainTest extends ApiTestCase {
 	 * @dataProvider provideExceptionErrors
 	 */
 	public function testExceptionErrors( $error, $expectReturn, $expectResult ) {
+		$this->overrideConfigValues( [
+			MainConfigNames::Server => 'https://local.example',
+			MainConfigNames::ScriptPath => '/w',
+		] );
 		$context = new RequestContext();
 		$context->setRequest( new FauxRequest( [ 'errorformat' => 'plaintext' ] ) );
 		$context->setLanguage( 'en' );
 		$context->setConfig( new MultiConfig( [
 			new HashConfig( [
-				'ShowHostnames' => true, 'ShowExceptionDetails' => true,
+				MainConfigNames::ShowHostnames => true, MainConfigNames::ShowExceptionDetails => true,
 			] ),
 			$context->getConfig()
 		] ) );
@@ -1000,7 +1015,7 @@ class ApiMainTest extends ApiTestCase {
 	// Not static so $this can be used
 	public function provideExceptionErrors() {
 		$reqId = WebRequest::getRequestId();
-		$doclink = wfExpandUrl( wfScript( 'api' ) );
+		$doclink = 'https://local.example/w/api.php';
 
 		$ex = new InvalidArgumentException( 'Random exception' );
 		$trace = wfMessage( 'api-exception-trace',
@@ -1011,7 +1026,7 @@ class ApiMainTest extends ApiTestCase {
 		)->inLanguage( 'en' )->useDatabase( false )->text();
 
 		$dbex = new DBQueryError(
-			$this->createMock( \Wikimedia\Rdbms\IDatabase::class ),
+			$this->createMock( IDatabase::class ),
 			'error', 1234, 'SELECT 1', __METHOD__ );
 		$dbtrace = wfMessage( 'api-exception-trace',
 			get_class( $dbex ),
@@ -1021,7 +1036,7 @@ class ApiMainTest extends ApiTestCase {
 		)->inLanguage( 'en' )->useDatabase( false )->text();
 
 		// The specific exception doesn't matter, as long as it's namespaced.
-		$nsex = new MediaWiki\ShellDisabledError();
+		$nsex = new ShellDisabledError();
 		$nstrace = wfMessage( 'api-exception-trace',
 			get_class( $nsex ),
 			$nsex->getFile(),
@@ -1100,7 +1115,7 @@ class ApiMainTest extends ApiTestCase {
 							'code' => 'internal_api_error_MediaWiki\ShellDisabledError',
 							'text' => "[$reqId] Exception caught: " . $nsex->getMessage(),
 							'data' => [
-								'errorclass' => MediaWiki\ShellDisabledError::class,
+								'errorclass' => ShellDisabledError::class,
 							],
 						]
 					],
@@ -1166,7 +1181,7 @@ class ApiMainTest extends ApiTestCase {
 	}
 
 	public function testMatchRequestedHeaders() {
-		$api = Wikimedia\TestingAccessWrapper::newFromClass( 'ApiMain' );
+		$api = TestingAccessWrapper::newFromClass( ApiMain::class );
 		$allowedHeaders = [ 'Accept', 'Origin', 'User-Agent' ];
 
 		$this->assertTrue( $api->matchRequestedHeaders( 'Accept', $allowedHeaders ) );
@@ -1208,7 +1223,7 @@ class ApiMainTest extends ApiTestCase {
 		$this->assertSame( $expectedCacheControl, $req->response()->getHeader( 'Cache-Control' ), 'Cache-Control' );
 	}
 
-	public function provideCacheHeaders(): Generator {
+	public static function provideCacheHeaders(): Generator {
 		yield 'Private' => [ 'private', null, 'private, must-revalidate, max-age=0' ];
 		yield 'Public' => [
 			'public',

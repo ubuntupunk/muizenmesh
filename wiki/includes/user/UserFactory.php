@@ -22,12 +22,14 @@
 
 namespace MediaWiki\User;
 
-use DBAccessObjectUtils;
 use IDBAccessObject;
 use InvalidArgumentException;
+use MediaWiki\Config\ServiceOptions;
+use MediaWiki\MainConfigNames;
 use MediaWiki\Permissions\Authority;
 use stdClass;
-use User;
+use Wikimedia\Rdbms\IDatabase;
+use Wikimedia\Rdbms\ILBFactory;
 use Wikimedia\Rdbms\ILoadBalancer;
 
 /**
@@ -35,12 +37,23 @@ use Wikimedia\Rdbms\ILoadBalancer;
  *
  * @since 1.35
  */
-class UserFactory implements IDBAccessObject, UserRigorOptions {
+class UserFactory implements UserRigorOptions {
 
 	/**
 	 * RIGOR_* constants are inherited from UserRigorOptions
-	 * READ_* constants are inherited from IDBAccessObject
 	 */
+
+	/** @internal */
+	public const CONSTRUCTOR_OPTIONS = [
+		MainConfigNames::SharedDB,
+		MainConfigNames::SharedTables,
+	];
+
+	/** @var ServiceOptions */
+	private $options;
+
+	/** @var ILBFactory */
+	private $loadBalancerFactory;
 
 	/** @var ILoadBalancer */
 	private $loadBalancer;
@@ -52,14 +65,19 @@ class UserFactory implements IDBAccessObject, UserRigorOptions {
 	private $lastUserFromIdentity = null;
 
 	/**
-	 * @param ILoadBalancer $loadBalancer
+	 * @param ServiceOptions $options
+	 * @param ILBFactory $loadBalancerFactory
 	 * @param UserNameUtils $userNameUtils
 	 */
 	public function __construct(
-		ILoadBalancer $loadBalancer,
+		ServiceOptions $options,
+		ILBFactory $loadBalancerFactory,
 		UserNameUtils $userNameUtils
 	) {
-		$this->loadBalancer = $loadBalancer;
+		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
+		$this->options = $options;
+		$this->loadBalancerFactory = $loadBalancerFactory;
+		$this->loadBalancer = $loadBalancerFactory->getMainLB();
 		$this->userNameUtils = $userNameUtils;
 	}
 
@@ -264,22 +282,21 @@ class UserFactory implements IDBAccessObject, UserRigorOptions {
 	 */
 	public function newFromConfirmationCode(
 		string $confirmationCode,
-		int $flags = self::READ_NORMAL
+		int $flags = IDBAccessObject::READ_NORMAL
 	) {
-		[ $index, $options ] = DBAccessObjectUtils::getDBOptions( $flags );
+		if ( ( $flags & IDBAccessObject::READ_LATEST ) == IDBAccessObject::READ_LATEST ) {
+			$db = $this->loadBalancer->getConnectionRef( DB_PRIMARY );
+		} else {
+			$db = $this->loadBalancer->getConnectionRef( DB_REPLICA );
+		}
 
-		$db = $this->loadBalancer->getConnectionRef( $index );
-
-		$id = $db->selectField(
-			'user',
-			'user_id',
-			[
-				'user_email_token' => md5( $confirmationCode ),
-				'user_email_token_expires > ' . $db->addQuotes( $db->timestamp() ),
-			],
-			__METHOD__,
-			$options
-		);
+		$id = $db->newSelectQueryBuilder()
+			->select( 'user_id' )
+			->from( 'user' )
+			->where( [ 'user_email_token' => md5( $confirmationCode ) ] )
+			->andWhere( $db->expr( 'user_email_token_expires', '>', $db->timestamp() ) )
+			->recency( $flags )
+			->caller( __METHOD__ )->fetchField();
 
 		if ( !$id ) {
 			return null;
@@ -328,15 +345,72 @@ class UserFactory implements IDBAccessObject, UserRigorOptions {
 	}
 
 	/**
-	 * Create an unsaved temporary user with a previously acquired name.
+	 * Create an unsaved temporary user with a previously acquired name or a placeholder name.
 	 *
 	 * @since 1.39
-	 * @param string $name
+	 * @param ?string $name If null, a placeholder name is used
 	 * @return User
 	 */
-	public function newUnsavedTempUser( string $name ) {
+	public function newUnsavedTempUser( ?string $name ) {
 		$user = new User();
-		$user->setName( $name );
+		$user->setName( $name ?? $this->userNameUtils->getTempPlaceholder() );
 		return $user;
+	}
+
+	/**
+	 * Purge user related caches, "touch" the user table to invalidate further caches
+	 * @since 1.41
+	 * @param UserIdentity $userIdentity
+	 */
+	public function invalidateCache( UserIdentity $userIdentity ) {
+		if ( !$userIdentity->isRegistered() ) {
+			return;
+		}
+
+		$wikiId = $userIdentity->getWikiId();
+		if ( $wikiId === UserIdentity::LOCAL ) {
+			$legacyUser = $this->newFromUserIdentity( $userIdentity );
+			// Update user_touched within User class to manage state of User::mTouched for CAS check
+			$legacyUser->invalidateCache();
+		} else {
+			// cross-wiki invalidation
+			$userId = $userIdentity->getId( $wikiId );
+
+			$dbw = $this->getUserTableConnection( ILoadBalancer::DB_PRIMARY, $wikiId );
+			$dbw->newUpdateQueryBuilder()
+				->update( 'user' )
+				->set( [ 'user_touched' => $dbw->timestamp() ] )
+				->where( [ 'user_id' => $userId ] )
+				->caller( __METHOD__ )->execute();
+
+			$dbw->onTransactionPreCommitOrIdle(
+				static function () use ( $wikiId, $userId ) {
+					User::purge( $wikiId, $userId );
+				},
+				__METHOD__
+			);
+		}
+	}
+
+	/**
+	 * @param int $mode
+	 * @param string|false $wikiId
+	 * @return IDatabase
+	 */
+	private function getUserTableConnection( $mode, $wikiId ) {
+		if ( is_string( $wikiId ) && $this->loadBalancerFactory->getLocalDomainID() === $wikiId ) {
+			$wikiId = UserIdentity::LOCAL;
+		}
+
+		if ( $this->options->get( MainConfigNames::SharedDB ) &&
+			in_array( 'user', $this->options->get( MainConfigNames::SharedTables ) )
+		) {
+			// The main LB is aliased for the shared database in Setup.php
+			$lb = $this->loadBalancer;
+		} else {
+			$lb = $this->loadBalancerFactory->getMainLB( $wikiId );
+		}
+
+		return $lb->getConnection( $mode, [], $wikiId );
 	}
 }

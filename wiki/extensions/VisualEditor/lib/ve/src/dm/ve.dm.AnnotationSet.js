@@ -1,7 +1,7 @@
 /*!
  * VisualEditor DataModel AnnotationSet class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
 
 /**
@@ -111,7 +111,6 @@ ve.dm.AnnotationSet.prototype.get = function ( offset ) {
 	if ( offset !== undefined ) {
 		return this.getStore().value( this.getHash( offset ) );
 	} else {
-		// eslint-disable-next-line no-restricted-syntax
 		return this.getStore().values( this.getHashes() );
 	}
 };

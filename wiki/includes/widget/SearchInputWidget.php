@@ -2,6 +2,8 @@
 
 namespace MediaWiki\Widget;
 
+use OOUI\Tag;
+
 /**
  * Search input widget.
  *
@@ -46,12 +48,17 @@ class SearchInputWidget extends TitleInputWidget {
 			$this->showDescriptions = true;
 		}
 
+		// Perhaps should be upstreamed to TextInputWidget?
+		if ( isset( $config['autocapitalize'] ) ) {
+			$this->input->setAttributes( [ 'autocapitalize' => $config['autocapitalize'] ] );
+		}
+
 		// Initialization
 		$this->addClasses( [ 'mw-widget-searchInputWidget' ] );
 	}
 
 	protected function getInputElement( $config ) {
-		return ( new \OOUI\Tag( 'input' ) )->setAttributes( [ 'type' => 'search' ] );
+		return ( new Tag( 'input' ) )->setAttributes( [ 'type' => 'search' ] );
 	}
 
 	protected function getJavaScriptClassName() {

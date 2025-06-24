@@ -2,13 +2,13 @@
 	"@metadata": {
 		"authors": [
 			"An13sa",
+			"Atzerritik",
 			"Fitoschido",
 			"Mikel Ibaiba",
 			"Sator",
 			"Subi",
 			"Xabier Armendaritz",
-			"පසිඳු කාවින්ද",
-			"Atzerritik"
+			"පසිඳු කාවින්ද"
 		]
 	},
 	"config-desc": "MediaWiki instalatzailea",
@@ -55,8 +55,6 @@
 	"config-no-db": "Ezin izan da aurkitu datu-basearen driver egoki bat! Instalatu behar duzu PHP-ko datu-basearen driver bat. Hurrengo datu {{PLURAL:$2|basea|baseak}} onartzen {{PLURAL:$2|da|dira}}:$1\n\n\nPHP-k zuk konpilatu baduzu, berkonfiguratu datu-basearen bezeroarekin gaituta, adibidez, <code>./configure --with-mysqli</code>. erabiliz.\nDebian edo Ubuntu pakete batetik PHPa instalatu baduzu, orduan instalatu behar duzu ere bai hurrengo adibide bezalako bat <code>php-mysql</code>",
 	"config-outdated-sqlite": "<strong>Warning:</strong> SQLite $1 daukazu, hau da, gutxieneko bertsioa $2 baino atzeratutagoa da. SQLite ez dago erabilgarri.",
 	"config-no-fts3": "<strong>Warning:</strong> SQLite konpilatu egin da  [//sqlite.org/fts3.html FTS3 module] barik, \nbilaketa funtzioak ez dira erabilgarri izango \"backend\" honetan.",
-	"config-pcre-old": "<strong>Fatal:</strong> PCRE $1 edo berriagoa behar da.\nZure PHP bitarra PCRE $2 rekin lotzen da.\n[https://www.mediawiki.org/wiki/Manual:Errors_and_symptoms/PCRE Informazio gehiago].",
-	"config-pcre-no-utf8": "<strong>Fatal:</strong> PHREko PCRE modulua PCRE_UTF8 ko laguntza gabe bildu da.\nMediaWiki-k UTF-8 euskarria behar du behar bezala funtziona dezan.",
 	"config-memory-raised": "PHP-ko <code>memory_limit</code> $1 da, $2-ra igota.",
 	"config-memory-bad": "<strong>Warning:</strong> PHPko <code>memory_limit</code> $1 da.\nZiurrenik hau oso baxua da.\nInstalazioa huts egin dezake!",
 	"config-apc": "[https://www.php.net/apc APC] instalatuta dago",
@@ -189,7 +187,6 @@
 	"config-license-cc-0": "Creative Commons Zero (Jabari Publikoa)",
 	"config-license-gfdl": "\nGNU Free Documentation License 1.3 edo berriagoa",
 	"config-license-pd": "Domeinu Askea",
-	"config-license-cc-choose": "Aukeratu Creative Commons lizentzia pertsonalizatua",
 	"config-license-help": "Wikilari publiko askok ekarpen guztiak jartzen dituzte [https://freedomdefined.org/Definition lizentzia aske] azpian.\nHonek komunitatearen jabetza zentzuaren kontzeptua sortzen laguntzen du eta epe luzerako ekarpena bultzatzen du.\nEz da, oro har, wiki pribatu edo korporatiborik behar.\n\nWikipediatik testua erabiltzeko aukera izan nahi baduzu eta Wikipediak zure wikietatik kopiatutako testua onartzeko gai izatea nahi baduzu,  <strong>{{int:config-license-cc-by-sa}}</strong> aukeratu beharko zenuke.\n\nWikipedia lehenago erabili izan du GNU Dokumentazio Librearen Lizentzia.\nGFDL baliozko lizentzia da, baina ulertzeko zaila da.\nGFDLren baimenarekin lotutako edukiak berrerabiltzea ere zaila da.",
 	"config-email-settings": "E-posta hobespenak",
 	"config-enable-email": "Aktibatu irteerako emaila.",
@@ -211,9 +208,6 @@
 	"config-upload-deleted-help": "Aukeratu fitxategi bat ezabatutako artxiboak gordetzeko.\nGomendagarria da hau webgunetik ez egotea eskuragarri.",
 	"config-instantcommons": "Instant Commons gaitu",
 	"config-instantcommons-help": "[https://www.mediawiki.org/wiki/InstantCommons Instant Commons] aukerak [https://commons.wikimedia.org/ Wikimedia Commons] gunean wikietan aurkitutako irudiak, soinuak eta beste multimedia batzuk erabiltzeko aukera ematen du.\nHorretarako, MediaWiki-k Interneteko sarbidea behar du.\n\nEginbide honi buruzko informazio gehiago lortzeko, wikientzako konfiguratzeko argibideak barne eta Wikimedia Commons-tik at, kontsultatu [https://www.mediawiki.org/wiki/Special:MyLanguage/Manual:$wgForeignFileRepos eskuliburua].",
-	"config-cc-error": "Creative Commons lizentziaren aukeratzaileak ez du emaitzarik eman.\nEskuz sartu lizentzia.",
-	"config-cc-again": "Berriz aukeratu...",
-	"config-cc-not-chosen": "Aukeratu ze Creative Common lizentzi nahi duzu eta sakatu \"proceed\"",
 	"config-advanced-settings": "Konfigurazio aurreratua",
 	"config-cache-options": "Objektu cachearen ezarpenak:",
 	"config-cache-help": "Objektuen katxea erabiltzen da MediaWikiko abiadura hobetzeko, sarritan erabiltzen diren datuak gordetzen.\nOso gomendagarria da, webgune handientzako eta ertainentzako, webgune txikiek ere ikusiko dituzte onurak.",

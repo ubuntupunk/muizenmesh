@@ -21,23 +21,32 @@ namespace MediaWiki\SyntaxHighlight;
 use Content;
 use ExtensionRegistry;
 use FormatJson;
-use Html;
 use IContextSource;
+use MediaWiki\Api\Hook\ApiFormatHighlightHook;
+use MediaWiki\Content\Hook\ContentGetParserOutputHook;
+use MediaWiki\Hook\ParserFirstCallInitHook;
+use MediaWiki\Hook\SoftwareInfoHook;
+use MediaWiki\Html\Html;
 use MediaWiki\MediaWikiServices;
-use MWException;
+use MediaWiki\Parser\ParserOutput;
+use MediaWiki\Parser\Sanitizer;
+use MediaWiki\Status\Status;
+use MediaWiki\Title\Title;
 use Parser;
 use ParserOptions;
-use ParserOutput;
-use Sanitizer;
-use Status;
+use RuntimeException;
 use TextContent;
-use Title;
 use WANObjectCache;
 use Wikimedia\Parsoid\DOM\DocumentFragment;
 use Wikimedia\Parsoid\Ext\ExtensionTagHandler;
 use Wikimedia\Parsoid\Ext\ParsoidExtensionAPI;
 
-class SyntaxHighlight extends ExtensionTagHandler {
+class SyntaxHighlight extends ExtensionTagHandler implements
+	ParserFirstCallInitHook,
+	ContentGetParserOutputHook,
+	ApiFormatHighlightHook,
+	SoftwareInfoHook
+{
 
 	/** @var string CSS class for syntax-highlighted code. Public as used by the updateCSS maintenance script. */
 	public const HIGHLIGHT_CSS_CLASS = 'mw-highlight';
@@ -45,7 +54,7 @@ class SyntaxHighlight extends ExtensionTagHandler {
 	/** @var int Cache version. Increment whenever the HTML changes. */
 	private const CACHE_VERSION = 2;
 
-	/** @var array Mapping of MIME-types to lexer names. */
+	/** @var array<string,string> Mapping of MIME-types to lexer names. */
 	private static $mimeLexers = [
 		'text/javascript'  => 'javascript',
 		'application/json' => 'javascript',
@@ -75,7 +84,7 @@ class SyntaxHighlight extends ExtensionTagHandler {
 	/**
 	 * Get the Pygments lexer name for a particular language.
 	 *
-	 * @param string $lang Language name.
+	 * @param string|null $lang Language name.
 	 * @return string|null Lexer name, or null if no matching lexer.
 	 */
 	private static function getLexer( $lang ) {
@@ -85,9 +94,7 @@ class SyntaxHighlight extends ExtensionTagHandler {
 			return null;
 		}
 
-		if ( !$lexers ) {
-			$lexers = Pygmentize::getLexers();
-		}
+		$lexers ??= Pygmentize::getLexers();
 
 		$lexer = strtolower( $lang );
 
@@ -101,7 +108,7 @@ class SyntaxHighlight extends ExtensionTagHandler {
 		// a compatible Pygments lexer with a different name.
 		if ( isset( $geshi2pygments[$lexer] ) ) {
 			$lexer = $geshi2pygments[$lexer];
-			if ( in_array( $lexer, $lexers ) ) {
+			if ( isset( $lexers[$lexer] ) ) {
 				return $lexer;
 			}
 		}
@@ -114,7 +121,7 @@ class SyntaxHighlight extends ExtensionTagHandler {
 	 *
 	 * @param Parser $parser
 	 */
-	public static function onParserFirstCallInit( Parser $parser ) {
+	public function onParserFirstCallInit( $parser ) {
 		$parser->setHook( 'source', [ self::class, 'parserHookSource' ] );
 		$parser->setHook( 'syntaxhighlight', [ self::class, 'parserHook' ] );
 	}
@@ -126,7 +133,6 @@ class SyntaxHighlight extends ExtensionTagHandler {
 	 * @param array $args
 	 * @param Parser $parser
 	 * @return string
-	 * @throws MWException
 	 */
 	public static function parserHookSource( $text, $args, $parser ) {
 		$parser->addTrackingCategory( 'syntaxhighlight-source-category' );
@@ -134,7 +140,7 @@ class SyntaxHighlight extends ExtensionTagHandler {
 	}
 
 	/**
-	 * @return array
+	 * @return string[]
 	 */
 	private static function getModuleStyles(): array {
 		return [ 'ext.pygments' ];
@@ -146,11 +152,10 @@ class SyntaxHighlight extends ExtensionTagHandler {
 	 * @param array $args
 	 * @param ?Parser $parser
 	 * @return array
-	 * @throws MWException
 	 */
 	private static function processContent( string $text, array $args, ?Parser $parser = null ): array {
 		// Don't trim leading spaces away, just the linefeeds
-		$out = preg_replace( '/^\n+/', '', rtrim( $text ) );
+		$out = rtrim( trim( $text, "\n" ) );
 		$trackingCats = [];
 
 		// Convert deprecated attributes
@@ -179,7 +184,6 @@ class SyntaxHighlight extends ExtensionTagHandler {
 	 * @param array $args
 	 * @param Parser $parser
 	 * @return string
-	 * @throws MWException
 	 */
 	public static function parserHook( $text, $args, $parser ) {
 		// Replace strip markers (For e.g. {{#tag:syntaxhighlight|<nowiki>...}})
@@ -192,7 +196,7 @@ class SyntaxHighlight extends ExtensionTagHandler {
 
 		// Register CSS
 		$parser->getOutput()->addModuleStyles( self::getModuleStyles() );
-		if ( !empty( $args['linelinks'] ) && ctype_alpha( $args['linelinks'] ) ) {
+		if ( !empty( $args['linelinks'] ) ) {
 			$parser->getOutput()->addModules( [ 'ext.pygments.linenumbers' ] );
 		}
 
@@ -226,7 +230,7 @@ class SyntaxHighlight extends ExtensionTagHandler {
 			if ( preg_match( '/^<div class="?mw-highlight"?>(.*)<\/div>$/s', trim( $out ), $m ) ) {
 				$out = trim( $m[1] );
 			} else {
-				throw new MWException( 'Unexpected output from Pygments encountered' );
+				throw new RuntimeException( 'Unexpected output from Pygments encountered' );
 			}
 		}
 		return $out;
@@ -327,7 +331,7 @@ class SyntaxHighlight extends ExtensionTagHandler {
 			$options['linenostart'] = (int)$args['start'];
 		}
 
-		if ( !empty( $args['linelinks'] ) && ctype_alpha( $args['linelinks'] ) ) {
+		if ( !empty( $args['linelinks'] ) ) {
 			$options['linespans'] = $args['linelinks'];
 		}
 
@@ -503,7 +507,7 @@ class SyntaxHighlight extends ExtensionTagHandler {
 			if ( ctype_digit( $value ) ) {
 				$lines[] = (int)$value;
 			} elseif ( strpos( $value, '-' ) !== false ) {
-				list( $start, $end ) = array_map( 'intval', explode( '-', $value ) );
+				[ $start, $end ] = array_map( 'intval', explode( '-', $value ) );
 				if ( self::validHighlightRange( $start, $end ) ) {
 					for ( $i = $start; $i <= $end; $i++ ) {
 						$lines[] = $i;
@@ -548,8 +552,8 @@ class SyntaxHighlight extends ExtensionTagHandler {
 	 * @return bool
 	 * @since MW 1.21
 	 */
-	public static function onContentGetParserOutput( Content $content, Title $title,
-		$revId, ParserOptions $options, $generateHtml, ParserOutput &$parserOutput
+	public function onContentGetParserOutput( $content, $title,
+		$revId, $options, $generateHtml, &$parserOutput
 	) {
 		global $wgTextModelsToParse;
 
@@ -582,7 +586,7 @@ class SyntaxHighlight extends ExtensionTagHandler {
 
 		// Parse using the standard parser to get links etc. into the database, HTML is replaced below.
 		// We could do this using $content->fillParserOutput(), but alas it is 'protected'.
-		if ( in_array( $model, $wgTextModelsToParse ) ) {
+		if ( in_array( $model, $wgTextModelsToParse, true ) ) {
 			$parserOutput = MediaWikiServices::getInstance()->getParser()
 				->parse( $text, $title, $options, true, true, $revId );
 		}
@@ -611,7 +615,7 @@ class SyntaxHighlight extends ExtensionTagHandler {
 	 * @since MW 1.24
 	 * @return bool
 	 */
-	public static function onApiFormatHighlight( IContextSource $context, $text, $mime, $format ) {
+	public function onApiFormatHighlight( $context, $text, $mime, $format ) {
 		if ( !isset( self::$mimeLexers[$mime] ) ) {
 			return true;
 		}
@@ -643,7 +647,7 @@ class SyntaxHighlight extends ExtensionTagHandler {
 	 * @see https://www.mediawiki.org/wiki/Manual:Hooks/SoftwareInfo
 	 * @param array &$software
 	 */
-	public static function onSoftwareInfo( array &$software ) {
+	public function onSoftwareInfo( &$software ) {
 		try {
 			$software['[https://pygments.org/ Pygments]'] = Pygmentize::getVersion();
 		} catch ( PygmentsException $e ) {

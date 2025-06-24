@@ -6,6 +6,7 @@ namespace Wikimedia\Parsoid\Wt2Html;
 use Closure;
 use DateTime;
 use Generator;
+use Wikimedia\Assert\Assert;
 use Wikimedia\Parsoid\Config\Env;
 use Wikimedia\Parsoid\DOM\Document;
 use Wikimedia\Parsoid\DOM\Element;
@@ -16,7 +17,6 @@ use Wikimedia\Parsoid\Tokens\SourceRange;
 use Wikimedia\Parsoid\Utils\ContentUtils;
 use Wikimedia\Parsoid\Utils\DOMCompat;
 use Wikimedia\Parsoid\Utils\DOMDataUtils;
-use Wikimedia\Parsoid\Utils\DOMTraverser;
 use Wikimedia\Parsoid\Utils\DOMUtils;
 use Wikimedia\Parsoid\Utils\PHPUtils;
 use Wikimedia\Parsoid\Utils\Utils;
@@ -54,11 +54,8 @@ class DOMPostProcessor extends PipelineStage {
 	/** @var array */
 	private $options;
 
-	/** @var array */
-	private $seenIds;
-
-	/** @var array */
-	private $processors;
+	private array $seenIds = [];
+	private array $processors = [];
 
 	/** @var ParsoidExtensionAPI Provides post-processing support to extensions */
 	private $extApi;
@@ -69,12 +66,6 @@ class DOMPostProcessor extends PipelineStage {
 	/** @var string */
 	private $timeProfile = '';
 
-	/**
-	 * @param Env $env
-	 * @param array $options
-	 * @param string $stageId
-	 * @param ?PipelineStage $prevStage
-	 */
 	public function __construct(
 		Env $env, array $options = [], string $stageId = "",
 		?PipelineStage $prevStage = null
@@ -82,8 +73,6 @@ class DOMPostProcessor extends PipelineStage {
 		parent::__construct( $env, $prevStage );
 
 		$this->options = $options;
-		$this->seenIds = [];
-		$this->processors = [];
 		$this->extApi = new ParsoidExtensionAPI( $env );
 
 		// map from mediawiki metadata names to RDFa property names
@@ -122,18 +111,8 @@ class DOMPostProcessor extends PipelineStage {
 		];
 	}
 
-	/**
-	 * @param ?array $processors
-	 */
 	public function registerProcessors( ?array $processors ): void {
-		if ( empty( $processors ) ) {
-			$processors = $this->getDefaultProcessors();
-		}
-
-		foreach ( $processors as $p ) {
-			if ( !empty( $p['omit'] ) ) {
-				continue;
-			}
+		foreach ( $processors ?: $this->getDefaultProcessors() as $p ) {
 			if ( empty( $p['name'] ) ) {
 				$p['name'] = Utils::stripNamespace( $p['Processor'] );
 			}
@@ -141,7 +120,10 @@ class DOMPostProcessor extends PipelineStage {
 				$p['shortcut'] = $p['name'];
 			}
 			if ( !empty( $p['isTraverser'] ) ) {
-				$t = new DOMTraverser( $p['tplInfo'] ?? false );
+				$t = new DOMPPTraverser(
+					$p['tplInfo'] ?? false,
+					$p['applyToAttributeEmbeddedHTML'] ?? false
+				);
 				foreach ( $p['handlers'] as $h ) {
 					$t->addHandler( $h['nodeName'], $h['action'] );
 				}
@@ -164,7 +146,7 @@ class DOMPostProcessor extends PipelineStage {
 						'assertClass' => ExtDOMProcessor::class,
 					] );
 					$p['proc'] = function ( Node $workNode, array $options, bool $atTopLevel ) use ( $c ) {
-						return $c->wtPostprocess( $this->extApi, $workNode, $options, $atTopLevel );
+						return $c->wtPostprocess( $this->extApi, $workNode, $options );
 					};
 				}
 			}
@@ -172,9 +154,6 @@ class DOMPostProcessor extends PipelineStage {
 		}
 	}
 
-	/**
-	 * @return array
-	 */
 	public function getDefaultProcessors(): array {
 		$env = $this->env;
 		$options = $this->options;
@@ -210,30 +189,32 @@ class DOMPostProcessor extends PipelineStage {
 			// Common post processing
 			[
 				'Processor' => MarkFosteredContent::class,
-				'shortcut' => 'fostered'
+				'shortcut' => 'fostered',
+				'skipNested' => false
 			],
 			[
 				'Processor' => ProcessTreeBuilderFixups::class,
-				'shortcut' => 'process-fixups'
+				'shortcut' => 'process-fixups',
+				'skipNested' => false
 			],
 			[
-				'Processor' => Normalize::class
+				'Processor' => Normalize::class,
+				'skipNested' => false
 			],
 			[
 				'Processor' => PWrap::class,
 				'shortcut' => 'pwrap',
 				'skipNested' => true
+				// Don't need to process HTML in embedded attributes
 			],
-			// This is run at all levels since, for now, we don't have a generic
-			// solution to running top level passes on HTML stashed in data-mw.
-			// See T214994 for that.
-			//
-			// Also, the gallery extension's "packed" mode would otherwise need a
-			// post-processing pass to scale media after it has been fetched.  That
-			// introduces an ordering dependency that may or may not complicate things.
+			// This is run at all levels for now - gallery extension's "packed" mode
+			// would otherwise need a post-processing pass to scale media after it
+			// has been fetched. That introduces an ordering dependency that may
+			// or may not complicate things.
 			[
 				'Processor' => AddMediaInfo::class,
-				'shortcut' => 'media'
+				'shortcut' => 'media',
+				'skipNested' => false
 			],
 			// Run this after:
 			// * ProcessTreeBuilderFixups because this pass needs
@@ -241,6 +222,7 @@ class DOMPostProcessor extends PipelineStage {
 			// * PWrap because PWrap can add additional opportunities
 			//   for meta migration which we will miss if we run this
 			//   before p-wrapping.
+			//   FIXME: But, pwrapping doesn't run on nested pipelines!
 			//
 			// We could potentially move this just before WrapTemplates
 			// by seeing this as a preprocessing pass for that. But, we
@@ -252,33 +234,43 @@ class DOMPostProcessor extends PipelineStage {
 			[
 				'Processor' => MigrateTemplateMarkerMetas::class,
 				'shortcut' => 'migrate-metas',
-				'omit' => $options['inTemplate']
+				'omit' => $options['inTemplate'],
+				'skipNested' => false
 			],
 			[
 				'Processor' => MigrateTrailingNLs::class,
-				'shortcut' => 'migrate-nls'
+				'shortcut' => 'migrate-nls',
+				'skipNested' => false
 			],
-			// dsr computation and tpl encap are only relevant for top-level content
+			// - DSR computation and template wrapping are only relevant for top-level
+			//   content and hence are omitted. But, they cannot be skipped for
+			//   top-level content even if they are part of nested level pipelines,
+			//   because such content might be embedded in attributes and they may
+			//   need to be processed independently.
 			[
 				'Processor' => ComputeDSR::class,
 				'shortcut' => 'dsr',
-				'omit' => $options['inTemplate']
+				'omit' => $options['inTemplate'],
+				'skipNested' => false
 			],
 			[
 				'Processor' => WrapTemplates::class,
 				'shortcut' => 'tplwrap',
-				'omit' => $options['inTemplate']
+				'omit' => $options['inTemplate'],
+				'skipNested' => false
 			],
 			[
 				'name' => 'AddAnnotationIds',
 				'shortcut' => 'ann-ids',
+				'skipNested' => false,
 				'isTraverser' => true,
 				'handlers' => [
 					[
 						'nodeName' => 'meta',
-						'action' => static function ( $node, $env ) use ( &$abouts ) {
+						'action' => static function ( $node ) use ( &$abouts, $env ) {
 							// TODO: $abouts can be part of DTState
 							$isStart = false;
+							// isStart gets modified (not read) by extractAnnotationType
 							$t = WTUtils::extractAnnotationType( $node, $isStart );
 							if ( $t !== null ) {
 								$about = null;
@@ -296,11 +288,16 @@ class DOMPostProcessor extends PipelineStage {
 										$about = array_pop( $abouts[$t] );
 									}
 								}
-								if ( $about !== null ) {
-									$datamw = DOMDataUtils::getDataMw( $node );
-									$datamw->rangeId = $about;
-									DOMDataUtils::setDataMw( $node, $datamw );
+								if ( $about === null ) {
+									// this doesn't have a start tag, so we don't handle it when creating
+									// annotation ranges, and we replace it with a string
+									$textAnn = $node->ownerDocument->createTextNode( '</' . $t . '>' );
+									$parentNode = $node->parentNode;
+									$parentNode->insertBefore( $textAnn, $node );
+									DOMCompat::remove( $node );
+									return $textAnn;
 								}
+								DOMDataUtils::getDataMw( $node )->rangeId = $about;
 							}
 							return true;
 						}
@@ -311,22 +308,27 @@ class DOMPostProcessor extends PipelineStage {
 			[
 				'Processor' => WrapAnnotations::class,
 				'shortcut' => 'annwrap',
+				'skipNested' => false,
 				'withAnnotations' => true
 			],
 			// 1. Link prefixes and suffixes
 			// 2. Unpack DOM fragments
+			//    Always run this on nested pipelines so that
+			//    when we get to the top level pipeline, all
+			//    embedded fragments have been expanded!
 			[
 				'name' => 'HandleLinkNeighbours,UnpackDOMFragments',
 				'shortcut' => 'dom-unpack',
+				'skipNested' => false,
 				'isTraverser' => true,
 				'handlers' => [
 					[
 						'nodeName' => 'a',
-						'action' => [ HandleLinkNeighbours::class, 'handler' ]
+						'action' => static fn ( $node ) => HandleLinkNeighbours::handler( $node, $env )
 					],
 					[
 						'nodeName' => null,
-						'action' => [ UnpackDOMFragments::class, 'handler' ]
+						'action' => static fn ( $node ) => UnpackDOMFragments::handler( $node, $env )
 					]
 				]
 			]
@@ -397,6 +399,9 @@ class DOMPostProcessor extends PipelineStage {
 					'isExtPP' => true, // This is an extension DOM post processor
 					'name' => "pp:$extName:$i",
 					'Processor' => $domProcSpec,
+					// This should be documented in the spec that an extension's
+					// wtDOMProcess handler is run once on the top level document.
+					'skipNested' => true
 				];
 			}
 		}
@@ -405,67 +410,42 @@ class DOMPostProcessor extends PipelineStage {
 			[
 				'name' => 'MigrateTrailingCategories,TableFixups,DedupeStyles',
 				'shortcut' => 'fixups',
-				'isTraverser' => true,
 				'skipNested' => true,
+				'isTraverser' => true,
+				'applyToAttributeEmbeddedHTML' => true,
 				'tplInfo' => true,
 				'handlers' => [
 					// Move trailing categories in <li>s out of the list
 					[
 						'nodeName' => 'li',
-						'action' => [ LiFixups::class, 'migrateTrailingCategories' ]
+						'action' => static fn ( $node, $state ) => LiFixups::migrateTrailingCategories( $node, $state )
 					],
 					[
 						'nodeName' => 'dt',
-						'action' => [ LiFixups::class, 'migrateTrailingCategories' ]
+						'action' => static fn ( $node, $state ) => LiFixups::migrateTrailingCategories( $node, $state )
 					],
 					[
 						'nodeName' => 'dd',
-						'action' => [ LiFixups::class, 'migrateTrailingCategories' ]
+						'action' => static fn ( $node, $state ) => LiFixups::migrateTrailingCategories( $node, $state )
 					],
 					// 2. Fix up issues from templated table cells and table cell attributes
 					[
 						'nodeName' => 'td',
-						'action' => function ( $node, $env ) use ( &$tableFixer ) {
-							return $tableFixer->stripDoubleTDs( $node, $this->frame );
-						}
+						'action' => fn ( $node ) => $tableFixer->stripDoubleTDs( $node, $this->frame )
 					],
 					[
 						'nodeName' => 'td',
-						'action' => function ( $node, $env ) use ( &$tableFixer ) {
-							return $tableFixer->handleTableCellTemplates( $node, $this->frame );
-						}
+						'action' => fn ( $node ) => $tableFixer->handleTableCellTemplates( $node, $this->frame )
 					],
 					[
 						'nodeName' => 'th',
-						'action' => function ( $node, $env ) use ( &$tableFixer ) {
-							return $tableFixer->handleTableCellTemplates( $node, $this->frame );
-						}
+						'action' => fn ( $node ) => $tableFixer->handleTableCellTemplates( $node, $this->frame )
 					],
 					// 3. Deduplicate template styles
 					// (should run after dom-fragment expansion + after extension post-processors)
 					[
 						'nodeName' => 'style',
-						'action' => [ DedupeStyles::class, 'dedupe' ]
-					]
-				]
-			],
-			// Benefits from running after determining which media are redlinks
-			[
-				'name' => 'Headings-genAnchors',
-				'shortcut' => 'heading-ids',
-				'isTraverser' => true,
-				'skipNested' => true,
-				'handlers' => [
-					[
-						'nodeName' => null,
-						'action' => [ Headings::class, 'genAnchors' ]
-					],
-					[
-						'nodeName' => null,
-						'action' => static function ( $node, $env ) use ( &$seenIds ) {
-							// TODO: $seenIds can be part of DTState
-							return Headings::dedupeHeadingIds( $seenIds, $node );
-						}
+						'action' => static fn ( $node, $dtState ) => DedupeStyles::dedupe( $node, $env, $dtState )
 					]
 				]
 			],
@@ -473,17 +453,20 @@ class DOMPostProcessor extends PipelineStage {
 				'Processor' => Linter::class,
 				'omit' => !$env->getSiteConfig()->linting(),
 				'skipNested' => true
+				// FIXME: T214994: Have to process HTML in embedded attributes?
 			],
 			// Strip marker metas -- removes left over marker metas (ex: metas
 			// nested in expanded tpl/extension output).
 			[
 				'name' => 'CleanUp-stripMarkerMetas',
 				'shortcut' => 'strip-metas',
+				'skipNested' => true,
 				'isTraverser' => true,
+				'applyToAttributeEmbeddedHTML' => true,
 				'handlers' => [
 					[
 						'nodeName' => 'meta',
-						'action' => [ CleanUp::class, 'stripMarkerMetas' ]
+						'action' => static fn ( $node ) => CleanUp::stripMarkerMetas( $node ),
 					]
 				]
 			],
@@ -495,44 +478,74 @@ class DOMPostProcessor extends PipelineStage {
 				'Processor' => LangConverter::class,
 				'shortcut' => 'lang-converter',
 				'skipNested' => true
+				// FIXME: T214994: Have to process HTML in embedded attributes?
 			],
 			[
 				'Processor' => AddRedLinks::class,
 				'shortcut' => 'redlinks',
 				'skipNested' => true,
+				// FIXME: T214994: Have to process HTML in embedded attributes?
 			],
 			[
 				'name' => 'DisplaySpace',
 				'shortcut' => 'displayspace',
 				'skipNested' => true,
+				// Don't need to process HTML in embedded attributes
+				'applyToAttributeEmbeddedHTML' => false,
 				'isTraverser' => true,
 				'handlers' => [
 					[
 						'nodeName' => null,
-						'action' => [ DisplaySpace::class, 'leftHandler' ]
+						'action' => static fn ( $node ) => DisplaySpace::leftHandler( $node )
 					],
 					[
 						'nodeName' => null,
-						'action' => [ DisplaySpace::class, 'rightHandler' ]
+						'action' => static fn ( $node ) => DisplaySpace::rightHandler( $node )
 					],
 				]
 			],
 			[
 				'Processor' => AddLinkAttributes::class,
 				'shortcut' => 'linkclasses',
-				// Note that embedded content doesn't get these classes
+				// FIXME: T214994: Might be beneficial to process HTML in embedded attributes
+				// since some (not yet known) use cases might benefit from this information
+				// on these hidden links.
 				'skipNested' => true
+			],
+			// Benefits from running after determining which media are redlinks
+			[
+				'name' => 'Headings-genAnchors',
+				'shortcut' => 'heading-ids',
+				'skipNested' => true,
+				'isTraverser' => true,
+				// No need to generate heading ids for HTML embedded in attributes
+				'applyToAttributeEmbeddedHTML' => false,
+				'handlers' => [
+					[
+						'nodeName' => null,
+						'action' => static fn ( $node ) => Headings::genAnchors( $node, $env )
+					],
+					[
+						'nodeName' => null,
+						'action' => static function ( $node ) use ( &$seenIds ) {
+							// TODO: $seenIds can be part of DTState
+							return Headings::dedupeHeadingIds( $seenIds, $node );
+						}
+					]
+				]
 			],
 			// Add <section> wrappers around sections
 			[
 				'Processor' => WrapSections::class,
 				'shortcut' => 'sections',
 				'skipNested' => true
+				// Don't need to process HTML in embedded attributes
 			],
 			[
 				'Processor' => ConvertOffsets::class,
 				'shortcut' => 'convertoffsets',
 				'skipNested' => true,
+				// FIXME: T214994: Have to process HTML in embedded attributes?
 			],
 			[
 				'Processor' => I18n::class,
@@ -545,29 +558,50 @@ class DOMPostProcessor extends PipelineStage {
 				'skipNested' => false,
 			],
 			[
-				'name' => 'CleanUp-handleEmptyElts,CleanUp-cleanupAndSaveDataParsoid',
+				'name' => 'CleanUp-handleEmptyElts,CleanUp-cleanup',
 				'shortcut' => 'cleanup',
+				'skipNested' => true,
 				'isTraverser' => true,
+				'applyToAttributeEmbeddedHTML' => true,
 				'tplInfo' => true,
 				'handlers' => [
 					// Strip empty elements from template content
 					[
 						'nodeName' => null,
-						'action' => [ CleanUp::class, 'handleEmptyElements' ]
+						'action' => static fn ( $node, $state ) => CleanUp::handleEmptyElements( $node, $state )
 					],
+					// Additional cleanup
+					[
+						'nodeName' => null,
+						'action' => static fn ( $node, $state ) => CleanUp::finalCleanup( $node, $state )
+					]
+				]
+			],
+			[
+				'name' => 'CleanUp-saveDataParsoid',
+				'shortcut' => 'saveDP',
+				'skipNested' => true,
+				'isTraverser' => true,
+				// FIXME This means the data-* from embedded HTML fragments won't end up
+				// in the pagebundle. But, if we try to call this on those fragments,
+				// we get multiple calls to store embedded docs. So, we may need to
+				// write a custom traverser if we want these embedded data* objects
+				// in the pagebundle (this is not a regression since they weren't part
+				// of the pagebundle all this while anyway.)
+				'applyToAttributeEmbeddedHTML' => false,
+				'tplInfo' => true,
+				'handlers' => [
 					// Save data.parsoid into data-parsoid html attribute.
 					// Make this its own thing so that any changes to the DOM
 					// don't affect other handlers that run alongside it.
 					[
 						'nodeName' => null,
-						'action' => static function ( $node, $env, $state ) use ( &$usedIdIndex ) {
+						'action' => static function ( $node, $state ) use ( $env, &$usedIdIndex ) {
 							// TODO: $usedIdIndex can be part of DTState
 							if ( $state->atTopLevel && DOMUtils::isBody( $node ) ) {
 								$usedIdIndex = DOMDataUtils::usedIdIndex( $node );
 							}
-							return CleanUp::cleanupAndSaveDataParsoid(
-								$usedIdIndex, $node, $env, $state
-							);
+							return CleanUp::saveDataParsoid( $usedIdIndex, $node, $env, $state );
 						}
 					]
 				]
@@ -592,10 +626,6 @@ class DOMPostProcessor extends PipelineStage {
 		$this->seenIds = [];
 	}
 
-	/**
-	 * @param Element $body
-	 * @param Env $env
-	 */
 	private function updateBodyClasslist( Element $body, Env $env ): void {
 		$dir = $env->getPageConfig()->getPageLanguageDir();
 		$bodyCL = DOMCompat::getClassList( $body );
@@ -610,7 +640,7 @@ class DOMPostProcessor extends PipelineStage {
 		// Set 'parsoid-body' to add the desired layout styling from Vector.
 		$bodyCL->add( 'parsoid-body' );
 		// Also, add the 'mediawiki' class.
-		// Some Mediawiki:Common.css seem to target this selector.
+		// Some MediaWiki:Common.css seem to target this selector.
 		$bodyCL->add( 'mediawiki' );
 		// Set 'mw-parser-output' directly on the body.
 		// Templates target this class as part of the TemplateStyles RFC
@@ -629,6 +659,8 @@ class DOMPostProcessor extends PipelineStage {
 	 * @param Document $document
 	 */
 	public function addMetaData( Env $env, Document $document ): void {
+		$title = $env->getContextTitle();
+
 		// Set the charset in the <head> first.
 		// This also adds the <head> element if it was missing.
 		DOMUtils::appendToHead( $document, 'meta', [ 'charset' => 'utf-8' ] );
@@ -664,7 +696,7 @@ class DOMPostProcessor extends PipelineStage {
 		$pageConfig = $env->getPageConfig();
 		$revProps = [
 			'id' => $pageConfig->getPageId(),
-			'ns' => $pageConfig->getNs(),
+			'ns' => $title->getNamespace(),
 			'rev_parentid' => $pageConfig->getParentRevisionId(),
 			'rev_revid' => $pageConfig->getRevisionId(),
 			'rev_sha1' => $pageConfig->getRevisionSha1(),
@@ -707,10 +739,7 @@ class DOMPostProcessor extends PipelineStage {
 		}
 
 		// Normalize before comparison
-		if (
-			str_replace( '_', ' ', $env->getSiteConfig()->mainpage() ) ===
-			str_replace( '_', ' ', $env->getPageConfig()->getTitle() )
-		) {
+		if ( $title->isSameLinkAs( $env->getSiteConfig()->mainPageLinkTarget() ) ) {
 			DOMUtils::appendToHead( $document, 'meta', [
 				'property' => 'isMainPage',
 				'content' => 'true' /* HTML attribute values should be strings */
@@ -733,8 +762,7 @@ class DOMPostProcessor extends PipelineStage {
 			]
 		);
 
-		$expTitle = strtr( $env->getPageConfig()->getTitle(), ' ', '_' );
-		$expTitle = explode( '/', $expTitle );
+		$expTitle = explode( '/', $title->getPrefixedDBKey() );
 		$expTitle = array_map( static function ( $comp ) {
 			return PHPUtils::encodeURIComponent( $comp );
 		}, $expTitle );
@@ -761,7 +789,7 @@ class DOMPostProcessor extends PipelineStage {
 		$this->updateBodyClasslist( $body, $env );
 		$env->getSiteConfig()->exportMetadataToHeadBcp47(
 			$document, $env->getMetadata(),
-			$env->getPageConfig()->getTitle(), $lang
+			$title->getPrefixedText(), $lang
 		);
 
 		// Indicate whether LanguageConverter is enabled, so that downstream
@@ -791,9 +819,6 @@ class DOMPostProcessor extends PipelineStage {
 		}
 	}
 
-	/**
-	 * @param Node $node
-	 */
 	public function doPostProcess( Node $node ): void {
 		$env = $this->env;
 
@@ -822,10 +847,25 @@ class DOMPostProcessor extends PipelineStage {
 			}
 		}
 
-		for ( $i = 0;  $i < count( $this->processors );  $i++ ) {
-			$pp = $this->processors[$i];
-			if ( !empty( $pp['skipNested'] ) && !$this->atTopLevel ) {
+		foreach ( $this->processors as $pp ) {
+			// - Nested pipelines are used for both top-level and non-top-level content.
+			// - Omit is currently set only for templated content pipelines.
+			// - But, skipNested can be set for both templated content as well as
+			//   top-level content.
+			if ( !empty( $pp['omit'] ) ) {
 				continue;
+			}
+			Assert::invariant( isset( $pp['skipNested'] ),
+				"skipNested property missing for " . $pp['name'] . " processor." );
+			if ( $pp['skipNested'] && !$this->atTopLevel ) {
+				continue;
+			}
+
+			// avoids wondering why the pass doesn't run on attributes when setting to true on a non-traverser pass
+			if ( $pp['applyToAttributeEmbeddedHTML'] ?? false ) {
+				Assert::invariant( ( $pp['isTraverser'] ?? false ) === true,
+					'applyToAttributeEmbeddedHTML can only be executed for DOM traverser passes, and ' . $pp['name'] .
+					'is not such a pass' );
 			}
 
 			// error_log("RUNNING " . ($pp['shortcut'] ?? $pp['name']));

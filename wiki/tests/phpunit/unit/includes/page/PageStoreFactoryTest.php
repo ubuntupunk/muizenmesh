@@ -1,15 +1,15 @@
 <?php
 namespace MediaWiki\Tests\Page;
 
-use LinkCache;
 use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
+use MediaWiki\Cache\LinkCache;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\MainConfigNames;
 use MediaWiki\Page\PageStore;
 use MediaWiki\Page\PageStoreFactory;
+use MediaWiki\Title\NamespaceInfo;
+use MediaWiki\Title\TitleParser;
 use MediaWikiUnitTestCase;
-use NamespaceInfo;
-use TitleParser;
 use Wikimedia\Rdbms\LBFactory;
 use Wikimedia\Rdbms\LoadBalancer;
 

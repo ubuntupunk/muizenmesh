@@ -1,7 +1,7 @@
 SET SESSION sql_mode = '';
 SET NAMES 'utf8';
 
-ALTER TABLE `PREFIX_currency` ADD `numeric_iso_code` varchar(3) NOT NULL DEFAULT '0' AFTER `iso_code`;
+ALTER TABLE `PREFIX_currency` ADD `numeric_iso_code` varchar(3) DEFAULT NULL AFTER `iso_code`;
 ALTER TABLE `PREFIX_currency` ADD `precision` int(2) NOT NULL DEFAULT 6 AFTER `numeric_iso_code`;
 ALTER TABLE `PREFIX_currency` ADD KEY `currency_iso_code` (`iso_code`);
 
@@ -44,7 +44,7 @@ SELECT `id_configuration`, l.`id_lang`, `value`
 /* PHP:ps_1760_update_tabs(); */;
 
 /* Insert new hooks */
-INSERT IGNORE INTO `PREFIX_hook` (`id_hook`, `name`, `title`, `description`, `position`) VALUES
+INSERT INTO `PREFIX_hook` (`id_hook`, `name`, `title`, `description`, `position`) VALUES
   (NULL, 'actionListMailThemes', 'List the available email themes and layouts', 'This hook allows to add/remove available email themes (ThemeInterface) and/or to add/remove their layouts (LayoutInterface)', '1'),
   (NULL, 'actionGetMailThemeFolder', 'Define the folder of an email theme', 'This hook allows to change the folder of an email theme (useful if you theme is in a module for example)', '1'),
   (NULL, 'actionBuildMailLayoutVariables', 'Build the variables used in email layout rendering', 'This hook allows to change the variables used when an email layout is rendered', '1'),
@@ -251,7 +251,8 @@ INSERT IGNORE INTO `PREFIX_hook` (`id_hook`, `name`, `title`, `description`, `po
   (NULL, 'actionTaxGridPresenterModifier', 'Modify tax grid template data', 'This hook allows to modify data which is about to be used in template for tax grid', '1 '),
   (NULL, 'actionManufacturerGridPresenterModifier', 'Modify manufacturer grid template data', 'This hook allows to modify data which is about to be used in template for manufacturer grid', '1 '),
   (NULL, 'actionManufacturerAddressGridPresenterModifier', 'Modify manufacturer address grid template data', 'This hook allows to modify data which is about to be used in template for manufacturer address grid', '1 '),
-  (NULL, 'actionCmsPageGridPresenterModifier', 'Modify cms page grid template data', 'This hook allows to modify data which is about to be used in template for cms page grid', '1 ');
+  (NULL, 'actionCmsPageGridPresenterModifier', 'Modify cms page grid template data', 'This hook allows to modify data which is about to be used in template for cms page grid', '1 ')
+ON DUPLICATE KEY UPDATE `title` = VALUES(`title`), `description` = VALUES(`description`);
 
 INSERT IGNORE INTO `PREFIX_authorization_role` (`slug`) VALUES
   ('ROLE_MOD_TAB_ADMINMODULESMANAGE_CREATE'),
@@ -270,3 +271,9 @@ INSERT IGNORE INTO `PREFIX_authorization_role` (`slug`) VALUES
   ('ROLE_MOD_TAB_ADMINPARENTMODULESCATALOG_READ'),
   ('ROLE_MOD_TAB_ADMINPARENTMODULESCATALOG_UPDATE'),
   ('ROLE_MOD_TAB_ADMINPARENTMODULESCATALOG_DELETE');
+
+DROP INDEX admin_filter_search_idx ON `PREFIX_admin_filter`;
+ALTER TABLE `PREFIX_admin_filter` ADD filter_id VARCHAR(255) NOT NULL;
+CREATE UNIQUE INDEX admin_filter_search_id_idx ON `PREFIX_admin_filter` (employee, shop, controller, action, filter_id);
+DROP INDEX id_product ON `PREFIX_product_download`;
+DROP INDEX product_active ON `PREFIX_product_download`;

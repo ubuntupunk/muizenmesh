@@ -20,9 +20,12 @@
  * @file
  */
 
+namespace MediaWiki\Deferred;
+
 use MediaWiki\HookContainer\HookRunner;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\User\UserIdentity;
+use RuntimeException;
 use Wikimedia\Assert\Assert;
 
 /**
@@ -41,7 +44,7 @@ class UserEditCountUpdate implements DeferrableUpdate, MergeableUpdate {
 	 * @param int $increment
 	 */
 	public function __construct( UserIdentity $user, $increment ) {
-		if ( !$user->isRegistered() ) {
+		if ( !$user->getId() ) {
 			throw new RuntimeException( "Got anonymous user" );
 		}
 		$this->infoByUser = [
@@ -75,12 +78,11 @@ class UserEditCountUpdate implements DeferrableUpdate, MergeableUpdate {
 
 		( new AutoCommitUpdate( $dbw, __METHOD__, function () use ( $lb, $dbw, $fname, $editTracker ) {
 			foreach ( $this->infoByUser as $userId => $info ) {
-				$dbw->update(
-					'user',
-					[ 'user_editcount=user_editcount+' . (int)$info->getIncrement() ],
-					[ 'user_id' => $userId, 'user_editcount IS NOT NULL' ],
-					$fname
-				);
+				$dbw->newUpdateQueryBuilder()
+					->update( 'user' )
+					->set( [ 'user_editcount=user_editcount+' . (int)$info->getIncrement() ] )
+					->where( [ 'user_id' => $userId, 'user_editcount IS NOT NULL' ] )
+					->caller( $fname )->execute();
 				// Lazy initialization check...
 				if ( $dbw->affectedRows() == 0 ) {
 					// The user_editcount is probably NULL (e.g. not initialized).
@@ -103,3 +105,6 @@ class UserEditCountUpdate implements DeferrableUpdate, MergeableUpdate {
 		$hookRunner->onUserEditCountUpdate( array_values( $this->infoByUser ) );
 	}
 }
+
+/** @deprecated class alias since 1.42 */
+class_alias( UserEditCountUpdate::class, 'UserEditCountUpdate' );

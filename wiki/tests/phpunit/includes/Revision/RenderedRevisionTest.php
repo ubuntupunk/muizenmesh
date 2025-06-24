@@ -9,6 +9,7 @@ use MediaWiki\Content\Renderer\ContentRenderer;
 use MediaWiki\Page\PageIdentity;
 use MediaWiki\Page\PageIdentityValue;
 use MediaWiki\Page\PageReference;
+use MediaWiki\Parser\ParserOutput;
 use MediaWiki\Revision\MutableRevisionRecord;
 use MediaWiki\Revision\MutableRevisionSlots;
 use MediaWiki\Revision\RenderedRevision;
@@ -19,17 +20,17 @@ use MediaWiki\Revision\RevisionStoreRecord;
 use MediaWiki\Revision\SlotRecord;
 use MediaWiki\Revision\SuppressedDataException;
 use MediaWiki\Tests\Unit\Permissions\MockAuthorityTrait;
+use MediaWiki\Title\TitleValue;
 use MediaWiki\User\UserIdentityValue;
 use MediaWikiIntegrationTestCase;
 use ParserOptions;
-use ParserOutput;
 use PHPUnit\Framework\MockObject\MockObject;
-use TitleValue;
 use Wikimedia\TestingAccessWrapper;
 use WikitextContent;
 
 /**
  * @covers \MediaWiki\Revision\RenderedRevision
+ * @group Database
  */
 class RenderedRevisionTest extends MediaWikiIntegrationTestCase {
 	use MockAuthorityTrait;
@@ -82,7 +83,7 @@ class RenderedRevisionTest extends MediaWikiIntegrationTestCase {
 				$combinedOutput->mergeHtmlMetaDataFrom( $out );
 			}
 
-			$combinedOutput->setText( $html );
+			$combinedOutput->setRawText( $html );
 		}
 
 		return $combinedOutput;
@@ -290,7 +291,8 @@ class RenderedRevisionTest extends MediaWikiIntegrationTestCase {
 			$rev,
 			$options,
 			$this->contentRenderer,
-			$this->combinerCallback
+			$this->combinerCallback,
+			RevisionRecord::RAW
 		);
 
 		$this->assertFalse( $rr->isContentDeleted(), 'isContentDeleted' );

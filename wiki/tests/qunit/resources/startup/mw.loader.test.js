@@ -1,5 +1,3 @@
-/* eslint-disable es-x/no-set */
-
 ( function () {
 	QUnit.module( 'mw.loader', QUnit.newMwEnvironment( {
 		beforeEach: function ( assert ) {
@@ -26,11 +24,6 @@
 		},
 		afterEach: function () {
 			mw.loader.maxQueryLength = 2000;
-			// Teardown for StringSet shim test
-			if ( this.nativeSet ) {
-				window.Set = this.nativeSet;
-				mw.redefineFallbacksForTest();
-			}
 			if ( this.resetStore ) {
 				mw.loader.store.enabled = null;
 				mw.loader.store.items = {};
@@ -38,15 +31,24 @@
 			}
 			// Remove any remaining temporary static state
 			// exposed for mocking and stubbing.
-			delete mw.loader.isES6ForTest;
 			delete mw.loader.testCallback;
 			delete mw.loader.testFail;
 			delete mw.getScriptExampleScriptLoaded;
 		}
 	} ) );
 
+	// Full URL to $wgScriptPath with trailing slash.
+	// * $wgScriptPath is usually path-only, so we expand relative to $wgServer
+	//   to ensure consistent and portable results (even when tested through Karma).
+	// * $wgScriptPath is an empty string when installed at the document root
+	//   (as the case when using `composer serve`), we normalize to trailing slash.
+	const SCRIPT_PATH_URL = new URL(
+		mw.config.get( 'wgScriptPath' ) + '/',
+		mw.config.get( 'wgServer' )
+	).toString();
+
 	mw.loader.addSource( {
-		testloader: mw.config.get( 'wgScriptPath' ) + '/tests/qunit/data/load.mock.php'
+		testloader: SCRIPT_PATH_URL + 'tests/qunit/data/load.mock.php'
 	} );
 
 	/**
@@ -109,8 +111,7 @@
 	}
 
 	function urlStyleTest( selector, prop, val ) {
-		return mw.config.get( 'wgScriptPath' ) +
-			'/tests/qunit/data/styleTest.css.php?' +
+		return SCRIPT_PATH_URL + 'tests/qunit/data/styleTest.css.php?' +
 			$.param( {
 				selector: selector,
 				prop: prop,
@@ -123,7 +124,7 @@
 		mw.loader.testCallback = function () {
 			script++;
 		};
-		mw.loader.implement( 'test.promise', [ mw.config.get( 'wgScriptPath' ) + '/tests/qunit/data/mwLoaderTestCallback.js' ] );
+		mw.loader.implement( 'test.promise', [ SCRIPT_PATH_URL + 'tests/qunit/data/mwLoaderTestCallback.js' ] );
 
 		return mw.loader.using( 'test.promise', function () {
 			callback++;
@@ -138,15 +139,15 @@
 		mw.loader.testCallback = function () {
 			call++;
 		};
-		mw.loader.implement( 'hasOwnProperty', [ mw.config.get( 'wgScriptPath' ) + '/tests/qunit/data/mwLoaderTestCallback.js' ], {}, {} );
+		mw.loader.implement( 'hasOwnProperty', [ SCRIPT_PATH_URL + 'tests/qunit/data/mwLoaderTestCallback.js' ], {}, {} );
 
 		return mw.loader.using( 'hasOwnProperty', function () {
 			assert.strictEqual( call, 1, 'module script ran' );
 		} );
 	} );
 
-	// Covers mw.loader#sortDependencies (with native Set if available)
-	QUnit.test( '.using() - Error: Circular dependency [StringSet default]', function ( assert ) {
+	// Covers mw.loader#sortDependencies (with native Set)
+	QUnit.test( '.using() - Error: Circular dependency [Set]', function ( assert ) {
 		var done = assert.async();
 
 		mw.loader.register( [
@@ -165,36 +166,6 @@
 			.always( done );
 	} );
 
-	// @covers mw.loader#sortDependencies (with fallback shim)
-	QUnit.test( '.using() - Error: Circular dependency [StringSet shim]', function ( assert ) {
-		var done = assert.async();
-
-		if ( !window.Set ) {
-			assert.expect( 0 );
-			done();
-			return;
-		}
-
-		this.nativeSet = window.Set;
-		window.Set = undefined;
-		mw.redefineFallbacksForTest();
-
-		mw.loader.register( [
-			[ 'test.shim.circleA', '0', [ 'test.shim.circleB' ] ],
-			[ 'test.shim.circleB', '0', [ 'test.shim.circleC' ] ],
-			[ 'test.shim.circleC', '0', [ 'test.shim.circleA' ] ]
-		] );
-		mw.loader.using( 'test.shim.circleC' ).then(
-			function () {
-				assert.true( false, 'Unexpected resolution, expected error.' );
-			},
-			function ( e ) {
-				assert.true( /Circular/.test( String( e ) ), 'Detect circular dependency' );
-			}
-		)
-			.always( done );
-	} );
-
 	QUnit.test( '.load() - Error: Circular dependency', function ( assert ) {
 		var capture = [];
 		mw.loader.register( [
@@ -202,9 +173,8 @@
 			[ 'test.load.circleB', '0', [ 'test.load.circleC' ] ],
 			[ 'test.load.circleC', '0', [ 'test.load.circleA' ] ]
 		] );
-		this.sandbox.stub( mw, 'trackError', function ( topic, data ) {
+		this.sandbox.stub( mw, 'trackError', function ( data ) {
 			capture.push( {
-				topic: topic,
 				error: data.exception && data.exception.message,
 				source: data.source
 			} );
@@ -212,12 +182,11 @@
 
 		mw.loader.load( 'test.load.circleC' );
 		assert.deepEqual(
+			capture,
 			[ {
-				topic: 'resourceloader.exception',
 				error: 'Circular reference detected: test.load.circleB -> test.load.circleC',
 				source: 'resolve'
 			} ],
-			capture,
 			'Detect circular dependency'
 		);
 	} );
@@ -227,9 +196,8 @@
 		mw.loader.register( [
 			[ 'test.load.circleDirect', '0', [ 'test.load.circleDirect' ] ]
 		] );
-		this.sandbox.stub( mw, 'trackError', function ( topic, data ) {
+		this.sandbox.stub( mw, 'trackError', function ( data ) {
 			capture.push( {
-				topic: topic,
 				error: data.exception && data.exception.message,
 				source: data.source
 			} );
@@ -237,12 +205,11 @@
 
 		mw.loader.load( 'test.load.circleDirect' );
 		assert.deepEqual(
+			capture,
 			[ {
-				topic: 'resourceloader.exception',
 				error: 'Circular reference detected: test.load.circleDirect -> test.load.circleDirect',
 				source: 'resolve'
 			} ],
-			capture,
 			'Detect a direct self-dependency'
 		);
 	} );
@@ -273,9 +240,8 @@
 	// Regression test for T36853
 	QUnit.test( '.load() - Error: Missing dependency', function ( assert ) {
 		var capture = [];
-		this.sandbox.stub( mw, 'trackError', function ( topic, data ) {
+		this.sandbox.stub( mw, 'trackError', function ( data ) {
 			capture.push( {
-				topic: topic,
 				error: data.exception && data.exception.message,
 				source: data.source
 			} );
@@ -287,12 +253,11 @@
 		] );
 		mw.loader.load( 'test.load.missingdep' );
 		assert.deepEqual(
+			capture,
 			[ {
-				topic: 'resourceloader.exception',
 				error: 'Unknown module: test.load.missingdep2',
 				source: 'resolve'
-			} ],
-			capture
+			} ]
 		);
 	} );
 
@@ -420,7 +385,12 @@
 				} );
 			},
 			{
+				// @import always works in the first stylesheet.
+				// Test with at least two stylesheets to excercise the special
+				// condition in addEmbeddedCSS to support @import (end the batch
+				// earlier than normal).
 				css: [
+					'.something-else-first {}',
 					'@import url(\'' +
 						urlStyleTest( '.mw-test-implement-import', 'float', 'right' ) +
 						'\');\n' +
@@ -491,7 +461,7 @@
 	} );
 
 	QUnit.test( '.implement( only messages )', function ( assert ) {
-		assert.assertFalse( mw.messages.exists( 'T31107' ), 'Verify that the test message doesn\'t exist yet' );
+		assert.false( mw.messages.exists( 'T31107' ), 'Verify that the test message doesn\'t exist yet' );
 
 		mw.loader.implement( 'test.implement.msgs', [], {}, { T31107: 'loaded' } );
 
@@ -583,18 +553,11 @@
 		}, /already registered/, 'duplicate ID from addSource(Object)' );
 	} );
 
-	QUnit.test( '.register() - ES6 support', function ( assert ) {
-		// Implied: isES6Supported correctly evaluates to true in a modern browsers
+	QUnit.test( '.register() - ES6 support always true', function ( assert ) {
 		mw.loader.register( 'test1.regular', 'aaa' );
 		mw.loader.register( 'test1.es6only', 'bbb!' );
 		assert.strictEqual( mw.loader.getState( 'test1.regular' ), 'registered' );
 		assert.strictEqual( mw.loader.getState( 'test1.es6only' ), 'registered' );
-
-		mw.loader.isES6ForTest = false;
-		mw.loader.register( 'test2.regular', 'aaa' );
-		mw.loader.register( 'test2.es6only', 'bbb!' );
-		assert.strictEqual( mw.loader.getState( 'test2.regular' ), 'registered' );
-		assert.strictEqual( mw.loader.getState( 'test2.es6only' ), null );
 	} );
 
 	// This is a regression test because in the past we called getCombinedVersion()
@@ -790,9 +753,49 @@
 			function ( e, modules ) {
 				// When the server sets state of 'testMissing' to 'missing'
 				// it should bubble up and trigger the error callback of the job for 'testUsesNestedMissing'.
-				assert.true( modules.indexOf( 'testMissing' ) !== -1, 'Triggered by testMissing.' );
+				assert.true( modules.includes( 'testMissing' ), 'Triggered by testMissing.' );
 
 				verifyModuleStates();
+			}
+		);
+	} );
+
+	// Regresion test for T68598
+	QUnit.test( 'Network failure', function ( assert ) {
+		// Modules named "test.*Dump" always exist via load.mock.php (testloader)
+		mw.loader.register( [
+			// [module, version, dependencies, group, source, skip]
+			[ 'testNetfailBadDump', '1', [], 'unlucky', 'testloader' ],
+			[ 'testNetfailGoodDump', '1', [], 'lucky', 'testloader' ],
+			[ 'testNetfailDump', '1', [ 'testNetfailBadDump', 'testNetfailGoodDump' ], null, 'testloader' ]
+		] );
+
+		// Simulate network failure
+		var appendSuper = document.head.appendChild;
+		var appendStub = this.sandbox.stub( document.head, 'appendChild', function ( node ) {
+			if ( node.nodeName === 'SCRIPT' && node.src.includes( 'testNetfailBadDump' ) ) {
+				Promise.resolve().then( node.onerror );
+				appendStub.restore();
+				return;
+			}
+			return appendSuper.apply( this, arguments );
+		} );
+
+		return mw.loader.using( [ 'testNetfailDump' ] ).then(
+			function () {
+				throw new Error( 'Unexpected success.' );
+			},
+			function ( e, modules ) {
+				assert.propEqual( {
+					testNetfailDump: mw.loader.getState( 'testNetfailDump' ),
+					testNetfailBadDump: mw.loader.getState( 'testNetfailBadDump' )
+				}, {
+					testNetfailDump: 'error',
+					testNetfailBadDump: 'error'
+				}, 'module state' );
+
+				assert.strictEqual( e.message, 'Failed dependency: testNetfailBadDump', 'error message' );
+				assert.true( modules.includes( 'testNetfailBadDump' ), 'attribute failure' );
 			}
 		);
 	} );
@@ -819,14 +822,11 @@
 		);
 	} );
 
-	// This bug was actually already fixed in 1.18 and later when discovered in 1.17.
-	QUnit.test( '.load( "//protocol-relative" ) - T32825', function ( assert ) {
-		var target,
-			done = assert.async();
-
-		// URL to the callback script
-		target = mw.config.get( 'wgServer' ) + mw.config.get( 'wgScriptPath' ) + '/tests/qunit/data/mwLoaderTestCallback.js';
-		// Ensure a protocol-relative URL for this test
+	// This bug was fixed in MediaWiki 1.18 (T32825).
+	QUnit.test( '.load() [protocol-relative URL T32825]', function ( assert ) {
+		const done = assert.async();
+		let target = SCRIPT_PATH_URL + 'tests/qunit/data/mwLoaderTestCallback.js';
+		// Use a protocol-relative URL for this test
 		target = target.replace( /https?:/, '' );
 		assert.strictEqual( target.slice( 0, 2 ), '//', 'URL is protocol-relative' );
 
@@ -841,13 +841,9 @@
 		mw.loader.load( target );
 	} );
 
-	QUnit.test( '.load( "/absolute-path" )', function ( assert ) {
-		var target,
-			done = assert.async();
-
-		// URL to the callback script
-		target = mw.config.get( 'wgScriptPath' ) + '/tests/qunit/data/mwLoaderTestCallback.js';
-		assert.strictEqual( target.slice( 0, 1 ), '/', 'URL is relative to document root' );
+	QUnit.test( '.load() [absolute URL]', function ( assert ) {
+		const done = assert.async();
+		const target = SCRIPT_PATH_URL + 'tests/qunit/data/mwLoaderTestCallback.js';
 
 		mw.loader.testCallback = function () {
 			// Ensure once, delete now
@@ -940,8 +936,13 @@
 		mw.loader.register( 'test.stale', 'v2' );
 		assert.strictEqual( mw.loader.store.get( 'test.stale' ), false, 'Not in store' );
 
-		mw.loader.implement( 'test.stale@v1', function () {
-			count++;
+		mw.loader.impl( function () {
+			return [
+				'test.stale@v1',
+				function () {
+					count++;
+				}
+			];
 		} );
 
 		return mw.loader.using( 'test.stale' )
@@ -961,42 +962,6 @@
 				// Module was stored correctly as v1
 				// On future navigations, it will be ignored until evicted
 				assert.strictEqual( mw.loader.store.get( 'test.stale' ), false, 'Not in store' );
-			} );
-	} );
-
-	QUnit.test( 'Stale response caching - backcompat', function ( assert ) {
-		var script = 0;
-		// Enable store and stub timeout/idle scheduling
-		this.sandbox.stub( mw.loader.store, 'enabled', true );
-		this.sandbox.stub( window, 'setTimeout', function ( fn ) {
-			fn();
-		} );
-		this.sandbox.stub( mw, 'requestIdleCallback', function ( fn ) {
-			fn();
-		} );
-
-		mw.loader.register( 'test.stalebc', 'v2' );
-		assert.strictEqual( mw.loader.store.get( 'test.stalebc' ), false, 'Not in store' );
-
-		mw.loader.implement( 'test.stalebc', function () {
-			script++;
-		} );
-
-		return mw.loader.using( 'test.stalebc' )
-			.then( function () {
-				assert.strictEqual( script, 1, 'module script ran' );
-				assert.strictEqual( mw.loader.getState( 'test.stalebc' ), 'ready' );
-				assert.strictEqual( typeof mw.loader.store.get( 'test.stalebc' ), 'string', 'In store' );
-			} )
-			.then( function () {
-				// Reset run time, but keep mw.loader.store
-				mw.loader.moduleRegistry[ 'test.stalebc' ].script = undefined;
-				mw.loader.moduleRegistry[ 'test.stalebc' ].state = 'registered';
-				mw.loader.moduleRegistry[ 'test.stalebc' ].version = 'v2';
-
-				// Legacy behaviour is storing under the expected version,
-				// which woudl lead to whitewashing and stale values (T117587).
-				assert.strictEqual( typeof mw.loader.store.get( 'test.stalebc' ), 'string', 'In store' );
 			} );
 	} );
 
@@ -1149,13 +1114,12 @@
 	} );
 
 	QUnit.test( 'require() in debug mode', function ( assert ) {
-		var path = mw.config.get( 'wgScriptPath' );
 		mw.loader.register( [
 			[ 'test.require.define', '0' ],
 			[ 'test.require.callback', '0', [ 'test.require.define' ] ]
 		] );
-		mw.loader.implement( 'test.require.callback', [ path + '/tests/qunit/data/requireCallMwLoaderTestCallback.js' ] );
-		mw.loader.implement( 'test.require.define', [ path + '/tests/qunit/data/defineCallMwLoaderTestCallback.js' ] );
+		mw.loader.implement( 'test.require.callback', [ SCRIPT_PATH_URL + 'tests/qunit/data/requireCallMwLoaderTestCallback.js' ] );
+		mw.loader.implement( 'test.require.define', [ SCRIPT_PATH_URL + 'tests/qunit/data/defineCallMwLoaderTestCallback.js' ] );
 
 		return mw.loader.using( 'test.require.callback' ).then( function ( require ) {
 			var cb = require( 'test.require.callback' );
@@ -1201,7 +1165,7 @@
 	} );
 
 	QUnit.test( '.getScript() - success', function ( assert ) {
-		var scriptUrl = mw.config.get( 'wgScriptPath' ) + '/tests/qunit/data/mediawiki.loader.getScript.example.js';
+		var scriptUrl = SCRIPT_PATH_URL + 'tests/qunit/data/mediawiki.loader.getScript.example.js';
 
 		return mw.loader.getScript( scriptUrl ).then(
 			function () {
@@ -1212,7 +1176,7 @@
 
 	QUnit.test( '.getScript() - failure', function ( assert ) {
 		assert.rejects(
-			mw.loader.getScript( '/this-is-not-found' ),
+			mw.loader.getScript( '/this-is-not-found.txt' ),
 			/Failed to load script/,
 			'Descriptive error message'
 		);

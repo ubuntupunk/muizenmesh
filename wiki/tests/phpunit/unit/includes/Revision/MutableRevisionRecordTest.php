@@ -2,9 +2,9 @@
 
 namespace MediaWiki\Tests\Unit\Revision;
 
-use CommentStoreComment;
 use DummyContentForTesting;
 use InvalidArgumentException;
+use MediaWiki\CommentStore\CommentStoreComment;
 use MediaWiki\Page\PageIdentity;
 use MediaWiki\Page\PageIdentityValue;
 use MediaWiki\Revision\BadRevisionException;
@@ -24,6 +24,10 @@ use Wikimedia\Assert\PreconditionException;
  */
 class MutableRevisionRecordTest extends MediaWikiUnitTestCase {
 	use RevisionRecordTests;
+
+	protected function expectedDefaultFieldVisibility( $field ): bool {
+		return true;
+	}
 
 	/**
 	 * @param array $rowOverrides
@@ -64,7 +68,7 @@ class MutableRevisionRecordTest extends MediaWikiUnitTestCase {
 		return $record;
 	}
 
-	public function provideConstructorFailure() {
+	public static function provideConstructorFailure() {
 		yield 'not a wiki id' => [
 			new PageIdentityValue( 17, NS_MAIN, 'Dummy', PageIdentity::LOCAL ),
 			InvalidArgumentException::class,

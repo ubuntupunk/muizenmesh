@@ -2,7 +2,7 @@
 /**
  * Clean up broken, unparseable titles.
  *
- * Copyright © 2005 Brion Vibber <brion@pobox.com>
+ * Copyright © 2005 Brooke Vibber <bvibber@wikimedia.org>
  * https://www.mediawiki.org/
  *
  * This program is free software; you can redistribute it and/or modify
@@ -21,11 +21,10 @@
  * http://www.gnu.org/copyleft/gpl.html
  *
  * @file
- * @author Brion Vibber <brion at pobox.com>
+ * @author Brooke Vibber <bvibber@wikimedia.org>
  * @ingroup Maintenance
  */
 
-use MediaWiki\MediaWikiServices;
 use MediaWiki\Title\Title;
 
 require_once __DIR__ . '/TableCleanup.php';
@@ -47,7 +46,7 @@ class TitleCleanup extends TableCleanup {
 	 */
 	protected function processRow( $row ) {
 		$display = Title::makeName( $row->page_namespace, $row->page_title );
-		$verified = MediaWikiServices::getInstance()->getContentLanguage()->normalize( $display );
+		$verified = $this->getServiceContainer()->getContentLanguage()->normalize( $display );
 		$title = Title::newFromText( $verified );
 
 		if ( $title !== null
@@ -82,7 +81,7 @@ class TitleCleanup extends TableCleanup {
 	protected function fileExists( $name ) {
 		// XXX: Doesn't actually check for file existence, just presence of image record.
 		// This is reasonable, since cleanupImages.php only iterates over the image table.
-		$dbr = $this->getDB( DB_REPLICA );
+		$dbr = $this->getReplicaDB();
 		$row = $dbr->newSelectQueryBuilder()
 			->select( '*' )
 			->from( 'image' )
@@ -127,11 +126,12 @@ class TitleCleanup extends TableCleanup {
 		} else {
 			$this->output( "renaming $row->page_id ($row->page_namespace," .
 				"'$row->page_title') to ($row->page_namespace,'$dest')\n" );
-			$dbw = $this->getDB( DB_PRIMARY );
-			$dbw->update( 'page',
-				[ 'page_title' => $dest ],
-				[ 'page_id' => $row->page_id ],
-				__METHOD__ );
+			$this->getPrimaryDB()
+				->newUpdateQueryBuilder()
+				->update( 'page' )
+				->set( [ 'page_title' => $dest ] )
+				->where( [ 'page_id' => $row->page_id ] )
+				->caller( __METHOD__ )->execute();
 		}
 	}
 
@@ -140,7 +140,7 @@ class TitleCleanup extends TableCleanup {
 	 * @param Title $title
 	 */
 	protected function moveInconsistentPage( $row, Title $title ) {
-		if ( $title->exists( Title::READ_LATEST )
+		if ( $title->exists( IDBAccessObject::READ_LATEST )
 			|| $title->getInterwiki()
 			|| !$title->canExist()
 		) {
@@ -159,7 +159,7 @@ class TitleCleanup extends TableCleanup {
 
 			# Namespace which no longer exists. Put the page in the main namespace
 			# since we don't have any idea of the old namespace name. See T70501.
-			if ( !MediaWikiServices::getInstance()->getNamespaceInfo()->exists( $ns ) ) {
+			if ( !$this->getServiceContainer()->getNamespaceInfo()->exists( $ns ) ) {
 				$ns = 0;
 			}
 
@@ -189,15 +189,16 @@ class TitleCleanup extends TableCleanup {
 		} else {
 			$this->output( "renaming $row->page_id ($row->page_namespace," .
 				"'$row->page_title') to ($ns,'$dest')\n" );
-			$dbw = $this->getDB( DB_PRIMARY );
-			$dbw->update( 'page',
-				[
+			$this->getPrimaryDB()
+				->newUpdateQueryBuilder()
+				->update( 'page' )
+				->set( [
 					'page_namespace' => $ns,
 					'page_title' => $dest
-				],
-				[ 'page_id' => $row->page_id ],
-				__METHOD__ );
-			MediaWikiServices::getInstance()->getLinkCache()->clear();
+				] )
+				->where( [ 'page_id' => $row->page_id ] )
+				->caller( __METHOD__ )->execute();
+			$this->getServiceContainer()->getLinkCache()->clear();
 		}
 	}
 }

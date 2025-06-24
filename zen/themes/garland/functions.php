@@ -45,13 +45,11 @@ if (!OFFSET_PATH) {
 
 function switcher_head($ignore) {
 	?>
-	<script type="text/javascript">
-		// <!-- <![CDATA[
+	<script>
 		function switchPersonality() {
 			personality = $('#themePersonality').val();
 			window.location = '?themePersonality=' + personality;
 		}
-		// ]]> -->
 	</script>
 	<?php
 	return $ignore;
@@ -133,8 +131,8 @@ function footer() {
 		}
 		?>
 		<?php
-		if ($_zp_gallery_page != 'register.php' && function_exists('printRegisterURL') && !zp_loggedin() && ($_zp_gallery_page != 'password.php' || $_zp_gallery->isUnprotectedPage('register'))) {
-			printRegisterURL(gettext('Register for this site'), $prev, '');
+		if ($_zp_gallery_page != 'register.php' && method_exists('registerUser', 'printLink') && !zp_loggedin() && ($_zp_gallery_page != 'password.php' || $_zp_gallery->isUnprotectedPage('register'))) {
+			registerUser::printLink(gettext('Register for this site'), $prev, '');
 			$prev = ' | ';
 		}
 		?>

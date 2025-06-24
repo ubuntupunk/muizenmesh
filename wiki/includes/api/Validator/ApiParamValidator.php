@@ -7,11 +7,11 @@ use ApiMain;
 use ApiMessage;
 use ApiUsageException;
 use MediaWiki\Message\Converter as MessageConverter;
+use MediaWiki\Message\Message;
 use MediaWiki\ParamValidator\TypeDef\NamespaceDef;
 use MediaWiki\ParamValidator\TypeDef\TagsDef;
 use MediaWiki\ParamValidator\TypeDef\TitleDef;
 use MediaWiki\ParamValidator\TypeDef\UserDef;
-use Message;
 use Wikimedia\Message\DataMessageValue;
 use Wikimedia\Message\MessageValue;
 use Wikimedia\ObjectFactory\ObjectFactory;
@@ -66,7 +66,10 @@ class ApiParamValidator {
 		'raw' => [ 'class' => StringDef::class ],
 		'string' => [ 'class' => StringDef::class ],
 		'submodule' => [ 'class' => SubmoduleDef::class ],
-		'tags' => [ 'class' => TagsDef::class ],
+		'tags' => [
+			'class' => TagsDef::class,
+			'services' => [ 'ChangeTagsStore' ],
+		],
 		'text' => [ 'class' => StringDef::class ],
 		'timestamp' => [
 			'class' => TimestampDef::class,
@@ -125,7 +128,6 @@ class ApiParamValidator {
 				// Convert the message specification to a DataMessageValue. Flag in the data
 				// that it was so converted, so ApiParamValidatorCallbacks::recordCondition() can
 				// take that into account.
-				// @phan-suppress-next-line PhanTypeMismatchArgument
 				$msg = $this->messageConverter->convertMessage( ApiMessage::create( $v ) );
 				$v = DataMessageValue::new(
 					$msg->getKey(),
@@ -211,11 +213,10 @@ class ApiParamValidator {
 				. gettype( $settings[ApiBase::PARAM_RANGE_ENFORCE] );
 		}
 
-		if ( isset( $settings[ApiBase::PARAM_HELP_MSG] ) ) {
-			$this->checkSettingsMessage(
-				$module, 'PARAM_HELP_MSG', $settings[ApiBase::PARAM_HELP_MSG], $ret
-			);
-		}
+		$path = $module->getModulePath();
+		$this->checkSettingsMessage(
+			$module, 'PARAM_HELP_MSG', $settings[ApiBase::PARAM_HELP_MSG] ?? "apihelp-$path-param-$name", $ret
+		);
 
 		if ( isset( $settings[ApiBase::PARAM_HELP_MSG_APPEND] ) ) {
 			if ( !is_array( $settings[ApiBase::PARAM_HELP_MSG_APPEND] ) ) {
@@ -233,7 +234,6 @@ class ApiParamValidator {
 				$ret['issues'][ApiBase::PARAM_HELP_MSG_INFO] = 'PARAM_HELP_MSG_INFO must be an array, got '
 					. gettype( $settings[ApiBase::PARAM_HELP_MSG_INFO] );
 			} else {
-				$path = $module->getModulePath();
 				foreach ( $settings[ApiBase::PARAM_HELP_MSG_INFO] as $k => $v ) {
 					if ( !is_array( $v ) ) {
 						$ret['issues'][] = "PARAM_HELP_MSG_INFO[$k] must be an array, got " . gettype( $v );
@@ -262,6 +262,18 @@ class ApiParamValidator {
 						$ret['issues'][] = "PARAM_HELP_MSG_PER_VALUE contains \"$k\", which is not in PARAM_TYPE.";
 					}
 					$this->checkSettingsMessage( $module, "PARAM_HELP_MSG_PER_VALUE[$k]", $v, $ret );
+				}
+				foreach ( $settings[ParamValidator::PARAM_TYPE] as $p ) {
+					if ( array_key_exists( $p, $settings[ApiBase::PARAM_HELP_MSG_PER_VALUE] ) ) {
+						continue;
+					}
+					$path = $module->getModulePath();
+					$this->checkSettingsMessage(
+						$module,
+						"PARAM_HELP_MSG_PER_VALUE[$p]",
+						"apihelp-$path-paramvalue-$name-$p",
+						$ret
+					);
 				}
 			}
 		}
@@ -421,7 +433,7 @@ class ApiParamValidator {
 		foreach ( $ret as &$m ) {
 			$k = $m->getKey();
 			$m = $this->messageConverter->convertMessageValue( $m );
-			if ( substr( $k, 0, 20 ) === 'paramvalidator-help-' ) {
+			if ( str_starts_with( $k, 'paramvalidator-help-' ) ) {
 				$m = new Message(
 					[ 'api-help-param-' . substr( $k, 20 ), $k ],
 					$m->getParams()

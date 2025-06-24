@@ -4,8 +4,7 @@
  * An adaption of RSS Extractor and Displayer	(c) 2007-2009  Scriptol.com - License Mozilla 1.1.
  *
  * @author Malte Müller (acrylian), Stephen Billard (sbillard)
- * @package plugins
- * @subpackage zenphoto-news
+ * @package zpcore\plugins\zenphotonews
  */
 $plugin_is_filter = 7 | ADMIN_PLUGIN;
 $plugin_description = gettext("Places the latest 3 news articles from Zenphoto.org on the admin overview page.");
@@ -65,7 +64,7 @@ function printNews() {
 						}
 					}
 					$title = $article["title"];
-					$date = zpFormattedDate(DATE_FORMAT, strtotime($article["pubDate"]));
+					$date = zpFormattedDate(DATETIME_DISPLAYFORMAT, strtotime($article["pubDate"]));
 					$link = $article["link"];
 					if ($shorten) {
 						$description = shortenContent($article["description"], $shorten, '...');

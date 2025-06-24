@@ -23,21 +23,22 @@
 
 namespace MediaWiki\Session;
 
-use BadMethodCallException;
 use BagOStuff;
 use CachedBagOStuff;
-use Config;
+use LogicException;
+use MediaWiki\Config\Config;
+use MediaWiki\Context\RequestContext;
 use MediaWiki\HookContainer\HookContainer;
 use MediaWiki\HookContainer\HookRunner;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Request\FauxRequest;
+use MediaWiki\Request\WebRequest;
+use MediaWiki\User\User;
 use MediaWiki\User\UserNameUtils;
 use MWException;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
-use User;
-use WebRequest;
 
 /**
  * This serves as the entry point to the MediaWiki session handling system.
@@ -146,11 +147,11 @@ class SessionManager implements SessionManagerInterface {
 			$id = session_id();
 		}
 
-		$request = \RequestContext::getMain()->getRequest();
+		$request = RequestContext::getMain()->getRequest();
 		if (
 			!self::$globalSession // No global session is set up yet
 			|| self::$globalSessionRequest !== $request // The global WebRequest changed
-			|| $id !== '' && self::$globalSession->getId() !== $id // Someone messed with session_id()
+			|| ( $id !== '' && self::$globalSession->getId() !== $id ) // Someone messed with session_id()
 		) {
 			self::$globalSessionRequest = $request;
 			if ( $id === '' ) {
@@ -387,6 +388,9 @@ class SessionManager implements SessionManagerInterface {
 		}
 	}
 
+	/**
+	 * @return array<string,null>
+	 */
 	public function getVaryHeaders() {
 		// @codeCoverageIgnoreStart
 		if ( defined( 'MW_NO_SESSION' ) && MW_NO_SESSION !== 'warn' ) {
@@ -396,9 +400,7 @@ class SessionManager implements SessionManagerInterface {
 		if ( $this->varyHeaders === null ) {
 			$headers = [];
 			foreach ( $this->getProviders() as $provider ) {
-				foreach ( $provider->getVaryHeaders() as $header => $options ) {
-					# Note that the $options value returned has been deprecated
-					# and is ignored.
+				foreach ( $provider->getVaryHeaders() as $header => $_ ) {
 					$headers[$header] = null;
 				}
 			}
@@ -442,7 +444,7 @@ class SessionManager implements SessionManagerInterface {
 	 * The intention is that the named account will never again be usable for
 	 * normal login (i.e. there is no way to undo the prevention of access).
 	 *
-	 * @internal For use from \User::newSystemUser only
+	 * @internal For use from \MediaWiki\User\User::newSystemUser only
 	 * @param string $username
 	 */
 	public function preventSessionsForUser( $username ) {
@@ -473,7 +475,7 @@ class SessionManager implements SessionManagerInterface {
 			$this->sessionProviders = [];
 			$objectFactory = MediaWikiServices::getInstance()->getObjectFactory();
 			foreach ( $this->config->get( MainConfigNames::SessionProviders ) as $spec ) {
-				/** @var SessionProvider */
+				/** @var SessionProvider $provider */
 				$provider = $objectFactory->createObject( $spec );
 				$provider->init(
 					$this->logger,
@@ -728,13 +730,16 @@ class SessionManager implements SessionManagerInterface {
 				// is no saved ID and the names match.
 				if ( $metadata['userId'] ) {
 					if ( $metadata['userId'] !== $userInfo->getId() ) {
+						// Maybe something like UserMerge changed the user ID. Or it's manual tampering.
 						$this->logger->warning(
 							'Session "{session}": User ID mismatch, {uid_a} !== {uid_b}',
 							[
 								'session' => $info->__toString(),
 								'uid_a' => $metadata['userId'],
 								'uid_b' => $userInfo->getId(),
-						] );
+								'uname_a' => $metadata['userName'] ?? '<null>',
+								'uname_b' => $userInfo->getName() ?? '<null>',
+							] );
 						return $failHandler();
 					}
 
@@ -748,7 +753,7 @@ class SessionManager implements SessionManagerInterface {
 								'session' => $info->__toString(),
 								'uname_a' => $metadata['userName'],
 								'uname_b' => $userInfo->getName(),
-						] );
+							] );
 						return $failHandler();
 					}
 
@@ -760,22 +765,25 @@ class SessionManager implements SessionManagerInterface {
 								'session' => $info->__toString(),
 								'uname_a' => $metadata['userName'],
 								'uname_b' => $userInfo->getName(),
-						] );
+							] );
 						return $failHandler();
 					}
 				} elseif ( !$userInfo->isAnon() ) {
-					// Metadata specifies an anonymous user, but the passed-in
-					// user isn't anonymous.
+					// The metadata in the session store entry indicates this is an anonymous session,
+					// but the request metadata (e.g. the username cookie) says otherwise. Maybe the
+					// user logged out but unsetting the cookies failed?
 					$this->logger->warning(
-						'Session "{session}": Metadata has an anonymous user, but a non-anon user was provided',
+						'Session "{session}": the session store entry is for an anonymous user, '
+							. 'but the session metadata indicates a non-anonynmous user',
 						[
 							'session' => $info->__toString(),
-					] );
+						] );
 					return $failHandler();
 				}
 			}
 
 			// And if we have a token in the metadata, it must match the loaded/provided user.
+			// A mismatch probably means the session was invalidated.
 			if ( $metadata['userToken'] !== null &&
 				$userInfo->getToken() !== $metadata['userToken']
 			) {
@@ -808,7 +816,7 @@ class SessionManager implements SessionManagerInterface {
 					'Session "{session}": Null provider and no metadata',
 					[
 						'session' => $info->__toString(),
-				] );
+					] );
 				return $failHandler();
 			}
 
@@ -817,20 +825,24 @@ class SessionManager implements SessionManagerInterface {
 				if ( $info->getProvider()->canChangeUser() ) {
 					$newParams['userInfo'] = UserInfo::newAnonymous();
 				} else {
+					// This is a session provider bug - providers with canChangeUser() === false
+					// should never return an anonymous SessionInfo.
 					$this->logger->info(
 						'Session "{session}": No user provided and provider cannot set user',
 						[
 							'session' => $info->__toString(),
-					] );
+						] );
 					return $failHandler();
 				}
 			} elseif ( !$info->getUserInfo()->isVerified() ) {
-				// probably just a session timeout
+				// The session was not found in the session store, and the request contains no
+				// information beyond the session ID that could be used to verify it.
+				// Probably just a session timeout.
 				$this->logger->info(
 					'Session "{session}": Unverified user provided and no metadata to auth it',
 					[
 						'session' => $info->__toString(),
-				] );
+					] );
 				return $failHandler();
 			}
 
@@ -1010,7 +1022,7 @@ class SessionManager implements SessionManagerInterface {
 	public static function resetCache() {
 		if ( !defined( 'MW_PHPUNIT_TEST' ) && !defined( 'MW_PARSER_TEST' ) ) {
 			// @codeCoverageIgnoreStart
-			throw new BadMethodCallException( __METHOD__ . ' may only be called from unit tests!' );
+			throw new LogicException( __METHOD__ . ' may only be called from unit tests!' );
 			// @codeCoverageIgnoreEnd
 		}
 
@@ -1067,7 +1079,7 @@ class SessionManager implements SessionManagerInterface {
 			return;
 		}
 		$mwuser = $session->getRequest()->getCookie( 'mwuser-sessionId' );
-		$now = (int)\MWTimestamp::now( TS_UNIX );
+		$now = (int)\MediaWiki\Utils\MWTimestamp::now( TS_UNIX );
 
 		// Record (and possibly log) that the IP is using the current session.
 		// Don't touch the stored data unless we are changing the IP or re-adding an expired one.

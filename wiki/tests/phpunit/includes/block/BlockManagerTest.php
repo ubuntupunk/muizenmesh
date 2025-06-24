@@ -7,13 +7,14 @@ use MediaWiki\Block\SystemBlock;
 use MediaWiki\MainConfigNames;
 use MediaWiki\Request\FauxRequest;
 use MediaWiki\Request\FauxResponse;
+use MediaWiki\User\User;
 use Psr\Log\NullLogger;
 use Wikimedia\TestingAccessWrapper;
 
 /**
  * @group Blocking
  * @group Database
- * @coversDefaultClass \MediaWiki\Block\BlockManager
+ * @covers \MediaWiki\Block\BlockManager
  */
 class BlockManagerTest extends MediaWikiIntegrationTestCase {
 	use TestAllServiceOptionsUsed;
@@ -61,35 +62,20 @@ class BlockManagerTest extends MediaWikiIntegrationTestCase {
 				BlockManager::CONSTRUCTOR_OPTIONS,
 				$services->getMainConfig()
 			),
-			$services->getPermissionManager(),
 			$services->getUserFactory(),
+			$services->getUserIdentityUtils(),
 			new NullLogger(),
-			$services->getHookContainer()
+			$services->getHookContainer(),
+			$services->getDatabaseBlockStore(),
+			$services->getProxyLookup()
 		];
 	}
 
-	/**
-	 * @covers ::getUserBlock
-	 */
 	public function testGetBlock() {
 		// Reset so that hooks are called
 		$permissionManager = $this->getServiceContainer()->getPermissionManager();
 		$permissionManager->invalidateUsersRightsCache();
 
-		// Ensure that the `UserGetRights` hook in PermissionManager is triggerred
-		// when checking if the user has `ipblock-exempt`, so that CentralAuth can
-		// grant `ipblock-exempt` via global groups. We also assert that, since the
-		// user should have `ipblock-exempt`, that the `GetUserBlock` hook is called
-		// with `$ip` as `null` since the ip should be ignored
-		$onUserGetRightsCalled = false;
-		$this->setTemporaryHook(
-			'UserGetRights',
-			static function ( $user, &$rights ) use ( &$onUserGetRightsCalled ) {
-				$onUserGetRightsCalled = true;
-				$rights[] = 'ipblock-exempt';
-				return true;
-			}
-		);
 		$onGetUserBlockCalled = false;
 		$onGetUserBlockIP = false;
 		$this->setTemporaryHook(
@@ -102,29 +88,26 @@ class BlockManagerTest extends MediaWikiIntegrationTestCase {
 		);
 
 		$blockManager = $this->getBlockManager( [] );
-		$block = $blockManager->getUserBlock(
+		$block = $blockManager->getBlock(
 			$this->user,
-			$this->createMock( WebRequest::class ),
+			null,
 			false
 		);
 
 		// We don't actually care about the block, just whether or not the right hooks were called
-		$this->assertTrue( $onUserGetRightsCalled, 'Extensions should be able to grant rights' );
 		$this->assertTrue(
 			$onGetUserBlockCalled,
 			'Check that HookRunner::onGetUserBlock was called'
 		);
 		$this->assertNull(
 			$onGetUserBlockIP,
-			'The `GetUserBlock` hook should have been called with null since the user' .
-				' was granted `ipblock-exempt` via the `UserGetRights` hook'
+			'The `GetUserBlock` hook should have been called with null since we ' .
+			'didn\'t pass a request'
 		);
 	}
 
 	/**
 	 * @dataProvider provideBlocksForShouldApplyCookieBlock
-	 * @covers ::getBlockFromCookieValue
-	 * @covers ::shouldApplyCookieBlock
 	 */
 	public function testGetBlockFromCookieValue( $options, $expected ) {
 		/** @var BlockManager $blockManager */
@@ -149,14 +132,10 @@ class BlockManagerTest extends MediaWikiIntegrationTestCase {
 			$user,
 			$user->getRequest()
 		) );
-
-		$blockStore->deleteBlock( $block );
 	}
 
 	/**
 	 * @dataProvider provideBlocksForShouldApplyCookieBlock
-	 * @covers ::trackBlockWithCookie
-	 * @covers ::shouldApplyCookieBlock
 	 */
 	public function testTrackBlockWithCookieRemovesBlocks( $options, $expectKeepCookie ) {
 		/** @var BlockManager $blockManager */
@@ -188,8 +167,6 @@ class BlockManagerTest extends MediaWikiIntegrationTestCase {
 			$expectKeepCookie ? 0 : 1,
 			$response->getCookies()
 		);
-
-		$blockStore->deleteBlock( $block );
 	}
 
 	public static function provideBlocksForShouldApplyCookieBlock() {
@@ -251,7 +228,6 @@ class BlockManagerTest extends MediaWikiIntegrationTestCase {
 
 	/**
 	 * @dataProvider provideIsLocallyBlockedProxy
-	 * @covers ::isLocallyBlockedProxy
 	 */
 	public function testIsLocallyBlockedProxy( $proxyList, $expected ) {
 		/** @var BlockManager $blockManager */
@@ -276,8 +252,6 @@ class BlockManagerTest extends MediaWikiIntegrationTestCase {
 
 	/**
 	 * @dataProvider provideIsDnsBlacklisted
-	 * @covers ::isDnsBlacklisted
-	 * @covers ::inDnsBlacklist
 	 */
 	public function testIsDnsBlacklisted( $options, $expected ) {
 		$blockManagerConfig = [
@@ -386,9 +360,6 @@ class BlockManagerTest extends MediaWikiIntegrationTestCase {
 		];
 	}
 
-	/**
-	 * @covers ::getUniqueBlocks
-	 */
 	public function testGetUniqueBlocks() {
 		$blockId = 100;
 
@@ -416,7 +387,6 @@ class BlockManagerTest extends MediaWikiIntegrationTestCase {
 
 	/**
 	 * @dataProvider provideTrackBlockWithCookie
-	 * @covers ::trackBlockWithCookie
 	 */
 	public function testTrackBlockWithCookie( $options, $expected ) {
 		$this->overrideConfigValue( MainConfigNames::CookiePrefix, '' );
@@ -538,7 +508,6 @@ class BlockManagerTest extends MediaWikiIntegrationTestCase {
 
 	/**
 	 * @dataProvider provideSetBlockCookie
-	 * @covers ::setBlockCookie
 	 */
 	public function testSetBlockCookie( $expiryDelta, $expectedExpiryDelta ) {
 		$this->overrideConfigValue( MainConfigNames::CookiePrefix, '' );
@@ -546,10 +515,13 @@ class BlockManagerTest extends MediaWikiIntegrationTestCase {
 		$request = new FauxRequest();
 		$response = $request->response();
 
-		$blockManager = $this->getBlockManager( [
-			MainConfigNames::SecretKey => '',
-			MainConfigNames::CookieSetOnIpBlock => true,
-		] );
+		/** @var BlockManager $blockManager */
+		$blockManager = TestingAccessWrapper::newFromObject(
+			$this->getBlockManager( [
+				MainConfigNames::SecretKey => '',
+				MainConfigNames::CookieSetOnIpBlock => true,
+			] )
+		);
 
 		$now = wfTimestamp();
 
@@ -590,20 +562,7 @@ class BlockManagerTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
-	 * @covers ::shouldTrackBlockWithCookie
-	 */
-	public function testShouldTrackBlockWithCookieSystemBlock() {
-		/** @var BlockManager $blockManager */
-		$blockManager = TestingAccessWrapper::newFromObject( $this->getBlockManager( [] ) );
-		$this->assertFalse( $blockManager->shouldTrackBlockWithCookie(
-			new SystemBlock(),
-			true
-		) );
-	}
-
-	/**
 	 * @dataProvider provideShouldTrackBlockWithCookie
-	 * @covers ::shouldTrackBlockWithCookie
 	 */
 	public function testShouldTrackBlockWithCookie( $options, $expected ) {
 		$block = $this->getMockBuilder( DatabaseBlock::class )
@@ -708,9 +667,6 @@ class BlockManagerTest extends MediaWikiIntegrationTestCase {
 		];
 	}
 
-	/**
-	 * @covers ::clearBlockCookie
-	 */
 	public function testClearBlockCookie() {
 		$this->overrideConfigValue( MainConfigNames::CookiePrefix, '' );
 
@@ -725,12 +681,11 @@ class BlockManagerTest extends MediaWikiIntegrationTestCase {
 
 	/**
 	 * @dataProvider provideGetIdFromCookieValue
-	 * @covers ::getIdFromCookieValue
 	 */
 	public function testGetIdFromCookieValue( $options, $expected ) {
-		$blockManager = $this->getBlockManager( [
-			MainConfigNames::SecretKey => $options['secretKey']
-		] );
+		/** @var BlockManager $blockManager */
+		$blockManager = TestingAccessWrapper::newFromObject(
+			$this->getBlockManager( [ MainConfigNames::SecretKey => $options['secretKey'] ] ) );
 		$this->assertEquals(
 			$expected,
 			$blockManager->getIdFromCookieValue( $options['cookieValue'] )
@@ -771,12 +726,12 @@ class BlockManagerTest extends MediaWikiIntegrationTestCase {
 
 	/**
 	 * @dataProvider provideGetCookieValue
-	 * @covers ::getCookieValue
 	 */
 	public function testGetCookieValue( $options, $expected ) {
-		$blockManager = $this->getBlockManager( [
+		/** @var BlockManager $blockManager */
+		$blockManager = TestingAccessWrapper::newFromObject( $this->getBlockManager( [
 			MainConfigNames::SecretKey => $options['secretKey']
-		] );
+		] ) );
 
 		$block = $this->getMockBuilder( DatabaseBlock::class )
 			->onlyMethods( [ 'getId' ] )
@@ -812,9 +767,219 @@ class BlockManagerTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
+	 * @dataProvider provideGetXffBlocks
+	 */
+	public function testGetXffBlocks(
+		$applyIpBlocksToXff,
+		$proxyWhiteList,
+		$isAnon,
+		$expected
+	) {
+		$xff = '1.2.3.4, 5.6.7.8, 9.10.11.12';
+		$ip = '1.2.3.4';
+
+		$blockManagerConfig = [
+			MainConfigNames::ApplyIpBlocksToXff => $applyIpBlocksToXff,
+			MainConfigNames::ProxyWhitelist => $proxyWhiteList,
+		];
+
+		$blockManagerMock = $this->getMockBuilder( BlockManager::class )
+			->setConstructorArgs( $this->getBlockManagerConstructorArgs( $blockManagerConfig ) )
+			->onlyMethods( [ 'getBlocksForIPList' ] )
+			->getMock();
+		$blockManagerMock->method( 'getBlocksForIPList' )
+			->willReturnCallback( function () use ( $isAnon ) {
+				if ( $isAnon ) {
+					return [ $this->createMock( DatabaseBlock::class ) ];
+				} else {
+					return [];
+				}
+			} );
+
+		/** @var BlockManager $blockManager */
+		$blockManager = TestingAccessWrapper::newFromObject( $blockManagerMock );
+
+		$this->assertSame(
+			$expected,
+			(bool)$blockManager->getXffBlocks( $ip, $xff, $isAnon, false )
+		);
+	}
+
+	public static function provideGetXffBlocks() {
+		return [
+			'ApplyIpBlocksToXff config is false' => [
+				'applyIpBlocksToXff' => false,
+				'proxyWhiteList' => [],
+				'isAnon' => true,
+				false,
+			],
+			'IP is in ProxyWhiteList' => [
+				'applyIpBlocksToXff' => true,
+				'proxyWhiteList' => [ '1.2.3.4' ],
+				'isAnon' => true,
+				false,
+			],
+			'User is logged in' => [
+				'applyIpBlocksToXff' => true,
+				'proxyWhiteList' => [],
+				'isAnon' => false,
+				false,
+			],
+			'IP is in XFF list but not in ProxyWhiteList' => [
+				'applyIpBlocksToXff' => true,
+				'proxyWhiteList' => [],
+				'isAnon' => true,
+				true,
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provideGetSystemIpBlocks
+	 */
+	public function testGetSystemIpBlocks(
+		$proxyWhitelist,
+		$softBlockRanges,
+		$isLocallyBlockedProxy,
+		$isDnsBlacklisted,
+		$isAnon,
+		$expected
+	) {
+		$ip = '1.2.3.4';
+
+		$blockManagerConfig = [
+			MainConfigNames::ProxyWhitelist => $proxyWhitelist,
+			MainConfigNames::SoftBlockRanges => $softBlockRanges,
+			MainConfigNames::ProxyList => ( $isLocallyBlockedProxy ? [ $ip ] : [] ),
+		];
+
+		$blockManagerMock = $this->getMockBuilder( BlockManager::class )
+			->setConstructorArgs( $this->getBlockManagerConstructorArgs( $blockManagerConfig ) )
+			->onlyMethods( [ 'isDnsBlacklisted' ] )
+			->getMock();
+		$blockManagerMock->method( 'isDnsBlacklisted' )
+			->willReturn( $isDnsBlacklisted );
+
+		/** @var BlockManager $blockManager */
+		$blockManager = TestingAccessWrapper::newFromObject( $blockManagerMock );
+
+		$this->assertSame(
+			$expected,
+			(bool)$blockManager->getSystemIpBlocks( $ip, $isAnon )
+		);
+	}
+
+	public static function provideGetSystemIpBlocks() {
+		return [
+			'IP is in ProxyWhiteList' => [
+				'proxyWhitelist' => [ '1.2.3.4' ],
+				'softBlockRanges' => [],
+				'isLocallyBlockedProxy' => true,
+				'isDnsBlacklisted' => true,
+				'isAnon' => true,
+				false,
+			],
+			'IP is locally blocked proxy only' => [
+				'proxyWhitelist' => [],
+				'softBlockRanges' => [],
+				'isLocallyBlockedProxy' => true,
+				'isDnsBlacklisted' => false,
+				'isAnon' => false,
+				true,
+			],
+			'IP is DNS blacklisted only, anon' => [
+				'proxyWhitelist' => [],
+				'softBlockRanges' => [],
+				'isLocallyBlockedProxy' => false,
+				'isDnsBlacklisted' => true,
+				'isAnon' => true,
+				true,
+			],
+			'IP is DNS blacklisted only, logged in' => [
+				'proxyWhitelist' => [],
+				'softBlockRanges' => [],
+				'isLocallyBlockedProxy' => false,
+				'isDnsBlacklisted' => true,
+				'isAnon' => false,
+				false,
+			],
+			'IP is in SoftBlockRanges and ProxyWhiteList, anon' => [
+				'proxyWhitelist' => [ '1.2.3.4' ],
+				'softBlockRanges' => [ '1.2.3.4' ],
+				'isLocallyBlockedProxy' => false,
+				'isDnsBlacklisted' => false,
+				'isAnon' => true,
+				true,
+			],
+			'IP is in SoftBlockRanges and ProxyWhiteList, logged in' => [
+				'proxyWhitelist' => [ '1.2.3.4' ],
+				'softBlockRanges' => [ '1.2.3.4' ],
+				'isLocallyBlockedProxy' => false,
+				'isDnsBlacklisted' => false,
+				'isAnon' => false,
+				false,
+			],
+		];
+	}
+
+	public function testGetBlocksForIPList() {
+		$blockManager = $this->getBlockManager( [] );
+		$block = new DatabaseBlock( [
+			'address' => '1.2.3.4',
+			'by' => $this->getTestSysop()->getUser(),
+		] );
+		$inserted = $this->getServiceContainer()
+			->getDatabaseBlockStore()
+			->insertBlock( $block );
+		$this->assertTrue(
+			(bool)$inserted['id'],
+			'Check that the block was inserted correctly'
+		);
+
+		// Early return of empty array if no ips in the list
+		$list = $blockManager->getBlocksForIPList( [], true, false );
+		$this->assertCount(
+			0,
+			$list,
+			'No blocks retrieved if no ips listed'
+		);
+
+		// Early return of empty array if all ips are either invalid or trusted proxies,
+		// '192.168.1.1' is set to trusted in setUp();
+		$list = $blockManager->getBlocksForIPList(
+			[ '300.300.300.300', '192.168.1.1' ],
+			true,
+			false
+		);
+		$this->assertCount(
+			0,
+			$list,
+			'No blocks retrieved if all ips are invalid or trusted proxies'
+		);
+
+		// Actually fetching, block was inserted above
+		$list = $blockManager->getBlocksForIPList( [ '1.2.3.4' ], true, false );
+		$this->assertCount(
+			1,
+			$list,
+			'Block retrieved for the blocked ip'
+		);
+		$this->assertInstanceOf(
+			DatabaseBlock::class,
+			$list[0],
+			'DatabaseBlock returned'
+		);
+		$this->assertSame(
+			$inserted['id'],
+			$list[0]->getId(),
+			'Block returned is the correct one'
+		);
+	}
+
+	/**
 	 * @coversNothing
 	 */
 	public function testAllServiceOptionsUsed() {
-		$this->assertAllServiceOptionsUsed( [ 'ApplyIpBlocksToXff', 'SoftBlockRanges' ] );
+		$this->assertAllServiceOptionsUsed();
 	}
 }

@@ -5,6 +5,7 @@
  */
 
 use MediaWiki\MainConfigSchema;
+use MediaWiki\Title\NamespaceInfo;
 use Wikimedia\AtEase\AtEase;
 
 // For backwards compatibility, the value of wgLogos is copied to wgLogo.
@@ -269,6 +270,9 @@ foreach ( LanguageCode::getNonstandardLanguageCodeMapping() as $code => $bcp47 )
 }
 unset( $code ); // no global pollution; destroy reference
 unset( $bcp47 ); // no global pollution; destroy reference
+if ( $wgUseXssLanguage ) {
+	$wgDummyLanguageCodes['x-xss'] = 'x-xss'; // Used for testing
+}
 
 // Temporary backwards-compatibility reading of old replica lag settings as of MediaWiki 1.36,
 // to support sysadmins who fail to update their settings immediately:
@@ -323,16 +327,12 @@ if ( $wgPageCreationLog ) {
 
 if ( $wgPageLanguageUseDB ) {
 	$wgLogTypes[] = 'pagelang';
-	$wgLogActionsHandlers['pagelang/pagelang'] = PageLangLogFormatter::class;
-}
-
-// Backwards compatibility with old password limits
-if ( $wgMinimalPasswordLength !== false ) {
-	$wgPasswordPolicy['policies']['default']['MinimalPasswordLength'] = $wgMinimalPasswordLength;
-}
-
-if ( $wgMaximalPasswordLength !== false ) {
-	$wgPasswordPolicy['policies']['default']['MaximalPasswordLength'] = $wgMaximalPasswordLength;
+	$wgLogActionsHandlers['pagelang/pagelang'] = [
+		'class' => PageLangLogFormatter::class,
+		'services' => [
+			'LanguageNameUtils',
+		]
+	];
 }
 
 if ( $wgPHPSessionHandling !== 'enable' &&
@@ -345,4 +345,16 @@ if ( defined( 'MW_NO_SESSION' ) ) {
 	// If the entry point wants no session, force 'disable' here unless they
 	// specifically set it to the (undocumented) 'warn'.
 	$wgPHPSessionHandling = MW_NO_SESSION === 'warn' ? 'warn' : 'disable';
+}
+
+// Backwards compatibility with old bot passwords storage configs
+if ( !$wgVirtualDomainsMapping ) {
+	$wgVirtualDomainsMapping = [];
+}
+if ( $wgBotPasswordsCluster ) {
+	$wgVirtualDomainsMapping['virtual-botpasswords']['cluster'] = $wgBotPasswordsCluster;
+}
+
+if ( $wgBotPasswordsDatabase ) {
+	$wgVirtualDomainsMapping['virtual-botpasswords']['db'] = $wgBotPasswordsDatabase;
 }

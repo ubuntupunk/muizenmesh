@@ -1,5 +1,8 @@
 <?php
 
+use MediaWiki\Parser\Sanitizer;
+use MediaWiki\User\User;
+
 require_once __DIR__ . '/Maintenance.php';
 
 /**
@@ -24,21 +27,20 @@ class RemoveInvalidEmails extends Maintenance {
 
 	public function execute() {
 		$this->commit = $this->hasOption( 'commit' );
-		$dbr = $this->getDB( DB_REPLICA );
-		$dbw = $this->getDB( DB_PRIMARY );
+		$dbr = $this->getReplicaDB();
+		$dbw = $this->getPrimaryDB();
 		$lastId = 0;
 		do {
-			$rows = $dbr->select(
-				'user',
-				[ 'user_id', 'user_email' ],
-				[
-					'user_id > ' . $dbr->addQuotes( $lastId ),
-					'user_email != ' . $dbr->addQuotes( '' ),
-					'user_email_authenticated IS NULL'
-				],
-				__METHOD__,
-				[ 'LIMIT' => $this->getBatchSize() ]
-			);
+			$rows = $dbr->newSelectQueryBuilder()
+				->select( [ 'user_id', 'user_email' ] )
+				->from( 'user' )
+				->where( [
+					$dbr->expr( 'user_id', '>', $lastId ),
+					$dbr->expr( 'user_email', '!=', '' ),
+					'user_email_authenticated' => null,
+				] )
+				->limit( $this->getBatchSize() )
+				->caller( __METHOD__ )->fetchResultSet();
 			$count = $rows->numRows();
 			$badIds = [];
 			foreach ( $rows as $row ) {

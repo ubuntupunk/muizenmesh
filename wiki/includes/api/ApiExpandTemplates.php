@@ -20,6 +20,7 @@
  * @file
  */
 
+use MediaWiki\Parser\Parser;
 use MediaWiki\Revision\RevisionStore;
 use MediaWiki\Title\Title;
 use Wikimedia\ParamValidator\ParamValidator;
@@ -32,27 +33,24 @@ use Wikimedia\ParamValidator\ParamValidator;
  * @ingroup API
  */
 class ApiExpandTemplates extends ApiBase {
-	/** @var RevisionStore */
-	private $revisionStore;
-
-	/** @var Parser */
-	private $parser;
+	private RevisionStore $revisionStore;
+	private ParserFactory $parserFactory;
 
 	/**
 	 * @param ApiMain $main
 	 * @param string $action
 	 * @param RevisionStore $revisionStore
-	 * @param Parser $parser
+	 * @param ParserFactory $parserFactory
 	 */
 	public function __construct(
 		ApiMain $main,
 		$action,
 		RevisionStore $revisionStore,
-		Parser $parser
+		ParserFactory $parserFactory
 	) {
 		parent::__construct( $main, $action );
 		$this->revisionStore = $revisionStore;
-		$this->parser = $parser;
+		$this->parserFactory = $parserFactory;
 	}
 
 	public function execute() {
@@ -118,8 +116,9 @@ class ApiExpandTemplates extends ApiBase {
 		$retval = [];
 
 		if ( isset( $prop['parsetree'] ) || $params['generatexml'] ) {
-			$this->parser->startExternalParse( $titleObj, $options, Parser::OT_PREPROCESS );
-			$dom = $this->parser->preprocessToDom( $params['text'] );
+			$parser = $this->parserFactory->getInstance();
+			$parser->startExternalParse( $titleObj, $options, Parser::OT_PREPROCESS );
+			$dom = $parser->preprocessToDom( $params['text'] );
 			// @phan-suppress-next-line PhanUndeclaredMethodInCallable
 			if ( is_callable( [ $dom, 'saveXML' ] ) ) {
 				// @phan-suppress-next-line PhanUndeclaredMethod
@@ -141,22 +140,28 @@ class ApiExpandTemplates extends ApiBase {
 		// if they didn't want any output except (probably) the parse tree,
 		// then don't bother actually fully expanding it
 		if ( $prop || $params['prop'] === null ) {
-			$this->parser->startExternalParse( $titleObj, $options, Parser::OT_PREPROCESS );
-			$frame = $this->parser->getPreprocessor()->newFrame();
-			$wikitext = $this->parser->preprocess( $params['text'], $titleObj, $options, $revid, $frame );
+			$parser = $this->parserFactory->getInstance();
+			$parser->startExternalParse( $titleObj, $options, Parser::OT_PREPROCESS );
+			$frame = $parser->getPreprocessor()->newFrame();
+			$wikitext = $parser->preprocess( $params['text'], $titleObj, $options, $revid, $frame );
 			if ( $params['prop'] === null ) {
 				// the old way
 				ApiResult::setContentValue( $retval, 'wikitext', $wikitext );
 			} else {
-				$p_output = $this->parser->getOutput();
+				$p_output = $parser->getOutput();
 				if ( isset( $prop['categories'] ) ) {
-					$categories = $p_output->getCategories();
+					$categories = $p_output->getCategoryNames();
 					if ( $categories ) {
+						$defaultSortKey = $p_output->getPageProperty( 'defaultsort' ) ?? '';
 						$categories_result = [];
-						foreach ( $categories as $category => $sortkey ) {
-							$entry = [];
-							$entry['sortkey'] = $sortkey;
-							ApiResult::setContentValue( $entry, 'category', (string)$category );
+						foreach ( $categories as $category ) {
+							$entry = [
+								// Note that ::getCategorySortKey() returns
+								// the empty string '' to mean
+								// "use the default sort key"
+								'sortkey' => $p_output->getCategorySortKey( $category ) ?: $defaultSortKey,
+							];
+							ApiResult::setContentValue( $entry, 'category', $category );
 							$categories_result[] = $entry;
 						}
 						ApiResult::setIndexedTagName( $categories_result, 'category' );

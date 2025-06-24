@@ -20,7 +20,10 @@
  * @ingroup Actions
  */
 
+use MediaWiki\Context\IContextSource;
 use MediaWiki\MainConfigNames;
+use MediaWiki\Status\Status;
+use MediaWiki\User\User;
 use MediaWiki\Watchlist\WatchlistManager;
 use Wikimedia\ParamValidator\TypeDef\ExpiryDef;
 
@@ -40,8 +43,7 @@ class WatchAction extends FormAction {
 	/** @var false|WatchedItem */
 	protected $watchedItem = false;
 
-	/** @var WatchlistManager */
-	private $watchlistManager;
+	private WatchlistManager $watchlistManager;
 
 	/**
 	 * Only public since 1.21
@@ -94,12 +96,24 @@ class WatchAction extends FormAction {
 		return Status::wrap( $result );
 	}
 
+	/**
+	 * @throws UserNotLoggedIn
+	 * @throws PermissionsError
+	 * @throws ReadOnlyError
+	 * @throws UserBlockedError
+	 */
 	protected function checkCanExecute( User $user ) {
-		if ( !$user->isNamed() ) {
+		if ( !$user->isRegistered()
+			|| ( $user->isTemp() && !$user->isAllowed( 'editmywatchlist' ) )
+		) {
 			throw new UserNotLoggedIn( 'watchlistanontext', 'watchnologin' );
 		}
 
 		parent::checkCanExecute( $user );
+	}
+
+	public function getRestriction() {
+		return 'editmywatchlist';
 	}
 
 	protected function usesOOUI() {

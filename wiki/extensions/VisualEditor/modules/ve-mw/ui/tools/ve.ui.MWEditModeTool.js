@@ -1,7 +1,7 @@
 /*!
  * VisualEditor MediaWiki UserInterface edit mode tool classes.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see AUTHORS.txt
+ * @copyright See AUTHORS.txt
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
@@ -39,32 +39,6 @@ ve.ui.MWEditModeTool.prototype.isModeAvailable = function ( mode ) {
 };
 
 /**
- * MediaWiki UserInterface edit mode source tool.
- *
- * @class
- * @extends mw.libs.ve.MWEditModeSourceTool
- * @mixins ve.ui.MWEditModeTool
- * @constructor
- * @param {OO.ui.ToolGroup} toolGroup
- * @param {Object} [config] Config options
- */
-ve.ui.MWEditModeSourceTool = function VeUiMWEditModeSourceTool() {
-	// Parent constructor
-	ve.ui.MWEditModeSourceTool.super.apply( this, arguments );
-	// Mixin constructor
-	ve.ui.MWEditModeTool.call( this );
-};
-OO.inheritClass( ve.ui.MWEditModeSourceTool, mw.libs.ve.MWEditModeSourceTool );
-OO.mixinClass( ve.ui.MWEditModeSourceTool, ve.ui.MWEditModeTool );
-/**
- * @inheritdoc
- */
-ve.ui.MWEditModeSourceTool.prototype.switch = function () {
-	this.toolbar.getTarget().editSource();
-};
-ve.ui.toolFactory.register( ve.ui.MWEditModeSourceTool );
-
-/**
  * MediaWiki UserInterface edit mode visual tool.
  *
  * @class
@@ -89,3 +63,29 @@ ve.ui.MWEditModeVisualTool.prototype.switch = function () {
 	this.toolbar.getTarget().switchToVisualEditor();
 };
 ve.ui.toolFactory.register( ve.ui.MWEditModeVisualTool );
+
+/**
+ * MediaWiki UserInterface edit mode source tool.
+ *
+ * @class
+ * @extends mw.libs.ve.MWEditModeSourceTool
+ * @mixins ve.ui.MWEditModeTool
+ * @constructor
+ * @param {OO.ui.ToolGroup} toolGroup
+ * @param {Object} [config] Config options
+ */
+ve.ui.MWEditModeSourceTool = function VeUiMWEditModeSourceTool() {
+	// Parent constructor
+	ve.ui.MWEditModeSourceTool.super.apply( this, arguments );
+	// Mixin constructor
+	ve.ui.MWEditModeTool.call( this );
+};
+OO.inheritClass( ve.ui.MWEditModeSourceTool, mw.libs.ve.MWEditModeSourceTool );
+OO.mixinClass( ve.ui.MWEditModeSourceTool, ve.ui.MWEditModeTool );
+/**
+ * @inheritdoc
+ */
+ve.ui.MWEditModeSourceTool.prototype.switch = function () {
+	this.toolbar.getTarget().editSource();
+};
+ve.ui.toolFactory.register( ve.ui.MWEditModeSourceTool );

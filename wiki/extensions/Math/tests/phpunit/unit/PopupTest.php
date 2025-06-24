@@ -9,7 +9,8 @@ use MediaWiki\Rest\Handler;
 use MediaWiki\Rest\HttpException;
 use MediaWiki\Rest\RequestData;
 use MediaWiki\Tests\Rest\Handler\HandlerTestTrait;
-use Title;
+use MediaWiki\Title\Title;
+use MediaWiki\Title\TitleFactory;
 use Wikibase\DataModel\Entity\Item;
 use Wikibase\Lib\Store\EntityRevision;
 use Wikimedia\ParamValidator\ParamValidator;
@@ -62,7 +63,8 @@ class PopupTest extends MathWikibaseConnectorTestFactory {
 	/**
 	 * @dataProvider provideItemSetups
 	 */
-	public function testExistingId( Item $item ) {
+	public function testExistingId( bool $hasPart ) {
+		$item = $this->setupMassEnergyEquivalenceItem( $hasPart );
 		$popupHandler = $this->getPopup( null, null, $item );
 
 		$request = $this->getRequest( '1', 'en' );
@@ -115,7 +117,7 @@ class PopupTest extends MathWikibaseConnectorTestFactory {
 	): Popup {
 		$languageFactoryMock = $languageFactoryMock ?: $this->createMock( LanguageFactory::class );
 		if ( !$languageNameUtilsMock ) {
-			$languageNameUtilsMock = self::createMock( LanguageNameUtils::class );
+			$languageNameUtilsMock = $this->createMock( LanguageNameUtils::class );
 			$languageNameUtilsMock->method( 'isValidCode' )->willReturn( true );
 		}
 		$mathWikibaseConnectorMock = $item ?
@@ -125,7 +127,7 @@ class PopupTest extends MathWikibaseConnectorTestFactory {
 		$titleMock = $this->createMock( Title::class );
 		$titleMock->method( 'getLocalURL' )->willReturn( 'special/Q1' );
 		$titleMock->method( 'getFullURL' )->willReturn( 'special/Q1' );
-		$titleFactoryMock = $this->createMock( \TitleFactory::class );
+		$titleFactoryMock = $this->createMock( TitleFactory::class );
 		$titleFactoryMock->expects( $this->once() )
 			->method( 'newFromText' )
 			->willReturn( $titleMock );
@@ -133,10 +135,10 @@ class PopupTest extends MathWikibaseConnectorTestFactory {
 		return new Popup( $mathWikibaseConnectorMock, $languageFactoryMock, $languageNameUtilsMock, $titleFactoryMock );
 	}
 
-	public function provideItemSetups(): array {
+	public static function provideItemSetups(): array {
 		return [
-			[ $this->setupMassEnergyEquivalenceItem( true ) ],
-			[ $this->setupMassEnergyEquivalenceItem( false ) ],
+			[ true ],
+			[ false ],
 		];
 	}
 }

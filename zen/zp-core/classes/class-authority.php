@@ -3,8 +3,7 @@
  * Provides the methods used for user authorization and management
  * store an instantiation of this class in `$_zp_authority`.
  *
- * @package core
- * @subpackage classes\authorization
+ * @package zpcore\classes\authorization
  */
 class Authority {
 
@@ -51,7 +50,7 @@ class Authority {
 	/**
 	 * Gets the name of the current master user 
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * 
 	 * @global type $_zp_db
 	 * @return type
@@ -113,8 +112,7 @@ class Authority {
 			case 'password_strength':
 				?>
 				<input type="hidden" size="3" id="password_strength" name="password_strength" value="<?php echo getOption('password_strength'); ?>" />
-				<script type="text/javascript">
-					// <!-- <![CDATA[
+				<script>
 					function sliderColor(strength) {
 						var url = 'url(<?php echo WEBPATH . '/' . ZENFOLDER; ?>/images/strengths/strength' + strength + '.png)';
 						$('#slider-password_strength').css('background-image', url);
@@ -137,7 +135,6 @@ class Authority {
 						$('#password_strength_display').html(strength);
 						sliderColor(strength);
 					});
-					// ]]> -->
 				</script>
 				<div id="slider-password_strength"></div>
 				<?php
@@ -267,7 +264,7 @@ class Authority {
 	/**
 	 * Checks if the administrator table and actual admins exist
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * 
 	 * @global obj $_zp_db
 	 * @return boolean
@@ -853,7 +850,9 @@ class Authority {
 		$_zp_loggedin = false;
 		$_zp_pre_authorization = array();
 		zp_session_destroy();
-		header('Clear-Site-Data: "cache", "cookies", "storage", "executionContexts"');
+		if (secureServer()) {
+			header('Clear-Site-Data: "cache", "cookies", "storage", "executionContexts"');
+		}
 		return zp_apply_filter('zp_logout', NULL, $_zp_current_admin_obj);
 	}
 
@@ -929,7 +928,7 @@ class Authority {
 			if ($logo) {
 				?>
 				<p>
-					<img src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/images/zen-logo.png" title="ZenPhoto" alt="ZenPhoto" />
+					<img src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/images/zen-logo.png" title="Zenphoto" alt="Zenphoto" />
 				</p>
 				<?php
 			}
@@ -974,7 +973,7 @@ class Authority {
 							<input type="hidden" name="redirect" value="<?php echo html_encode(pathurlencode($redirect)); ?>" />
 							<fieldset>
 								<legend><?php echo gettext('User') ?></legend>
-								<input class="textfield" name="user" id="user" type="text" size="35" value="<?php echo html_encode($requestor); ?>" />
+								<input class="textfield" name="user" id="user" type="text" size="35" value="<?php echo html_encode($requestor); ?>" required>
 							</fieldset>
 							<?php
 							if ($requestor && $admin) {
@@ -1048,7 +1047,7 @@ class Authority {
 						<input type="hidden" name="redirect" value="<?php echo html_encode(pathurlencode($redirect)); ?>" />
 						<fieldset id="logon_box">
 							<fieldset><legend><?php echo gettext('User'); ?></legend>
-								<input class="textfield" name="user" id="user" type="text" value="<?php echo html_encode($requestor); ?>" />
+								<input class="textfield" name="user" id="user" type="text" value="<?php echo html_encode($requestor); ?>" required>
 							</fieldset>
 							<?php
 							if (isset($captcha['input'])) {
@@ -1080,8 +1079,7 @@ class Authority {
 						$legend = gettext('Login');
 					} else {
 						?>
-						<script type="text/javascript">
-							// <!-- <![CDATA[
+						<script>
 							var handlers = [];
 					<?php
 					$list = '<select id="logon_choices" onchange="changeHandler(handlers[$(this).val()]);">' .
@@ -1105,7 +1103,6 @@ class Authority {
 								var script = handler.shift();
 								window.location = script+'?'+handler.join('&');
 							}
-							// ]]> -->
 						</script>
 						<?php
 					}
@@ -1120,13 +1117,13 @@ class Authority {
 							if ($showUserField) { //	requires a "user" field
 								?>
 								<fieldset><legend><?php echo gettext("User"); ?></legend>
-									<input class="textfield" name="user" id="user" type="text" size="35" value="<?php echo html_encode($requestor); ?>" />
+									<input class="textfield" name="user" id="user" type="text" size="35" value="<?php echo html_encode($requestor); ?>" required>
 								</fieldset>
 								<?php
 							}
 							?>
 							<fieldset><legend><?php echo gettext("Password"); ?></legend>
-								<input class="textfield" name="pass" id="pass" type="password" size="35" /><br />
+								<input class="textfield" name="pass" id="pass" type="password" size="35" required><br />
 								<label><input type="checkbox" name="disclose_password" id="disclose_password" onclick="togglePassword('');" /><?php echo gettext('Show password') ?></label>
 							</fieldset>
 							<br />
@@ -1166,8 +1163,7 @@ class Authority {
 	 */
 	static function printPasswordFormJS() {
 		?>
-		<script type="text/javascript">
-			// <!-- <![CDATA[
+		<script>
 			function passwordStrength(id) {
 				var inputa = '#pass' + id;
 				var inputb = '#pass_r' + id;
@@ -1239,7 +1235,7 @@ class Authority {
 				var inputa = '#pass' + id;
 				var inputb = '#pass_r' + id;
 				var display = '#match' + id;
-				if ($('#disclose_password' + id).prop('checked')) {
+				if (!$('#disclose_password' + id).prop('checked')) {
 					if ($(inputa).val() === $(inputb).val()) {
 						if ($(inputa).val().trim() !== '') {
 							$(display).css('color', '#008000');
@@ -1263,7 +1259,7 @@ class Authority {
 				}
 			}
 			function togglePassword(id) {
-				if ($('#pass' + id).attr('type') == 'password') {
+				if ($('#pass' + id).attr('type') === 'password') {
 					var oldp = $('#pass' + id);
 					var newp = oldp.clone();
 					newp.attr('type', 'text');
@@ -1285,7 +1281,7 @@ class Authority {
 				'logonstep_captcha_js' : $('#logonstep_captcha_js').attr('href'),
 				'logonstep_return_js' : $('#logonstep_return_js').attr('href')
 			};
-			setLogonStepURL(logonsteps)
+			setLogonStepURL(logonsteps);
 			$( "#user" ).keyup(function() {
 				setLogonStepURL(logonsteps);
 			});
@@ -1298,7 +1294,6 @@ class Authority {
 					}
 				});
 			}
-			// ]]> -->
 		</script>
 		<?php
 	}
@@ -1393,7 +1388,7 @@ class Authority {
 	 * Checks if the email address being set is already used by another user
 	 * Returns true if it is, false if not
 	 * 
-	 * @deprecated Zenphoto 2.0 – Use the method isUniqueMailaddress() instead
+	 * @deprecated 2.0 – Use the method isUniqueMailaddress() instead
 	 *
 	 * @param string $email_to_check email address to check
 	 * @param type $current_user user id of the user trying to set this email address
@@ -1407,7 +1402,7 @@ class Authority {
 	/**
 	 * Gets the current page params to generate a logout link of the current page if not using modrewrite
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * 
 	 * @param string $returnvalue 'string' for a ready to use string for an logout url or 'array' for an indexed array 
 * @return array|string
@@ -1429,11 +1424,11 @@ class Authority {
 		if (isset($_GET['p'])) {
 			$page_params['p'] = sanitize($_GET['p']);
 		}
-		if (isset($_GET['searchfields'])) {
+		/*if (isset($_GET['searchfields'])) {
 			$page_params['searchfields'] = sanitize($_GET['searchfields']);
-		}
-		if (isset($_GET['search'])) {
-			$page_params['search'] = sanitize($_GET['search']);
+		} */
+		if (isset($_GET['s'])) {
+			$page_params['s'] = sanitize($_GET['s']);
 		}
 		if (isset($_GET['date'])) {
 			$page_params['date'] = sanitize($_GET['date']);
@@ -1460,7 +1455,7 @@ class Authority {
 	 * 
 	 * If in front end mode this will keep the user on the same page after logout (even if that may not be public)
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * 
 	 * @global type $_zp_current_admin_obj
 	 * @param string $mode "backend" (default) for the main backend logout link, 
@@ -1489,7 +1484,9 @@ class Authority {
 }
 
 /**
- * @deprecated ZenphotoCMS 2.0 - Use the class Authority instead
+ * 
+ * @package zpcore\classes\deprecated
+ * @deprecated 2.0 - Use the class Authority instead
  */
 class Zenphoto_Authority extends Authority {
 	

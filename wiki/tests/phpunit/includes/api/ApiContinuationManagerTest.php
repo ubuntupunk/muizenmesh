@@ -1,12 +1,21 @@
 <?php
 
+namespace MediaWiki\Tests\Api;
+
+use ApiContinuationManager;
+use ApiMain;
+use ApiResult;
+use ApiUsageException;
+use MediaWiki\Context\DerivativeContext;
+use MediaWiki\Context\RequestContext;
 use MediaWiki\Request\FauxRequest;
+use UnexpectedValueException;
 
 /**
- * @covers ApiContinuationManager
+ * @covers \ApiContinuationManager
  * @group API
  */
-class ApiContinuationManagerTest extends MediaWikiIntegrationTestCase {
+class ApiContinuationManagerTest extends ApiTestCase {
 
 	private static function getManager( $continue, $allModules, $generatedModules ) {
 		$context = new DerivativeContext( RequestContext::getMain() );
@@ -163,7 +172,7 @@ class ApiContinuationManagerTest extends MediaWikiIntegrationTestCase {
 			self::getManager( 'foo', $allModules, [ 'mock1', 'mock2' ] );
 			$this->fail( 'Expected exception not thrown' );
 		} catch ( ApiUsageException $ex ) {
-			$this->assertTrue( ApiTestCase::apiExceptionHasCode( $ex, 'badcontinue' ),
+			$this->assertApiErrorCode( 'badcontinue', $ex,
 				'Expected exception'
 			);
 		}

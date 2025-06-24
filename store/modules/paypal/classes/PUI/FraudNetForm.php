@@ -1,6 +1,6 @@
 <?php
-/**
- * 2007-2023 PayPal
+/*
+ * Since 2007 PayPal
  *
  * NOTICE OF LICENSE
  *
@@ -18,16 +18,18 @@
  *  versions in the future. If you wish to customize PrestaShop for your
  *  needs please refer to http://www.prestashop.com for more information.
  *
- *  @author 2007-2023 PayPal
+ *  @author Since 2007 PayPal
  *  @author 202 ecommerce <tech@202-ecommerce.com>
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
+ *
  */
 
 namespace PaypalAddons\classes\PUI;
 
 use Address;
 use Context;
+use Customer;
 use Exception;
 use PaypalAddons\classes\AbstractMethodPaypal;
 use Throwable;
@@ -82,11 +84,14 @@ class FraudNetForm
     protected function getUserData()
     {
         $billingAddress = new Address($this->context->cart->id_address_invoice);
+        $customer = new Customer($billingAddress->id_customer);
         $userData = new DataUserForm();
 
         $userData->setFirstName($this->context->customer->firstname);
         $userData->setLastName($this->context->customer->lastname);
         $userData->setEmail($this->context->customer->email);
+        $userData->setPhone($billingAddress->phone);
+        $userData->setBirth($customer->birthday);
         $userData->setPhone($billingAddress->phone);
 
         return $userData;

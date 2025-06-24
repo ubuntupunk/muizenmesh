@@ -8,8 +8,8 @@ use MediaWiki\Linker\LinkTargetLookup;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Page\PageIdentity;
 use MediaWiki\Page\PageReference;
+use MediaWiki\Parser\ParserOutput;
 use MediaWiki\Revision\RevisionRecord;
-use ParserOutput;
 use Wikimedia\ObjectFactory\ObjectFactory;
 use Wikimedia\Rdbms\LBFactory;
 
@@ -39,9 +39,6 @@ class LinksTableGroup {
 		],
 		'externallinks' => [
 			'class' => ExternalLinksTable::class,
-			'services' => [
-				'MainConfig'
-			],
 		],
 		'imagelinks' => [
 			'class' => ImageLinksTable::class
@@ -53,7 +50,10 @@ class LinksTableGroup {
 			'class' => LangLinksTable::class
 		],
 		'pagelinks' => [
-			'class' => PageLinksTable::class
+			'class' => PageLinksTable::class,
+			'services' => [
+				'MainConfig'
+			],
 		],
 		'page_props' => [
 			'class' => PagePropsTable::class,

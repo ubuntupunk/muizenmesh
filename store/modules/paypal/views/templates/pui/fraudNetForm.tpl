@@ -1,5 +1,5 @@
 {**
- * 2007-2023 PayPal
+ * 2007-2024 PayPal
  *
  * NOTICE OF LICENSE
  *
@@ -17,7 +17,7 @@
  *  versions in the future. If you wish to customize PrestaShop for your
  *  needs please refer to http://www.prestashop.com for more information.
  *
- *  @author 2007-2023 PayPal
+ *  @author 2007-2024 PayPal
  *  @author 202 ecommerce <tech@202-ecommerce.com>
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
@@ -25,17 +25,17 @@
  *}
 {assign var='baseUrl' value=Context::getContext()->shop->getBaseURL(true)}
 
-<link rel="stylesheet" href="{$baseUrl nofilter}modules/paypal/views/intl-tel/css/intlTelInput.css">
+<link rel="stylesheet" href="{$baseUrl|escape:'htmlall':'UTF-8'}modules/paypal/views/intl-tel/css/intlTelInput.css">
 
-{include file = "{$psPaypalDir}/views/templates/_partials/javascript.tpl" assign=javascriptBlock}
+{include file = "{$psPaypalDir|escape:'htmlall':'UTF-8'}/views/templates/_partials/javascript.tpl" assign=javascriptBlock}
 {$javascriptBlock nofilter}
 {assign var='currentDate' value=date('Y-m-d')}
 
 {literal}
 <script type="application/json" fncls="fnparams-dede7cc5-15fd-4c75-a9f4-36c430ee3a99">
   {
-    "f":"{/literal}{$sessionId}{literal}",
-    "s":"{/literal}{$sourceId}{literal}",
+    "f":"{/literal}{$sessionId|escape:'htmlall':'UTF-8'}{literal}",
+    "s":"{/literal}{$sourceId|escape:'htmlall':'UTF-8'}{literal}",
     "sandbox": {/literal}{if $isSandbox}true{else}false{/if}{literal}
   }
 </script>
@@ -109,7 +109,7 @@
               required
               class="form-control"
               type="date"
-              data-date={l s='DD.MM.YYYY' mod='paypal'}
+              data-date={if isset($userData) && $userData->getBirth('d.m.Y')}{$userData->getBirth('d.m.Y')}{else}{l s='DD.MM.YYYY' mod='paypal'}{/if}
               max="{$currentDate nofilter}"
               name="paypal_pui_birhday"
               id="paypal_pui_birhday"
@@ -167,7 +167,9 @@
               class="form-control"
               type="tel"
               name="paypal_pui_phone"
+              value="{if isset($userData)}{$userData->getPhone()}{/if}"
               id="paypal_pui_phone">
+
     </div>
   </div>
 
@@ -204,6 +206,12 @@
               separateDialCode: true
           }
       );
+
+      if (paypalPuiPhone.getSelectedCountryData().iso2 !== 'de') {
+        paypalPuiPhone.telInput.value = null;
+        paypalPuiPhone.setCountry('de');
+      }
+
       document.querySelector('form[pui-form]').addEventListener('submit', function(e) {
           if (paypalPuiPhone.getValidationError() == 0) {
               return;

@@ -2,7 +2,6 @@
 @import '../../../minerva.less/minerva.mixins.less';
 
 @media print {
-	.mw-editsection,
 	.noprint,
 	.banner-container,
 	.minerva-header,
@@ -14,10 +13,10 @@
 	}
 
 	.printfooter {
-		display: block;
 		padding-top: 1em;
 	}
 
+	.mw-heading,
 	h1,
 	h2,
 	h3,
@@ -27,6 +26,7 @@
 		page-break-after: avoid;
 	}
 
+	.mw-heading,
 	table,
 	figure,
 	img {

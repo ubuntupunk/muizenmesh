@@ -39,7 +39,7 @@ class SerializerStateTest extends TestCase {
 			$env = new MockEnv( [] );
 		}
 		if ( !$serializer ) {
-			$serializer = new WikitextSerializer( [ 'env' => $env ] );
+			$serializer = new WikitextSerializer( $env, [] );
 		}
 		return new SerializerState( $serializer, $options );
 	}
@@ -149,14 +149,13 @@ class SerializerStateTest extends TestCase {
 		$state->serializeChildren( $node );
 
 		$node = $this->getNode( '<div id="main"><span></span><span></span></div>' );
+		$calledNode = [ $node->firstChild, $node->firstChild->nextSibling ];
 		$serializer = $this->getBaseSerializerMock( [ 'serializeNode' ] );
 		$serializer->expects( $this->exactly( 2 ) )
 			->method( 'serializeNode' )
-			->withConsecutive(
-				[ $node->firstChild ],
-				[ $node->firstChild->nextSibling ]
-			)
-			->willReturnCallback( static function ( Element $node ) {
+			->willReturnCallback( function ( Element $node ) use ( &$calledNode ) {
+				$nextNode = array_shift( $calledNode );
+				$this->assertSame( $nextNode, $node );
 				return $node->nextSibling;
 			} );
 		$state = $this->getState( [], null, $serializer );

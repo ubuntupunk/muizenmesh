@@ -2,28 +2,28 @@
 
 namespace MediaWiki\Rest\Handler;
 
-use Config;
 use InvalidArgumentException;
 use ISearchResultSet;
 use MediaWiki\Cache\CacheKeyHelper;
+use MediaWiki\Config\Config;
 use MediaWiki\MainConfigNames;
 use MediaWiki\Page\PageIdentity;
 use MediaWiki\Page\PageStore;
 use MediaWiki\Page\RedirectLookup;
 use MediaWiki\Permissions\PermissionManager;
 use MediaWiki\Rest\Handler;
+use MediaWiki\Rest\Handler\Helper\RestStatusTrait;
 use MediaWiki\Rest\LocalizedHttpException;
 use MediaWiki\Rest\Response;
 use MediaWiki\Search\Entity\SearchResultThumbnail;
 use MediaWiki\Search\SearchResultThumbnailProvider;
+use MediaWiki\Title\TitleFormatter;
 use SearchEngine;
 use SearchEngineConfig;
 use SearchEngineFactory;
 use SearchResult;
 use SearchSuggestion;
-use Status;
-use TitleFormatter;
-use Wikimedia\Message\MessageValue;
+use StatusValue;
 use Wikimedia\ParamValidator\ParamValidator;
 use Wikimedia\ParamValidator\TypeDef\IntegerDef;
 
@@ -31,6 +31,7 @@ use Wikimedia\ParamValidator\TypeDef\IntegerDef;
  * Handler class for Core REST API endpoint that handles basic search
  */
 class SearchHandler extends Handler {
+	use RestStatusTrait;
 
 	/** @var SearchEngineFactory */
 	private $searchEngineFactory;
@@ -151,21 +152,18 @@ class SearchHandler extends Handler {
 
 	/**
 	 * Get SearchResults when results are either SearchResultSet or Status objects
-	 * @param ISearchResultSet|Status|null $results
+	 * @param ISearchResultSet|StatusValue|null $results
 	 * @return SearchResult[]
 	 * @throws LocalizedHttpException
 	 */
 	private function getSearchResultsOrThrow( $results ) {
 		if ( $results ) {
-			if ( $results instanceof Status ) {
+			if ( $results instanceof StatusValue ) {
 				$status = $results;
 				if ( !$status->isOK() ) {
 					[ $error ] = $status->splitByErrorType();
 					if ( $error->getErrors() ) { // Only throw for errors, suppress warnings (for now)
-						$errorMessages = $error->getMessage();
-						throw new LocalizedHttpException(
-							new MessageValue( "rest-search-error", [ $errorMessages->getKey() ] )
-						);
+						$this->throwExceptionForStatus( $status, 'rest-search-error', 500 );
 					}
 				}
 				$statusValue = $status->getValue();
@@ -330,7 +328,6 @@ class SearchHandler extends Handler {
 
 		return [
 			'mimetype' => $thumbnail->getMimeType(),
-			'size' => $thumbnail->getSize(),
 			'width' => $thumbnail->getWidth(),
 			'height' => $thumbnail->getHeight(),
 			'duration' => $thumbnail->getDuration(),

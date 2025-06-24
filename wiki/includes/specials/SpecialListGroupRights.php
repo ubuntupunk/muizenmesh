@@ -21,12 +21,20 @@
  * @ingroup SpecialPage
  */
 
+namespace MediaWiki\Specials;
+
+use ILanguageConverter;
 use MediaWiki\Html\Html;
 use MediaWiki\Languages\LanguageConverterFactory;
 use MediaWiki\MainConfigNames;
+use MediaWiki\Parser\Sanitizer;
 use MediaWiki\Permissions\GroupPermissionsLookup;
+use MediaWiki\SpecialPage\SpecialPage;
+use MediaWiki\Title\NamespaceInfo;
 use MediaWiki\Title\Title;
+use MediaWiki\User\User;
 use MediaWiki\User\UserGroupManager;
+use MediaWiki\User\UserGroupMembership;
 
 /**
  * This special page lists all defined user groups and the associated rights.
@@ -37,17 +45,10 @@ use MediaWiki\User\UserGroupManager;
  */
 class SpecialListGroupRights extends SpecialPage {
 
-	/** @var NamespaceInfo */
-	private $nsInfo;
-
-	/** @var UserGroupManager */
-	private $userGroupManager;
-
-	/** @var ILanguageConverter */
-	private $languageConverter;
-
-	/** @var GroupPermissionsLookup */
-	private $groupPermissionsLookup;
+	private NamespaceInfo $nsInfo;
+	private UserGroupManager $userGroupManager;
+	private ILanguageConverter $languageConverter;
+	private GroupPermissionsLookup $groupPermissionsLookup;
 
 	/**
 	 * @param NamespaceInfo $nsInfo
@@ -83,10 +84,10 @@ class SpecialListGroupRights extends SpecialPage {
 		$out->wrapWikiMsg( "<div class=\"mw-listgrouprights-key\">\n$1\n</div>", 'listgrouprights-key' );
 
 		$out->addHTML(
-			Xml::openElement( 'table', [ 'class' => 'wikitable mw-listgrouprights-table' ] ) .
+			Html::openElement( 'table', [ 'class' => 'wikitable mw-listgrouprights-table' ] ) .
 				'<tr>' .
-				Xml::element( 'th', null, $this->msg( 'listgrouprights-group' )->text() ) .
-				Xml::element( 'th', null, $this->msg( 'listgrouprights-rights' )->text() ) .
+				Html::element( 'th', [], $this->msg( 'listgrouprights-group' )->text() ) .
+				Html::element( 'th', [], $this->msg( 'listgrouprights-rights' )->text() ) .
 				'</tr>'
 		);
 
@@ -162,7 +163,7 @@ class SpecialListGroupRights extends SpecialPage {
 				'
 			) );
 		}
-		$out->addHTML( Xml::closeElement( 'table' ) );
+		$out->addHTML( Html::closeElement( 'table' ) );
 		$this->outputNamespaceProtectionInfo();
 	}
 
@@ -179,7 +180,7 @@ class SpecialListGroupRights extends SpecialPage {
 			Html::element( 'h2', [
 				'id' => Sanitizer::escapeIdForAttribute( $header )
 			], $header ) .
-			Xml::openElement( 'table', [ 'class' => 'wikitable' ] ) .
+			Html::openElement( 'table', [ 'class' => 'wikitable' ] ) .
 			Html::element(
 				'th',
 				[],
@@ -206,7 +207,7 @@ class SpecialListGroupRights extends SpecialPage {
 			}
 
 			$out->addHTML(
-				Xml::openElement( 'tr' ) .
+				Html::openElement( 'tr' ) .
 				Html::rawElement(
 					'td',
 					[],
@@ -217,7 +218,7 @@ class SpecialListGroupRights extends SpecialPage {
 						[ 'namespace' => $namespace ]
 					)
 				) .
-				Xml::openElement( 'td' ) . Xml::openElement( 'ul' )
+				Html::openElement( 'td' ) . Html::openElement( 'ul' )
 			);
 
 			if ( !is_array( $rights ) ) {
@@ -225,26 +226,24 @@ class SpecialListGroupRights extends SpecialPage {
 			}
 
 			foreach ( $rights as $right ) {
-				$out->addHTML(
-					Html::rawElement( 'li', [], $this->msg(
-						'listgrouprights-right-display',
-						User::getRightDescription( $right ),
-						Html::element(
+				$out->addHTML( Html::rawElement( 'li', [],
+					$this->msg( 'listgrouprights-right-display' )
+						->params( User::getRightDescription( $right ) )
+						->rawParams( Html::element(
 							'span',
 							[ 'class' => 'mw-listgrouprights-right-name' ],
 							$right
-						)
-					)->parse() )
-				);
+						) )->parse()
+				) );
 			}
 
 			$out->addHTML(
-				Xml::closeElement( 'ul' ) .
-				Xml::closeElement( 'td' ) .
-				Xml::closeElement( 'tr' )
+				Html::closeElement( 'ul' ) .
+				Html::closeElement( 'td' ) .
+				Html::closeElement( 'tr' )
 			);
 		}
-		$out->addHTML( Xml::closeElement( 'table' ) );
+		$out->addHTML( Html::closeElement( 'table' ) );
 	}
 
 	/**
@@ -263,17 +262,23 @@ class SpecialListGroupRights extends SpecialPage {
 		foreach ( $permissions as $permission ) {
 			// show as granted only if it isn't revoked to prevent duplicate display of permissions
 			if ( !isset( $revoke[$permission] ) || !$revoke[$permission] ) {
-				$r[] = $this->msg( 'listgrouprights-right-display',
-					User::getRightDescription( $permission ),
-					'<span class="mw-listgrouprights-right-name">' . $permission . '</span>'
-				)->parse();
+				$r[] = $this->msg( 'listgrouprights-right-display' )
+					->params( User::getRightDescription( $permission ) )
+					->rawParams( Html::element(
+						'span',
+						[ 'class' => 'mw-listgrouprights-right-name' ],
+						$permission
+					) )->parse();
 			}
 		}
 		foreach ( $revoke as $permission ) {
-			$r[] = $this->msg( 'listgrouprights-right-revoked',
-				User::getRightDescription( $permission ),
-				'<span class="mw-listgrouprights-right-name">' . $permission . '</span>'
-			)->parse();
+			$r[] = $this->msg( 'listgrouprights-right-revoked' )
+				->params( User::getRightDescription( $permission ) )
+				->rawParams( Html::element(
+					'span',
+					[ 'class' => 'mw-listgrouprights-right-name' ],
+					$permission
+				) )->parse();
 		}
 
 		sort( $r );
@@ -299,7 +304,7 @@ class SpecialListGroupRights extends SpecialPage {
 				if ( count( $changeGroup ) ) {
 					$groupLinks = [];
 					foreach ( $changeGroup as $group ) {
-						$groupLinks[] = UserGroupMembership::getLink( $group, $this->getContext(), 'wiki' );
+						$groupLinks[] = UserGroupMembership::getLinkWiki( $group, $this->getContext() );
 					}
 					// For grep: listgrouprights-addgroup, listgrouprights-removegroup,
 					// listgrouprights-addgroup-self, listgrouprights-removegroup-self
@@ -309,7 +314,7 @@ class SpecialListGroupRights extends SpecialPage {
 			}
 		}
 
-		if ( empty( $r ) ) {
+		if ( !$r ) {
 			return '';
 		} else {
 			return '<ul><li>' . implode( "</li>\n<li>", $r ) . '</li></ul>';
@@ -320,3 +325,6 @@ class SpecialListGroupRights extends SpecialPage {
 		return 'users';
 	}
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( SpecialListGroupRights::class, 'SpecialListGroupRights' );

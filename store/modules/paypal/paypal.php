@@ -1,6 +1,6 @@
 <?php
-/**
- * 2007-2023 PayPal
+/*
+ * Since 2007 PayPal
  *
  * NOTICE OF LICENSE
  *
@@ -18,10 +18,11 @@
  *  versions in the future. If you wish to customize PrestaShop for your
  *  needs please refer to http://www.prestashop.com for more information.
  *
- *  @author 2007-2023 PayPal
+ *  @author Since 2007 PayPal
  *  @author 202 ecommerce <tech@202-ecommerce.com>
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
+ *
  */
 if (!defined('_PS_VERSION_')) {
     exit;
@@ -33,9 +34,6 @@ include_once _PS_MODULE_DIR_ . 'paypal/vendor/autoload.php';
 use PaypalAddons\classes\AbstractMethodPaypal;
 use PaypalAddons\classes\ACDC\AcdcFunctionality;
 use PaypalAddons\classes\ACDC\AcdcPaymentMethod;
-use PaypalAddons\classes\APM\ApmCollection;
-use PaypalAddons\classes\APM\ApmFunctionality;
-use PaypalAddons\classes\Constants\APM;
 use PaypalAddons\classes\Constants\PaypalConfigurations;
 use PaypalAddons\classes\Constants\Vaulting;
 use PaypalAddons\classes\Constants\WebHookConf;
@@ -47,7 +45,6 @@ use PaypalAddons\classes\InstallmentBanner\BNPL\BNPLOption;
 use PaypalAddons\classes\InstallmentBanner\BNPL\BNPLPaymentStep;
 use PaypalAddons\classes\InstallmentBanner\BNPL\BNPLProduct;
 use PaypalAddons\classes\InstallmentBanner\BNPL\BNPLSignup;
-use PaypalAddons\classes\InstallmentBanner\ConfigurationMap;
 use PaypalAddons\classes\InstallmentBanner\ConfigurationMap as InstallmentConfiguration;
 use PaypalAddons\classes\PaypalPaymentMode;
 use PaypalAddons\classes\PUI\FraudNetForm;
@@ -114,6 +111,36 @@ class PayPal extends \PaymentModule implements WidgetInterface
     const SCA_UNAVAILABLE = 'U';
 
     const SCA_BYPASSED = 'B';
+
+    const SCA_STATE_SUCCESS = 1;
+
+    const SCA_STATE_UNKNOWN = 2;
+
+    const SCA_STATE_FAILED = 3;
+
+    const SCA_STATE_NOT_PASSED = 4;
+
+    const ACCESS_TOKEN = 'PAYPAL_ACCESS_TOKEN';
+
+    const USE_CARD_FIELDS = 'PAYPAL_USE_CARD_FIELDS';
+
+    const SCA_WHEN_REQUIRED = 'SCA_WHEN_REQUIRED';
+
+    const SCA_ALWAYS = 'SCA_ALWAYS';
+
+    const PS_CUSTOMER_DATE_FORMAT = 'Y-m-d';
+
+    const CAPTURE_STATUS_DECLINED = 'DECLINED';
+
+    const CAPTURE_STATUS_COMPLETED = 'COMPLETED';
+
+    const CAPTURE_STATUS_PARTIALLY_REFUNDED = 'PARTIALLY_REFUNDED';
+
+    const CAPTURE_STATUS_PENDING = 'PENDING';
+
+    const CAPTURE_STATUS_REFUNDED = 'REFUNDED';
+
+    const CAPTURE_STATUS_FAILED = 'FAILED';
 
     public static $dev = true;
     public $express_checkout;
@@ -302,7 +329,7 @@ class PayPal extends \PaymentModule implements WidgetInterface
     {
         $this->name = 'paypal';
         $this->tab = 'payments_gateways';
-        $this->version = '6.2.1';
+        $this->version = '6.4.2';
         $this->author = '202 ecommerce';
         $this->module_key = '336225a5988ad434b782f2d868d7bfcd';
         $this->ps_versions_compliancy = ['min' => '1.7', 'max' => _PS_VERSION_];
@@ -369,17 +396,17 @@ class PayPal extends \PaymentModule implements WidgetInterface
             PaypalConfigurations::OS_PROCESSING => (int) Configuration::get('PAYPAL_OS_WAITING'),
             PaypalConfigurations::OS_VALIDATION_ERROR => (int) Configuration::get('PS_OS_CANCELED'),
             PaypalConfigurations::OS_REFUNDED_PAYPAL => (int) Configuration::get('PS_OS_REFUND'),
-            \PaypalAddons\classes\InstallmentBanner\ConfigurationMap::ENABLE_BNPL => 1,
-            \PaypalAddons\classes\InstallmentBanner\ConfigurationMap::BNPL_CART_PAGE => 1,
-            \PaypalAddons\classes\InstallmentBanner\ConfigurationMap::BNPL_PAYMENT_STEP_PAGE => 1,
-            \PaypalAddons\classes\InstallmentBanner\ConfigurationMap::BNPL_CHECKOUT_PAGE => 1,
-            \PaypalAddons\classes\InstallmentBanner\ConfigurationMap::BNPL_PRODUCT_PAGE => 1,
-            \PaypalAddons\classes\InstallmentBanner\ConfigurationMap::PRODUCT_PAGE => 1,
-            \PaypalAddons\classes\InstallmentBanner\ConfigurationMap::CATEGORY_PAGE => 0,
-            \PaypalAddons\classes\InstallmentBanner\ConfigurationMap::HOME_PAGE => 0,
-            \PaypalAddons\classes\InstallmentBanner\ConfigurationMap::CHECKOUT_PAGE => 1,
-            \PaypalAddons\classes\InstallmentBanner\ConfigurationMap::CART_PAGE => 1,
-            ConfigurationMap::ENABLE_INSTALLMENT => 1,
+            InstallmentConfiguration::ENABLE_BNPL => 1,
+            InstallmentConfiguration::BNPL_CART_PAGE => 1,
+            InstallmentConfiguration::BNPL_PAYMENT_STEP_PAGE => 1,
+            InstallmentConfiguration::BNPL_CHECKOUT_PAGE => 1,
+            InstallmentConfiguration::BNPL_PRODUCT_PAGE => 1,
+            InstallmentConfiguration::PRODUCT_PAGE => 1,
+            InstallmentConfiguration::CATEGORY_PAGE => 0,
+            InstallmentConfiguration::HOME_PAGE => 0,
+            InstallmentConfiguration::CHECKOUT_PAGE => 1,
+            InstallmentConfiguration::CART_PAGE => 1,
+            InstallmentConfiguration::ENABLE_INSTALLMENT => 1,
             ShortcutConfiguration::SHOW_ON_PRODUCT_PAGE => 1,
             ShortcutConfiguration::SHOW_ON_CART_PAGE => 1,
             ShortcutConfiguration::SHOW_ON_SIGNUP_STEP => 1,
@@ -388,9 +415,8 @@ class PayPal extends \PaymentModule implements WidgetInterface
             PaypalConfigurations::SHOW_MODAL_CONFIGURATION => 1,
             PaypalConfigurations::PUI_ENABLED => 1,
             PaypalConfigurations::SEPA_ENABLED => 1,
-            PaypalConfigurations::GIROPAY_ENABLED => 1,
-            PaypalConfigurations::SOFORT_ENABLED => 1,
             PaypalConfigurations::ACDC_OPTION => 1,
+            self::USE_CARD_FIELDS => 1,
         ];
 
         if (version_compare(_PS_VERSION_, '1.7.6', '<')) {
@@ -423,14 +449,15 @@ class PayPal extends \PaymentModule implements WidgetInterface
             $this->_errors[] = Tools::displayError($e->getMessage());
         }
 
-        if (($isPhpVersionCompliant && parent::install() && $installer->install()) == false) {
-            return false;
-        }
-        // Registration order status
-        if (!$this->installOrderState()) {
+        if (($isPhpVersionCompliant && parent::install()) == false) {
             return false;
         }
 
+        $installer->installObjectModels();
+        $installer->installAdminControllers();
+        $installer->installExtensions();
+        // Registration order status
+        $this->installOrderState();
         $this->registerHooks();
         $this->moduleConfigs['PAYPAL_OS_WAITING_VALIDATION'] = (int) Configuration::get('PAYPAL_OS_WAITING');
         $this->moduleConfigs['PAYPAL_OS_PROCESSING'] = (int) Configuration::get('PAYPAL_OS_WAITING');
@@ -700,6 +727,30 @@ class PayPal extends \PaymentModule implements WidgetInterface
         return new VenmoFunctionality();
     }
 
+    public function isShortcutEnabled()
+    {
+        if (Configuration::get(ShortcutConfiguration::SHOW_ON_PRODUCT_PAGE)) {
+            return true;
+        }
+        if (Configuration::get(ShortcutConfiguration::SHOW_ON_CART_PAGE)) {
+            return true;
+        }
+        if (Configuration::get(ShortcutConfiguration::SHOW_ON_SIGNUP_STEP)) {
+            return true;
+        }
+        if (Configuration::get(InstallmentConfiguration::BNPL_PRODUCT_PAGE)) {
+            return true;
+        }
+        if (Configuration::get(InstallmentConfiguration::BNPL_CART_PAGE)) {
+            return true;
+        }
+        if (Configuration::get(InstallmentConfiguration::BNPL_CHECKOUT_PAGE)) {
+            return true;
+        }
+
+        return false;
+    }
+
     /**
      * @param $params
      *
@@ -711,6 +762,9 @@ class PayPal extends \PaymentModule implements WidgetInterface
     public function hookPaymentOptions($params)
     {
         if (Module::isEnabled('braintreeofficial') && (int) Configuration::get('BRAINTREEOFFICIAL_ACTIVATE_PAYPAL')) {
+            return [];
+        }
+        if (!$this->context->customer->isLogged() && !$this->context->customer->is_guest) {
             return [];
         }
 
@@ -741,7 +795,7 @@ class PayPal extends \PaymentModule implements WidgetInterface
                 break;
             case 'PPP':
                 if ($method->isConfigured()) {
-                    if ((Configuration::get('PAYPAL_EXPRESS_CHECKOUT_SHORTCUT') || Configuration::get('PAYPAL_EXPRESS_CHECKOUT_SHORTCUT_CART')) && isset($this->context->cookie->paypal_pSc)) {
+                    if ($this->isShortcutEnabled() && isset($this->context->cookie->paypal_pSc)) {
                         $payment_option = new PaymentOption();
                         $action_text = $this->l('Pay with paypal plus shortcut');
                         $payment_option->setCallToActionText($action_text);
@@ -756,8 +810,7 @@ class PayPal extends \PaymentModule implements WidgetInterface
                 break;
             case 'MB':
                 if (in_array($this->context->currency->iso_code, $this->currencyMB)) {
-                    $methodEC = AbstractMethodPaypal::load('EC');
-                    if ($methodEC->isConfigured()) {
+                    if (Configuration::get(PaypalConfigurations::MB_EC_ENABLED)) {
                         $paymentOptionsEc = $this->renderEcPaymentOptions($params);
                         $payments_options = array_merge($payments_options, $paymentOptionsEc);
                     }
@@ -793,10 +846,6 @@ class PayPal extends \PaymentModule implements WidgetInterface
 
             if ($this->initAcdcFunctionality()->isAvailable() && $this->initAcdcFunctionality()->isEnabled()) {
                 $payments_options[] = $this->buildAcdcPaymentOption($params);
-            }
-
-            if ($this->initApmFunctionality()->isAvailable()) {
-                $payments_options = array_merge($payments_options, $this->buildApmPaymentOptions($params));
             }
 
             if ($this->paypal_method == 'PPP') {
@@ -920,53 +969,6 @@ class PayPal extends \PaymentModule implements WidgetInterface
     public function getFraudNetForm()
     {
         return new FraudNetForm();
-    }
-
-    protected function initApmFunctionality()
-    {
-        return new ApmFunctionality();
-    }
-
-    protected function buildApmPaymentOptions($params)
-    {
-        $paymentOptions = [];
-        $optionsMap = $this->buildOptionsMapAccordingToContext();
-
-        foreach ($optionsMap as $optionMap) {
-            $paymentOption = new PaymentOption();
-            $paymentOption->setCallToActionText($optionMap['label']);
-            $paymentOption->setModuleName('paypal_' . $optionMap['method']);
-
-            if (Configuration::get('PAYPAL_EXPRESS_CHECKOUT_IN_CONTEXT')) {
-                $paymentOption->setAdditionalInformation($this->initApmCollection([$optionMap['method']])->render());
-            } else {
-                $paymentOption->setAction(
-                    $this->context->link->getModuleLink(
-                        $this->name,
-                        'ecInit',
-                        [
-                            'credit_card' => '0',
-                            'methodType' => 'PPP',
-                            'apmMethod' => $optionMap['method'],
-                        ],
-                        true
-                    )
-                );
-
-                if (isset($optionMap['logo'])) {
-                    $paymentOption->setLogo($optionMap['logo']);
-                }
-            }
-
-            $paymentOptions[] = $paymentOption;
-        }
-
-        return $paymentOptions;
-    }
-
-    protected function initApmCollection($method = null)
-    {
-        return new ApmCollection($method);
     }
 
     protected function initAcdcFunctionality()
@@ -1101,7 +1103,7 @@ class PayPal extends \PaymentModule implements WidgetInterface
         $paymentOption->setAdditionalInformation($additionalInformation);
         $paymentOptions[] = $paymentOption;
 
-        if ((Configuration::get('PAYPAL_EXPRESS_CHECKOUT_SHORTCUT') || Configuration::get('PAYPAL_EXPRESS_CHECKOUT_SHORTCUT_CART') || Configuration::get('PAYPAL_EXPRESS_CHECKOUT_SHORTCUT_SIGNUP')) && isset($this->context->cookie->paypal_ecs)) {
+        if ($this->isShortcutEnabled() && isset($this->context->cookie->paypal_ecs)) {
             $paymentOption = new PaymentOption();
             $action_text = $this->l('Pay with paypal express checkout');
             $paymentOption->setCallToActionText($action_text);
@@ -1152,8 +1154,7 @@ class PayPal extends \PaymentModule implements WidgetInterface
                 return $returnContent;
             }
 
-            if ((Configuration::get(ShortcutConfiguration::SHOW_ON_PRODUCT_PAGE) || Configuration::get(ShortcutConfiguration::SHOW_ON_CART_PAGE) || Configuration::get(ShortcutConfiguration::SHOW_ON_SIGNUP_STEP))
-                && (isset($this->context->cookie->paypal_ecs) || isset($this->context->cookie->paypal_pSc))) {
+            if ($this->isShortcutEnabled() && (isset($this->context->cookie->paypal_ecs) || isset($this->context->cookie->paypal_pSc))) {
                 $this->context->controller->registerJavascript($this->name . '-paypal-ec-sc', 'modules/' . $this->name . '/views/js/shortcut_payment.js');
                 $resources[] = _MODULE_DIR_ . $this->name . '/views/js/shortcut_payment.js' . '?v=' . $this->version;
                 if (isset($this->context->cookie->paypal_ecs)) {
@@ -1351,7 +1352,7 @@ class PayPal extends \PaymentModule implements WidgetInterface
             return '';
         }
 
-        if ($data['sourcePage'] == ConfigurationMap::PAGE_TYPE_PAYMENT_STEP) {
+        if ($data['sourcePage'] == InstallmentConfiguration::PAGE_TYPE_PAYMENT_STEP) {
             if ($bnplOption->displayOnPaymentStep() == false) {
                 return '';
             }
@@ -1478,13 +1479,7 @@ class PayPal extends \PaymentModule implements WidgetInterface
             }
         }
 
-        if ($this->paypal_method == 'MB') {
-            $methodType = 'EC';
-        } else {
-            $methodType = $this->paypal_method;
-        }
-
-        $method = AbstractMethodPaypal::load($methodType);
+        $method = AbstractMethodPaypal::load();
 
         if ($method->isConfigured() == false) {
             return '';
@@ -1554,7 +1549,7 @@ class PayPal extends \PaymentModule implements WidgetInterface
         $amount_paid = Tools::ps_round($amount_paid, 2);
 
         $cart = new Cart((int) $id_cart);
-        $total_ps = (float) $cart->getOrderTotal(true, Cart::BOTH);
+        $total_ps = Tools::ps_round((float) $cart->getOrderTotal(true, Cart::BOTH), 2);
         if ($amount_paid_curr > $total_ps + 0.10 || $amount_paid_curr < $total_ps - 0.10) {
             $total_ps = $amount_paid_curr;
         }
@@ -1606,6 +1601,7 @@ class PayPal extends \PaymentModule implements WidgetInterface
 
         $adminEmployee = new Employee(_PS_ADMIN_PROFILE_);
         $order = new Order($this->currentOrder);
+        $adminLang = new Language($adminEmployee->id_lang);
         $orderState = new OrderState($order->current_state, $adminEmployee->id_lang);
 
         if (is_string($orderState->name)) {
@@ -1614,6 +1610,22 @@ class PayPal extends \PaymentModule implements WidgetInterface
             $message = (isset($orderState->name[$order->id_lang]) ? $orderState->name[$order->id_lang] : current($orderState->name));
         } else {
             $message = $this->l('Order creation is successful');
+        }
+
+        if (isset($transaction['scaState'])) {
+            switch ((int) $transaction['scaState']) {
+                case self::SCA_STATE_SUCCESS:
+                    $message .= ' ' . $this->l('(3DS : Success)', false, $adminLang->locale);
+                    break;
+                case self::SCA_STATE_NOT_PASSED:
+                    $message .= ' ' . $this->l('(3DS : Not passed)', false, $adminLang->locale);
+                    break;
+                case self::SCA_STATE_FAILED:
+                    $message .= ' ' . $this->l('(3DS : Failed)', false, $adminLang->locale);
+                    break;
+                default:
+                    $message .= ' ' . $this->l('(3DS : Unknown)', false, $adminLang->locale);
+            }
         }
 
         ProcessLoggerHandler::openLogger();
@@ -2051,10 +2063,6 @@ class PayPal extends \PaymentModule implements WidgetInterface
             }
 
             if (in_array($orderPayPal->payment_status, ['refunded', 'voided'])) {
-                return true;
-            }
-
-            if ($orderPayPal->method != 'EC') {
                 return true;
             }
 
@@ -2979,7 +2987,7 @@ class PayPal extends \PaymentModule implements WidgetInterface
             )
         );
         $paymentOption->setModuleName('paypal_bnpl');
-        $paymentOption->setAdditionalInformation($this->renderBnpl(['sourcePage' => ConfigurationMap::PAGE_TYPE_PAYMENT_STEP]));
+        $paymentOption->setAdditionalInformation($this->renderBnpl(['sourcePage' => InstallmentConfiguration::PAGE_TYPE_PAYMENT_STEP]));
 
         return $paymentOption;
     }
@@ -2992,43 +3000,6 @@ class PayPal extends \PaymentModule implements WidgetInterface
     protected function initPuiFunctionality()
     {
         return new PuiFunctionality();
-    }
-
-    protected function buildOptionsMapAccordingToContext()
-    {
-        $map = [];
-
-        if (empty($this->context->cart->id_address_delivery)) {
-            return $map;
-        }
-
-        $addressDelivery = new Address($this->context->cart->id_address_delivery);
-        $isoCountry = Tools::strtoupper((string) Country::getIsoById($addressDelivery->id_country));
-        $isoCurrency = Tools::strtoupper((string) $this->context->currency->iso_code);
-
-        if (empty($isoCountry) || empty($isoCurrency)) {
-            return $map;
-        }
-
-        if ($isoCountry == 'DE' && $isoCurrency == 'EUR') {
-            if ($this->initApmFunctionality()->isGiropayEnabled()) {
-                $map[] = [
-                    'method' => APM::GIROPAY,
-                    'label' => $this->l('giropay'),
-                    'logo' => Media::getMediaPath(_PS_MODULE_DIR_ . $this->name . '/views/img/giropay.svg'),
-                ];
-            }
-
-            if ($this->initApmFunctionality()->isSofortEnabled()) {
-                $map[] = [
-                    'method' => APM::SOFORT,
-                    'label' => $this->l('Sofort'),
-                    'logo' => Media::getMediaPath(_PS_MODULE_DIR_ . $this->name . '/views/img/sofort.svg'),
-                ];
-            }
-        }
-
-        return $map;
     }
 
     public function hookActionAdminOrdersTrackingNumberUpdate($params)
@@ -3112,5 +3083,10 @@ class PayPal extends \PaymentModule implements WidgetInterface
     protected function initPaypalVaultingService()
     {
         return new ServicePaypalVaulting();
+    }
+
+    public function isConsiderGiftProductAsDiscount()
+    {
+        return version_compare(_PS_VERSION_, '1.7.4.4', '>=') && version_compare(_PS_VERSION_, '1.7.6', '<');
     }
 }

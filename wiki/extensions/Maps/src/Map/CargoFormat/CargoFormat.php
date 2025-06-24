@@ -9,10 +9,11 @@ use Maps\MapsFactory;
 
 class CargoFormat extends CargoDisplayFormat {
 
-	private \ParserOutput $parserOutput;
+	/** @var Parser|null */
+	private $parserOutput;
 
-	public function __construct( \ParserOutput $parserOutput ) {
-		parent::__construct( $parserOutput );
+	public function __construct( $output, $parserOutput = null ) {
+		parent::__construct( $output, $parserOutput );
 		$this->parserOutput = $parserOutput;
 	}
 
@@ -33,8 +34,10 @@ class CargoFormat extends CargoDisplayFormat {
 			$displayParams
 		);
 
-		$this->parserOutput->addHeadItem( $mapOutput->getHeadItems() );
-		$this->parserOutput->addModules( $mapOutput->getResourceModules() );
+		if ( $this->parserOutput ) {
+			$this->parserOutput->addHeadItem( $mapOutput->getHeadItems() );
+			$this->parserOutput->addModules( $mapOutput->getResourceModules() );
+		}
 
 		return $mapOutput->getHtml();
 	}

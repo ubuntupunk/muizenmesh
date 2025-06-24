@@ -22,8 +22,10 @@ use MediaWiki\Html\Html;
 use MediaWiki\Linker\Linker;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Request\WebRequest;
+use MediaWiki\SpecialPage\SpecialPage;
 use MediaWiki\Title\Title;
-use MediaWiki\Title\TitleArray;
+use MediaWiki\Title\TitleArrayFromResult;
 use Wikimedia\Rdbms\IResultWrapper;
 
 /**
@@ -144,16 +146,12 @@ class ImagePage extends Article {
 
 		# No need to display noarticletext, we use our own message, output in openShowImage()
 		if ( $this->getPage()->getId() ) {
-			# NS_FILE is in the user language, but this section (the actual wikitext)
-			# should be in page content language
-			$pageLang = $this->getTitle()->getPageViewLanguage();
-			$out->addHTML( Xml::openElement( 'div', [ 'id' => 'mw-imagepage-content',
-				'lang' => $pageLang->getHtmlCode(), 'dir' => $pageLang->getDir(),
-				'class' => 'mw-content-' . $pageLang->getDir() ] ) );
-
+			$out->addHTML( Html::openElement( 'div', [ 'id' => 'mw-imagepage-content' ] ) );
+			// NS_FILE pages render mostly in the user language (like special pages),
+			// except the editable wikitext content, which is rendered in the page content
+			// language by the parent class.
 			parent::view();
-
-			$out->addHTML( Xml::closeElement( 'div' ) );
+			$out->addHTML( Html::closeElement( 'div' ) );
 		} else {
 			# Just need to set the right headers
 			$out->setArticleFlag( true );
@@ -219,7 +217,6 @@ class ImagePage extends Article {
 		}
 
 		$out->addModuleStyles( [
-			'filepage', // always show the local local Filepage.css, T31277
 			'mediawiki.action.view.filepage', // Add MediaWiki styles for a file page
 		] );
 	}
@@ -283,7 +280,10 @@ class ImagePage extends Article {
 			);
 		}
 
-		return Html::rawElement( 'ul', [ 'id' => 'filetoc' ], implode( "\n", $r ) );
+		return Html::rawElement( 'ul', [
+		  'id' => 'filetoc',
+		  'role' => 'navigation'
+		], implode( "\n", $r ) );
 	}
 
 	/**
@@ -330,10 +330,16 @@ class ImagePage extends Article {
 			return null;
 		}
 
-		$requestLanguage =
-			$request->getVal( 'lang',
-				LanguageCode::bcp47( $this->getTitle()->getPageViewLanguage()->getCode() )
-			);
+		$requestLanguage = $request->getVal( 'lang' );
+		if ( $requestLanguage === null ) {
+			// For on File pages about a translatable SVG, decide which
+			// language to render the large thumbnail in (T310445)
+			$services = MediaWikiServices::getInstance();
+			$variantLangCode = $services->getLanguageConverterFactory()
+				->getLanguageConverter( $services->getContentLanguage() )
+				->getPreferredVariant();
+			$requestLanguage = LanguageCode::bcp47( $variantLangCode );
+		}
 		if ( $handler->validateParam( 'lang', $requestLanguage ) ) {
 			return $file->getMatchedLanguage( $requestLanguage );
 		}
@@ -347,6 +353,7 @@ class ImagePage extends Article {
 		$enableUploads = $mainConfig->get( MainConfigNames::EnableUploads );
 		$send404Code = $mainConfig->get( MainConfigNames::Send404Code );
 		$svgMaxSize = $mainConfig->get( MainConfigNames::SVGMaxSize );
+		$enableLegacyMediaDOM = $mainConfig->get( MainConfigNames::ParserEnableLegacyMediaDOM );
 		$this->loadFile();
 		$out = $context->getOutput();
 		$user = $context->getUser();
@@ -485,6 +492,9 @@ class ImagePage extends Article {
 					$linkPrev = $linkNext = '';
 					$count = $this->displayImg->pageCount();
 					$linkRenderer = MediaWikiServices::getInstance()->getLinkRenderer();
+					if ( !$enableLegacyMediaDOM ) {
+						$out->addModules( 'mediawiki.page.media' );
+					}
 
 					if ( $page > 1 ) {
 						$label = $context->msg( 'imgmultipageprev' )->text();
@@ -638,7 +648,7 @@ EOT
 		} else {
 			# Image does not exist
 			if ( !$this->getPage()->getId() ) {
-				$dbr = wfGetDB( DB_REPLICA );
+				$dbr = $this->dbProvider->getReplicaDatabase();
 
 				# No article exists either
 				# Show deletion log to be consistent with normal articles
@@ -648,7 +658,7 @@ EOT
 					$this->getTitle()->getPrefixedText(),
 					'',
 					[ 'lim' => 10,
-						'conds' => [ 'log_action != ' . $dbr->addQuotes( 'revision' ) ],
+						'conds' => [ $dbr->expr( 'log_action', '!=', 'revision' ) ],
 						'showIfEmpty' => false,
 						'msgKey' => [ 'moveddeleted-notice' ]
 					]
@@ -722,7 +732,7 @@ EOT
 	}
 
 	/**
-	 * Creates an thumbnail of specified size and returns an HTML link to it
+	 * Creates a thumbnail of specified size and returns an HTML link to it
 	 * @param array $params Scaler parameters
 	 * @param int $width
 	 * @param int $height
@@ -861,15 +871,14 @@ EOT
 	 * @return IResultWrapper
 	 */
 	protected function queryImageLinks( $target, $limit ) {
-		$dbr = wfGetDB( DB_REPLICA );
-
-		return $dbr->select(
-			[ 'imagelinks', 'page' ],
-			[ 'page_namespace', 'page_title', 'il_to' ],
-			[ 'il_to' => $target, 'il_from = page_id' ],
-			__METHOD__,
-			[ 'LIMIT' => $limit + 1, 'ORDER BY' => 'il_from', ]
-		);
+		return $this->dbProvider->getReplicaDatabase()->newSelectQueryBuilder()
+			->select( [ 'page_namespace', 'page_title', 'il_to' ] )
+			->from( 'imagelinks' )
+			->join( 'page', null, 'il_from = page_id' )
+			->where( [ 'il_to' => $target ] )
+			->orderBy( 'il_from' )
+			->limit( $limit + 1 )
+			->caller( __METHOD__ )->fetchResultSet();
 	}
 
 	protected function imageLinks() {
@@ -1044,7 +1053,7 @@ EOT
 	 */
 	public function showError( $description ) {
 		$out = $this->getContext()->getOutput();
-		$out->setPageTitle( $this->getContext()->msg( 'internalerror' ) );
+		$out->setPageTitleMsg( $this->getContext()->msg( 'internalerror' ) );
 		$out->setRobotPolicy( 'noindex,nofollow' );
 		$out->setArticleRelated( false );
 		$out->disableClientCache();
@@ -1199,7 +1208,7 @@ EOT
 
 	/**
 	 * @see WikiFilePage::getForeignCategories
-	 * @return TitleArray|Title[]
+	 * @return TitleArrayFromResult
 	 */
 	public function getForeignCategories() {
 		return $this->getPage()->getForeignCategories();

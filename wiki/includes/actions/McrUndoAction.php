@@ -8,6 +8,8 @@
 use MediaWiki\CommentFormatter\CommentFormatter;
 use MediaWiki\CommentStore\CommentStore;
 use MediaWiki\CommentStore\CommentStoreComment;
+use MediaWiki\Config\Config;
+use MediaWiki\Context\IContextSource;
 use MediaWiki\Html\Html;
 use MediaWiki\Linker\Linker;
 use MediaWiki\MainConfigNames;
@@ -17,7 +19,11 @@ use MediaWiki\Revision\RevisionLookup;
 use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\Revision\RevisionRenderer;
 use MediaWiki\Revision\SlotRecord;
+use MediaWiki\SpecialPage\SpecialPage;
+use MediaWiki\Status\Status;
 use MediaWiki\Storage\EditResult;
+use MediaWiki\User\User;
+use Wikimedia\Rdbms\ReadOnlyMode;
 
 /**
  * Temporary action for MCR undos
@@ -41,20 +47,11 @@ class McrUndoAction extends FormAction {
 	/** @var RevisionRecord|null */
 	protected $curRev = null;
 
-	/** @var ReadOnlyMode */
-	private $readOnlyMode;
-
-	/** @var RevisionLookup */
-	private $revisionLookup;
-
-	/** @var RevisionRenderer */
-	private $revisionRenderer;
-
-	/** @var CommentFormatter */
-	private $commentFormatter;
-
-	/** @var bool */
-	private $useRCPatrol;
+	private ReadOnlyMode $readOnlyMode;
+	private RevisionLookup $revisionLookup;
+	private RevisionRenderer $revisionRenderer;
+	private CommentFormatter $commentFormatter;
+	private bool $useRCPatrol;
 
 	/**
 	 * @param Article $article
@@ -105,12 +102,6 @@ class McrUndoAction extends FormAction {
 
 		$out = $this->getOutput();
 		$out->setRobotPolicy( 'noindex,nofollow' );
-		if ( $this->getContext()->getConfig()->get( MainConfigNames::UseMediaWikiUIEverywhere ) ) {
-			$out->addModuleStyles( [
-				'mediawiki.ui.input',
-				'mediawiki.ui.checkbox',
-			] );
-		}
 
 		// IP warning headers copied from EditPage
 		// (should more be copied?)
@@ -355,11 +346,6 @@ class McrUndoAction extends FormAction {
 			)
 		);
 
-		$pageViewLang = $this->getTitle()->getPageViewLanguage();
-		$attribs = [ 'lang' => $pageViewLang->getHtmlCode(), 'dir' => $pageViewLang->getDir(),
-			'class' => 'mw-content-' . $pageViewLang->getDir() ];
-		$previewHTML = Html::rawElement( 'div', $attribs, $previewHTML );
-
 		$out->addHTML( $previewhead . $previewHTML );
 	}
 
@@ -480,7 +466,7 @@ class McrUndoAction extends FormAction {
 		];
 
 		if ( $request->getCheck( 'wpSummary' ) ) {
-			$ret['summarypreview']['default'] = Xml::tags(
+			$ret['summarypreview']['default'] = Html::rawElement(
 				'div',
 				[ 'class' => 'mw-summary-preview' ],
 				$this->commentFormatter->formatBlock(

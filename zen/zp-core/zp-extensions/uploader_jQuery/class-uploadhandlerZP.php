@@ -12,8 +12,7 @@
  * Licensed under the MIT license:
  * https://opensource.org/licenses/MIT
  * 
-  * @package plugins
- * @subpackage uploader-jquery
+ * @package zpcore\plugins\uploaderjquery
  */
 
 class UploadHandlerZP extends UploadHandler {
@@ -208,6 +207,7 @@ class UploadHandlerZP extends UploadHandler {
 		$albumobj = $imageobj = null;
 		$file = new \stdClass();
 		$file->name = $this->get_file_name($uploaded_file, $name, $size, $type, $error, $index, $content_range);
+		$is_zip_upload = false;
 		
 		// zpcms addition
 		$seoname = seoFriendly($name);
@@ -267,8 +267,12 @@ class UploadHandlerZP extends UploadHandler {
 						}
 						$imageobj->save();
 					} else if (is_zip($targetFile)) {
-						unzip($targetFile, $_zp_uploader_targetpath);
-						unlink($targetFile);
+						$zip_success = unzip($targetFile, $_zp_uploader_targetpath);
+						if($zip_success) {
+							$is_zip_upload = true;
+						} else {
+							unlink($targetFile);
+						}
 					} else {
 						$file->error = $error = $this->get_error_message(UPLOAD_ERR_EXTENSION); // invalid file uploaded
 					}
@@ -291,6 +295,8 @@ class UploadHandlerZP extends UploadHandler {
 					} else {
 						$this->handle_image_file($file_path, $file);
 					}
+				} else if ($is_zip_upload) {
+					unlink($targetFile);
 				}
 			} else {
 				$file->size = $file_size;
@@ -365,6 +371,11 @@ class UploadHandlerZP extends UploadHandler {
 		}
 		$response = array($this->options['param_name'] => $files);
 		return $this->generate_response($response, $print_response);
+	}
+	
+	protected function basename($filepath, $suffix = null) {
+		$splited = preg_split('/\//', rtrim($filepath, '/ '));
+		return substr(basename('X' . $splited[count($splited) - 1], strval($suffix)), 1);
 	}
 
 }

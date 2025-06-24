@@ -20,11 +20,10 @@
 
 namespace MediaWiki\User\CentralId;
 
-use CentralIdLookup;
 use InvalidArgumentException;
-use LocalIdLookup;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\MainConfigNames;
+use MediaWiki\User\UserFactory;
 use MediaWiki\User\UserIdentityLookup;
 use Wikimedia\ObjectFactory\ObjectFactory;
 
@@ -54,6 +53,7 @@ class CentralIdLookupFactory {
 
 	/** @var UserIdentityLookup */
 	private $userIdentityLookup;
+	private UserFactory $userFactory;
 
 	/** @var CentralIdLookup[] */
 	private $instanceCache = [];
@@ -66,13 +66,15 @@ class CentralIdLookupFactory {
 	public function __construct(
 		ServiceOptions $options,
 		ObjectFactory $objectFactory,
-		UserIdentityLookup $userIdentityLookup
+		UserIdentityLookup $userIdentityLookup,
+		UserFactory $userFactory
 	) {
 		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
 		$this->providers = $options->get( MainConfigNames::CentralIdLookupProviders );
 		$this->defaultProvider = $options->get( MainConfigNames::CentralIdLookupProvider );
 		$this->objectFactory = $objectFactory;
 		$this->userIdentityLookup = $userIdentityLookup;
+		$this->userFactory = $userFactory;
 	}
 
 	/**
@@ -113,7 +115,7 @@ class CentralIdLookupFactory {
 				$providerSpec,
 				[ 'assertClass' => CentralIdLookup::class ]
 			);
-			$provider->init( $providerId, $this->userIdentityLookup );
+			$provider->init( $providerId, $this->userIdentityLookup, $this->userFactory );
 			$this->instanceCache[$providerId] = $provider;
 		}
 		return $this->instanceCache[$providerId];

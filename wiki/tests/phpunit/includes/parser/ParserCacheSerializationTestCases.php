@@ -5,11 +5,13 @@ namespace MediaWiki\Tests\Parser;
 use CacheTime;
 use JsonSerializable;
 use MediaWiki\Json\JsonCodec;
+use MediaWiki\Parser\ParserOutput;
 use MediaWiki\Title\Title;
+use MediaWiki\Title\TitleValue;
+use MediaWiki\Utils\MWTimestamp;
 use MediaWikiIntegrationTestCase;
 use MWDebug;
-use MWTimestamp;
-use ParserOutput;
+use Wikimedia\TestingAccessWrapper;
 use Wikimedia\Tests\SerializationTestUtils;
 
 /**
@@ -171,7 +173,7 @@ abstract class ParserCacheSerializationTestCases {
 	 * @return array[]
 	 */
 	public static function getParserOutputTestCases() {
-		MWDebug::filterDeprecationForTest( '/Use of ParserOutput::setTOCHTML/' );
+		MWDebug::filterDeprecationForTest( '/::setPageProperty with non-scalar value/' );
 		$parserOutputWithCacheTimeProps = new ParserOutput( 'CacheTime' );
 		$parserOutputWithCacheTimeProps->setCacheTime( self::CACHE_TIME );
 		$parserOutputWithCacheTimeProps->updateCacheExpiry( 10 );
@@ -203,12 +205,12 @@ abstract class ParserCacheSerializationTestCases {
 
 		$parserOutputWithMetadata = new ParserOutput( '' );
 		$parserOutputWithMetadata->setSpeculativeRevIdUsed( 42 );
-		$parserOutputWithMetadata->addLanguageLink( 'link1' );
-		$parserOutputWithMetadata->addLanguageLink( 'link2' );
+		$parserOutputWithMetadata->addLanguageLink( Title::makeTitle( NS_MAIN, 'link1' ) );
+		$parserOutputWithMetadata->addLanguageLink( Title::makeTItle( NS_MAIN, 'link2' ) );
 		$parserOutputWithMetadata->addInterwikiLink( Title::makeTitle( NS_MAIN, 'interwiki1', '', 'enwiki' ) );
 		$parserOutputWithMetadata->addInterwikiLink( Title::makeTitle( NS_MAIN, 'interwiki2', '', 'enwiki' ) );
-		$parserOutputWithMetadata->addCategory( 'category2', '1' );
-		$parserOutputWithMetadata->addCategory( 'category1', '2' );
+		$parserOutputWithMetadata->addCategory( Title::makeTitle( NS_CATEGORY, 'category2' ), '1' );
+		$parserOutputWithMetadata->addCategory( Title::makeTitle( NS_CATEGORY, 'category1' ), '2' );
 		$parserOutputWithMetadata->setIndicator( 'indicator1', 'indicator1_value' );
 		$parserOutputWithMetadata->setTitleText( 'title_text1' );
 		$parserOutputWithMetadata->setSections( self::SECTIONS );
@@ -220,7 +222,7 @@ abstract class ParserCacheSerializationTestCases {
 			4242
 		);
 		$parserOutputWithMetadata->addImage(
-			'Image1',
+			new TitleValue( NS_FILE, 'Image1' ),
 			MWTimestamp::convert( TS_MW, 123456789 ),
 			'test_sha1'
 		);
@@ -229,16 +231,22 @@ abstract class ParserCacheSerializationTestCases {
 		$parserOutputWithMetadata->addModules( [ 'module1' ] );
 		$parserOutputWithMetadata->addModuleStyles( [ 'module_style1' ] );
 		$parserOutputWithMetadata->setJsConfigVar( 'key1', 'value1' );
-		$parserOutputWithMetadata->addOutputHook( 'hook1', self::MOCK_EXT_DATA );
-		$parserOutputWithMetadata->addWarning( 'warning1' );
+		$parserOutputWithMetadata->addWarningMsg( 'rawmessage', 'warning1' );
 		$parserOutputWithMetadata->setIndexPolicy( 'noindex' );
-		$parserOutputWithMetadata->setTOCHTML( 'tochtml1' );
-		$parserOutputWithMetadata->setTimestamp( MWTimestamp::convert( TS_MW, 987654321 ) );
+		$parserOutputWithMetadata->setRevisionTimestamp( MWTimestamp::convert( TS_MW, 987654321 ) );
 		$parserOutputWithMetadata->setLimitReportData( 'limit_report_key1', 'value1' );
 		$parserOutputWithMetadata->setEnableOOUI( true );
 		$parserOutputWithMetadata->setHideNewSection( true );
 		$parserOutputWithMetadata->setNewSection( true );
-		$parserOutputWithMetadata->setFlag( 'test' );
+		$parserOutputWithMetadata->setOutputFlag( 'test' );
+
+		// For compatibility with older serialized objects, clear out the
+		// $mWarningMsgs array, which is not currently stored.
+		// See T343050 for the steps required to remove this workaround in
+		// the future.
+		TestingAccessWrapper::newFromObject(
+			$parserOutputWithMetadata
+		)->mWarningMsgs = [];
 
 		$parserOutputWithSections = new ParserOutput( '' );
 		$parserOutputWithSections->setSections( self::SECTIONS );
@@ -258,10 +266,12 @@ abstract class ParserCacheSerializationTestCases {
 		$parserOutputWithMetadataPost1_34->addExtraCSPScriptSrc( 'script1' );
 		$parserOutputWithMetadataPost1_34->addLink( Title::makeTitle( NS_SPECIAL, 'Link3' ) );
 
+		MWDebug::clearDeprecationFilters();
+
 		return [
 			'empty' => [
 				'instance' => new ParserOutput( '' ),
-				'assertions' => function ( MediaWikiIntegrationTestCase $testCase, ParserOutput $object ) {
+				'assertions' => static function ( MediaWikiIntegrationTestCase $testCase, ParserOutput $object ) {
 					// Empty CacheTime assertions
 					self::getCacheTimeTestCases()['empty']['assertions']( $testCase, $object );
 					// Empty string text is counted as having text.
@@ -276,7 +286,7 @@ abstract class ParserCacheSerializationTestCases {
 					$testCase->assertArrayEquals( [], $object->getLanguageLinks() );
 					$testCase->assertArrayEquals( [], $object->getInterwikiLinks() );
 					$testCase->assertArrayEquals( [], $object->getCategoryNames() );
-					$testCase->assertArrayEquals( [], $object->getCategories() );
+					$testCase->assertArrayEquals( [], $object->getCategoryMap() );
 					$testCase->assertArrayEquals( [], $object->getIndicators() );
 					$testCase->assertSame( '', $object->getTitleText() );
 					$testCase->assertArrayEquals( [], $object->getSections() );
@@ -292,11 +302,9 @@ abstract class ParserCacheSerializationTestCases {
 					$testCase->assertArrayEquals( [], $object->getModules() );
 					$testCase->assertArrayEquals( [], $object->getModuleStyles() );
 					$testCase->assertArrayEquals( [], $object->getJsConfigVars() );
-					$testCase->assertArrayEquals( [], $object->getOutputHooks() );
 					$testCase->assertArrayEquals( [], $object->getWarnings() );
 					$testCase->assertSame( '', $object->getIndexPolicy() );
-					$testCase->assertSame( '', $object->getTOCHTML() );
-					$testCase->assertNull( $object->getTimestamp() );
+					$testCase->assertNull( $object->getRevisionTimestamp() );
 					$testCase->assertArrayEquals( [], $object->getLimitReportData() );
 					$testCase->assertArrayEquals( [], $object->getLimitReportJSData() );
 					$testCase->assertFalse( $object->getEnableOOUI() );
@@ -306,13 +314,13 @@ abstract class ParserCacheSerializationTestCases {
 					$testCase->assertFalse( $object->getHideNewSection() );
 					$testCase->assertFalse( $object->getNewSection() );
 					$testCase->assertFalse( $object->getDisplayTitle() );
-					$testCase->assertFalse( $object->getFlag( 'test' ) );
+					$testCase->assertFalse( $object->getOutputFlag( 'test' ) );
 					$testCase->assertArrayEquals( [], $object->getAllFlags() );
 					$testCase->assertNull( $object->getPageProperty( 'test_prop' ) );
 					$testCase->assertArrayEquals( [], $object->getPageProperties() );
 					$testCase->assertArrayEquals( [], $object->getUsedOptions() );
 					$testCase->assertNull( $object->getExtensionData( 'test_ext_data' ) );
-					$testCase->assertNull( $object->getTimeSinceStart( 'wall' ) );
+					$testCase->assertNull( $object->getTimeProfile( 'wall' ) );
 				}
 			],
 			'cacheTime' => [
@@ -382,7 +390,7 @@ abstract class ParserCacheSerializationTestCases {
 					$testCase->assertArrayEquals( [
 						'category1' => '2',
 						'category2' => '1'
-					], $object->getCategories() );
+					], $object->getCategoryMap() );
 					$testCase->assertArrayEquals( [ 'indicator1' => 'indicator1_value' ], $object->getIndicators() );
 					$testCase->assertSame( 'title_text1', $object->getTitleText() );
 					$testCase->assertArrayEquals( self::SECTIONS, $object->getSections() );
@@ -405,11 +413,9 @@ abstract class ParserCacheSerializationTestCases {
 					$testCase->assertArrayEquals( [ 'module1' ], $object->getModules() );
 					$testCase->assertArrayEquals( [ 'module_style1' ], $object->getModuleStyles() );
 					$testCase->assertArrayEquals( [ 'key1' => 'value1' ], $object->getJsConfigVars() );
-					$testCase->assertArrayEquals( [ [ 'hook1', self::MOCK_EXT_DATA ] ], $object->getOutputHooks() );
 					$testCase->assertArrayEquals( [ 'warning1' ], $object->getWarnings() );
 					$testCase->assertSame( 'noindex', $object->getIndexPolicy() );
-					$testCase->assertSame( 'tochtml1', $object->getTOCHTML() );
-					$testCase->assertSame( MWTimestamp::convert( TS_MW, 987654321 ), $object->getTimestamp() );
+					$testCase->assertSame( MWTimestamp::convert( TS_MW, 987654321 ), $object->getRevisionTimestamp() );
 					$testCase->assertArrayEquals(
 						[ 'limit_report_key1' => 'value1' ],
 						$object->getLimitReportData()
@@ -421,7 +427,7 @@ abstract class ParserCacheSerializationTestCases {
 					$testCase->assertTrue( $object->getEnableOOUI() );
 					$testCase->assertTrue( $object->getHideNewSection() );
 					$testCase->assertTrue( $object->getNewSection() );
-					$testCase->assertTrue( $object->getFlag( 'test' ) );
+					$testCase->assertTrue( $object->getOutputFlag( 'test' ) );
 					$testCase->assertArrayEquals( [ 'test' ], $object->getAllFlags() );
 				}
 			],

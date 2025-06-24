@@ -1,6 +1,7 @@
 {
 	"@metadata": {
 		"authors": [
+			"Amire80",
 			"Britscher",
 			"Danny B.",
 			"DannyS712",
@@ -23,8 +24,7 @@
 			"Timpul",
 			"Uostofchuodnego",
 			"Vlad5250",
-			"아라",
-			"Amire80"
+			"아라"
 		]
 	},
 	"tog-underline": "Podkreślynie linkōw:",
@@ -235,11 +235,11 @@
 	"versionrequiredtext": "Wymagano jest MediaWiki we wersji $1 coby skorzistać zr tyj zajty. Uobocz [[Special:Version]]",
 	"ok": "OK",
 	"retrievedfrom": "Zdrzōdło \"$1\"",
-	"youhavenewmessages": "Mŏsz $1 ($2).",
-	"youhavenewmessagesfromusers": "Mosz $1 ôd {{PLURAL:$3|inszego używŏcza|$3 używŏczy}} ($2).",
-	"youhavenewmessagesmanyusers": "Mosz $1 uod wjelu używoczy ($2).",
-	"newmessageslinkplural": "{{PLURAL:$1|jedna nowina|999=nowiny}}",
-	"newmessagesdifflinkplural": "{{PLURAL:$1|ôstatniŏ zmiana|999=ôstatnie zmiany}}",
+	"new-messages": "Mŏsz $1 ($2).",
+	"new-messages-from-users": "Mosz $1 ôd {{PLURAL:$3|inszego używŏcza|$3 używŏczy}} ($2).",
+	"new-messages-from-many-users": "Mosz $1 uod wjelu używoczy ($2).",
+	"new-messages-link-plural": "{{PLURAL:$1|jedna nowina|999=nowiny}}",
+	"new-messages-diff-link-plural": "{{PLURAL:$1|ôstatniŏ zmiana|999=ôstatnie zmiany}}",
 	"editsection": "edytuj",
 	"editold": "edytuj",
 	"viewsourceold": "pokŏż zdrzōdło",
@@ -582,7 +582,7 @@
 	"undo-success": "Sprowjyńy zostoło wycofane. Prosza pomjarkować ukozane půniżyj dyferencyje mjyndzy wersyjůma, coby zweryfikować jejich poprawność, potym zaś naszkryflać pomjyńańo coby zakończyć uoperacyjo.",
 	"undo-failure": "Ta edycyjŏ niy może być cŏfniyntŏ skuli kōnfliktu ze wersyjami postrzednimi.",
 	"undo-norev": "Edycyje niy idzie cŏfnōńć, bo ôna niy istniyje abo była wyciepniyntŏ.",
-	"undo-summary": "Wycŏfanie wersyje $1 ôd [[Special:Contributions/$2|$2]] ([[User talk:$2|dyskusyjŏ]])",
+	"undo-summary": "Wycŏfanie wersyje [[Special:Diff/$1|$1]] ôd [[Special:Contributions/$2|$2]] ([[User talk:$2|dyskusyjŏ]])",
 	"viewpagelogs": "Ôbejzdrz regesty dlŏ tyj zajty",
 	"nohistory": "Ta zajta ńy mo swojij historyje sprowjyń.",
 	"currentrev": "Aktuelno wersyjo",
@@ -723,7 +723,6 @@
 	"search-relatedarticle": "Podane",
 	"searchrelated": "podane",
 	"searchall": "wszyjske",
-	"showingresults": "To lista na keryj je {{PLURAL:$1|'''1''' wyńik|'''$1''' wyńikůw}}, sztartujůnc uod nůmery '''$2'''.",
 	"search-showingresults": "{{PLURAL:$4|Rezultat <strong>$1</strong> ze <strong>$3</strong>|Rezultaty <strong>$1 – $2</strong> ze <strong>$3</strong>}}",
 	"search-nonefound": "Żŏdne wyniki niy ôdpowiadajōm tymu zapytaniu.",
 	"powersearch-legend": "Sznupańy zaawansowane",
@@ -1085,7 +1084,6 @@
 	"filehist-nothumb": "Bez miniatury",
 	"filehist-user": "Używŏcz",
 	"filehist-dimensions": "Wymiary",
-	"filehist-filesize": "Rozmior plika",
 	"filehist-comment": "Kōmyntŏrz",
 	"imagelinks": "Użycie zbioru",
 	"linkstoimage": "{{PLURAL:$1|Ta strōna używŏ|Te strōny używajōm}} tego zbioru:",
@@ -1324,9 +1322,7 @@
 	"enotif_lastvisited": "Uobejřij na zajće $1 wšyjstke půmjyńańo uod Twojej uostatńij wizyty.",
 	"enotif_lastdiff": "Uobejřij na zajće $1 te pomjyńeńe.",
 	"enotif_anon_editor": "užytkowńik anůnimowy $1",
-	"enotif_body": "Drogi/o $WATCHINGUSERNAME,\n\n$PAGEINTRO $NEWPAGE\n\nOpis pomjyńeńa: $PAGESUMMARY $PAGEMINOREDIT\n\nSkůntaktuj śe s autorym:\ne-brif: $PAGEEDITOR_EMAIL\nwiki: $PAGEEDITOR_WIKI\n\nW připadku kolejnych půmjyńań nowe powjadůmjyńo ńy bydům wysuane, dopůki ńy uodwjydziš tyi zajty.\nMožeš tyž zresetować wšyjstke flagi powjadůmjyń na swojej liśće zajtůw, na kere dowoš pozůr.\n\nWjadůmość systymu powjadůmjyń {{GRAMMAR:D.lp|{{SITENAME}}}}\n\n--\nKejbyś chćou půmjyńić štalowańo swojej listy zajtůw, na kere dowoš pozůr, uodwjydź\n{{canonicalurl:{{#special:EditWatchlist}}}}\n\nPomoc:\n$HELPPAGE",
-	"created": "utwořono",
-	"changed": "pomjyńono",
+	"enotif_body": "Drogi/o $WATCHINGUSERNAME,\n\n$PAGEINTRO $NEWPAGE $PAGELOG\n\nOpis pomjyńeńa: $PAGESUMMARY $PAGEMINOREDIT\n\nSkůntaktuj śe s autorym:\ne-brif: $PAGEEDITOR_EMAIL\nwiki: $PAGEEDITOR_WIKI\n\nW připadku kolejnych půmjyńań nowe powjadůmjyńo ńy bydům wysuane, dopůki ńy uodwjydziš tyi zajty.\nMožeš tyž zresetować wšyjstke flagi powjadůmjyń na swojej liśće zajtůw, na kere dowoš pozůr.\n\nWjadůmość systymu powjadůmjyń {{GRAMMAR:D.lp|{{SITENAME}}}}\n\n--\nKejbyś chćou půmjyńić štalowańo swojej listy zajtůw, na kere dowoš pozůr, uodwjydź\n{{canonicalurl:{{#special:EditWatchlist}}}}\n\nPomoc:\n$HELPPAGE",
 	"deletepage-submit": "Skasuj artykuł",
 	"confirm": "Potwiyrdź",
 	"excontent": "zawartość zajty „$1”",
@@ -1806,7 +1802,7 @@
 	"ilsubmit": "Šnupej",
 	"bydate": "wedle daty",
 	"sp-newimages-showfrom": "pokož nowe pliki začynajůnc uod $2, $1",
-	"bad_image_list": "Dane trza wćepać we formaće:\n\nJyno tajle listy (lińije, kere śe napoczynajům uod *) absztychujemy.\nPjyrszy link we lińiji muśi być linkym do zakozanygo pliku.\nDolsze linki we lińiji sům uwożane za wyjimki  – sům to mjana zajtůw, na kerych idzie użyć plik ze zakozanym mjanym.",
+	"bad_image_list": "Dane trza wćepać we formaće:\n\nJyno tajle listy (lińije, kere śe napoczynajům uod *) absztychujemy.\nPjyrszy link we lińiji muśi być linkym do zakozanygo pliku.\nDolsze linki we lińiji sům uwożane za wyjimki – sům to mjana zajtůw, na kerych idzie użyć plik ze zakozanym mjanym.",
 	"metadata": "Metadane",
 	"metadata-help": "We tym zbiorze sōm ekstra informacyje pewnikym przidane ôd fotoaparatu abo skanera użytego do zrobiyniŏ abo zdigitalizowaniŏ go.\nJeźli zbiōr bōł modyfikowany, niykere informacyje mogōm niy cołkym ôdpowiadać zmodyfikowanymu zbiorowi.",
 	"metadata-expand": "Pokŏż rozszyrzōne informacyje",
@@ -1968,5 +1964,6 @@
 	"blockedtext-expiration-time": "Przedŏwniynie szpery: $1",
 	"blockedtext-intended-blockee": "Zaszperowany ôstoł: $1",
 	"blockedtext-contact-blocker-admin": "Mogesz skōntaktować sie ze $1 abo inkszym [[{{MediaWiki:Grouppage-sysop}}|adminisztratorym]], coby ôbgŏdać szperã.",
+	"blockedtext-block-ip": "Twōj adres IP to je terŏz $1.",
 	"blockedtext-include-details-queries": "Proszã ô wkludzyniy wszyjskich powyższych informacyji we wszelich spytaniach."
 }

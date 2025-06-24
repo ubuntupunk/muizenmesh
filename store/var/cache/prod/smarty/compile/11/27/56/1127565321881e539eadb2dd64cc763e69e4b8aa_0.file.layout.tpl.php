@@ -1,11 +1,11 @@
 <?php
-/* Smarty version 4.3.1, created on 2023-12-21 13:08:56
+/* Smarty version 4.3.1, created on 2024-07-29 21:05:13
   from '/home/sexthera/public_html/muizenmesh.co.za/store/admin963hiaiywinz0astpu8/themes/new-theme/template/layout.tpl' */
 
 /* @var Smarty_Internal_Template $_smarty_tpl */
 if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
   'version' => '4.3.1',
-  'unifunc' => 'content_65841cc87fc4e5_25295376',
+  'unifunc' => 'content_66a7e7e9c1f215_20839720',
   'has_nocache_code' => false,
   'file_dependency' => 
   array (
@@ -34,7 +34,7 @@ if ($_smarty_tpl->_decodeProperties($_smarty_tpl, array (
     'file:error.tpl' => 1,
   ),
 ),false)) {
-function content_65841cc87fc4e5_25295376 (Smarty_Internal_Template $_smarty_tpl) {
+function content_66a7e7e9c1f215_20839720 (Smarty_Internal_Template $_smarty_tpl) {
 ?><!DOCTYPE html>
 <html lang="<?php echo $_smarty_tpl->tpl_vars['iso']->value;?>
 ">

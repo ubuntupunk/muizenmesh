@@ -21,6 +21,7 @@
  */
 
 use MediaWiki\Session\Token;
+use MediaWiki\Utils\MWTimestamp;
 use Wikimedia\ParamValidator\ParamValidator;
 
 /**
@@ -85,5 +86,9 @@ class ApiCheckToken extends ApiBase {
 			'action=checktoken&type=csrf&token=123ABC'
 				=> 'apihelp-checktoken-example-simple',
 		];
+	}
+
+	public function getHelpUrls() {
+		return 'https://www.mediawiki.org/wiki/Special:MyLanguage/API:Checktoken';
 	}
 }

@@ -19,6 +19,7 @@
 
 namespace MediaWiki\Parser\Parsoid\Config;
 
+use IDBAccessObject;
 use MediaWiki\Languages\LanguageFactory;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\Page\PageIdentity;
@@ -27,12 +28,11 @@ use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\Revision\RevisionStore;
 use MediaWiki\Revision\SlotRecord;
 use MediaWiki\Revision\SlotRoleRegistry;
+use MediaWiki\Revision\SuppressedDataException;
 use MediaWiki\Title\Title;
 use MediaWiki\User\UserIdentity;
 use ParserOptions;
 use Wikimedia\Bcp47Code\Bcp47Code;
-use Wikimedia\Parsoid\Config\Api\PageConfig as ApiPageConfig;
-use WikitextContent;
 
 /**
  * Helper class used by MediaWiki to create Parsoid PageConfig objects.
@@ -41,15 +41,9 @@ use WikitextContent;
  * @internal
  */
 class PageConfigFactory extends \Wikimedia\Parsoid\Config\PageConfigFactory {
-
-	/** @var RevisionStore */
-	private $revisionStore;
-
-	/** @var SlotRoleRegistry */
-	private $slotRoleRegistry;
-
-	/** @var LanguageFactory */
-	private $languageFactory;
+	private RevisionStore $revisionStore;
+	private SlotRoleRegistry $slotRoleRegistry;
+	private LanguageFactory $languageFactory;
 
 	/**
 	 * @param RevisionStore $revisionStore
@@ -80,8 +74,11 @@ class PageConfigFactory extends \Wikimedia\Parsoid\Config\PageConfigFactory {
 	 * @param int|RevisionRecord|null $revision Revision id or a revision record
 	 * @param ?string $unused
 	 * @param ?Bcp47Code $pageLanguageOverride
-	 * @param ?array $parsoidSettings Used to enable the debug API if requested
+	 * @param bool $ensureAccessibleContent If true, ensures that we can get content
+	 *   from the newly constructed pageConfig's RevisionRecord and throws a
+	 *   RevisionAccessException if not.
 	 * @return \Wikimedia\Parsoid\Config\PageConfig
+	 * @throws RevisionAccessException
 	 */
 	public function create(
 		PageIdentity $pageId,
@@ -89,31 +86,12 @@ class PageConfigFactory extends \Wikimedia\Parsoid\Config\PageConfigFactory {
 		$revision = null,
 		?string $unused = null, /* Added to mollify CI with cross-repo uses */
 		?Bcp47Code $pageLanguageOverride = null,
-		?array $parsoidSettings = null
+		bool $ensureAccessibleContent = false
 	): \Wikimedia\Parsoid\Config\PageConfig {
-		$title = Title::castFromPageIdentity( $pageId );
-		'@phan-var Title $title';
+		$title = Title::newFromPageIdentity( $pageId );
 
-		if ( !empty( $parsoidSettings['debugApi'] ) ) {
-			if ( $revision === null ) {
-				throw new \InvalidArgumentException(
-					"Revision not provided. Cannot lookup revision via debug API." );
-			}
-
-			$content = $revision->getContent( SlotRecord::MAIN );
-			if ( $content instanceof WikitextContent ) {
-				$wtContent = $content->getText();
-				return ApiPageConfig::fromSettings( $parsoidSettings, [
-					"title" => $title->getPrefixedText(),
-					"pageContent" => $wtContent,
-					"pageLanguage" => $pageLanguageOverride, # ?Bcp47Code
-					"revid" => $revision->getId(),
-					"loadData" => true,
-				] );
-			} else {
-				throw new \UnexpectedValueException(
-					"Non-wikitext content models not supported by debug API" );
-			}
+		if ( $unused !== null ) {
+			wfDeprecated( __METHOD__ . ' with non-null 4th arg', '1.40' );
 		}
 
 		if ( $revision === null ) {
@@ -154,7 +132,7 @@ class PageConfigFactory extends \Wikimedia\Parsoid\Config\PageConfigFactory {
 				// were pending writes, but this codepath should be very rare.
 				// [T259855]
 				$revisionRecord = $this->revisionStore->getRevisionById(
-					$revision, RevisionStore::READ_LATEST
+					$revision, IDBAccessObject::READ_LATEST
 				);
 				$success = ( $revisionRecord !== null ) ? 'success' : 'failure';
 				LoggerFactory::getInstance( 'Parsoid' )->error(
@@ -177,7 +155,7 @@ class PageConfigFactory extends \Wikimedia\Parsoid\Config\PageConfigFactory {
 				RevisionRecord::DELETED_TEXT, RevisionRecord::FOR_PUBLIC
 			)
 		) {
-			throw new RevisionAccessException( 'Not an available content version.' );
+			throw new SuppressedDataException( 'Not an available content version.' );
 		}
 
 		$parserOptions =
@@ -196,7 +174,8 @@ class PageConfigFactory extends \Wikimedia\Parsoid\Config\PageConfigFactory {
 		} else {
 			$pageLanguage = $title->getPageLanguage();
 		}
-		return new PageConfig(
+
+		$pageConfig = new PageConfig(
 			$parserOptions,
 			$slotRoleHandler,
 			$title,
@@ -204,6 +183,19 @@ class PageConfigFactory extends \Wikimedia\Parsoid\Config\PageConfigFactory {
 			$pageLanguage,
 			$pageLanguage->getDir()
 		);
+
+		if ( $ensureAccessibleContent ) {
+			if ( $revisionRecord === null ) {
+				// T234549
+				throw new RevisionAccessException( 'The specified revision does not exist.' );
+			}
+			// Try to get the content so that we can fail early.  Otherwise,
+			// a RevisionAccessException is thrown.  It's expensive, but the
+			// result will be cached for later calls.
+			$pageConfig->getRevisionContent()->getContent( SlotRecord::MAIN );
+		}
+
+		return $pageConfig;
 	}
 
 }

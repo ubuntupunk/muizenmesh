@@ -17,6 +17,7 @@ use Wikimedia\TestingAccessWrapper;
  * @copyright © 2012, Santhosh Thottingal
  *
  * @coversNothing
+ * @group Database
  */
 class ResourcesTest extends MediaWikiIntegrationTestCase {
 
@@ -37,7 +38,7 @@ class ResourcesTest extends MediaWikiIntegrationTestCase {
 	 * exist and are not illegal.
 	 *
 	 * @todo Modules can dynamically choose dependencies based on context. This method
-	 * does not find all such variations. The same applies to testUnsatisfiableDependencies().
+	 * does not find all such variations.
 	 */
 	public function testValidDependencies() {
 		$data = self::getAllModules();
@@ -95,75 +96,6 @@ class ResourcesTest extends MediaWikiIntegrationTestCase {
 				);
 			}
 		}
-	}
-
-	/**
-	 * Verify that dependencies of all modules are actually registered in the same client context.
-	 *
-	 * Example:
-	 * - A depends on B. A has targets: mobile, desktop. B has targets: desktop. Therefore the
-	 *   dependency is sometimes unregistered: it's impossible to load module A on mobile.
-	 * - A depends on B. B has requiresES6=true but A does not. In some browsers, B will be
-	 *   unregistered at startup and thus impossible to satisfy as dependency.
-	 */
-	public function testUnsatisfiableDependencies() {
-		$data = self::getAllModules();
-
-		/** @var RL\Module $module */
-		$incompatibleTargetNames = [];
-		$targetsErrMsg = '';
-		foreach ( $data['modules'] as $moduleName => $module ) {
-			$depNames = $module->getDependencies( $data['context'] );
-			$moduleTargets = $module->getTargets();
-
-			// Detect incompatible ES6 requirements (T316324)
-			$requiresES6 = $module->requiresES6();
-			$incompatibleDepNames = [];
-
-			foreach ( $depNames as $depName ) {
-				$dep = $data['modules'][$depName] ?? null;
-				if ( !$dep ) {
-					// Missing dependencies reported by testMissingDependencies
-					continue;
-				}
-				if ( $moduleTargets === [ 'test' ] ) {
-					// Target filter does not apply under tests, which may include
-					// both module-only and desktop-only dependencies.
-					continue;
-				}
-				$targets = $dep->getTargets();
-				foreach ( $moduleTargets as $moduleTarget ) {
-					if ( !in_array( $moduleTarget, $targets ) ) {
-						$incompatibleTargetNames[] = $moduleName;
-						$targetsErrMsg .= "* The module '$moduleName' must not have target '$moduleTarget' "
-								. "because its dependency '$depName' does not have it\n";
-					}
-				}
-				if ( !$requiresES6 && $dep->requiresES6() ) {
-					$incompatibleDepNames[] = $depName;
-				}
-			}
-			$this->assertEquals( [], $incompatibleDepNames,
-				"The module '$moduleName' must not depend on modules with requiresES6=true"
-			);
-		}
-		$this->assertEquals( [], $incompatibleTargetNames, $targetsErrMsg );
-	}
-
-	/**
-	 * CSSMin::getLocalFileReferences should ignore url(...) expressions
-	 * that have been commented out.
-	 */
-	public function testCommentedLocalFileReferences() {
-		$basepath = __DIR__ . '/../data/css/';
-		$css = file_get_contents( $basepath . 'comments.css' );
-		$files = CSSMin::getLocalFileReferences( $css, $basepath );
-		$expected = [ $basepath . 'not-commented.gif' ];
-		$this->assertSame(
-			$expected,
-			$files,
-			'Url(...) expression in comment should be omitted.'
-		);
 	}
 
 	/**
@@ -294,10 +226,15 @@ class ResourcesTest extends MediaWikiIntegrationTestCase {
 				}
 			}
 
-			foreach ( $files as $file ) {
-				$relativePath = ( $file instanceof RL\FilePath ? $file->getPath() : $file );
+			foreach ( $files as $key => $file ) {
+				$fileInfo = $moduleProxy->expandFileInfo( $data['context'], $file, "files[$key]" );
+				if ( !isset( $fileInfo['filePath'] ) ) {
+					continue;
+				}
+				$relativePath = $fileInfo['filePath']->getPath();
+				$localPath = $fileInfo['filePath']->getLocalPath();
 				$this->assertFileExists(
-					$moduleProxy->getLocalPath( $file ),
+					$localPath,
 					"File '$relativePath' referenced by '$moduleName' must exist."
 				);
 			}
@@ -339,5 +276,41 @@ class ResourcesTest extends MediaWikiIntegrationTestCase {
 				);
 			}
 		}
+	}
+
+	public static function provideRespond() {
+		$services = MediaWikiServices::getInstance();
+		$rl = $services->getResourceLoader();
+		$skinFactory = $services->getSkinFactory();
+		foreach ( array_keys( $skinFactory->getInstalledSkins() ) as $skin ) {
+			foreach ( $rl->getModuleNames() as $moduleName ) {
+				yield [ $moduleName, $skin ];
+			}
+		}
+	}
+
+	/**
+	 * @dataProvider provideRespond
+	 * @param string $moduleName
+	 * @param string $skin
+	 */
+	public function testRespond( $moduleName, $skin ) {
+		$rl = $this->getServiceContainer()->getResourceLoader();
+		$module = $rl->getModule( $moduleName );
+		if ( $module->shouldSkipStructureTest() ) {
+			// Private modules cannot be served from load.php
+			$this->assertTrue( true );
+			return;
+		}
+		// Test only general (scripts) or only=styles responses.
+		$only = $module->getType() === RL\Module::LOAD_STYLES ? 'styles' : null;
+		$context = new RL\Context(
+			$rl,
+			new FauxRequest( [ 'modules' => $moduleName, 'only' => $only, 'skin' => $skin ] )
+		);
+		ob_start();
+		$rl->respond( $context );
+		ob_end_clean();
+		$this->assertSame( [], $rl->getErrors() );
 	}
 }

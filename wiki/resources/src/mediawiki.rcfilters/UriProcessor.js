@@ -1,13 +1,13 @@
 /* eslint no-underscore-dangle: "off" */
 /**
- * URI Processor for RCFilters
+ * URI Processor for RCFilters.
  *
- * @class mw.rcfilters.UriProcessor
- *
- * @constructor
+ * @class UriProcessor
+ * @memberof mw.rcfilters
+ * @ignore
  * @param {mw.rcfilters.dm.FiltersViewModel} filtersModel Filters view model
  * @param {Object} [config] Configuration object
- * @cfg {boolean} [normalizeTarget] Dictates whether or not to go through the
+ * @param {boolean} [config.normalizeTarget] Dictates whether or not to go through the
  *  title normalization to separate title subpage/parts into the target= url
  *  parameter
  */
@@ -110,6 +110,7 @@ UriProcessor.prototype.getUpdatedUri = function ( uri ) {
 UriProcessor.prototype._normalizeTargetInUri = function ( uri ) {
 	var parts,
 		// matches [/wiki/]SpecialNS:RCL/[Namespace:]Title/Subpage/Subsubpage/etc
+		// eslint-disable-next-line security/detect-unsafe-regex
 		re = /^((?:\/.+?\/)?.*?:.*?)\/(.*)$/;
 
 	if ( !this.normalizeTarget ) {

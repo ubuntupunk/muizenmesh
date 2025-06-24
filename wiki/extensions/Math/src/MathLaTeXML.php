@@ -2,8 +2,9 @@
 
 namespace MediaWiki\Extension\Math;
 
-use Hooks;
+use MediaWiki\Extension\Math\Hooks\HookRunner;
 use MediaWiki\Logger\LoggerFactory;
+use MediaWiki\MediaWikiServices;
 use StatusValue;
 
 /**
@@ -20,9 +21,9 @@ class MathLaTeXML extends MathMathML {
 	/** @var string settings for LaTeXML daemon */
 	private $LaTeXMLSettings = '';
 
-	public function __construct( $tex = '', $params = [] ) {
+	public function __construct( $tex = '', $params = [], $cache = null ) {
 		global $wgMathLaTeXMLUrl;
-		parent::__construct( $tex, $params );
+		parent::__construct( $tex, $params, $cache );
 		$this->host = $wgMathLaTeXMLUrl;
 		$this->setMode( MathConfig::MODE_LATEXML );
 	}
@@ -117,9 +118,10 @@ class MathLaTeXML extends MathMathML {
 					$this->setMathml( $jsonResult->result );
 					// Avoid PHP 7.1 warning from passing $this by reference
 					$renderer = $this;
-					Hooks::run( 'MathRenderingResultRetrieved',
-						[ &$renderer, &$jsonResult ]
-					); // Enables debugging of server results
+					( new HookRunner( MediaWikiServices::getInstance()->getHookContainer() ) )
+						->onMathRenderingResultRetrieved(
+							$renderer, $jsonResult
+						); // Enables debugging of server results
 					return StatusValue::newGood();
 				}
 

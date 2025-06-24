@@ -313,11 +313,13 @@ ALTER TABLE `PREFIX_product_download` CHANGE `display_filename` `display_filenam
 
 /* Doctrine update happens too late to update the new enabled field, so we preset everything here */
 ALTER TABLE `PREFIX_tab` ADD enabled TINYINT(1) NOT NULL;
+ALTER TABLE `PREFIX_tab` ADD route_name VARCHAR(256) COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+ALTER TABLE `PREFIX_tab` CHANGE class_name class_name VARCHAR(64) COLLATE utf8mb4_unicode_ci NOT NULL;
 
 /* PHP:ps_1770_preset_tab_enabled(); */;
 /* PHP:ps_1770_update_order_status_colors(); */;
 
-INSERT IGNORE INTO `PREFIX_hook` (`id_hook`, `name`, `title`, `description`) VALUES
+INSERT INTO `PREFIX_hook` (`id_hook`, `name`, `title`, `description`) VALUES
   (NULL, 'displayAdminOrderTop', 'Admin Order Top', 'This hook displays content at the top of the order view page'),
   (NULL, 'displayAdminOrderSide', 'Admin Order Side Column', 'This hook displays content in the order view page in the side column under the customer view'),
   (NULL, 'displayAdminOrderSideBottom', 'Admin Order Side Column Bottom', 'This hook displays content in the order view page at the bottom of the side column'),
@@ -345,7 +347,7 @@ INSERT IGNORE INTO `PREFIX_hook` (`id_hook`, `name`, `title`, `description`) VAL
   (NULL, 'actionAdminLoginControllerResetBefore', 'Perform actions before admin login controller reset action initialization', 'This hook is launched before the initialization of the reset action in login controller'),
   (NULL, 'actionAdminLoginControllerResetAfter', 'Perform actions after admin login controller reset action initialization', 'This hook is launched after the initialization of the reset action in login controller'),
   (NULL, 'displayHeader', 'Pages html head section', 'This hook adds additional elements in the head section of your pages (head section of html)')
-;
+ON DUPLICATE KEY UPDATE `title` = VALUES(`title`), `description` = VALUES(`description`);
 
 INSERT IGNORE INTO `PREFIX_hook_alias` (`name`, `alias`) VALUES
   ('displayAdminOrderTop', 'displayInvoice'),
@@ -365,7 +367,7 @@ ALTER TABLE `PREFIX_order_payment` CHANGE `amount` `amount` DECIMAL(20, 6) NOT N
 
 /* attribute_impact price */
 UPDATE `PREFIX_attribute_impact` SET `price` = RIGHT(`price`, 17) WHERE LENGTH(`price`) > 17;
-ALTER TABLE `PREFIX_attribute_impact` CHANGE `price` `price` DECIMAL(20, 6) NOT NULL DEFAULT '0.000000';
+ALTER TABLE `PREFIX_attribute_impact` CHANGE `price` `price` DECIMAL(20, 6) NOT NULL;
 
 /* cart_rule minimum_amount & reduction_amount */
 UPDATE `PREFIX_cart_rule` SET `minimum_amount` = RIGHT(`minimum_amount`, 17) WHERE LENGTH(`minimum_amount`) > 17;
@@ -416,7 +418,7 @@ SET
         WHERE `osd`.`id_order_detail` = `od`.`id_order_detail`
     ), 0)
 ;
-INSERT IGNORE INTO `PREFIX_hook` (`id_hook`, `name`, `title`, `description`, `position`)
+INSERT INTO `PREFIX_hook` (`id_hook`, `name`, `title`, `description`, `position`)
 VALUES (NULL, 'actionOrderMessageFormBuilderModifier', 'Modify order message identifiable object form',
         'This hook allows to modify order message identifiable object forms content by modifying form builder data or FormBuilder itself',
         '1'),
@@ -649,7 +651,7 @@ VALUES (NULL, 'actionOrderMessageFormBuilderModifier', 'Modify order message ide
        (NULL, 'actionCreditSlipGridPresenterModifier', 'Modify credit slip grid template data',
         'This hook allows to modify data which is about to be used in template for credit slip grid', '1'),
        (NULL, 'displayAfterTitleTag', 'After title tag', 'Use this hook to add content after title tag', '1')
-;
+ON DUPLICATE KEY UPDATE `title` = VALUES(`title`), `description` = VALUES(`description`);
 
 /* Update wrong hook names */
 UPDATE `PREFIX_hook_module` AS hm
@@ -678,3 +680,50 @@ DELETE FROM `PREFIX_hook` WHERE name = 'actionFrontControllerAfterInit';
 
 /* Update wrong hook alias */
 UPDATE `PREFIX_hook_alias` SET name = 'displayHeader', alias = 'Header' WHERE name = 'Header' AND alias = 'displayHeader';
+
+ALTER TABLE `PREFIX_translation` CHANGE `key` `key` TEXT NOT NULL COLLATE utf8_bin;
+ALTER TABLE `PREFIX_admin_filter` CHANGE filter_id filter_id VARCHAR(191) NOT NULL;
+
+ALTER TABLE `PREFIX_admin_filter` ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE `PREFIX_admin_filter` CHANGE `controller` `controller` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL;
+ALTER TABLE `PREFIX_admin_filter` CHANGE `action`  `action` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL;
+ALTER TABLE `PREFIX_admin_filter` CHANGE `filter` `filter` longtext COLLATE utf8mb4_unicode_ci NOT NULL;
+ALTER TABLE `PREFIX_admin_filter` CHANGE `filter_id` `filter_id` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL;
+
+ALTER TABLE `PREFIX_attribute` COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE `PREFIX_attribute` CHANGE `color` `color` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL;
+ALTER TABLE `PREFIX_attribute_lang` COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE `PREFIX_attribute_lang` CHANGE `name` `name` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL;
+ALTER TABLE `PREFIX_attribute_shop` COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE `PREFIX_attribute_group` COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE `PREFIX_attribute_group` CHANGE `group_type` `group_type` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL;
+ALTER TABLE `PREFIX_attribute_group_lang` COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE `PREFIX_attribute_group_lang` CHANGE `name` `name` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL;
+ALTER TABLE `PREFIX_attribute_group_lang` CHANGE `public_name` `public_name` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL;
+ALTER TABLE `PREFIX_attribute_group_shop` COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE `PREFIX_lang` COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE `PREFIX_lang` CHANGE `name` `name` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL;
+ALTER TABLE `PREFIX_lang` CHANGE `iso_code` `iso_code` varchar(2) COLLATE utf8mb4_unicode_ci NOT NULL;
+ALTER TABLE `PREFIX_lang` CHANGE `language_code` `language_code` varchar(5) COLLATE utf8mb4_unicode_ci NOT NULL;
+ALTER TABLE `PREFIX_lang` CHANGE `locale` `locale` varchar(5) COLLATE utf8mb4_unicode_ci NOT NULL;
+ALTER TABLE `PREFIX_lang` CHANGE `date_format_lite` `date_format_lite` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL;
+ALTER TABLE `PREFIX_lang` CHANGE `date_format_full` `date_format_full` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL;
+ALTER TABLE `PREFIX_lang_shop` COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE `PREFIX_shop` COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE `PREFIX_shop` CHANGE `name` `name` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL;
+ALTER TABLE `PREFIX_shop` CHANGE `theme_name` `theme_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL;
+ALTER TABLE `PREFIX_shop_group` COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE `PREFIX_shop_group` CHANGE `name` `name` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL;
+ALTER TABLE `PREFIX_stock_mvt` COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE `PREFIX_stock_mvt` CHANGE `employee_lastname` `employee_lastname` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+ALTER TABLE `PREFIX_stock_mvt` CHANGE `employee_firstname` `employee_firstname` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+ALTER TABLE `PREFIX_tab` COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE `PREFIX_tab` CHANGE `module` `module` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+ALTER TABLE `PREFIX_tab` CHANGE `icon` `icon` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+ALTER TABLE `PREFIX_tab_lang` COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE `PREFIX_tab_lang` CHANGE `name` `name` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL;
+ALTER TABLE `PREFIX_module_history` CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE `PREFIX_translation` CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE `PREFIX_translation` CHANGE `translation` `translation` text COLLATE utf8mb4_unicode_ci NOT NULL;
+ALTER TABLE `PREFIX_translation` CHANGE `domain` `domain` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL;
+ALTER TABLE `PREFIX_translation` CHANGE `theme` `theme` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL;

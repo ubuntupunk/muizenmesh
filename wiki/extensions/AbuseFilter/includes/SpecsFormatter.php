@@ -4,9 +4,9 @@ namespace MediaWiki\Extension\AbuseFilter;
 
 use Language;
 use MediaWiki\Extension\AbuseFilter\Filter\AbstractFilter;
+use MediaWiki\Language\RawMessage;
 use Message;
 use MessageLocalizer;
-use RawMessage;
 
 /**
  * @todo Improve this once DI around Message objects is improved in MW core.
@@ -84,7 +84,7 @@ class SpecsFormatter {
 			$displayAction = $lang->commaList( $messages );
 		} elseif ( $action === 'throttle' ) {
 			array_shift( $parameters );
-			list( $actions, $time ) = explode( ',', array_shift( $parameters ) );
+			[ $actions, $time ] = explode( ',', array_shift( $parameters ) );
 
 			// Join comma-separated groups in a commaList with a final "and", and convert to messages.
 			// Messages used here: abusefilter-throttle-ip, abusefilter-throttle-user,
@@ -151,6 +151,11 @@ class SpecsFormatter {
 		] );
 		$flagsDisplay = [];
 		foreach ( $flags as $flag => $_ ) {
+			// The following messages are generated here:
+			// * abusefilter-history-enabled
+			// * abusefilter-history-deleted
+			// * abusefilter-history-hidden
+			// * abusefilter-history-global
 			$flagsDisplay[] = $this->messageLocalizer->msg( "abusefilter-history-$flag" )->escaped();
 		}
 

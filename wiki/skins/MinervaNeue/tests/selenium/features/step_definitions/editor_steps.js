@@ -23,6 +23,10 @@ const iTypeIntoTheEditor = ( text ) => {
 	ArticlePageWithEditorOverlay.editor_overlay_element.waitForExist();
 	ArticlePageWithEditorOverlay.editor_textarea_element.waitForExist();
 	ArticlePageWithEditorOverlay.editor_textarea_element.waitForDisplayed();
+	// Make sure the slow connection load basic button is gone (T348539)
+	browser.waitUntil( () => {
+		return ArticlePageWithEditorOverlay.editor_load_basic_element.isDisplayed() === false;
+	} );
 	ArticlePageWithEditorOverlay.editor_textarea_element.addValue( text );
 	browser.waitUntil( () => {
 		return !ArticlePageWithEditorOverlay
@@ -52,7 +56,7 @@ const theTextOfTheFirstHeadingShouldBe = async ( title ) => {
 	await ArticlePage.first_heading_element.waitForDisplayed();
 	assert.match(
 		await ArticlePage.first_heading_element.getText(),
-		new RegExp( `.*${title}$` )
+		new RegExp( `.*${ title }$` )
 	);
 };
 const thereShouldBeARedLinkWithText = ( text ) => {

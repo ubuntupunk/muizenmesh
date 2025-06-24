@@ -18,6 +18,10 @@
  * @file
  */
 
+namespace MediaWiki\PoolCounter;
+
+use MediaWiki\Status\Status;
+
 /**
  * A default PoolCounter, which provides no locking.
  *
@@ -42,3 +46,6 @@ class PoolCounterNull extends PoolCounter {
 		return Status::newGood( PoolCounter::RELEASED );
 	}
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( PoolCounterNull::class, 'PoolCounterNull' );

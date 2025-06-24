@@ -1,7 +1,7 @@
 /*!
  * VisualEditor ContentEditable MWGalleryImageNode class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see AUTHORS.txt
+ * @copyright See AUTHORS.txt
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
@@ -30,7 +30,7 @@ ve.ce.MWGalleryImageNode = function VeCeMWGalleryImageNode( model ) {
 
 	var defaults = mw.config.get( 'wgVisualEditorConfig' ).galleryOptions;
 	var attributes = model.getAttributes();
-	var galleryMwAttrs = model.parent.getAttributes().mw.attrs;
+	var galleryMwAttrs = model.parent.getAttribute( 'mw' ).attrs;
 
 	// Putting all this setup in the constructor works because MWGalleryImageNodes are never updated,
 	// only created from scratch
@@ -68,14 +68,16 @@ ve.ce.MWGalleryImageNode = function VeCeMWGalleryImageNode( model ) {
 		.css( 'height', innerDivHeight + 'px' );
 	var $innerDiv = $( '<span>' )
 		.css( 'margin', innerDivMargin );
-	var $a = $( '<a>' );
+	var $a = $( '<a>' ).addClass( 'mw-file-description' );
 
 	var $img;
 	if ( model.getAttribute( 'isError' ) ) {
 		$img = $( '<span>' )
+			.addClass( 'mw-file-element mw-broken-media' )
 			.text( model.getAttribute( 'errorText' ) );
 	} else {
 		$img = $( '<img>' )
+			.addClass( 'mw-file-element' )
 			.attr( 'resource', attributes.resource )
 			.attr( 'alt', attributes.altText )
 			.attr( 'src', attributes.src )

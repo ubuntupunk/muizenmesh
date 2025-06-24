@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInitbc0a2eef63e8ed3ebb0f122bdedc16c2
+class ComposerStaticInita90d41bf96c11121836e01b663661ed7
 {
     public static $prefixLengthsPsr4 = array (
         'P' => 
@@ -64,6 +64,10 @@ class ComposerStaticInitbc0a2eef63e8ed3ebb0f122bdedc16c2
         'PrestaShop\\Module\\FacetedSearch\\Filters\\DataAccessor' => __DIR__ . '/../..' . '/src/Filters/DataAccessor.php',
         'PrestaShop\\Module\\FacetedSearch\\Filters\\Products' => __DIR__ . '/../..' . '/src/Filters/Products.php',
         'PrestaShop\\Module\\FacetedSearch\\Filters\\Provider' => __DIR__ . '/../..' . '/src/Filters/Provider.php',
+        'PrestaShop\\Module\\FacetedSearch\\Form\\AttributeGroup\\FormDataProvider' => __DIR__ . '/../..' . '/src/Form/AttributeGroup/FormDataProvider.php',
+        'PrestaShop\\Module\\FacetedSearch\\Form\\AttributeGroup\\FormModifier' => __DIR__ . '/../..' . '/src/Form/AttributeGroup/FormModifier.php',
+        'PrestaShop\\Module\\FacetedSearch\\Form\\Attribute\\FormDataProvider' => __DIR__ . '/../..' . '/src/Form/Attribute/FormDataProvider.php',
+        'PrestaShop\\Module\\FacetedSearch\\Form\\Attribute\\FormModifier' => __DIR__ . '/../..' . '/src/Form/Attribute/FormModifier.php',
         'PrestaShop\\Module\\FacetedSearch\\Form\\FeatureValue\\FormDataProvider' => __DIR__ . '/../..' . '/src/Form/FeatureValue/FormDataProvider.php',
         'PrestaShop\\Module\\FacetedSearch\\Form\\FeatureValue\\FormModifier' => __DIR__ . '/../..' . '/src/Form/FeatureValue/FormModifier.php',
         'PrestaShop\\Module\\FacetedSearch\\Form\\Feature\\FormDataProvider' => __DIR__ . '/../..' . '/src/Form/Feature/FormDataProvider.php',
@@ -98,10 +102,10 @@ class ComposerStaticInitbc0a2eef63e8ed3ebb0f122bdedc16c2
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInitbc0a2eef63e8ed3ebb0f122bdedc16c2::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInitbc0a2eef63e8ed3ebb0f122bdedc16c2::$prefixDirsPsr4;
-            $loader->prefixesPsr0 = ComposerStaticInitbc0a2eef63e8ed3ebb0f122bdedc16c2::$prefixesPsr0;
-            $loader->classMap = ComposerStaticInitbc0a2eef63e8ed3ebb0f122bdedc16c2::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInita90d41bf96c11121836e01b663661ed7::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInita90d41bf96c11121836e01b663661ed7::$prefixDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInita90d41bf96c11121836e01b663661ed7::$prefixesPsr0;
+            $loader->classMap = ComposerStaticInita90d41bf96c11121836e01b663661ed7::$classMap;
 
         }, null, ClassLoader::class);
     }

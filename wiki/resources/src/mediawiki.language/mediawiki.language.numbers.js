@@ -2,30 +2,6 @@
  * Number-related utilities for mediawiki.language.
  */
 ( function () {
-	/**
-	 * @class mw.language
-	 */
-
-	/**
-	 * Replicate a string 'n' times.
-	 *
-	 * @private
-	 * @param {string} str The string to replicate
-	 * @param {number} num Number of times to replicate the string
-	 * @return {string}
-	 */
-	function replicate( str, num ) {
-		var buf = [];
-
-		if ( num <= 0 || !str ) {
-			return '';
-		}
-
-		while ( num-- ) {
-			buf.push( str );
-		}
-		return buf.join( '' );
-	}
 
 	/**
 	 * Pad a string to guarantee that it is at least `size` length by
@@ -44,14 +20,15 @@
 	 * @return {string}
 	 */
 	function pad( text, size, ch, end ) {
-		var out, padStr;
+		var out, padStr, count;
 
 		if ( !ch ) {
 			ch = '0';
 		}
 
 		out = String( text );
-		padStr = replicate( ch, Math.ceil( ( size - out.length ) / ch.length ) );
+		count = Math.ceil( ( size - out.length ) / ch.length );
+		padStr = ch.repeat( Math.max( 0, count ) );
 
 		return end ? out + padStr : padStr + out;
 	}
@@ -180,6 +157,7 @@
 		var numberPattern,
 			transformTable = mw.language.getSeparatorTransformTable(),
 			group = transformTable[ ',' ] || ',',
+			// eslint-disable-next-line security/detect-unsafe-regex
 			numberPatternRE = /[#0,]*[#0](?:\.0*#*)?/, // not precise, but good enough
 			decimal = transformTable[ '.' ] || '.',
 			patternList = pattern.split( ';' ),
@@ -224,11 +202,12 @@
 		return flipped;
 	}
 
-	$.extend( mw.language, {
+	Object.assign( mw.language, {
 
 		/**
 		 * Converts a number using #getDigitTransformTable.
 		 *
+		 * @memberof mw.language
 		 * @param {number} num Value to be converted
 		 * @param {boolean} [integer=false] Whether to convert the return value to an integer
 		 * @return {number|string} Formatted number
@@ -290,6 +269,7 @@
 		/**
 		 * Get the digit transform table for current UI language.
 		 *
+		 * @ignore
 		 * @return {Object|Array}
 		 */
 		getDigitTransformTable: function () {
@@ -300,6 +280,7 @@
 		/**
 		 * Get the separator transform table for current UI language.
 		 *
+		 * @ignore
 		 * @return {Object|Array}
 		 */
 		getSeparatorTransformTable: function () {

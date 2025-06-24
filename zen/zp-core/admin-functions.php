@@ -1,8 +1,7 @@
 <?php
 /**
  * support functions for Admin
- * @package admin
- * @subpackage admin-functions
+ * @package zpcore\admin\functions
  */
 // force UTF-8 Ø
 
@@ -20,7 +19,7 @@ if (!defined('EDITOR_SANITIZE_LEVEL'))
  *
  * @param string $addl additional text to output on the footer.
  * @author Todd Papaioannou (lucky@luckyspin.org)
- * @since  1.0.0
+ * @since 1.0.0
  */
 function printAdminFooter($addl = '') {
 	global $_zp_db;
@@ -54,7 +53,7 @@ function datepickerJS() {
 	}
 	if (!empty($lang)) {
 		?>
-		<script src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/jqueryui/i18n/jquery.ui.datepicker-<?php echo $lang; ?>.js" type="text/javascript"></script>
+		<script src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/jqueryui/i18n/jquery.ui.datepicker-<?php echo $lang; ?>.js"></script>
 		<?php
 	}
 }
@@ -112,7 +111,7 @@ function printAdminHeader($tab, $subtab = NULL) {
 	if (extensionEnabled('matomo') && getOption('matomo_url')) {
 		$matomo_url = sanitize(getOption('matomo_url')) . '/';
 	}
-	header("Content-Security-Policy: default-src " . FULLWEBPATH . "/ 'unsafe-inline' 'unsafe-eval' https://www.google.com/; img-src 'self' blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com/ https://www.gstatic.com/; frame-src 'self' data: " . $matomo_url . "");
+	header("Content-Security-Policy: default-src " . FULLWEBPATH . "/ 'unsafe-inline' 'unsafe-eval' https://www.google.com/; img-src 'self' blob: data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com/ https://www.gstatic.com/; frame-src 'self' data: " . $matomo_url . "");
 	header('X-Frame-Options: deny');
 	header('X-Content-Type-Options: nosniff');
 	header('Referrer-Policy: origin');
@@ -124,24 +123,23 @@ function printAdminHeader($tab, $subtab = NULL) {
 			<meta http-equiv="content-type" content="text/html; charset=<?php echo LOCAL_CHARSET; ?>" />
 			<link rel="stylesheet" href="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/toggleElements.css" type="text/css" />
 			<link rel="stylesheet" href="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/jqueryui/jquery-ui.min.css" type="text/css" />
-			<link rel="stylesheet" href="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/admin.css" type="text/css" />
+			<link rel="stylesheet" href="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/css/admin.css" type="text/css" />
 			<?php
 			if ($_zp_rtl_css) {
 				?>
-				<link rel="stylesheet" href="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/admin-rtl.css" type="text/css" />
+				<link rel="stylesheet" href="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/css/admin-rtl.css" type="text/css" />
 				<?php
 			}
 			?>
 			<title><?php echo sprintf(gettext('%1$s %2$s: %3$s%4$s'), html_encode($_zp_gallery->getTitle()), gettext('admin'), html_encode($tabtext), html_encode($subtabtext)); ?></title>
-			<script src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/jquery.min.js" type="text/javascript"></script>
-			<script src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/jquery-migrate.min.js" type="text/javascript" ></script>
-			<script src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/jqueryui/jquery-ui.min.js" type="text/javascript"></script>
-			<script src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/zp_general.js" type="text/javascript" ></script>
-			<script src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/zp_admin.js" type="text/javascript" ></script>
-			<script src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/jquery.scrollTo.min.js" type="text/javascript"></script>
-			<script src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/jquery.dirtyforms.min.js" type="text/javascript"></script>
-			<script type="text/javascript">
-				// <!-- <![CDATA[
+			<script src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/jquery.min.js"></script>
+			<script src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/jquery-migrate.min.js" ></script>
+			<script src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/jqueryui/jquery-ui.min.js"></script>
+			<script src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/zp_general.js" ></script>
+			<script src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/zp_admin.js" ></script>
+			<script src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/jquery.scrollTo.min.js"></script>
+			<script src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/jquery.dirtyforms.min.js"></script>
+			<script>
 
 				$(document).ready(function () {
 	<?php
@@ -198,7 +196,6 @@ function printAdminHeader($tab, $subtab = NULL) {
 				jQuery(function ($) {
 					$(".fade-message").fadeTo(5000, 1).fadeOut(1000);
 				})
-				// ]]> -->
 			</script>
 			<?php
 			zp_apply_filter('admin_head');
@@ -207,9 +204,8 @@ function printAdminHeader($tab, $subtab = NULL) {
 		function printSortableHead() {
 			?>
 			<!--Nested Sortables-->
-			<script type="text/javascript" src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/jquery.mjs.nestedSortable.js"></script>
-			<script type="text/javascript">
-				//<!-- <![CDATA[
+			<script src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/jquery.mjs.nestedSortable.js"></script>
+			<script>
 				$(document).ready(function () {
 
 					$('ul.page-list').nestedSortable({
@@ -233,7 +229,6 @@ function printAdminHeader($tab, $subtab = NULL) {
 					})
 					var original_order = $('ul.page-list').nestedSortable('serialize');
 				});
-				// ]]> -->
 			</script>
 			<!--Nested Sortables End-->
 			<?php
@@ -243,7 +238,7 @@ function printAdminHeader($tab, $subtab = NULL) {
 		 * Print the html required to display the ZP logo and links in the top section of the admin page.
 		 *
 		 * @author Todd Papaioannou (lucky@luckyspin.org)
-		 * @since  1.0.0
+		 * @since 1.0.0
 		 */
 		function printLogoAndLinks() {
 			global $_zp_current_admin_obj, $_zp_admin_current_page, $_zp_admin_current_subpage, $_zp_gallery;
@@ -255,7 +250,7 @@ function printAdminHeader($tab, $subtab = NULL) {
 			}
 			maintenancemode::printStateNotice();
 			?>
-					
+
 		<span id="administration">
 			<img id="logo" src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/images/zen-logo.png"
 					 title="<?php echo sprintf(gettext('%1$s administration:%2$s%3$s'), html_encode($_zp_gallery->getTitle()), html_encode($_zp_admin_current_page), html_encode($subtab)); ?>"
@@ -292,7 +287,7 @@ function printAdminHeader($tab, $subtab = NULL) {
 	 * from the $_GET['page']. If none is set, we default to "home".
 	 *
 	 * @author Todd Papaioannou (lucky@luckyspin.org)
-	 * @since  1.0.0
+	 * @since 1.0.0
 	 */
 	function printTabs() {
 		global $_zp_admin_submenu, $_zp_admin_menu, $_zp_admin_maintab_space, $_zp_admin_current_page;
@@ -305,7 +300,7 @@ function printAdminHeader($tab, $subtab = NULL) {
 			case 'zh_CN':
 			case 'zh_TW':
 			case 'ja_JP':
-				$_zp_admin_maintab_space = count($_zp_admin_menu) * 3 + $chars;
+				$_zp_admin_maintab_space = count($_zp_admin_menu) * 4 + $chars;
 				break;
 			default:
 				$_zp_admin_maintab_space = round((count($_zp_admin_menu) * 32 + round($chars * 7.5)) / 11.5);
@@ -404,7 +399,7 @@ function printAdminHeader($tab, $subtab = NULL) {
 				case 'zh_CN':
 				case 'zh_TW':
 				case 'ja_JP':
-					$sub_tab_space = count($tabs) * 3 + $chars;
+					$sub_tab_space = count($tabs) * 4 + $chars;
 					break;
 				default:
 					$sub_tab_space = round((count($tabs) * 32 + round($chars * 7.5)) / 11.5);
@@ -485,12 +480,12 @@ function printAdminHeader($tab, $subtab = NULL) {
 		}
 		return $default;
 	}
-	
+
 	/**
 	 * Roughly fixes outdated usages of old admin "tab" globals and joins them with the actual globals.
 	 * and also throws deprecation notices about this.
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * 
 	 * @global type $_zp_admin_menu
 	 * @global type $_zp_admin_current_page
@@ -506,20 +501,19 @@ function printAdminHeader($tab, $subtab = NULL) {
 		global $zenphoto_tabs, $subtabs, $_zp_admin_tab, $_zp_admin_subtab;
 
 		if (isset($zenphoto_tabs)) {
-			trigger_error(gettext('The global $zenphoto_tabs is deprecated. Use $_zp_admin_menu instead'), E_USER_DEPRECATED );
+			trigger_error(gettext('The global $zenphoto_tabs is deprecated. Use $_zp_admin_menu instead'), E_USER_DEPRECATED);
 			$_zp_admin_menu = array_merge($_zp_admin_menu, $zenphoto_tabs);
 		}
 		if (isset($subtabs)) {
-			trigger_error(gettext('The global $subtabs is deprecated. Use $_zp_admin_submenu instead'), E_USER_DEPRECATED );
+			trigger_error(gettext('The global $subtabs is deprecated. Use $_zp_admin_submenu instead'), E_USER_DEPRECATED);
 			$_zp_admin_submenu = array_merge($_zp_admin_submenu, $subtabs);
 		}
 		if (isset($_zp_admin_tab)) {
-			trigger_error(gettext('The global $_zp_admin_tab is deprecated. Use $_zp_admin_current_page instead'), E_USER_DEPRECATED );
+			trigger_error(gettext('The global $_zp_admin_tab is deprecated. Use $_zp_admin_current_page instead'), E_USER_DEPRECATED);
 			$_zp_admin_current_page = $_zp_admin_current_subpage;
-
 		}
 		if (isset($_zp_admin_subtab)) {
-			trigger_error(gettext('The global $_zp_admin_subtab is deprecated. Use $_zp_admin_current_subpage instead'), E_USER_DEPRECATED );
+			trigger_error(gettext('The global $_zp_admin_subtab is deprecated. Use $_zp_admin_current_subpage instead'), E_USER_DEPRECATED);
 			$_zp_admin_current_subpage = $_zp_admin_subtab;
 		}
 	}
@@ -737,9 +731,15 @@ function printAdminHeader($tab, $subtab = NULL) {
 								<select id="<?php echo $key; ?>" name="<?php echo $key; ?>"<?php echo $disabled; ?> >
 									<?php
 									if (array_key_exists('null_selection', $row)) {
-										?>
-										<option value=""<?php if (empty($v)) echo ' selected="selected"'; ?> style="background-color:LightGray;"><?php echo $row['null_selection']; ?></option>
-										<?php
+										if (empty($v)) {
+											if (in_array($row['null_selection'], $row['selections'])) {
+												$v = $row['null_selection']; // don't list null_selection if the value is also an option
+											} else {
+												?>
+												<option value=""<?php if (empty($v)) echo ' selected="selected"'; ?> style="background-color:LightGray;"><?php echo $row['null_selection']; ?></option>
+											<?php
+											}
+										}
 									}
 									?>
 									<?php generateListFromArray(array($v), $row['selections'], false, true); ?>
@@ -810,13 +810,11 @@ function printAdminHeader($tab, $subtab = NULL) {
 								<ul class="customchecklist">
 									<?php generateUnorderedListFromArray($cvarray, $row['checkboxes'], '', '', true, true, 'all_' . $key); ?>
 								</ul>
-								<script type="text/javascript">
-									// <!-- <![CDATA[
+								<script>
 									function <?php echo $key; ?>_all() {
 										var check = $('#all_<?php echo $key; ?>').prop('checked');
 										$('.all_<?php echo $key; ?>').prop('checked', check);
 									}
-									// ]]> -->
 								</script>
 								<label>
 									<input type="checkbox" name="all_<?php echo $key; ?>" id="all_<?php echo $key; ?>" class="all_<?php echo $key; ?>" onclick="<?php echo $key; ?>_all();" <?php if ($all) echo ' checked="checked"'; ?>/>
@@ -831,12 +829,10 @@ function printAdminHeader($tab, $subtab = NULL) {
 							?>
 							<td width="350" style="margin:0; padding:0">
 								<input type="hidden" name="<?php echo CUSTOM_OPTION_PREFIX . 'text-' . $key; ?>" value="1" />
-								<script type="text/javascript">
-									// <!-- <![CDATA[
+								<script>
 									$(document).ready(function () {
 										$('#<?php echo $key; ?>_colorpicker').farbtastic('#<?php echo $key; ?>');
 									});
-									// ]]> -->
 								</script>
 								<table style="margin:0; padding:0" >
 									<tr>
@@ -1038,7 +1034,7 @@ function printAdminHeader($tab, $subtab = NULL) {
 				</label>
 				<?php
 				if (array_key_exists($item, $extra)) {
-					$unique = '';
+					$unique = 0;
 					foreach (array_reverse($extra[$item]) as $box) {
 						if ($box['display']) {
 							if (isset($box['disable'])) {
@@ -1057,10 +1053,10 @@ function printAdminHeader($tab, $subtab = NULL) {
 							<label class="displayinlineright">
 								<input type="<?php echo $type; ?>" id="<?php echo strtolower($listitem) . '_' . $box['name'] . $unique; ?>"<?php echo $class; ?> name="<?php echo $listitem . '_' . $box['name']; ?>"
 											 value="<?php echo html_encode($box['value']); ?>" <?php
-											 if ($box['checked']) {
-												 echo ' checked="checked"';
-											 }
-											 ?>
+					if ($box['checked']) {
+						echo ' checked="checked"';
+					}
+							?>
 											 <?php echo $disable; ?> /> <?php echo $box['display']; ?>
 							</label>
 							<?php
@@ -1362,10 +1358,10 @@ function printAdminHeader($tab, $subtab = NULL) {
 								</td>
 								<td>
 									<p> <?php
-										// Autofill honeypot hack (hidden password input),
-										// needed to prevent "Are you sure?" from tiggering when autofill is enabled in browsers
-										// http://benjaminjshore.info/2014/05/chrome-auto-fill-honey-pot-hack.html
-										?>
+											// Autofill honeypot hack (hidden password input),
+											// needed to prevent "Are you sure?" from tiggering when autofill is enabled in browsers
+											// http://benjaminjshore.info/2014/05/chrome-auto-fill-honey-pot-hack.html
+											?>
 										<input class="dirtyignore" type="password" name="pass" style="display:none;" />
 										<input type="password" 
 													 class="dirtyignore" 
@@ -1376,7 +1372,7 @@ function printAdminHeader($tab, $subtab = NULL) {
 										<label><input class="dirtyignore" type="checkbox" name="disclose_password<?php echo $suffix; ?>"
 																	id="disclose_password<?php echo $suffix; ?>"
 																	onclick="passwordClear('<?php echo $suffix; ?>');
-																			togglePassword('<?php echo $suffix; ?>');" /><?php echo addslashes(gettext('Show password')); ?></label>
+																					togglePassword('<?php echo $suffix; ?>');" /><?php echo addslashes(gettext('Show password')); ?></label>
 										<br />
 										<span class="password_field_<?php echo $suffix; ?>">
 											<input class="dirtyignore" type="password"
@@ -1411,8 +1407,7 @@ function printAdminHeader($tab, $subtab = NULL) {
 						<tr>
 							<td class="leftcolumn"><?php echo gettext("Date:"); ?> </td>
 							<td>
-								<script type="text/javascript">
-									// <!-- <![CDATA[
+								<script>
 									$(function () {
 										$("#datepicker<?php echo $suffix; ?>").datepicker({
 											dateFormat: 'yy-mm-dd',
@@ -1422,7 +1417,6 @@ function printAdminHeader($tab, $subtab = NULL) {
 											buttonImageOnly: true
 										});
 									});
-									// ]]> -->
 								</script>
 								<input type="text" id="datepicker<?php echo $suffix; ?>" size="20" name="<?php echo $prefix; ?>albumdate" value="<?php echo $d; ?>" />
 							</td>
@@ -1640,10 +1634,8 @@ function printAdminHeader($tab, $subtab = NULL) {
 									<?php
 									if ($showThumb) {
 										?>
-										<script type="text/javascript">
-											// <!-- <![CDATA[
+										<script>
 											updateThumbPreview(document.getElementById('thumbselect'));
-											// ]]> -->
 										</script>
 										<?php
 									}
@@ -1793,8 +1785,7 @@ function printAdminHeader($tab, $subtab = NULL) {
 						$publishdate = $album->getPublishDate();
 						$expirationdate = $album->getExpireDate();
 						?>
-						<script type="text/javascript">
-							// <!-- <![CDATA[
+						<script>
 							$(function () {
 								$("#<?php echo $prefix; ?>publishdate,#<?php echo $prefix; ?>expirationdate").datepicker({
 									dateFormat: 'yy-mm-dd',
@@ -1822,7 +1813,6 @@ function printAdminHeader($tab, $subtab = NULL) {
 									}
 								});
 							});
-							// ]]> -->
 						</script>
 						<br class="clearall" />
 						<hr />
@@ -1884,7 +1874,7 @@ function printAdminHeader($tab, $subtab = NULL) {
 										 } else {
 											 ?>
 											 onclick="toggleAlbumMCR('<?php echo $prefix; ?>', '');
-													 deleteConfirm('Delete-<?php echo $prefix; ?>', '<?php echo $prefix; ?>', deleteAlbum1);"
+															 deleteConfirm('Delete-<?php echo $prefix; ?>', '<?php echo $prefix; ?>', deleteAlbum1);"
 											 <?php
 										 }
 										 ?> />
@@ -2048,10 +2038,17 @@ function printAdminHeader($tab, $subtab = NULL) {
 		if ($imagcount || (!$album->isDynamic() && $album->getNumAlbums())) {
 			?>
 			<div class="button buttons tooltip" title="<?php echo gettext("Refreshes the metadata for the album."); ?>">
-				<a href="<?php echo WEBPATH . '/' . ZENFOLDER . '/admin-refresh-metadata.php?album=' . html_encode($album->name) . '&amp;return=' . html_encode($album->name); ?>&amp;XSRFToken=<?php echo getXSRFToken('refresh'); ?>">
+				<a href="<?php echo WEBPATH . '/' . ZENFOLDER . '/admin-refresh-metadata.php?album=' . html_encode($album->name) . '&amp;return=' . html_encode($album->name); ?>&amp;XSRFToken=<?php echo getXSRFToken('refresh'); ?>" class="js_confirm_metadata_refresh_<?php echo $album->getID(); ?>">
 					<img src="images/cache.png" /><?php echo gettext('Refresh album metadata'); ?></a>
 				<br class="clearall" />
 			</div>
+			<script>
+				$( document ).ready(function() {
+					var element = '.js_confirm_metadata_refresh_<?php echo $album->getID(); ?>';
+					var message = '<?php echo js_encode(gettext('Refreshing metadata will overwrite existing data. This cannot be undone!')); ?>';
+					confirmClick(element, message);
+				});
+			</script>
 			<?php
 		}
 	}
@@ -2068,12 +2065,12 @@ function printAdminHeader($tab, $subtab = NULL) {
 			<?php
 			if (GALLERY_SECURITY == 'public') {
 				?>
-				<li><img src="images/lock.png" alt="" /><?php echo gettext("Has Password"); ?></li>
+				<li><?php echo getStatusIcon('protected') . getStatusIcon('protected_by_parent').  gettext("Password protected/Password protected by parent"); ?></li>
 				<?php
 			}
 			?>
-			<li><img src="images/pass.png" alt="" /><img	src="images/action.png" alt="" /><?php echo gettext("Published/Not published"); ?></li>
-			<li><img src="images/clock_futuredate.png" alt="" /><img src="images/clock_expiredate.png" alt="" /><img src="images/clock_expired.png" alt="" /><?php echo gettext("Scheduled publishing/Scheduled expiration/Expired"); ?></li>
+			<li><?php echo getStatusIcon('published') . getStatusIcon('unpublished') . getStatusIcon('unpublished_by_parent'); ?><?php echo gettext("Published/Unpublished/Unpublished by parent"); ?></li>
+			<li><?php echo getStatusIcon('publishschedule') . getStatusIcon('expiration') . getStatusIcon('expired'); ?><?php echo gettext("Scheduled publishing/Scheduled expiration/Expired"); ?></li>
 			<li><img src="images/comments-on.png" alt="" /><img src="images/comments-off.png" alt="" /><?php echo gettext("Comments on/off"); ?></li>
 			<li><img src="images/view.png" alt="" /><?php echo gettext("View the album"); ?></li>
 			<li><img src="images/refresh.png" alt="" /><?php echo gettext("Refresh metadata"); ?></li>
@@ -2172,7 +2169,7 @@ function printAdminHeader($tab, $subtab = NULL) {
 				<div class="page-list_extra">
 					<?php printPublished($album); ?>
 				</div>
-			<?php
+				<?php
 			}
 			if ($album->hasExpiration() || $album->hasExpired()) {
 				?>
@@ -2183,12 +2180,7 @@ function printAdminHeader($tab, $subtab = NULL) {
 			<?php $wide = '40px'; ?>
 			<div class="page-list_iconwrapperalbum">
 				<div class="page-list_icon">
-					<?php
-					$pwd = $album->getPassword();
-					if (!empty($pwd)) {
-						echo '<a title="' . gettext('Password protected') . '"><img src="images/lock.png" style="border: 0px;" alt="" title="' . gettext('Password protected') . '" /></a>';
-					}
-					?>
+					<?php printProtectedIcon($album); ?>
 				</div>
 				<div class="page-list_icon">
 					<?php printPublishIconLinkGallery($album, $enableEdit, $owner); ?>
@@ -2241,9 +2233,16 @@ function printAdminHeader($tab, $subtab = NULL) {
 						<?php
 					} else {
 						?>
-						<a class="warn" href="admin-refresh-metadata.php?page=edit&amp;album=<?php echo html_encode(pathurlencode($album->name)); ?>&amp;return=*<?php echo html_encode(pathurlencode($owner)); ?>&amp;XSRFToken=<?php echo getXSRFToken('refresh') ?>" title="<?php echo sprintf(gettext('Refresh metadata for the album %s'), $album->name); ?>">
+						<a class="warn js_confirm_metadata_refresh_<?php echo $album->getID(); ?>" href="admin-refresh-metadata.php?page=edit&amp;album=<?php echo html_encode(pathurlencode($album->name)); ?>&amp;return=*<?php echo html_encode(pathurlencode($owner)); ?>&amp;XSRFToken=<?php echo getXSRFToken('refresh') ?>" title="<?php echo sprintf(gettext('Refresh metadata for the album %s'), $album->name); ?>">
 							<img src="images/refresh.png" style="border: 0px;" alt="" title="<?php echo sprintf(gettext('Refresh metadata in the album %s'), $album->name); ?>" />
 						</a>
+						<script>
+						$( document ).ready(function() {
+							var element = '.js_confirm_metadata_refresh_<?php echo $album->getID(); ?>';
+							var message = '<?php echo js_encode(gettext('Refreshing metadata will overwrite existing data. This cannot be undone!')); ?>';
+							confirmClick(element, message);
+						});
+						</script>
 						<?php
 					}
 					?>
@@ -2476,174 +2475,148 @@ function printAdminHeader($tab, $subtab = NULL) {
 	}
 
 	/**
- * Process the image edit form posted
- * @param obj $image Image object
- * @param type $index Index of the image if within the images list or 0 if single image edit
- * @param boolean $massedit Whether editing single image (false) or multiple images at once (true). Note: to determine whether to process additional fields in single image edit mode.
- */
-function processImageEdit($image, $index, $massedit = true) {
-	global $_zp_current_admin_obj, $_zp_graphics;
-	$notify = '';
-	if (isset($_POST[$index . '-MoveCopyRename'])) {
-		$movecopyrename_action = sanitize($_POST[$index . '-MoveCopyRename'], 3);
-	} else {
-		$movecopyrename_action = '';
-	}
-	if ($movecopyrename_action == 'delete') {
-		$image->remove();
-	} else {
-		if ($thumbnail = sanitize($_POST['album_thumb-' . $index])) { //selected as an album thumb
-			$talbum = AlbumBase::newAlbum($thumbnail);
-			if ($image->imagefolder == $thumbnail) {
-				$talbum->setThumb($image->filename);
-			} else {
-				$talbum->setThumb('/' . $image->imagefolder . '/' . $image->filename);
-			}
-			$talbum->setLastChangeUser($_zp_current_admin_obj->getUser());
-			$talbum->save();
+	 * Process the image edit form posted
+	 * @param obj $image Image object
+	 * @param type $index Index of the image if within the images list or 0 if single image edit
+	 * @param boolean $massedit Whether editing single image (false) or multiple images at once (true). Note: to determine whether to process additional fields in single image edit mode.
+	 */
+	function processImageEdit($image, $index, $massedit = true) {
+		global $_zp_current_admin_obj, $_zp_graphics;
+		$notify = '';
+		if (isset($_POST[$index . '-MoveCopyRename'])) {
+			$movecopyrename_action = sanitize($_POST[$index . '-MoveCopyRename'], 3);
+		} else {
+			$movecopyrename_action = '';
 		}
-		if (isset($_POST[$index . '-reset_rating'])) {
-			$image->set('total_value', 0);
-			$image->set('total_votes', 0);
-			$image->set('used_ips', 0);
-		}
-		$image->setPublishDate(sanitize($_POST['publishdate-' . $index]));
-		$image->setExpireDate(sanitize($_POST['expirationdate-' . $index]));
-		$image->setTitle(process_language_string_save("$index-title", 2));
-		$image->setDesc(process_language_string_save("$index-desc", EDITOR_SANITIZE_LEVEL));
-		
-		if (isset($_POST[$index . '-oldrotation']) && isset($_POST[$index . '-rotation'])) {
-			$oldrotation = (int) $_POST[$index . '-oldrotation'];
-			$rotation = (int) $_POST[$index . '-rotation'];
-			if ($rotation != $oldrotation) {
-				$image->set('EXIFOrientation', $rotation);
-				$image->updateDimensions();
-				$album = $image->getAlbum();
-				Gallery::clearCache(SERVERCACHE . '/' . $album->name);
-			}
-		}
-		
-		if (isset($_POST[$index . '-flipping'])) {
-			$flipping = sanitize($_POST[$index . '-flipping']);
-			if ($flipping != 'none') {
-				$fullimage = $image->getFullimage(SERVERPATH);
-				$album = $image->getAlbum();
-				$im = $_zp_graphics->imageGet($fullimage);
-				$success = false;
-				switch ($flipping) {
-					case 'horizontal':
-						$success = $_zp_graphics->flipImage($im, 'horizontal');
-						break;
-					case 'vertical':
-						$success = $_zp_graphics->flipImage($im, 'vertical');
-						break;
+		if ($movecopyrename_action == 'delete') {
+			$image->remove();
+		} else {
+			if ($thumbnail = sanitize($_POST['album_thumb-' . $index])) { //selected as an album thumb
+				$talbum = AlbumBase::newAlbum($thumbnail);
+				if ($image->imagefolder == $thumbnail) {
+					$talbum->setThumb($image->filename);
+				} else {
+					$talbum->setThumb('/' . $image->imagefolder . '/' . $image->filename);
 				}
-				if ($success) {
-					$suffix = getSuffix($image->getName());
-					$success_final = $_zp_graphics->imageOutput($im, $suffix, $fullimage);
-					if($success_final) {
-						Gallery::clearCache(SERVERCACHE . '/' . $album->name);
-					}
-					$_zp_graphics->imageKill($im);
-				} 
+				$talbum->setLastChangeUser($_zp_current_admin_obj->getUser());
+				$talbum->save();
 			}
-		}
-		
-		if (!$massedit) {
-			$image->setLocation(process_language_string_save("$index-location", 3));
-			$image->setCity(process_language_string_save("$index-city", 3));
-			$image->setState(process_language_string_save("$index-state", 3));
-			$image->setCountry(process_language_string_save("$index-country", 3));
-			$image->setCredit(process_language_string_save("$index-credit", 1));
-			$image->setCopyright(process_language_string_save("$index-copyright", 1));
-			$tagsprefix = 'tags_' . $index . '-';
-			$tags = array();
-			$l = strlen($tagsprefix);
-			foreach ($_POST as $key => $value) {
-				$key = postIndexDecode($key);
-				if (substr($key, 0, $l) == $tagsprefix) {
-					if ($value) {
-						$tags[] = sanitize(substr($key, $l));
-					}
+			if (isset($_POST[$index . '-reset_rating'])) {
+				$image->set('total_value', 0);
+				$image->set('total_votes', 0);
+				$image->set('used_ips', 0);
+			}
+			$image->setPublishDate(sanitize($_POST['publishdate-' . $index]));
+			$image->setExpireDate(sanitize($_POST['expirationdate-' . $index]));
+			$image->setTitle(process_language_string_save("$index-title", 2));
+			$image->setDesc(process_language_string_save("$index-desc", EDITOR_SANITIZE_LEVEL));
+
+			if (isset($_POST[$index . '-oldrotation']) && isset($_POST[$index . '-rotation'])) {
+				$oldrotation = (int) $_POST[$index . '-oldrotation'];
+				$rotation = (int) $_POST[$index . '-rotation'];
+				if ($rotation != $oldrotation) {
+					$image->set('EXIFOrientation', $rotation);
+					$image->updateDimensions();
+					$album = $image->getAlbum();
+					Gallery::clearCache(SERVERCACHE . '/' . $album->name);
 				}
 			}
-			$tags = array_unique($tags);
-			$image->setTags($tags);
-			if (zp_loggedin(CODEBLOCK_RIGHTS)) {
-				$image->setCodeblock(processCodeblockSave($index));
+
+			if (!$massedit) {
+				$image->setLocation(process_language_string_save("$index-location", 3));
+				$image->setCity(process_language_string_save("$index-city", 3));
+				$image->setState(process_language_string_save("$index-state", 3));
+				$image->setCountry(process_language_string_save("$index-country", 3));
+				$image->setCredit(process_language_string_save("$index-credit", 1));
+				$image->setCopyright(process_language_string_save("$index-copyright", 1));
+				$tagsprefix = 'tags_' . $index . '-';
+				$tags = array();
+				$l = strlen($tagsprefix);
+				foreach ($_POST as $key => $value) {
+					$key = postIndexDecode($key);
+					if (substr($key, 0, $l) == $tagsprefix) {
+						if ($value) {
+							$tags[] = sanitize(substr($key, $l));
+						}
+					}
+				}
+				$tags = array_unique($tags);
+				$image->setTags($tags);
+				if (zp_loggedin(CODEBLOCK_RIGHTS)) {
+					$image->setCodeblock(processCodeblockSave($index));
+				}
+				$custom = process_language_string_save("$index-custom_data", 1);
+				$image->setCustomData(zp_apply_filter('save_image_custom_data', $custom, $index));
 			}
-			$custom = process_language_string_save("$index-custom_data", 1);
-			$image->setCustomData(zp_apply_filter('save_image_custom_data', $custom, $index));
-		}
-		$image->setDateTime(sanitize($_POST["$index-date"]));
-		$image->setPublished(isset($_POST["$index-Visible"]));
-		$image->setCommentsAllowed(isset($_POST["$index-allowcomments"]));
-		if (isset($_POST["reset_hitcounter$index"])) {
-			$image->set('hitcounter', 0);
-		}
-		$wmt = sanitize($_POST["$index-image_watermark"], 3);
-		$image->setWatermark($wmt);
-		$wmuse = 0;
-		if (isset($_POST['wm_image-' . $index])) {
-			$wmuse = $wmuse | WATERMARK_IMAGE;
-		}
-		if (isset($_POST['wm_thumb-' . $index])) {
-			$wmuse = $wmuse | WATERMARK_THUMB;
-		}
-		if (isset($_POST['wm_full-' . $index])) {
-			$wmuse = $wmuse | WATERMARK_FULL;
-		}
-		$image->setWMUse($wmuse);
+			$image->setDateTime(sanitize($_POST["$index-date"]));
+			$image->setPublished(isset($_POST["$index-Visible"]));
+			$image->setCommentsAllowed(isset($_POST["$index-allowcomments"]));
+			if (isset($_POST["reset_hitcounter$index"])) {
+				$image->set('hitcounter', 0);
+			}
+			$wmt = sanitize($_POST["$index-image_watermark"], 3);
+			$image->setWatermark($wmt);
+			$wmuse = 0;
+			if (isset($_POST['wm_image-' . $index])) {
+				$wmuse = $wmuse | WATERMARK_IMAGE;
+			}
+			if (isset($_POST['wm_thumb-' . $index])) {
+				$wmuse = $wmuse | WATERMARK_THUMB;
+			}
+			if (isset($_POST['wm_full-' . $index])) {
+				$wmuse = $wmuse | WATERMARK_FULL;
+			}
+			$image->setWMUse($wmuse);
 
-		if (isset($_POST[$index . '-owner'])) {
-			$image->setOwner(sanitize($_POST[$index . '-owner']));
-		}
-		$image->set('filesize', filesize($image->localpath));
-		$image->setLastchangeUser($_zp_current_admin_obj->getUser());
-		zp_apply_filter('save_image_utilities_data', $image, $index);
-		$image->save(true);
+			if (isset($_POST[$index . '-owner'])) {
+				$image->setOwner(sanitize($_POST[$index . '-owner']));
+			}
+			$image->set('filesize', filesize($image->localpath));
+			$image->setLastchangeUser($_zp_current_admin_obj->getUser());
+			zp_apply_filter('save_image_utilities_data', $image, $index);
+			$image->save(true);
 
-		// Process move/copy/rename
-		$mcrerr = array();
-		$folder = $image->getAlbumName();
-		if ($movecopyrename_action == 'move') {
-			$dest = sanitize_path($_POST[$index . '-albumselect']);
-			if ($dest && $dest != $folder) {
-				if ($e = $image->move($dest)) {
+			// Process move/copy/rename
+			$mcrerr = array();
+			$folder = $image->getAlbumName();
+			if ($movecopyrename_action == 'move') {
+				$dest = sanitize_path($_POST[$index . '-albumselect']);
+				if ($dest && $dest != $folder) {
+					if ($e = $image->move($dest)) {
+						SearchEngine::clearSearchCache();
+						$mcrerr['mcrerr'][$e][$index] = $image->getID();
+					}
+				} else {
+					// Cannot move image to same album.
+					$mcrerr['mcrerr'][2][$index] = $image->getID();
+				}
+			} else if ($movecopyrename_action == 'copy') {
+
+				$dest = sanitize_path($_POST[$index . '-albumselect']);
+				if ($dest && $dest != $folder) {
+					if ($e = $image->copy($dest)) {
+						$mcrerr['mcrerr'][$e][$index] = $image->getID();
+					}
+				} else {
+					// Cannot copy image to existing album.
+					// Or, copy with rename?
+					$mcrerr['mcrerr'][2][$index] = $image->getID();
+				}
+			} else if ($movecopyrename_action == 'rename') {
+				$renameto = sanitize_path($_POST[$index . '-renameto']);
+				if ($e = $image->rename($renameto)) {
 					SearchEngine::clearSearchCache();
 					$mcrerr['mcrerr'][$e][$index] = $image->getID();
 				}
-			} else {
-				// Cannot move image to same album.
-				$mcrerr['mcrerr'][2][$index] = $image->getID();
-			}
-		} else if ($movecopyrename_action == 'copy') {
-
-			$dest = sanitize_path($_POST[$index . '-albumselect']);
-			if ($dest && $dest != $folder) {
-				if ($e = $image->copy($dest)) {
-					$mcrerr['mcrerr'][$e][$index] = $image->getID();
-				}
-			} else {
-				// Cannot copy image to existing album.
-				// Or, copy with rename?
-				$mcrerr['mcrerr'][2][$index] = $image->getID();
-			}
-		} else if ($movecopyrename_action == 'rename') {
-			$renameto = sanitize_path($_POST[$index . '-renameto']);
-			if ($e = $image->rename($renameto)) {
-				SearchEngine::clearSearchCache();
-				$mcrerr['mcrerr'][$e][$index] = $image->getID();
 			}
 		}
+		if (!empty($mcrerr)) {
+			$notify = '&' . http_build_query($mcrerr);
+		}
+		return $notify;
 	}
-	if (!empty($mcrerr)) {
-		$notify = '&' . http_build_query($mcrerr);
-	}
-	return $notify;
-}
 
-function adminPageNav($pagenum, $totalpages, $adminpage, $parms, $tab = '') {
+	function adminPageNav($pagenum, $totalpages, $adminpage, $parms, $tab = '') {
 		if (empty($parms)) {
 			$url = '?';
 		} else {
@@ -2903,59 +2876,59 @@ function adminPageNav($pagenum, $totalpages, $adminpage, $parms, $tab = '') {
 	}
 
 	/**
-	 * Unzips an image archive
-	 *
-	 * @param file $file the archive
-	 * @param string $dir where the images go
-	 */
-	function unzip($file, $dir) { //check if zziplib is installed
-		global $_zp_current_admin_obj;
-		if (function_exists('zip_open')) {
-			$zip = zip_open($file);
-			if ($zip) {
-				while ($zip_entry = zip_read($zip)) { // Skip non-images in the zip file.
-					$fname = zip_entry_name($zip_entry);
-					$seoname = internalToFilesystem(seoFriendly($fname));
+ * Unzips an image archive
+ *
+ * @param file $file the archive
+ * @param string $dir where the images go
+ */
+function unzip($file, $dir) { //check if zziplib is installed
+	global $_zp_current_admin_obj;
+	if (class_exists('ziparchive')) {
+		$zip = new ZipArchive();
+		$zip_valid = $zip->open($file);
+		if ($zip_valid === true) {
+			for ($i = 0; $entry = $zip->statIndex($i); $i++) {
+				$fname = $entry['name']; 
+				$seoname = internalToFilesystem(seoFriendly($fname));
+				if (stripos($seoname, '__macosx-._') === false) {
 					if (Gallery::validImage($seoname) || Gallery::validImageAlt($seoname)) {
-						if (zip_entry_open($zip, $zip_entry, "r")) {
-							$buf = zip_entry_read($zip_entry, zip_entry_filesize($zip_entry));
-							$path_file = str_replace("/", DIRECTORY_SEPARATOR, $dir . '/' . $seoname);
-							$fp = fopen($path_file, "w");
-							fwrite($fp, $buf);
-							fclose($fp);
-							clearstatcache();
-							zip_entry_close($zip_entry);
-							$albumname = substr($dir, strlen(ALBUM_FOLDER_SERVERPATH));
-							$album = AlbumBase::newAlbum($albumname);
-							$image = Image::newImage($album, $seoname);
-							if ($fname != $seoname) {
-								$image->setTitle($fname);
-								$image->setLastChangeUser($_zp_current_admin_obj->getUser());
-								$image->save();
-							}
+						$buf = $zip->getFromName($fname);
+						$path_file = str_replace("/", DIRECTORY_SEPARATOR, $dir . '/' . $seoname);
+						$fp = fopen($path_file, "w");
+						fwrite($fp, $buf);
+						fclose($fp);
+						clearstatcache();
+						$albumname = substr($dir, strlen(ALBUM_FOLDER_SERVERPATH));
+						$album = AlbumBase::newAlbum($albumname);
+						$image = Image::newImage($album, $seoname);
+						if ($fname != $seoname) {
+							$image->setTitle($fname);
+							$image->setLastChangeUser($_zp_current_admin_obj->getUser());
+							$image->save();
 						}
 					}
 				}
-				return zip_close($zip);
 			}
-		} else {
-			debuglog(gettext('Zip archive could not be extracted because PHP <code>ZipArchive</code> support is not available'));
-			return false;
+			return $zip->close();
 		}
+	} else {
+		debuglog(gettext('Zip archive could not be extracted because PHP <code>ZipArchive</code> support is not available'));
+		return false;
 	}
+}
 
-	/**
-	 * Checks for a zip file
-	 *
-	 * @param string $filename name of the file
-	 * @return bool
-	 */
-	function is_zip($filename) {
-		$ext = getSuffix($filename);
-		return ($ext == "zip");
-	}
+/**
+ * Checks for a zip file
+ *
+ * @param string $filename name of the file
+ * @return bool
+ */
+function is_zip($filename) {
+	$ext = getSuffix($filename);
+	return ($ext == "zip");
+}
 
-	/**
+/**
 	 * Extracts and returns a 'statement' from a PHP script so that it may be 'evaled'
 	 *
 	 * @param string $target the assignment variable to match on
@@ -3288,10 +3261,10 @@ function adminPageNav($pagenum, $totalpages, $adminpage, $parms, $tab = '') {
 						<label title="<?php echo html_encode(get_language_string($right['hint'])); ?>">
 							<input type="checkbox" name="<?php echo $id . '-' . $rightselement; ?>" id="<?php echo $rightselement . '-' . $id; ?>" class="user-<?php echo $id; ?>"
 										 value="<?php echo $right['value']; ?>"<?php
-										 if ($rights & $right['value'])
-											 echo ' checked="checked"';
-										 echo $alterrights;
-										 ?> /> <?php echo $right['name']; ?>
+				if ($rights & $right['value'])
+					echo ' checked="checked"';
+				echo $alterrights;
+						?> /> <?php echo $right['name']; ?>
 						</label>
 						<?php
 					} else {
@@ -3425,8 +3398,10 @@ function printManagedObjects($type, $objlist, $alterrights, $userobj, $prefix_id
 	} else {
 		$itemcount = '';
 	}
+	if(empty($rest) && empty($cv)) {
+		return;
+	}
 	?>
-
 	<div class="box-albums-unpadded">
 		<h2 class="h2_bordered_albums">
 			<a href="javascript:toggle('<?php echo $prefix ?>');" title="<?php echo html_encode($hint); ?>" ><?php echo $text . $itemcount; ?></a>
@@ -3577,9 +3552,24 @@ function getCheckboxState($id) {
  * @return array
  */
 function standardScripts() {
-	$standardlist = array('themeoptions', 'password', 'theme_description', '404', 'slideshow', 'search', 'image', 'index', 'album', 'customfunctions', 'functions');
-	if (extensionEnabled('zenpage'))
+	$standardlist = array(
+			'themeoptions',
+			'password',
+			'theme_description',
+			'404', 'slideshow',
+			'search', 'image',
+			'index', 'album',
+			'customfunctions',
+			'functions',
+			'footer',
+			'sidebar',
+			'header',
+			'inc-footer',
+			'inc-header'
+	);
+	if (extensionEnabled('zenpage')) {
 		$standardlist = array_merge($standardlist, array('news', 'pages'));
+	}
 	return $standardlist;
 }
 
@@ -3858,8 +3848,7 @@ function printBulkActions($checkarray, $checkAll = false) {
 	$changeowner = in_array('changeowner', $checkarray);
 	if ($tags || $movecopy || $categories || $changeowner) {
 		?>
-		<script type="text/javascript">
-			//<!-- <![CDATA[
+		<script>
 			function checkFor(obj) {
 				var sel = obj.options[obj.selectedIndex].value;
 		<?php
@@ -3913,7 +3902,6 @@ function printBulkActions($checkarray, $checkAll = false) {
 		}
 		?>
 			}
-			// ]]> -->
 		</script>
 		<?php
 	}
@@ -4246,8 +4234,7 @@ function processCommentBulkActions() {
  */
 function codeblocktabsJS() {
 	?>
-	<script type="text/javascript" charset="utf-8">
-		// <!-- <![CDATA[
+	<script charset="utf-8">
 		$(function () {
 			var tabContainers = $('div.tabs > div');
 			$('.first').addClass('selected');
@@ -4270,7 +4257,6 @@ function codeblocktabsJS() {
 							'</div>');
 			cbclick(num, id);
 		}
-		// ]]> -->
 	</script>
 	<?php
 }
@@ -4515,8 +4501,8 @@ function printPageSelector($pagenumber, $rangeset, $script, $queryParams) {
 		}
 		?>
 		<select name="pagenumber" class="dirtyignore" id="pagenumber<?php echo $instances; ?>" onchange="launchScript('<?php echo WEBPATH . '/' . ZENFOLDER . '/' . $script; ?>',
-				[<?php echo $jump; ?>'pagenumber=' + $('#pagenumber<?php echo $instances; ?>').val()]);" >
-							<?php
+						[<?php echo $jump; ?>'pagenumber=' + $('#pagenumber<?php echo $instances; ?>').val()]);" >
+						<?php
 							foreach ($rangeset as $page => $range) {
 								?>
 				<option value="<?php echo $page; ?>" <?php if ($page == $pagenumber) echo ' selected="selected"'; ?>><?php echo $range; ?></option>
@@ -4572,39 +4558,135 @@ function admin_album_list($owner) {
 	return $adminlist;
 }
 
+
 /**
- * Figures out which log tabs to display
+ * Returns an array with the logtabs array, the default log tab and an array of log files to the default (current) log tab (for use in the logfile selector)
+ * 
+ * @since 1.6.1 - Reworked for displaying only tabs for log types
+ * @return array
  */
 function getLogTabs() {
-	$subtabs = array();
-	$default = NULL;
-	$localizer = array('setup' => gettext('setup'), 'security' => gettext('security'), 'debug' => gettext('debug'));
-	$filelist = safe_glob(SERVERPATH . "/" . DATA_FOLDER . '/*.log');
-	if (count($filelist) > 0) {
-		$tab = sanitize(@$_GET['tab'], 3);
-		foreach ($filelist as $logfile) {
-			$log = substr(basename($logfile), 0, -4);
-			if ($log == $tab) {
-				$default = $tab;
-			}
-			if (array_key_exists($log, $localizer)) {
-				$logfiletext = $localizer[$log];
+	$defaulttab = $defaultlogfile = null;
+	$localizer = getDefaultLogTabs();
+	$subtabs = $logs = array();
+	$logs = getLogFiles();
+	if ($logs) {
+		$currenttab = sanitize(@$_GET['tab'], 3);
+		$currentlogfile = sanitize(@$_GET['logfile'], 3);
+		foreach ($logs as $tab => $logfiles) {
+			if (array_key_exists($tab, $localizer)) {
+				$tabname = $localizer[$tab];
 			} else {
-				$logfiletext = str_replace('_', ' ', $log);
+				$tabname = str_replace('_', ' ', $tab);
 			}
-			$subtabs = array_merge($subtabs, array($logfiletext => FULLWEBPATH . '/' . ZENFOLDER . '/admin-logs.php?page=logs&tab=' . $log));
-			if (filesize($logfile) > 0 && empty($default)) {
-				$default = $log;
+			if ($currenttab == $tab) {
+				$defaulttab = $currenttab;
+			}
+			if (!empty($logfiles) > 0 && empty($defaulttab)) {
+				$defaulttab = $tab;
+			}
+			$subtabs = array_merge($subtabs, array($tabname => FULLWEBPATH . '/' . ZENFOLDER . '/admin-logs.php?page=logs&tab=' . $tab));
+		}
+		$logsfinal = $logs[$defaulttab];
+		sortArray($logsfinal, true, true);
+		$logsfinal = array_values($logsfinal); // reset keys as sortArray() keeps them
+		foreach ($logsfinal as $logfile) {
+			if ($currentlogfile == $logfile) {
+				$defaultlogfile = $currentlogfile;
 			}
 		}
+		if (empty($defaultlogfile)) {
+			$defaultlogfile = $logsfinal[0];
+		}
+		$return = array($subtabs, $defaulttab, $defaultlogfile, $logsfinal);
+		return $return;
 	}
-
-	$names = array_flip($subtabs);
-	sortArray($names);
-	$subtabs = array_flip($names);
-
-	return array($subtabs, $default);
 }
+
+/**
+ * Gets an array log tab names and localized (gettexted) log titles
+ * 
+ * @since 1.6.1
+ * @return array
+ */
+function getDefaultLogTabs() {
+	return array(
+			'setup' => gettext('setup'),
+			'security' => gettext('security'),
+			'debug' => gettext('debug')
+	);
+}
+
+/**
+ * Gets a nested array with the log type (tab name) and corresponding log files
+ * 
+ * @since 1.6.1
+ * @return array
+ */
+function getLogFiles() {
+	$logs = array();
+	$filelist = safe_glob(SERVERPATH . "/" . DATA_FOLDER . '/*.log');
+	if (count($filelist) > 0) {
+		foreach ($filelist as $logfile) {
+			$logfile_nosuffix = stripSuffix(basename($logfile));
+			$is_newlogname = explode("_", $logfile_nosuffix);
+			if (count($is_newlogname) > 1) {
+				// new log name with date 
+				$log_tab = $is_newlogname[0];
+			} else {
+				$matches = array();
+				preg_match('|-(.*)|', $logfile_nosuffix, $matches);
+				if ($matches) {
+					// old log name with number
+					$log_tab = str_replace($matches[0], '', $logfile_nosuffix);
+				} else {
+					// old log name without number
+					$log_tab = $logfile_nosuffix;
+				}
+			}
+			$logs[$log_tab][] = $logfile_nosuffix;
+		}
+	}
+	return $logs;
+}
+
+/**
+ * Prints the selector for logfiles of the current log tab
+ * 
+ * @since 1.6.1
+ * 
+ * @param string $currentlogtab Current log tab 
+ * @param string $currentlogfile Current log file selected
+ * @param array $logfiles Array of logfiles
+ */
+function printLogSelector($currentlogtab = '', $currentlogfile = '', $logfiles = array()) {
+	if (!empty($currentlogtab) && !empty($currentlogfile) && (!empty($logfiles) && count($logfiles) > 1)) {
+		?>
+		<form name="logfile_selector" id="logfile_selector"	action="#">
+			<p>
+				<label>
+					<select name="ListBoxURL" size="1" onchange="zp_gotoLink(this.form)"> 
+						<?php 
+						foreach($logfiles as $logfile) {
+							$url = WEBPATH . '/' . ZENFOLDER . '/admin-logs.php?page=logs&tab='. html_encode($currentlogtab) . '&logfile='.$logfile; 
+							$selected = '';
+							if ($logfile == $currentlogfile) {
+								$selected = ' selected';
+							}
+							?>
+							<option value="<?php echo $url; ?>"<?php echo $selected; ?>><?php echo html_encode($logfile); ?></option>
+							<?php
+						}
+					?>
+					</select> <?php echo gettext('Select the logfile to view'); ?>
+				</label>
+				</p>
+		</form>
+		<?php
+	}
+}
+
+
 
 /**
  * Figures out which plugin tabs to display
@@ -4676,51 +4758,87 @@ function getPluginTabs() {
 }
 
 /**
+ * Gets an array with the size values for the admin thumb generation
+ * 
+ * @since 1.6.3
+ * 
+ * @param obj $imageobj The image object
+ * @param string $size Adminthumb sizeame: 'large', 'small', 'large-uncropped', 'small-uncropped'
+ * @return array
+ */
+function getAdminThumbSizes($imageobj, $size = 'small') {
+	$sizes = array(
+			'thumbsize' => null,
+			'width' => null,
+			'height' => null,
+			'cropwidth' => null,
+			'cropheight' => null
+	);
+	switch ($size) {
+		case 'large':
+			$sizes['thumbsize'] = 80;
+			$sizes['cropwidth'] = 80;
+			$sizes['cropheight'] = 80;
+			break;
+		case 'small':
+		default:
+			$sizes['thumbsize'] = 40;
+			$sizes['cropwidth'] = 40;
+			$sizes['cropheight'] = 40;
+			break;
+		case 'large-uncropped':
+			if ($imageobj->isSquare('thumb')) {
+				$sizes['thumbsize'] = 135;
+			} else if ($imageobj->isLandscape('thumb')) {
+				$sizes['width'] = 135;
+			} else if ($imageobj->isPortrait('thumb')) {
+				$sizes['height'] = 135;
+			}
+			break;
+		case 'small-uncropped':
+			if ($imageobj->isSquare('thumb')) {
+				$sizes['thumbsize'] = 110;
+			} else if ($imageobj->isLandscape('thumb')) {
+				$sizes['width'] = 110;
+			} else if ($imageobj->isPortrait('thumb')) {
+				$sizes['height'] = 110;
+			}
+			break;
+	}
+	return $sizes;
+}
+
+/**
  * Gets the URL of the adminthumb
  * 
- * @param obj $image The image object
+ * @param obj $imageobj The image object
  * @param string $size Adminthumb sizeame: 'large', 'small', 'large-uncropped', 'small-uncropped'
  * @return string
  */
 function getAdminThumb($imageobj, $size = 'small') {
-	switch ($size) {
-		case 'large':
-			return $imageobj->getCustomImage(80, NULL, NULL, 80, 80, NULL, NULL, -1);
-		case 'small':
-		default:
-			return $imageobj->getCustomImage(40, NULL, NULL, 40, 40, NULL, NULL, -1);
-		case 'large-uncropped':
-		case 'small-uncropped':
-			$thumbsize = $width = $height = null;
-			switch ($size) {
-				case 'large-uncropped':
-					if ($imageobj->isSquare('thumb')) {
-						$thumbsize = 135;
-					} else if ($imageobj->isLandscape('thumb')) {
-						$width = 135;
-					} else if ($imageobj->isPortrait('thumb')) {
-						$height = 135;
-					}
-					return $imageobj->getCustomImage($thumbsize, $width, $height, NULL, NULL, NULL, NULL, -1);
-				case 'small-uncropped':
-					if ($imageobj->isSquare('thumb')) {
-						$thumbsize = 110;
-					} else if ($imageobj->isLandscape('thumb')) {
-						$width = 110;
-					} else if ($imageobj->isPortrait('thumb')) {
-						$height = 110;
-					}
-					return $imageobj->getCustomImage($thumbsize, $width, $height, NULL, NULL, NULL, NULL, -1);
-			}
-			break;
-	}
+	$values = getAdminThumbSizes($imageobj, $size);
+	return $imageobj->getCustomImage($values['thumbsize'], $values['width'], $values['height'], $values['cropwidth'], $values['cropheight'], null, null, true);
+}
+
+/**
+ * Returns an array with width and height of the resized image
+ * 
+ * @since 1.6.3
+ * 
+ * @param obj  $imageobj The image object
+ * @param string $size Adminthumb sizeame: 'large', 'small', 'large-uncropped', 'small-uncropped'
+ * @return array
+ */
+function getSizeAdminThumb($imageobj, $size = 'small') {
+	$values = getAdminThumbSizes($imageobj, $size);
+	return $imageobj->getSizeCustomImage($values['thumbsize'], $values['width'], $values['height'], $values['cropwidth'], $values['cropheight'], null, null, 'thumb');
 }
 
 /**
  * Returns the full HTML element of an admin thumb
  * Applies the filters 'adminthumb_html'
  * 
- * @since ZenphotoCMS 1.5.8
+ * @since 1.5.8
  * 
  * @param obj $imageobj The image object
  * @param string $size Adminthumb sizeame: 'large', 'small', 'large-uncropped', 'small-uncropped'
@@ -4734,8 +4852,11 @@ function getAdminThumbHTML($imageobj, $size = 'small', $class = null, $id = null
 	if (empty($title)) {
 		$title = $alt;
 	}
+	$dimensions = getSizeAdminThumb($imageobj, $size);
 	$attr = array(
 			'src' => html_pathurlencode(getAdminThumb($imageobj, $size)),
+			'width' => $dimensions[0],
+			'height' => $dimensions[1],
 			'alt' => html_encode($alt),
 			'class' => $class,
 			'id' => $id,
@@ -4751,7 +4872,7 @@ function getAdminThumbHTML($imageobj, $size = 'small', $class = null, $id = null
 /**
  * Prints an admin thumb
  * 
- * @since ZenphotoCMS 1.5.8
+ * @since 1.5.8
  * 
  * @param obj $imageobj The image object
  * @param string $size Adminthumb sizeame: 'large', 'small', 'large-uncropped', 'small-uncropped'
@@ -5093,7 +5214,7 @@ function checkAlbumimagesort($val, $type = 'albumimagesort') {
  * Prints the last change date and last change user notice on backend edit pages
  * Also for albums it prints the updateddate 
  * 
- * @since ZenphotoCMS 1.5.2
+ * @since 1.5.2
  * @param obj $obj Object of any item type
  */
 function printLastChangeInfo($obj) {
@@ -5131,7 +5252,7 @@ function printLastChangeInfo($obj) {
 /**
  * Returns the option array for the sort by selectors for gallery, albums and images
  * 
- * @since ZenphotoCMS 1.5.5 Replaces the global $_zp_sortby
+ * @since 1.5.5 Replaces the global $_zp_sortby
  * 
  * @param string $type "albums" (also for gallery), "albums-dynamic", 'images' 
  * 										 "image-edit" (the images edit tab backend only ordering)
@@ -5167,7 +5288,7 @@ function getSortByOptions($type) {
 				case 'albums-search':
 					$orders[gettext('Folder')] = 'folder';
 					$orders[gettext('Last updated date')] = 'updateddate';
-					$orders[gettext('Manual')] = 'manual'; 
+					$orders[gettext('Manual')] = 'manual';
 					if ($type == 'albums-search') {
 						$orders[gettext('Manual')] = 'sort_order';
 					}
@@ -5176,7 +5297,7 @@ function getSortByOptions($type) {
 				case 'images-search':
 					$orders[gettext('Filename')] = 'filename';
 					if ($type == 'images') {
-						$orders[gettext('Manual')] = 'manual'; 
+						$orders[gettext('Manual')] = 'manual';
 					}
 					if ($type == 'images-search') {
 						$orders[gettext('Manual')] = 'sort_order';
@@ -5214,7 +5335,7 @@ function getSortByOptions($type) {
 /**
  * Returns an array of the status order options for all items
  * 
- * @since ZenphotoCMS 1.5.5 Replaces the global $_zp_sortby_status
+ * @since 1.5.5 Replaces the global $_zp_sortby_status
  * 
  * @return array
  */
@@ -5228,12 +5349,12 @@ function getSortByStatusOptions() {
 
 /**
  * Helper to check if notes are to be printed (only needed because of the inconvenient legacy table based layout on image edit pages)
- * @since ZenphotoCMS 1.5.7
+ * @since 1.5.7
  * @param obj $obj Image, album, news article or page object
  * @return boolean
  */
 function checkSchedulePublishingNotes($obj) {
-	if ($obj->hasPublishSchedule() || ($obj->hasFutureDate() && !$obj->get('show', false)) || $obj->hasExpiration() || $obj->hasExpired()) {
+	if (getStatusNotesByContext($obj)) {
 		return true;
 	}
 	return false;
@@ -5242,76 +5363,162 @@ function checkSchedulePublishingNotes($obj) {
 /**
  * Prints various notes regarding the scheduled publishing status for single edit pages
  * 
- * @since ZenphotoCMS 1.5.7
+ * @since 1.5.7
+ * @deprecated 2.0 - Use printStatusNotes() instead
  * @param obj $obj Image, album, news article or page object
  */
 function printScheduledPublishingNotes($obj) {
-	$validtables = array('albums', 'images', 'news', 'pages');
+	deprecationNotice('Use printStatusNotes() instead');
+	printStatusNotes($obj);
+}
+
+/**
+ * Prints various notes regarding the scheduled publishing status for single edit pages
+ * 
+ * @since 1.6.1 Replaces printScheduledPublishingNotes()
+ * @param obj $obj Image, album, news article, new category or page object
+ */
+function printStatusNotes($obj) {
+	$notes = getStatusNotesByContext($obj);
+	if ($notes) {
+		foreach($notes as $note) {
+			echo $note;
+		}
+	}
+}
+
+/**
+ * Gets a specific predefined status note for an object (if available)
+ * Note: The notes are not status dependend!
+ * 
+ * @param obj $obj Image, album, news article, new category or page object
+ * @param string $name Name of the note
+ * @return string
+ */
+function getStatusNote($name = '') {
+	$notes = getStatusNotes();
+	if (array_key_exists($name, $notes)) {
+		return $notes[$name];
+	}
+}
+
+/**
+ * Gets an array of all predefined status notes
+ * @since 1.6.1
+ * 
+ * @return array
+ */
+function getStatusNotes() {
+	return array(
+			'unpublished' => gettext('Unpublished'),
+			'unpublished_by_parent' => gettext('Unpublished by parent'),
+			'protected' => gettext('Password protected'),
+			'protected_by_parent' => gettext('Password protected by parent'),
+			'scheduledpublishing' => gettext('Scheduled for publishing'),
+			'scheduledpublishing_inactive' => gettext('<strong>Note:</strong> Scheduled publishing is not active unless also set to <em>published</em>'),
+			'scheduledexpiration' => gettext('Scheduled for expiration'),
+			'scheduledexpiration_inactive' => gettext('<strong>Note:</strong> Scheduled expiration is not active unless also set to <em>published</em>'),
+			'expired' => gettext("Unpublished because expired")
+	);
+}
+
+/**
+ * Gets an array with all status notes that apply to $obj currently
+ * @since 1.6.1
+ * 
+ * @param string $obj
+ * @return array
+ */
+function getStatusNotesByContext($obj) {
+	$validtables = array('albums', 'images', 'news', 'pages', 'categories');
+	$notes_context = $notes_context_notices = $notes_context_warnings = array();
 	if (in_array($obj->table, $validtables)) {
-		switch ($obj->table) {
-			case 'images':
-				$note_scheduledpublishing = gettext('Image scheduled for publishing');
-				$note_scheduledpublishing_inactive = gettext('<strong>Note:</strong> Scheduled publishing is not active unless the image is also set to <em>published</em>');
-				$note_scheduledexpiration = gettext('Image scheduled for expiration');
-				$note_scheduledexpiration_inactive = gettext('<strong>Note:</strong> Scheduled expiration is not active unless the image is also set to <em>published</em>');
-				$note_expired = gettext('Image has expired');
-				break;
-			case 'albums':
-				$note_scheduledpublishing = gettext('Album scheduled for publishing');
-				$note_scheduledpublishing_inactive = gettext('<strong>Note:</strong> Scheduled publishing is not active unless the album is also set to <em>published</em>');
-				$note_scheduledexpiration = gettext('Album scheduled for expiration');
-				$note_scheduledexpiration_inactive = gettext('<strong>Note:</strong> Scheduled expiration is not active unless the album is also set to <em>published</em>');
-				$note_expired = gettext('Album has expired');
-				break;
-			case 'news':
-				$note_scheduledpublishing = gettext('Article scheduled for publishing');
-				$note_scheduledpublishing_inactive = gettext('<strong>Note:</strong> Scheduled publishing is not active unless the article is also set to <em>published</em>');
-				$note_scheduledexpiration = gettext('Article scheduled for expiration');
-				$note_scheduledexpiration_inactive = gettext('<strong>Note:</strong> Scheduled expiration is not active unless the article is also set to <em>published</em>');
-				$note_expired = gettext('Article has expired');
-				break;
-			case 'pages':
-				$note_scheduledpublishing = gettext('Page scheduled for publishing');
-				$note_scheduledpublishing_inactive = gettext('<strong>Note:</strong> Scheduled publishing is not active unless the page is also set to <em>published</em>');
-				$note_scheduledexpiration = gettext('Page scheduled for expiration');
-				$note_scheduledexpiration_inactive = gettext('<strong>Note:</strong> Scheduled expiration is not active unless the page is also set to <em>published</em>');
-				$note_expired = gettext('Page has expired');
-				break;
+		$notes = getStatusNotes();
+		if (!$obj->isPublished()) {
+			$notes_context_notices[] = $notes['unpublished'];
+		} else if ($obj->isUnpublishedByParent()) {
+			$notes_context_notices[] = $notes['unpublished_by_parent'];
+		}
+		if ($obj->isProtected()) {
+			$notes_context_notices[] = $notes['protected'];
+		} else if ($obj->isProtectedByParent()) {
+			$notes_context_notices[] = $notes['protected_by_parent'];
 		}
 		if ($obj->hasPublishSchedule()) {
-			echo '<p id="scheduldedpublishing" class="notebox">' . $note_scheduledpublishing . '</p>';
+			$notes_context_notices[] = $notes['scheduledpublishing'];
 		}
 		if ($obj->hasInactivePublishSchedule()) {
-			echo '<p class="notebox">' . $note_scheduledpublishing_inactive . '</p>';
+			$notes_context_warnings[] = $notes['scheduledpublishing_inactive'];
 		}
 		if ($obj->hasExpiration()) {
-			echo ' <p class="notebox">' . $note_scheduledexpiration . '</p>';
+			$notes_context_notices[] = $notes['scheduledexpiration'];
 		}
 		if ($obj->hasInactiveExpiration()) {
-			echo ' <p class="notebox">' . $note_scheduledexpiration_inactive . '</p>';
+			$notes_context_warnings[] = $notes['scheduledexpiration_inactive'];
 		}
 		if ($obj->hasExpired()) {
-			echo ' <p class="notebox">' . $note_expired . '</p>';
+			$notes_context_notices[] = $notes['expired'];
 		}
+		$notices = $warnings = '';
+		if(!empty($notes_context_notices)) {
+			$notices = '<p class="notebox">' . implode(' | ', $notes_context_notices) . '</p>';
+		}
+		if(!empty($notes_context_warnings)) {
+			$warnings = '<p class="warningbox">' . implode(' | ', $notes_context_warnings) . '</p>';
+		}
+		$notes_context = array($warnings, $notices);
+	}
+	return $notes_context;
+}
+
+/**
+ * Gets an key => value array of all available object status icons as full <img> elements 
+ * @since 1.6.1
+ * 
+ * @return array
+ */
+function getStatusIcons() {
+	return array(
+			'publishschedule' => '<img src="' . WEBPATH . '/' . ZENFOLDER . '/images/clock_futuredate.png" alt="' . htmL_encode(getStatusNote('publishschedule')) . '" title="' . htmL_encode(getStatusNote('publishschedule')) . '" />',
+			'expiration' => '<img src="' . WEBPATH . '/' . ZENFOLDER . '/images/clock_expiredate.png" alt="' . html_encode(getStatusNote('expiration')) . '" title="' . html_encode(getStatusNote('expiration')) . '" />',
+			'expired' => '<img src="' . WEBPATH . '/' . ZENFOLDER . '/images/clock_expired.png" alt="' . html_encode(getStatusNote('expired')) . '" title="' . html_encode(getStatusNote('expired')) . '" />',
+			'published' => '<img src="' . WEBPATH . '/' . ZENFOLDER . '/images/pass.png" alt="' . html_encode(getStatusNote('published')) . '" title="' . html_encode(getStatusNote('published')) . '" />',
+			'unpublished' => '<img src="' . WEBPATH . '/' . ZENFOLDER . '/images/action.png" alt="' . getStatusNote('') . '" title="' . getStatusNote('') . '" />',
+			'unpublished_by_parent' => '<img src="' . WEBPATH . '/' . ZENFOLDER . '/images/pass_2.png" alt="' . html_encode(getStatusNote('unpublished_by_parent')) . '" title="' . html_encode(getStatusNote('unpublished_by_parent')) . '" />',
+			'protected' => '<img src="' . WEBPATH . '/' . ZENFOLDER . '/images/lock.png" alt="' . html_encode(getStatusNote('protected')) . '" title="' . html_encode(getStatusNote('protected')) . '" />',
+			'protected_by_parent' => '<img src="' . WEBPATH . '/' . ZENFOLDER . '/images/lock_3.png" alt="' . html_encode(getStatusNote('protected_by_parent')) . '" title="' . html_encode(getStatusNote('protected_by_parent')) . '" />',
+	);
+}
+
+/**
+ * Gets the icon img element for a specific status icon
+ * @since 1.6.1
+ * 
+ * @param string $name (Internal) Name of the icon
+ * @return string
+ */
+function getStatusIcon($name = '') {
+	$icons = getStatusIcons();
+	if (array_key_exists($name, $icons)) {
+		return $icons[$name];
 	}
 }
 
 /**
  * Prints the publish icon link to change the status on the album and thumb image list
  * 
- * @since ZenphotoCMS 1.5.7
+ * @since 1.5.7
  * @param object $obj Image or album object
  * @param boolean $enableedit  true if allowed to use
  * @param string $owner User name of the owner
  */
 function printPublishIconLinkGallery($obj, $enableedit = false, $owner = null) {
-	$notes = array();
 	if ($obj->table == 'albums' || $obj->table == 'images') {
 		switch ($obj->table) {
 			case 'albums':
 				$title_skipscheduledpublishing = sprintf(gettext('Publish the album %s (Skip scheduled publishing)'), $obj->name);
 				$title_skipscheduledexpiration = sprintf(gettext('Publish the album %s (Skip scheduled expiration)'), $obj->name);
-				$title_unpublish = sprintf(gettext('Un-publish the album %s'), $obj->name);
+				$title_unpublish = sprintf(gettext('Unpublish the album %s'), $obj->name);
 				$title_skipexiration = sprintf(gettext('Publish the album %s (Skip expiration)'), $obj->name);
 				$title_publish = sprintf(gettext('Publish the album %s'), $obj->name);
 				$action_addition = '&amp;album=' . html_encode(pathurlencode($obj->name)) . '&amp;return=*' . html_encode(pathurlencode($owner)) . '&amp;XSRFToken=' . getXSRFToken('albumedit');
@@ -5319,7 +5526,7 @@ function printPublishIconLinkGallery($obj, $enableedit = false, $owner = null) {
 			case 'images':
 				$title_skipscheduledpublishing = sprintf(gettext('Publish the image %s (Skip scheduled publishing)'), $obj->filename);
 				$title_skipscheduledexpiration = sprintf(gettext('Publish the image %s (Skip scheduled expiration)'), $obj->filename);
-				$title_unpublish = sprintf(gettext('Un-publish the image %s'), $obj->filename);
+				$title_unpublish = sprintf(gettext('Unpublish the image %s'), $obj->filename);
 				$title_skipexiration = sprintf(gettext('Publish the image %s (Skip expiration)'), $obj->filename);
 				$title_publish = sprintf(gettext('Publish the image %s'), $obj->filename);
 				$action_addition = '&amp;album=' . html_encode(pathurlencode($obj->album->name)) . '&amp;image=' . urlencode($obj->filename) . '&amp;XSRFToken=' . getXSRFToken('imageedit');
@@ -5327,44 +5534,59 @@ function printPublishIconLinkGallery($obj, $enableedit = false, $owner = null) {
 		}
 		if ($obj->hasPublishSchedule()) {
 			$title = $title_skipscheduledpublishing;
-			$alt = gettext("Scheduled for publishing");
 			$action = '?action=publish&amp;value=1';
-			$icon = WEBPATH . '/' . ZENFOLDER . '/images/clock_futuredate.png';
 		} else if ($obj->hasExpiration()) {
 			$title = $title_skipscheduledexpiration;
-			$alt = gettext("Scheduled for expiration");
 			$action = '?action=publish&amp;value=1';
-			$icon = WEBPATH . '/' . ZENFOLDER . '/images/clock_expiredate.png';
 		} else if ($obj->isPublished()) {
-			$title = $title_unpublish;
-			$alt = gettext("Published");
-			$action = '?action=publish&amp;value=0';
-			$icon = WEBPATH . '/' . ZENFOLDER . '/images/pass.png';
+			if ($obj->isUnpublishedByParent()) {
+				$title = $title_publish .' - ' . getStatusNote('unpublished_by_parent');
+				$action = '?action=publish&amp;value=0';
+			} else {
+				$title = $title_unpublish;
+				$action = '?action=publish&amp;value=0';
+			}
 		} else if (!$obj->isPublished()) {
 			if ($obj->hasExpired()) {
 				$title = $title_skipexiration;
-				$alt = gettext("Un-published because expired");
 				$action = '?action=publish&amp;value=1';
-				$icon = WEBPATH . '/' . ZENFOLDER . '/images/clock_expired.png';
 			} else {
 				$title = $title_publish;
-				$alt = gettext("Un-published");
 				$action = '?action=publish&amp;value=1';
-				$icon = WEBPATH . '/' . ZENFOLDER . '/images/action.png';
 			}
 		}
+		$link_start = $link_end = '';
 		if ($enableedit) {
-			?>
-			<a href="<?php echo $action . $action_addition; ?>" title="<?php echo html_encode($title); ?>" >
-				<?php
-			}
-			?>
-			<img src="<?php echo $icon; ?>" alt="<?php echo html_encode($alt); ?>" title="<?php echo html_encode($title); ?>" />
-			<?php
-			if ($enableedit) {
-				?>
-			</a>
-			<?php
+			$link_start = '<a href="' . $action . $action_addition . '" title="' . html_encode($title) . '" >';
+			$link_end = '</a>';
+		}
+		echo $link_start . getPublishIcon($obj) . $link_end;
+	}
+}
+
+/**
+ * Returns the publish icon for the current status
+ * @since 1.6.1
+ * 
+ * @param obj $obj Object of the page or news article to check
+ * @return string
+ */
+function getPublishIcon($obj) {
+	if ($obj->hasPublishSchedule()) {
+		return getStatusIcon('publishschedule');
+	} else if ($obj->hasExpiration()) {
+		return getStatusIcon('expiration');
+	} else if ($obj->isPublished()) {
+		if ($obj->isUnpublishedByParent()) {
+			return getStatusIcon('unpublished_by_parent');
+		} else {
+			return getStatusIcon('published');
+		}
+	} else if (!$obj->isPublished()) {
+		if ($obj->hasExpired()) {
+			return getStatusIcon('expired');
+		} else {
+			return getStatusIcon('unpublished');
 		}
 	}
 }
@@ -5372,7 +5594,7 @@ function printPublishIconLinkGallery($obj, $enableedit = false, $owner = null) {
 /**
  * Prints the scheduled publishing date for items if set. Also prints the date for Zenpage news articles and pages
  *
- * @since ZenphotoCMS 1.5.7 moved from Zenpage plugin to generel admin functions
+ * @since 1.5.7 moved from Zenpage plugin to generel admin functions
  * @param string $obj image, albun, news article or page object
  * @return string
  */
@@ -5394,7 +5616,7 @@ function printPublished($obj) {
 /**
  * Prints the expiration or expired date for items
  * 
- * @since ZenphotoCMS 1.5.7 moved from Zenpage plugin to generel admin functions
+ * @since 1.5.7 moved from Zenpage plugin to generel admin functions
  * @param string $obj image, albun, news article or page object
  * @return string
  */
@@ -5408,12 +5630,26 @@ function printExpired($obj) {
 }
 
 /**
+ * Prints the protected icon if the object is password protected on an edit list
+ * @since 1.6.1
+ * 
+ * @param obj $obj
+ */
+function printProtectedIcon($obj) {
+	if ($obj->getPassword()) {
+		echo '<span title="' . html_encode(getStatusNote('protected')) . '">' . getStatusIcon('protected') . '</span>';
+	} else if ($obj->isProtectedByParent()) {
+		echo '<span title="' . html_encode(getStatusNote('protected_by_parent')) . '">' . getStatusIcon('protected_by_parent') . '</span>';
+	}
+}
+
+/**
  * Checks plugin and theme definition for $plugin_disable / $theme_description['disable'] so plugins/themes are deaktivated respectively cannot be activated
  * if they don't match conditions/requirements. See the plugin/theme documentation for info how to define these.
  * 
  * Returns either the message why incompatible or false if not.
  * 
- * @since Zenphoto 1.5.8
+ * @since 1.5.8
  * 
  * @param string|array $disable One string or serveral as an array. Not false means incompatible 
  * @return boolean|string
@@ -5461,7 +5697,7 @@ function processExtensionVariable($var) {
  * 
  * If "custom" is selected the custom text field will be shown.
  * 
- * @since ZenphotoCMS 1.5.8
+ * @since 1.5.8
  * 
  * @global obj $_zp_gallery Gallery object
  * @param string $optionname The option name of the select list
@@ -5490,7 +5726,7 @@ function printSelectorWithCustomField($optionname, $list = array(), $optionlabel
 	} else {
 		$currentvalue_customfield = getOption($optionname_customfield);
 	}
-	if(empty($list) && !in_array($currentselection, array('none', 'custom'))) { // no pages or disabled -> custom url
+	if (empty($list) && !in_array($currentselection, array('none', 'custom'))) { // no pages or disabled -> custom url
 		$currentselection = 'none';
 		$hiddenclass = '';
 	}
@@ -5523,7 +5759,7 @@ function printSelectorWithCustomField($optionname, $list = array(), $optionlabel
 /**
  * Gets an array of Zenpage pages ready for using with selector, radioboxes and checkbox lists
  * 
- * @since ZenphotoCMS 1.5.8
+ * @since 1.5.8
  * 
  * @param bool $published true for only published, default false for all.
  * 
@@ -5543,7 +5779,7 @@ function getZenpagePagesOptionsArray($published = false) {
 					$unpublished_note = '*';
 				}
 				$sublevel = '';
-				$level = count(explode('-', $pageobj->getSortorder()));
+				$level = $pageobj->getLevel();
 				if ($level != 1) {
 					for ($l = 1; $l < $level; $l++) {
 						$sublevel .= '-';
@@ -5561,7 +5797,7 @@ function getZenpagePagesOptionsArray($published = false) {
  * 
  * it additionally prints a text field for a custom page URL.
  * 
- * @since ZenphotoCMS 1.5.8
+ * @since 1.5.8
  * 
  * @param string $optionname Name of the option, sued for the selector and the current selection
  * @param string $optionname_custom If defined this will be used for the custom url option, if null (default) the option name will be used with "_custom" appended
@@ -5578,7 +5814,7 @@ function printZenpagePageSelector($optionname, $optionname_custom = null, $publi
 /**
  * Gets an array of administrators ready for using with selector, radioboxes and checkbox lists
  * 
- * @since ZenphotoCMS 1.5.8
+ * @since 1.5.8
  * 
  * @global object $_zp_authority
  * @param string $type 'users', 'groups', 'allusers'
@@ -5606,7 +5842,7 @@ function getAdminstratorsOptionsArray($type = 'users') {
  * 
  * it additionally prints a text field for a custom name
  * 
- * @since ZenphotoCMS 1.5.8
+ * @since 1.5.8
  * 
  * @param string $optionname Name of the option, sued for the selector and the current selection
  * @param string $optionname_custom If defined this will be used for the custom url option, if null (default) the option name will be used with "_custom" appended
@@ -5666,4 +5902,136 @@ function markUpdated() {
 	global $_zp_admin_user_updated;
 	$_zp_admin_user_updated = true;
 //for finding out who did it!	debugLogBacktrace('updated');
+}
+
+/**
+ * Prints the image EXIF rotation/flipping selector
+ * 
+ * @since 1.6.1
+ * 
+ * @param obj $imageobj Object of the current image
+ * @param int $currentimage ID of the current image
+ */
+function printImageRotationSelector($imageobj, $currentimage) {
+	$rotation = extractImageExifOrientation($imageobj->get('EXIFOrientation'));
+	if ($rotation > 8 || $rotation < 1) {
+		$rotation = 1;
+	}
+	$list = array(
+			gettext('Horizontal (normal)') => 1,
+			gettext('Mirror horizontal') => 2,
+			gettext('Rotate 180 clockwise') => 3,
+			gettext('Mirror vertical') => 4,
+			gettext('Mirror horizontal and rotate 270 clockwise') => 5,
+			gettext('Rotate 90 clockwise') => 6,
+			gettext('Mirror horizontal and rotate 90 clockwise') => 7,
+			gettext('Rotate 270 clockwise') => 8
+	);
+	?>
+	<hr />
+	<strong><?php echo gettext("Rotation:"); ?></strong>
+	<br />
+	<input type="hidden" name="<?php echo $currentimage; ?>-oldrotation" value="<?php echo $rotation; ?>" />
+	<select id="rotation-<?php echo $currentimage; ?>" name="<?php echo $currentimage; ?>-rotation">
+		<?php generateListFromArray((array) $rotation, $list, null, true); ?>
+	</select>
+	<?php
+}
+
+
+/**
+ * Prints option selectors for date and time formats
+ * 
+ * @since 1.6.1
+ */
+function printDatetimeFormatSelector() {
+	$use_localized_date = getOption('date_format_localized');
+	
+	/*
+	 * date format
+	 */
+	$date_selector_id = 'date_format_list';
+	$date_currentformat_selector = $date_currentformat = getOption('date_format');
+	$date_formats = array_keys(getStandardDateFormats('date'));
+	$date_formatlist = getDatetimeFormatlistForSelector($date_formats, $use_localized_date);
+	$date_formatlist[gettext('Custom')] = 'custom';
+	
+	// date custom format
+	$date_custom_format_id = 'custom_dateformat_box';
+	$date_custom_format_name = 'date_format';
+	$date_custom_format_label = gettext('Custom date format');
+	$date_custom_format_display = 'none';
+	if (!in_array($date_currentformat, $date_formatlist)) {
+		$date_currentformat_selector = 'custom';
+		$date_custom_format_display = 'block';
+	}
+	/*if (in_array($date_currentformat, array('locale_preferreddate_time','locale_preferreddate_notime'))) {
+		$time_formatlist_disabled = ' disabled="disabled"';
+		$time_currentformat = '';
+	} */
+	?>
+	<p>
+		<label><select id="<?php echo $date_selector_id; ?>" name="<?php echo $date_selector_id; ?>" onchange="showfield(this, '<?php echo $date_custom_format_id; ?>')">
+		<?php generateListFromArray(array($date_currentformat_selector), $date_formatlist, null, true); ?>
+		</select> <?php echo gettext('Date format'); ?></label>
+		<label id="<?php echo $date_custom_format_id; ?>" class="customText" style="display:<?php echo $date_custom_format_display; ?>">
+			<br />
+			<input type="text" size="30" name="<?php echo $date_custom_format_name; ?>" value="<?php echo html_encode($date_currentformat); ?>" />
+			<?php echo $date_custom_format_label; ?>
+		</label>
+	</p>
+	<?php
+	/*
+	 * time format
+	 */
+	$time_selector_id = 'time_format_list';
+	$time_currentformat_selector = $time_currentformat = getOption('time_format');
+	$time_formats = array_keys(getStandardDateFormats('time'));
+	$time_formatlist = getDatetimeFormatlistForSelector($time_formats, $use_localized_date);	
+	$time_formatlist[gettext('Custom')] = 'custom';
+
+	
+	// time custom format
+	$time_custom_format_id = 'custom_timeformat_box';
+	$time_custom_format_name = 'time_format';
+	$time_custom_format_label = gettext('Custom time format');
+	$time_custom_format_display = 'none';
+	if (!in_array($time_currentformat, $time_formatlist)) {
+		$time_currentformat_selector = 'custom';
+		$time_custom_format_display = 'block';
+	}
+	?>
+	<p>
+		<label><select id="<?php echo $time_selector_id; ?>" name="<?php echo $time_selector_id; ?>" onchange="showfield(this, '<?php echo $time_custom_format_id; ?>')">
+		<?php generateListFromArray(array($time_currentformat_selector), $time_formatlist, null, true); ?>
+		</select> <?php echo gettext('Time format'); ?></label>
+		<br>
+		<label id="<?php echo $time_custom_format_id; ?>" class="customText" style="display:<?php echo $time_custom_format_display; ?>">
+			<br />
+			<input type="text" size="30" name="<?php echo $time_custom_format_name; ?>" value="<?php echo html_encode($time_currentformat); ?>" />
+			<?php echo $time_custom_format_label; ?>
+		</label>
+	</p>
+	<?php
+}
+
+/**
+ * Helper functions for printDatetimeFormatSelector() ot create the format lists for the selector, not intended to be used standalone
+ * 
+ * @since 1.6.1
+ * 
+ * @param array $formats Array as created by array_keys(getStandardDateFormats($type);
+ * @param bool $use_localized_date Default false, set to true to use localized datees
+ * @return array
+ */
+function getDatetimeFormatlistForSelector($formats = array(), $use_localized_date = false) {
+	$formatlist = array();
+	foreach ($formats as $format) {
+		if ($use_localized_date) {
+			$formatlist[zpFormattedDate($format, '2023-03-05 15:30:30', true)] = $format;
+		} else {
+			$formatlist[zpFormattedDate($format, '2023-03-05 15:30:30', false)] = $format;
+		}
+	}
+	return $formatlist;
 }

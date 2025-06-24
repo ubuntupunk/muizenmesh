@@ -2,16 +2,18 @@
 
 namespace MediaWiki\Extension\CodeEditor;
 
-use EditPage;
 use ErrorPageError;
 use ExtensionRegistry;
+use MediaWiki\EditPage\EditPage;
+use MediaWiki\Extension\CodeEditor\Hooks\HookRunner;
 use MediaWiki\Hook\EditPage__showEditForm_initialHook;
 use MediaWiki\Hook\EditPage__showReadOnlyForm_initialHook;
+use MediaWiki\HookContainer\HookContainer;
+use MediaWiki\Output\OutputPage;
 use MediaWiki\Preferences\Hook\GetPreferencesHook;
-use MediaWiki\User\UserOptionsLookup;
-use OutputPage;
-use Title;
-use User;
+use MediaWiki\Title\Title;
+use MediaWiki\User\Options\UserOptionsLookup;
+use MediaWiki\User\User;
 
 /**
  * @phpcs:disable MediaWiki.NamingConventions.LowerCamelFunctionsName.FunctionName
@@ -24,13 +26,19 @@ class Hooks implements
 	/** @var UserOptionsLookup */
 	private $userOptionsLookup;
 
+	/** @var HookRunner */
+	private $hookRunner;
+
 	/**
 	 * @param UserOptionsLookup $userOptionsLookup
+	 * @param HookContainer $hookContainer
 	 */
 	public function __construct(
-		UserOptionsLookup $userOptionsLookup
+		UserOptionsLookup $userOptionsLookup,
+		HookContainer $hookContainer
 	) {
 		$this->userOptionsLookup = $userOptionsLookup;
+		$this->hookRunner = new HookRunner( $hookContainer );
 	}
 
 	/**
@@ -39,7 +47,7 @@ class Hooks implements
 	 * @param string $format
 	 * @return null|string
 	 */
-	public static function getPageLanguage( Title $title, $model, $format ) {
+	private function getPageLanguage( Title $title, $model, $format ) {
 		if ( $model === CONTENT_MODEL_JAVASCRIPT ) {
 			return 'javascript';
 		} elseif ( $model === CONTENT_MODEL_CSS ) {
@@ -49,9 +57,8 @@ class Hooks implements
 		}
 
 		// Give extensions a chance
-		// Note: $model and $format were added around the time of MediaWiki 1.28.
 		$lang = null;
-		\Hooks::run( 'CodeEditorGetPageLanguage', [ $title, &$lang, $model, $format ] );
+		$this->hookRunner->onCodeEditorGetPageLanguage( $title, $lang, $model, $format );
 
 		return $lang;
 	}
@@ -77,12 +84,17 @@ class Hooks implements
 		$model = $editpage->contentModel;
 		$format = $editpage->contentFormat;
 
-		$lang = self::getPageLanguage( $title, $model, $format );
+		$lang = $this->getPageLanguage( $title, $model, $format );
 		if ( $lang && $this->userOptionsLookup->getOption( $output->getUser(), 'usebetatoolbar' ) ) {
 			$output->addModules( 'ext.codeEditor' );
+			$output->addModuleStyles( 'ext.codeEditor.styles' );
 			$output->addJsConfigVars( 'wgCodeEditorCurrentLanguage', $lang );
 			// Needed because ACE adds a blob: url web-worker.
 			$output->getCSP()->addScriptSrc( 'blob:' );
+
+			if ( $this->userOptionsLookup->getOption( $output->getUser(), 'usecodeeditor' ) ) {
+				$output->addBodyClasses( 'codeeditor-loading' );
+			}
 		} elseif ( !ExtensionRegistry::getInstance()->isLoaded( 'WikiEditor' ) ) {
 			throw new ErrorPageError( 'codeeditor-error-title', 'codeeditor-error-message' );
 		}

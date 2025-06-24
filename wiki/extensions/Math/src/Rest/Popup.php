@@ -2,15 +2,15 @@
 
 namespace MediaWiki\Extension\Math\Rest;
 
-use Html;
 use MediaWiki\Extension\Math\MathWikibaseConnector;
 use MediaWiki\Extension\Math\MathWikibaseInfo;
+use MediaWiki\Html\Html;
 use MediaWiki\Languages\LanguageFactory;
 use MediaWiki\Languages\LanguageNameUtils;
 use MediaWiki\Rest\Response;
 use MediaWiki\Rest\SimpleHandler;
-use Title;
-use TitleFactory;
+use MediaWiki\Title\Title;
+use MediaWiki\Title\TitleFactory;
 use Wikimedia\ParamValidator\ParamValidator;
 
 class Popup extends SimpleHandler {

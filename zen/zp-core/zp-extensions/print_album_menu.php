@@ -15,8 +15,7 @@
  *
  *
  * @author Malte Müller (acrylian), Stephen Billard (sbillard)
- * @package plugins
- * @subpackage print-album-menu
+ * @package zpcore\plugins\printalbummenu
  */
 $plugin_description = gettext("Adds a theme function to print an album menu either as a nested list or as a dropdown menu.");
 $plugin_author = "Malte Müller (acrylian), Stephen Billard (sbillard)";
@@ -234,8 +233,11 @@ function printAlbumMenuListAlbum($albums, $folder, $option, $showcount, $showsub
 		}
 		$topalbum = '';
 		$albumobj = AlbumBase::newAlbum($album, true);
+		if (!$albumobj->isVisible()) {
+			continue;
+		}
 		$has_password = '';
-		if($albumobj->isProtected()) {
+		if(!$albumobj->isMyItem(LIST_RIGHTS) && $albumobj->isProtected()) {
 			$has_password = ' has_password';
 		}
 		if ($level > 1 || ($option != 'omit-top')) { // listing current level album
@@ -246,7 +248,7 @@ function printAlbumMenuListAlbum($albums, $folder, $option, $showcount, $showsub
 			}
 			if ($keeptopactive) {
 				if (isset($_zp_current_album) && is_object($_zp_current_album)) {
-					$currenturalbum = $_zp_current_album->getUrAlbum();
+					$currenturalbum = $_zp_current_album->getUrParent();
 					$currenturalbumname = $currenturalbum->name;
 				}
 			}
@@ -275,7 +277,7 @@ function printAlbumMenuListAlbum($albums, $folder, $option, $showcount, $showsub
 							(in_context(ZP_SEARCH_LINKED)) && ($a = $_zp_current_search->getDynamicAlbum()) && $a->name == $albumobj->name) {
 				$current = $css_class_t;
 			} else {
-				$current = "";
+				$current = trim($has_password);
 			}
 			$title = $albumobj->getTitle();
 			if ($limit) {
@@ -290,7 +292,7 @@ function printAlbumMenuListAlbum($albums, $folder, $option, $showcount, $showsub
 			}
 			echo $link;
 		}
-		if ($process) { // listing subalbums
+		if ($process && (!$albumobj->isProtected() || $albumobj->isMyItem(LIST_RIGHTS))) { // listing subalbums
 			$subalbums = $albumobj->getAlbums();
 			if (!empty($subalbums)) {
 				echo "\n".'<ul class="' . $css_class . '">'."\n";
@@ -333,13 +335,11 @@ function printAlbumMenuJump($option = "count", $indexname = "Gallery Index", $fi
  }
  if(!$skipform) {
 	?>
-	<script type="text/javaScript">
-		// <!-- <![CDATA[
+	<script>
 		function gotoLink(form) {
 		var OptionIndex=form.ListBoxURL.selectedIndex;
 		parent.location = form.ListBoxURL.options[OptionIndex].value;
 		}
-		// ]]> -->
 	</script>
 	<form name="AutoListBox" action="#">
 		<p>
@@ -355,6 +355,9 @@ function printAlbumMenuJump($option = "count", $indexname = "Gallery Index", $fi
     $albums = getNestedAlbumList(null, $showsubs, false);
     foreach($albums as $album) {
       $albumobj = AlbumBase::newAlbum($album['name'], true);
+			if (!$albumobj->isVisible()) {
+				continue;
+			}
       $count = '';
       if ($option == "count") {
         $numimages = $albumobj->getNumImages();

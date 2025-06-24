@@ -1,10 +1,13 @@
 <?php
 
+namespace MediaWiki\Tests\Site;
+
 use MediaWiki\Http\HttpRequestFactory;
 use MediaWiki\Site\MediaWikiPageNameNormalizer;
+use MediaWikiUnitTestCase;
 
 /**
- * @covers MediaWiki\Site\MediaWikiPageNameNormalizer
+ * @covers \MediaWiki\Site\MediaWikiPageNameNormalizer
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,7 +49,7 @@ class MediaWikiPageNameNormalizerTest extends MediaWikiUnitTestCase {
 		);
 	}
 
-	public function normalizePageTitleProvider() {
+	public static function normalizePageTitleProvider() {
 		// Response are taken from wikidata and kkwiki using the following API request
 		// api.php?action=query&prop=info&redirects=1&converttitles=1&format=json&titles=…
 		return [

@@ -5,7 +5,7 @@ use PHPUnit\Framework\TestCase;
 class HTTPFileStreamerTest extends TestCase {
 
 	/**
-	 * @covers HTTPFileStreamer::preprocessHeaders
+	 * @covers \HTTPFileStreamer::preprocessHeaders
 	 * @dataProvider providePreprocessHeaders
 	 */
 	public function testPreprocessHeaders( array $input, array $expectedRaw, array $expectedOpt ) {
@@ -14,7 +14,7 @@ class HTTPFileStreamerTest extends TestCase {
 		$this->assertSame( $expectedOpt, $actualOpt );
 	}
 
-	public function providePreprocessHeaders() {
+	public static function providePreprocessHeaders() {
 		return [
 			[
 				[ 'Vary' => 'cookie', 'Cache-Control' => 'private' ],

@@ -10,12 +10,12 @@ use MediaWiki\Block\DatabaseBlockStore;
 use MediaWiki\Extension\AbuseFilter\Consequences\Consequence\Block;
 use MediaWiki\Extension\AbuseFilter\Consequences\Parameters;
 use MediaWiki\Extension\AbuseFilter\FilterUser;
+use MediaWiki\Status\Status;
 use MediaWiki\User\UserIdentity;
 use MediaWiki\User\UserIdentityValue;
 use MediaWikiUnitTestCase;
 use MessageLocalizer;
 use Psr\Log\NullLogger;
-use Status;
 
 /**
  * @coversDefaultClass \MediaWiki\Extension\AbuseFilter\Consequences\Consequence\Block
@@ -44,7 +44,7 @@ class BlockTest extends MediaWikiUnitTestCase {
 		return $filterUser;
 	}
 
-	public function provideExecute(): iterable {
+	public static function provideExecute(): iterable {
 		foreach ( [ true, false ] as $result ) {
 			$resStr = wfBoolToStr( $result );
 			yield "IPv4, $resStr" => [ new UserIdentityValue( 0, '1.2.3.4' ), $result ];

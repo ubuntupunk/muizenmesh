@@ -1,9 +1,16 @@
 <?php
 
+namespace MediaWiki\Specials;
+
+use ErrorPageError;
+use LogicException;
 use MediaWiki\Auth\AuthenticationRequest;
 use MediaWiki\Auth\AuthenticationResponse;
 use MediaWiki\Auth\AuthManager;
+use MediaWiki\HTMLForm\HTMLForm;
 use MediaWiki\MainConfigNames;
+use MediaWiki\SpecialPage\AuthManagerSpecialPage;
+use StatusValue;
 
 /**
  * Links/unlinks external accounts to the current user.
@@ -24,7 +31,7 @@ class SpecialLinkAccounts extends AuthManagerSpecialPage {
 	}
 
 	protected function getGroupName() {
-		return 'users';
+		return 'login';
 	}
 
 	public function isListed() {
@@ -114,3 +121,6 @@ class SpecialLinkAccounts extends AuthManagerSpecialPage {
 		$this->displayForm( StatusValue::newFatal( $this->msg( 'linkaccounts-success-text' ) ) );
 	}
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( SpecialLinkAccounts::class, 'SpecialLinkAccounts' );

@@ -1,8 +1,8 @@
 <?php
 
-use MediaWiki\MediaWikiServices;
-
 require_once __DIR__ . '/Maintenance.php';
+
+use MediaWiki\Site\MediaWikiSite;
 
 /**
  * Maintenance script for adding a site definition into the sites table.
@@ -40,7 +40,7 @@ class AddSite extends Maintenance {
 	 * @return bool
 	 */
 	public function execute() {
-		$siteStore = MediaWikiServices::getInstance()->getSiteStore();
+		$siteStore = $this->getServiceContainer()->getSiteStore();
 		if ( method_exists( $siteStore, 'reset' ) ) {
 			// @phan-suppress-next-line PhanUndeclaredMethod
 			$siteStore->reset();

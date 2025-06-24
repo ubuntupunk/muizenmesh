@@ -7,6 +7,8 @@ require_once __DIR__ . '/../../../maintenance/Maintenance.php';
 use MediaWiki\Extension\Math\MathConfig;
 use MediaWiki\Extension\Math\MathMathMLCli;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Parser\Sanitizer;
+use MediaWiki\Title\Title;
 
 class WfTest extends Maintenance {
 	private const REFERENCE_PAGE = 'mediawikiwiki:Extension:Math/CoverageTest';
@@ -76,7 +78,6 @@ class WfTest extends Maintenance {
 				$output = $renderer->getLastError();
 			}
 			$rend[] = [ $renderer, $input ];
-			$output = preg_replace( '#src="(.*?)/(([a-f]|\d)*).png"#', 'src="\2.png"', $output );
 			$parserTests[] = [ (string)$input[1], $output ];
 			$i++;
 			echo '.';

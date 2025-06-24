@@ -16,8 +16,7 @@
  * the control links.
  *
  * @author Stephen Billard (sbillard)
- * @package plugins
- * @subpackage themeswitcher
+ * @package zpcore\plugins\themeswitcher
  */
 $plugin_is_filter = 500 | CLASS_PLUGIN;
 $plugin_description = gettext('Allow a visitor to select the theme of the gallery.');
@@ -123,12 +122,10 @@ class themeSwitcher {
 			<?php
 		}
 		?>
-		<script type="text/javascript">
-			// <!-- <![CDATA[
+		<script>
 			function switchTheme(reloc) {
 				window.location = reloc.replace(/%t/, $('#themeSwitcher').val());
 			}
-			// ]]> -->
 		</script>
 		<?php
 		$_zp_themeswitcher_themelist = zp_apply_filter('themeSwitcher_head', $_zp_themeswitcher_themelist);

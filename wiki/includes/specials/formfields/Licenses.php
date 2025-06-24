@@ -24,6 +24,7 @@
  */
 
 use MediaWiki\Html\Html;
+use MediaWiki\HTMLForm\HTMLFormField;
 use MediaWiki\MediaWikiServices;
 
 /**
@@ -41,7 +42,6 @@ class Licenses extends HTMLFormField {
 
 	/** @var string|null */
 	protected $selected;
-	/** #@- */
 
 	/**
 	 * @param array $params
@@ -154,8 +154,7 @@ class Licenses extends HTMLFormField {
 				$html .= $this->outputOption(
 					$key, '',
 					[
-						'disabled' => 'disabled',
-						'style' => 'color: GrayText', // for MSIE
+						'disabled' => 'disabled'
 					],
 					$depth
 				);
@@ -183,15 +182,13 @@ class Licenses extends HTMLFormField {
 		$msgObj = $this->msg( $message );
 		$text = $msgObj->exists() ? $msgObj->text() : $message;
 		$attribs['value'] = $value;
-		if ( $value === $this->selected ) {
+		if ( $value === $this->selected && !isset( $attribs['disabled'] ) ) {
 			$attribs['selected'] = 'selected';
 		}
 
 		$val = str_repeat( /* &nbsp */ "\u{00A0}", $depth * 2 ) . $text;
-		return str_repeat( "\t", $depth ) . Xml::element( 'option', $attribs, $val ) . "\n";
+		return str_repeat( "\t", $depth ) . Html::element( 'option', $attribs, $val ) . "\n";
 	}
-
-	/** #@- */
 
 	/**
 	 * Accessor for $this->lines

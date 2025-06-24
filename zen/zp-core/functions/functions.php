@@ -2,8 +2,7 @@
 /**
  * basic functions used by zenphoto
  *
- * @package core
- * @subpackage functions\functions-main
+ * @package zpcore\functions\functions
  *
  */
 // force UTF-8 Ø
@@ -288,13 +287,61 @@ function lookupSortKey($sorttype, $default, $table) {
 /**
  * Returns a formatted date for output
  *
- * @param string $format a date() compatible format string
- * @param string|int $dt the date to be output. Can be a date string or a timestamp
+ * @param string $format A datetime compatible format string. Leave empty to use the option value.
+ *							NOTE: If $localize_date = true you need to provide an ICU dateformat string instead of a datetime format string 
+ *							unless you pass a date format constant like DATETIME_DISPLAYFORMAT using one of the standard formats. 
+ * @param string|int $datetime the date to be formatted. Can be a date string or a timestamp.  
+ * @param boolean $localized_date Default null to use the related option setting. Set to true to use localized dates. PHP intl extension required 
  * @return string
  */
-function zpFormattedDate($format, $dt) {
+function zpFormattedDate($format = '', $datetime = '', $localized_date = null) {
 	global $_zp_utf8;
-	$fdate = getFormattedLocaleDate($format, $dt);
+	if (empty($format)) {
+		$format = DATETIME_DISPLAYFORMAT;
+	}
+	$format_converted = convertStrftimeFormat($format);
+	if ($format_converted != $format) {
+		deprecationNotice(gettext('Using strftime() based date formats strings is deprecated. Use standard date() compatible formatting or a timestamp instead.'), true);
+	}
+	if (empty($datetime)) {
+		$datetime = 'now';
+	}
+	if (is_null($localized_date)) {
+		$localized_date = (bool) getOption('date_format_localized');
+	}
+	$locale_preferred = array(
+			'locale_preferreddate_time',
+			'locale_preferreddate_notime'
+	);
+	if ($localized_date && extension_loaded('intl')) { 
+		$datetime_formats = getStandardDateFormats();
+		$date_formats = getStandardDateFormats('date');
+		$time_formats = getStandardDateFormats('time');
+		if (in_array($format_converted, $locale_preferred)) {
+			//special format getFormattedLocaleDate() needs to internally
+			$localized_format = $format_converted;
+		} else if (array_key_exists($format_converted, $datetime_formats)) {
+			//one of the predefined datetime ICU formats
+			$localized_format = $datetime_formats[$format_converted];
+		} else if(array_key_exists($format_converted, $date_formats)) {
+			// one of the predefined date ICU formats
+			$localized_format = $date_formats[$format_converted];
+		} else if(array_key_exists($format_converted, $time_formats)) {
+			//one of the predefined time ICU format
+			$localized_format = $time_formats[$format_converted];
+		} else {
+			//custom date we expect to be ICU format already
+			$localized_format = $format_converted;
+		}
+		$fdate = getFormattedLocaleDate($localized_format, $datetime);
+	} else {
+		// no support for preferred locale dates here so use generic fallback
+		if (in_array($format_converted, $locale_preferred)) { 
+			$format_converted = 'Y-m-d';
+		}
+		$dateobj = getDatetimeObject($datetime);
+		$fdate = $dateobj->format($format_converted);
+	}
 	$charset = 'UTF-8';
 	$outputset = LOCAL_CHARSET;
 	if (function_exists('mb_internal_encoding')) {
@@ -303,6 +350,90 @@ function zpFormattedDate($format, $dt) {
 		}
 	}
 	return $_zp_utf8->convert($fdate, $charset, $outputset);
+}
+
+/**
+/**
+ * Returns a datetime object
+ * 
+ * @since 1.6.1
+ * 
+* @param string|int $datetime the date to be output. Can be a date string or a timestamp. If empty "now" is used
+ * @return object
+ */
+function getDatetimeObject($datetime = '') {
+	// Check if datetime string or timstamp integer (to cover if passed as a string)
+	if (empty($datetime)) {
+		$datetime = 'now';
+	}
+	if (is_string($datetime) && strtotime($datetime) !== false) {
+		$date = new DateTime($datetime);
+	} else {
+		$timestamp = intval($datetime); // to be sure…
+		$dateobj = new DateTime();
+		$date = $dateobj->setTimestamp($timestamp);
+		if (!$date) { // fallback for invalid timestamp
+			$date = new DateTime('now');
+		}
+	}
+	return $date;
+}
+
+/**
+ * Returns an array with datetime (keys) and ICU dateformat (values) strings
+ * 
+ * @since 1.6.1
+ * 
+ * @param string $type "date" for date formats without time, "time" for time formats, "datetime" for both combined
+ * 
+ * @return array
+ */
+function getStandardDateFormats($type = "datetime") {
+	$dateformats = array(
+			'm/d/y' => 'MM/dd/yy', //02/25/08
+			'm/d/Y' => 'MM/dd/yyyy', //02/25/2008
+			'm-d-y' => 'MM-dd-yy', //02-25-08
+			'm-d-Y' => 'MM-dd-yyyy', //02-25-2008
+			'Y. F d.' => 'yyyy. MMMM dd.', //2008. February 25.
+			'Y-m-d' => 'yyyy-MM-dd', //2008-02-25
+			'd M Y' => 'dd MMM yyyy', //25 Feb 2008
+			'd F Y' => 'dd MMMM yyyy', //25 February 2008
+			'd. M Y' => 'dd. MMM yyyy', //25. Feb 2008
+			'd. M y' => 'dd. MMM yy', //25. Feb. 08
+			'd. F Y' => 'dd. MMMM yyyy', //25. February 2008
+			'd.m.y' => 'dd.MM.yy', //25.02.08
+			'd.m.Y' => 'dd.MM.yyyy', //25.02.2008
+			'j.n.Y' => 'd.M.yyyy', //25.2.2008
+			'd-m-y' => 'dd-MM-yy', //25-02-08
+			'd-m-Y' => 'dd-MM-yyyy', //25-02-2008
+			'd-M-y' => 'dd-MMM-yy', //25-Feb-08
+			'd-M-Y' => 'dd-MMM-yyyy', //25-Feb-2008
+			'M d, Y' => 'MMM dd, yyyy', //Feb 25, 2008
+			'F d, Y' => 'MMMM dd, yyyy', //February 25, 2008
+			'F Y' => 'MMMM yyyy', //February 2008
+	);
+	$timeformats = array(
+			'H:i'			=> 'H:mm', //15:30 / 03:30
+			'H:i:s'			=> 'H:mm:ss', //15:30:30 / 03:30:30
+			'G:i'			=> 'k:mm', //15:30 / 3:30
+			'G:i:s'			=> 'k:mm:ss', //15:30:30 / 3:30:30
+			'g:i A'		=> 'h:mm a', //3:30 PM	
+			'g:i:s A'		=> 'h:mm:ss a' //3:30:30 PM	
+	);
+	switch ($type) {
+		case 'date':
+			return $dateformats;
+		case 'time':
+			return $timeformats;
+		case 'datetime':
+			$datetime_formats = array();
+			foreach($dateformats as $datetime => $icudate) {
+				foreach($timeformats as $time => $icutime) {
+					$datetime_formats[$datetime . ' ' . $time] = $icudate . ' ' . $icutime;
+				}
+			}
+			return array_merge($datetime_formats, $dateformats);
+	}
 }
 
 /**
@@ -342,7 +473,7 @@ function myts_date($format, $mytimestamp) {
  * @return string
  *
  * @author Todd Papaioannou (lucky@luckyspin.org)
- * @since  1.0.0
+ * @since 1.0.0
  */
 function zp_mail($subject, $message, $email_list = NULL, $cc_addresses = NULL, $bcc_addresses = NULL, $replyTo = NULL) {
 	global $_zp_authority, $_zp_gallery, $_zp_utf8;
@@ -482,56 +613,12 @@ function sortByMultilingual($dbresult, $field, $descending) {
  * @return bool
  */
 function checkAlbumPassword($album, &$hint = NULL) {
-	global $_zp_pre_authorization, $_zp_gallery;
 	if (is_object($album)) {
-		$albumname = $album->name;
+		$albumobj = $album;
 	} else {
-		$album = AlbumBase::newAlbum($albumname = $album, true, true);
+		$albumobj = AlbumBase::newAlbum($album, true, true);
 	}
-	if (isset($_zp_pre_authorization[$albumname])) {
-		return $_zp_pre_authorization[$albumname];
-	}
-	$hash = $album->getPassword();
-	if (empty($hash)) {
-		$album = $album->getParent();
-		while (!is_null($album)) {
-			$hash = $album->getPassword();
-			$authType = "zpcms_auth_album_" . $album->getID();
-			$saved_auth = zp_getCookie($authType);
-
-			if (!empty($hash)) {
-				if ($saved_auth == $hash) {
-					$_zp_pre_authorization[$albumname] = $authType;
-					return $authType;
-				} else {
-					$hint = $album->getPasswordHint();
-					return false;
-				}
-			}
-			$album = $album->getParent();
-		}
-		// revert all tlhe way to the gallery
-		$hash = $_zp_gallery->getPassword();
-		$authType = 'zpcms_auth_gallery';
-		$saved_auth = zp_getCookie($authType);
-		if (empty($hash)) {
-			$authType = 'zp_public_access';
-		} else {
-			if ($saved_auth != $hash) {
-				$hint = $_zp_gallery->getPasswordHint();
-				return false;
-			}
-		}
-	} else {
-		$authType = "zpcms_auth_album_" . $album->getID();
-		$saved_auth = zp_getCookie($authType);
-		if ($saved_auth != $hash) {
-			$hint = $album->getPasswordHint();
-			return false;
-		}
-	}
-	$_zp_pre_authorization[$albumname] = $authType;
-	return $authType;
+	return $albumobj->checkForGuest($hint);
 }
 
 /**
@@ -577,21 +664,23 @@ function getPluginFiles($pattern, $folder = '', $stripsuffix = true) {
 }
 
 /**
- * Returns the fully qualified file name of the plugin file.
- *
- * Note: order of selection is:
- * 	1-theme folder file (if $inTheme is set)
- *  2-user plugin folder file
- *  3-zp-extensions file
- * first file found is used
+ * Returns the fully qualified file path of a plugin file.
+ * 
+ * Note: order of selection is if the file is named "something.php":
+ * 
+ * - 1-theme folder file (if $inTheme is set): /themes/currenthemefolder/something.php
+ * - 2-user plugin folder file: /plugins/something.php
+ * - 3-zp-extensions file /zp-core/zp-extensions/something.php
+ * 
+ * First file found is used. Returns false if no file is found.
  *
  * @param string $plugin is the name of the plugin file, typically something.php
  * @param bool $inTheme tells where to find the plugin.
- *   true means look in the current theme
+ *   true means look in the current theme. This for example can be also used to load a additional custom css file for theme customizations so the theme itself does not need to be modified.
  *   false means look in the zp-core/plugins folder.
  * @param bool $webpath return a WEBPATH rather than a SERVERPATH
  *
- * @return string
+ * @return string|false
  */
 function getPlugin($plugin, $inTheme = false, $webpath = false) {
 	global $_zp_gallery;
@@ -675,7 +764,7 @@ function enableExtension($extension, $priority, $persistent = true) {
  * @param string $extension
  * @param bool $persistent
  * 
- * @since ZenphotoCMS 1.5.2
+ * @since 1.5.2
  */
 function disableExtension($extension, $persistent = true) {
 	setOption('zp_plugin_' . $extension, 0, $persistent);
@@ -837,11 +926,7 @@ function handleSearchParms($what, $album = NULL, $image = NULL) {
 			if (hasDynamicAlbumSuffix($albumname) && !is_dir(ALBUM_FOLDER_SERVERPATH . $albumname)) {
 				$albumname = stripSuffix($albumname); // strip off the suffix as it will not be reflected in the search path
 			}
-			//	see if the album is within the search context. NB for these purposes we need to look at all albums!
-			$save_logon = $_zp_loggedin;
-			$_zp_loggedin = $_zp_loggedin | VIEW_ALL_RIGHTS;
 			$search_album_list = $_zp_current_search->getAlbums(0);
-			$_zp_loggedin = $save_logon;
 			foreach ($search_album_list as $searchalbum) {
 				if (strpos($albumname, $searchalbum) !== false) {
 					if ($searchparent == 'searchresults_album') {
@@ -860,9 +945,9 @@ function handleSearchParms($what, $album = NULL, $image = NULL) {
 		if (!is_null($_zp_current_zenpage_page)) {
 			$pages = $_zp_current_search->getPages();
 			if (!empty($pages)) {
-				$tltlelink = $_zp_current_zenpage_page->getName();
+				$titlelink = $_zp_current_zenpage_page->getName();
 				foreach ($pages as $apage) {
-					if ($apage == $tltlelink) {
+					if ($apage == $titlelink) {
 						$context = $context | ZP_SEARCH_LINKED;
 						break;
 					}
@@ -872,9 +957,9 @@ function handleSearchParms($what, $album = NULL, $image = NULL) {
 		if (!is_null($_zp_current_zenpage_news)) {
 			$news = $_zp_current_search->getArticles(0, NULL, true);
 			if (!empty($news)) {
-				$tltlelink = $_zp_current_zenpage_news->getName();
+				$titlelink = $_zp_current_zenpage_news->getName();
 				foreach ($news as $anews) {
-					if ($anews['titlelink'] == $tltlelink) {
+					if ($anews['titlelink'] == $titlelink) {
 						$context = $context | ZP_SEARCH_LINKED;
 						break;
 					}
@@ -925,7 +1010,7 @@ function setupTheme($album = NULL) {
 	$theme = $_zp_gallery->getCurrentTheme();
 	$id = 0;
 	if (!is_null($album)) {
-		$parent = $album->getUrAlbum();
+		$parent = $album->getUrParent();
 		$albumtheme = $parent->getAlbumTheme();
 		if (!empty($albumtheme)) {
 			$theme = $albumtheme;
@@ -1077,7 +1162,7 @@ function getTagCountByAccess($tag) {
 		$sql = "SELECT tagid, type, objectid FROM " . $_zp_db->prefix('obj_to_tag') . " ORDER BY tagid";
 		$_zp_object_to_tags = $_zp_db->queryFullArray($sql);
 	}
-	$count = '';
+	$count = 0;
 	if ($_zp_object_to_tags) {
 		foreach ($_zp_object_to_tags as $tagcheck) {
 			if ($tagcheck['tagid'] == $tag['id']) {
@@ -1126,13 +1211,12 @@ function getTagCountByAccess($tag) {
 function storeTags($tags, $id, $tbl) {
 	global $_zp_db;
 	if ($id) {
-		$tagsLC = array();
+		$not_empty_tags = array();
 		foreach ($tags as $key => $tag) {
 			$tag = trim($tag);
 			if (!empty($tag)) {
-				$lc_tag = mb_strtolower($tag);
-				if (!in_array($lc_tag, $tagsLC)) {
-					$tagsLC[$tag] = $lc_tag;
+				if (!in_array($tag, $not_empty_tags)) {
+					$not_empty_tags[$tag] = $tag;
 				}
 			}
 		}
@@ -1142,23 +1226,25 @@ function storeTags($tags, $id, $tbl) {
 		if ($result) {
 			while ($row = $_zp_db->fetchAssoc($result)) {
 				$dbtag = $_zp_db->querySingleRow("SELECT `name` FROM " . $_zp_db->prefix('tags') . " WHERE `id`='" . $row['tagid'] . "'");
-				$existingLC = mb_strtolower($dbtag['name']);
-				if (in_array($existingLC, $tagsLC)) { // tag already set no action needed
-					$existing[] = $existingLC;
+				$existing_name = $dbtag['name'];
+				if (in_array($existing_name, $not_empty_tags)) { // tag already set no action needed
+					$existing[] = $existing_name;
 				} else { // tag no longer set, remove it
 					$_zp_db->query("DELETE FROM " . $_zp_db->prefix('obj_to_tag') . " WHERE `id`='" . $row['id'] . "'");
 				}
 			}
 			$_zp_db->freeResult($result);
 		}
-		$tags = array_diff($tagsLC, $existing); // new tags for the object
+		$tags = array_diff($not_empty_tags, $existing); // new tags for the object
 		foreach ($tags as $key => $tag) {
-			$dbtag = $_zp_db->querySingleRow("SELECT `id` FROM " . $_zp_db->prefix('tags') . " WHERE `name`=" . $_zp_db->quote($key));
+			$dbtag = $_zp_db->querySingleRow("SELECT `id` FROM " . $_zp_db->prefix('tags') . " WHERE `name` COLLATE utf8mb4_bin =" . $_zp_db->quote($key));
 			if (!is_array($dbtag)) { // tag does not exist
 				$_zp_db->query("INSERT INTO " . $_zp_db->prefix('tags') . " (name) VALUES (" . $_zp_db->quote($key) . ")", false);
 				$dbtag = array('id' => $_zp_db->insertID());
 			}
-			$_zp_db->query("INSERT INTO " . $_zp_db->prefix('obj_to_tag') . "(`objectid`, `tagid`, `type`) VALUES (" . $id . "," . $dbtag['id'] . ",'" . $tbl . "')");
+			if ($dbtag['id']) {
+				$_zp_db->query("INSERT INTO " . $_zp_db->prefix('obj_to_tag') . "(`objectid`, `tagid`, `type`) VALUES (" . $id . "," . $dbtag['id'] . ",'" . $tbl . "')");
+			}
 		}
 	}
 }
@@ -1265,7 +1351,7 @@ function generateListFromFiles($currentValue, $root, $suffix, $descending = fals
  * break for example JS event handlers. Do this in your attribute definition array as needed.
  * Attributes with an empty value are skipped except the alt attribute or known boolean attributes (see in function definition)
  * 
- * @since ZenphotoCMS 1.5.8
+ * @since 1.5.8
  * @param array $attributes key => value pairs of element attribute name and value. e.g. array('class' => 'someclass', 'id' => 'someid');
  * @param array $exclude Names of attributes to exclude (in case already set otherwise)
  * @return string
@@ -1299,9 +1385,11 @@ function generateAttributesFromArray($attributes = array(), $exclude = array()) 
 			'truespeed'
 	);
 	$attr = '';
-	if (!empty($attributes) && is_array($attributes)) {
-		foreach ($attributes as $key => $val) {
-			if (!in_array($key, $exclude)) {
+	$attributes_unique = array_unique($attributes);
+	$exclude_unique = array_unique($exclude);
+	if (!empty($attributes_unique) && is_array($attributes_unique)) {
+		foreach ($attributes_unique as $key => $val) {
+			if (!in_array($key, $exclude_unique)) {
 				if (empty($val)) {
 					if (in_array($key, $boolean_attr)) {
 						$attr .= ' ' . $key;
@@ -1462,7 +1550,7 @@ function sortMultiArray($array, $index, $descending = false, $natsort = true, $c
  * 
  * The function follows native PHP array sorting functions (natcasesort() etc.) and uses the array by reference and returns true or false on success or failure.
  * 
- * @since ZenphotoCMS 1.5.8
+ * @since 1.5.8
  * 
  * @param array $array The array to sort. The array is passed by reference
  * @param string  $descending true for descending sorts (default false)
@@ -1510,21 +1598,18 @@ function sortArray(&$array, $descending = false, $natsort = true, $case_sensitiv
  */
 function getNotViewableAlbums() {
 	global $_zp_not_viewable_album_list, $_zp_db;
-	if (zp_loggedin(ADMIN_RIGHTS | MANAGE_ALL_ALBUM_RIGHTS))
+	if (zp_loggedin(ADMIN_RIGHTS | MANAGE_ALL_ALBUM_RIGHTS)) {
 		return array(); //admins can see all
+	}
 	if (is_null($_zp_not_viewable_album_list)) {
-		$sql = 'SELECT `folder`, `id`, `password`, `show` FROM ' . $_zp_db->prefix('albums') . ' WHERE `show`=0 OR `password`!=""';
+		$sql = 'SELECT `folder` FROM ' . $_zp_db->prefix('albums');
 		$result = $_zp_db->query($sql);
 		if ($result) {
 			$_zp_not_viewable_album_list = array();
 			while ($row = $_zp_db->fetchAssoc($result)) {
-				if (checkAlbumPassword($row['folder'])) {
-					$album = AlbumBase::newAlbum($row['folder']);
-					if (!($row['show'] || $album->isMyItem(LIST_RIGHTS))) {
-						$_zp_not_viewable_album_list[] = $row['id'];
-					}
-				} else {
-					$_zp_not_viewable_album_list[] = $row['id'];
+				$album = AlbumBase::newAlbum($row['folder']);
+				if (!$album->isVisible()) {
+					$_zp_not_viewable_album_list[] = $album->getID();
 				}
 			}
 			$_zp_db->freeResult($result);
@@ -1546,7 +1631,7 @@ function getNotViewableImages() {
 	$hidealbums = getNotViewableAlbums();
 	$where = '';
 	if ($hidealbums) {
-		$where = ' OR `albumid` in (' . implode(',', $hidealbums) . ')';
+		$where = ' OR `albumid` IN (' . implode(',', $hidealbums) . ')';
 	}
 	if (is_null($_zp_not_viewable_image_list)) {
 		$sql = 'SELECT DISTINCT `id` FROM ' . $_zp_db->prefix('images') . ' WHERE `show` = 0' . $where;
@@ -1596,7 +1681,7 @@ function safe_fnmatch($pattern, $string) {
  * Returns true if the mail address passed is valid. 
  * It uses PHP's internal `filter_var` functions to validate the syntax but not the existence.
  * 
- * @since ZenphotoCMS 1.5.2
+ * @since 1.5.2
  * 
  * @param string $email An email address
  * @return boolean
@@ -1693,6 +1778,21 @@ function dateTimeConvert($datetime, $raw = false) {
 	return date('Y-m-d H:i:s', $time);
 }
 
+/**
+ * Removes the time zone info from date formats like "2009-05-14T13:30:29+10:00" as stored for e.g. image meta data
+ * 
+ * @since 1.6.3
+ * 
+ * @param string $date
+ * @return string
+ */
+function removeDateTimeZone($date) {
+	if (!is_int($date) && strpos($date, 'T') !== false) {
+		$date = str_replace('T', ' ', substr($date, 0, 19));
+	}
+	return $date;
+}
+
 /* * * Context Manipulation Functions ****** */
 /* * *************************************** */
 
@@ -1732,6 +1832,36 @@ function save_context() {
 function restore_context() {
 	global $_zp_current_context, $_zp_current_context_stack;
 	$_zp_current_context = array_pop($_zp_current_context_stack);
+}
+
+/**
+ * Returns the current item object (image, album and Zenpage page, article, category) of the current theme context
+ * or false if no context is set or matches
+ *
+ * @since 1.6.3
+ * @global obj $_zp_current_album
+ * @global obj $_zp_current_image
+ * @global obj $_zp_current_zenpage_page
+ * @global obj $_zp_current_category
+ * @global obj $_zp_current_zenpage_news
+ * @return boolean|obj
+ */
+function getContextObject() {
+	global $_zp_current_album, $_zp_current_image, $_zp_current_zenpage_page, $_zp_current_category, $_zp_current_zenpage_news;
+	if (in_context(ZP_IMAGE)) {
+		$obj = $_zp_current_image;
+	} elseif (in_context(ZP_ALBUM)) {
+		$obj = $_zp_current_album;
+	} elseif (in_context(ZP_ZENPAGE_PAGE)) {
+		$obj = $_zp_current_zenpage_page;
+	} elseif (in_context(ZP_ZENPAGE_NEWS_ARTICLE) || in_context(ZP_ZENPAGE_SINGLE)) {
+		$obj = $_zp_current_zenpage_news;
+	} elseif (in_context(ZP_ZENPAGE_NEWS_CATEGORY)) {
+		$obj = $_zp_current_category;
+	}  else {
+		$obj = false;
+	}
+	return $obj;
 }
 
 /**
@@ -1969,7 +2099,7 @@ function setThemeOption($key, $value, $album, $theme, $default = false) {
  * @param string $oldkey Old option name
  * @param string $newkey New option name
  * 
- * @since Zenphoto 1.5.1
+ * @since 1.5.1
  */
 function replaceThemeOption($oldkey, $newkey) {
 	$oldoption = getThemeOption($oldkey);
@@ -1985,7 +2115,7 @@ function replaceThemeOption($oldkey, $newkey) {
  * @global array $_zp_options
  * @param string $key
  * 
- * @since Zenphoto 1.5.1
+ * @since 1.5.1
  */
 function purgeThemeOption($key, $album = NULL, $theme = NULL, $allthemes = false) {
 	global $_zp_set_theme_album, $_zp_gallery, $_zp_db;
@@ -2008,7 +2138,7 @@ function purgeThemeOption($key, $album = NULL, $theme = NULL, $allthemes = false
 /**
  * Deletes a theme option for all themes present or not
  * 
- * @since ZenphotoCMS 1.6
+ * @since 1.6
  * 
  * @global obj $_zp_db
  * @param string $key
@@ -2213,7 +2343,7 @@ function is_connected($host = 'www.zenphoto.org') {
  */
 function debug404($album, $image, $theme) {
 	if (DEBUG_404) {
-		$list = explode('/', $album);
+		$list = explode('/', strval($album));
 		if (array_shift($list) == 'cache') {
 			return;
 		}
@@ -2319,15 +2449,13 @@ function cron_starter($script, $params, $offsetPath, $inline = false) {
 		$paramlist .= '&auth=' . $auth . '&offsetPath=' . $offsetPath;
 		$_zp_html_cache->abortHTMLCache();
 		?>
-		<script type="text/javascript">
-			// <!-- <![CDATA[
+		<script>
 			$.ajax({
 				type: 'POST',
 				cache: false,
 				data: '<?php echo $paramlist; ?>',
 				url: '<?php echo WEBPATH . '/' . ZENFOLDER; ?>/cron_runner.php'
 			});
-			// ]]> -->
 		</script>
 		<?php
 	}
@@ -2362,19 +2490,24 @@ function zp_loggedin($rights = ALL_RIGHTS) {
  *
  */
 function read_exif_data_protected($path) {
-	if (DEBUG_EXIF) {
-		debugLog("Begin read_exif_data_protected($path)");
-		$start = microtime(true);
-	}
-	try {
-		$rslt = read_exif_data_raw($path, false);
-	} catch (Exception $e) {
-		debugLog("read_exif_data($path) exception: " . $e->getMessage());
-		$rslt = array();
-	}
-	if (DEBUG_EXIF) {
-		$time = microtime(true) - $start;
-		debugLog(sprintf("End read_exif_data_protected($path) [%f]", $time));
+	$rslt = array();
+	if (@exif_imagetype($path) !== false) {
+		if (DEBUG_EXIF) {
+			debugLog("Begin read_exif_data_protected($path)");
+			$start = microtime(true);
+		}
+		try {
+			$rslt = @exif_read_data($path);
+		} catch (Exception $e) {
+			if (DEBUG_EXIF) {
+				debugLog("read_exif_data($path) exception: " . $e->getMessage());
+			}
+			$rslt = array();
+		}
+		if (DEBUG_EXIF) {
+			$time = microtime(true) - $start;
+			debugLog(sprintf("End read_exif_data_protected($path) [%f]", $time));
+		}
 	}
 	return $rslt;
 }
@@ -2455,6 +2588,7 @@ function reveal($content, $visible = false) {
  * @return string
  */
 function applyMacros($text) {
+	global $_zp_db;
 	$text = strval($text);
 	$content_macros = getMacros();
 	preg_match_all('/\[(\w+)(.*?)\]/i', $text, $instances);
@@ -2679,12 +2813,12 @@ function setexifvars() {
 			'IPTCImageHeadline' => array('IPTC', 'ImageHeadline', gettext('Image Headline'), false, 256, true, 'string'),
 			'IPTCImageCaption' => array('IPTC', 'ImageCaption', gettext('Image Caption'), false, 2000, true, 'string'),
 			'IPTCImageCaptionWriter' => array('IPTC', 'ImageCaptionWriter', gettext('Image Caption Writer'), false, 32, true, 'string'),
-			'EXIFDateTime' => array('SubIFD', 'DateTime', gettext('Time Taken'), true, 52, true, 'time'),
-			'EXIFDateTimeOriginal' => array('SubIFD', 'DateTimeOriginal', gettext('Original Time Taken'), true, 52, true, 'time'),
-			'EXIFDateTimeDigitized' => array('SubIFD', 'DateTimeDigitized', gettext('Time Digitized'), true, 52, true, 'time'),
-			'IPTCDateCreated' => array('IPTC', 'DateCreated', gettext('Date Created'), false, 8, true, 'time'),
+			'EXIFDateTime' => array('SubIFD', 'DateTime', gettext('Date and Time Taken'), true, 52, true, 'datetime'),
+			'EXIFDateTimeOriginal' => array('SubIFD', 'DateTimeOriginal', gettext('Original Date and Time Taken'), true, 52, true, 'datetime'),
+			'EXIFDateTimeDigitized' => array('SubIFD', 'DateTimeDigitized', gettext('Date and Time Digitized'), true, 52, true, 'datetime'),
+			'IPTCDateCreated' => array('IPTC', 'DateCreated', gettext('Date Created'), false, 8, true, 'date'),
 			'IPTCTimeCreated' => array('IPTC', 'TimeCreated', gettext('Time Created'), false, 11, true, 'time'),
-			'IPTCDigitizeDate' => array('IPTC', 'DigitizeDate', gettext('Digital Creation Date'), false, 8, true, 'time'),
+			'IPTCDigitizeDate' => array('IPTC', 'DigitizeDate', gettext('Digital Creation Date'), false, 8, true, 'date'),
 			'IPTCDigitizeTime' => array('IPTC', 'DigitizeTime', gettext('Digital Creation Time'), false, 11, true, 'time'),
 			'EXIFArtist' => array('IFD0', 'Artist', gettext('Artist'), false, 52, true, 'string'),
 			'IPTCImageCredit' => array('IPTC', 'ImageCredit', gettext('Image Credit'), false, 32, true, 'string'),
@@ -2702,14 +2836,14 @@ function setexifvars() {
 			'EXIFMeteringMode' => array('SubIFD', 'MeteringMode', gettext('Metering Mode'), true, 52, true, 'string'),
 			'EXIFFlash' => array('SubIFD', 'Flash', gettext('Flash Fired'), true, 52, true, 'string'),
 			'EXIFImageWidth' => array('SubIFD', 'ExifImageWidth', gettext('Original Width'), false, 52, true, 'number'),
-			'EXIFImageHeight' => array('SubIFD', 'ExifImageHeight', gettext('Original Height'), false, 52, true, 'number'),
+			'EXIFImageHeight' => array('SubIFD', 'ExifImageLength', gettext('Original Height'), false, 52, true, 'number'),
 			'EXIFOrientation' => array('IFD0', 'Orientation', gettext('Orientation'), false, 52, true, 'string'),
 			'EXIFSoftware' => array('IFD0', 'Software', gettext('Software'), false, 999, true, 'string'),
 			'EXIFContrast' => array('SubIFD', 'Contrast', gettext('Contrast Setting'), false, 52, true, 'string'),
 			'EXIFSharpness' => array('SubIFD', 'Sharpness', gettext('Sharpness Setting'), false, 52, true, 'string'),
 			'EXIFSaturation' => array('SubIFD', 'Saturation', gettext('Saturation Setting'), false, 52, true, 'string'),
 			'EXIFWhiteBalance' => array('SubIFD', 'WhiteBalance', gettext('White Balance'), false, 52, true, 'string'),
-			'EXIFSubjectDistance' => array('SubIFD', 'SubjectDistance', gettext('Subject Distance'), false, 52, true, 'number'),
+			'EXIFSubjectDistance' => array('SubIFD', 'SubjectDistanceRange', gettext('Subject Distance'), false, 52, true, 'number'),
 			'EXIFFocalLength' => array('SubIFD', 'FocalLength', gettext('Focal Length'), true, 52, true, 'number'),
 			'EXIFLensType' => array('SubIFD', 'LensType', gettext('Lens Type'), false, 52, true, 'string'),
 			'EXIFLensInfo' => array('SubIFD', 'LensInfo', gettext('Lens Info'), false, 52, true, 'string'),
@@ -2721,12 +2855,12 @@ function setexifvars() {
 			'IPTCLocationName' => array('IPTC', 'LocationName', gettext('Country/Primary Location Name'), false, 64, true, 'string'),
 			'IPTCContentLocationCode' => array('IPTC', 'ContentLocationCode', gettext('Content Location Code'), false, 3, true, 'string'),
 			'IPTCContentLocationName' => array('IPTC', 'ContentLocationName', gettext('Content Location Name'), false, 64, true, 'string'),
-			'EXIFGPSLatitude' => array('GPS', 'Latitude', gettext('Latitude'), false, 52, true, 'number'),
-			'EXIFGPSLatitudeRef' => array('GPS', 'Latitude Reference', gettext('Latitude Reference'), false, 52, true, 'string'),
-			'EXIFGPSLongitude' => array('GPS', 'Longitude', gettext('Longitude'), false, 52, true, 'number'),
-			'EXIFGPSLongitudeRef' => array('GPS', 'Longitude Reference', gettext('Longitude Reference'), false, 52, true, 'string'),
-			'EXIFGPSAltitude' => array('GPS', 'Altitude', gettext('Altitude'), false, 52, true, 'number'),
-			'EXIFGPSAltitudeRef' => array('GPS', 'Altitude Reference', gettext('Altitude Reference'), false, 52, true, 'string'),
+			'EXIFGPSLatitude' => array('GPS', 'GPSLatitude', gettext('Latitude'), false, 52, true, 'number'),
+			'EXIFGPSLatitudeRef' => array('GPS', 'GPSLatitudeRef', gettext('Latitude Reference'), false, 52, true, 'string'),
+			'EXIFGPSLongitude' => array('GPS', 'GPSLongitude', gettext('Longitude'), false, 52, true, 'number'),
+			'EXIFGPSLongitudeRef' => array('GPS', 'GPSLongitudeRef', gettext('Longitude Reference'), false, 52, true, 'string'),
+			'EXIFGPSAltitude' => array('GPS', 'GPSAltitude', gettext('Altitude'), false, 52, true, 'number'),
+			'EXIFGPSAltitudeRef' => array('GPS', 'GPSAltitudeRef', gettext('Altitude Reference'), false, 52, true, 'string'),
 			'IPTCOriginatingProgram' => array('IPTC', 'OriginatingProgram', gettext('Originating Program'), false, 32, true, 'string'),
 			'IPTCProgramVersion' => array('IPTC', 'ProgramVersion', gettext('Program Version'), false, 10, true, 'string'),
 			'VideoFormat' => array('VIDEO', 'fileformat', gettext('Video File Format'), false, 32, true, 'string'),
@@ -2757,28 +2891,6 @@ function setexifvars() {
 		}
 		$_zp_exifvars[$key][3] = getOption($key);
 	}
-}
-
-/**
- *
- * Returns true if the install is not a "clone"
- */
-function hasPrimaryScripts() {
-	if (!defined('PRIMARY_INSTALLATION')) {
-		if (function_exists('readlink') && ($zen = str_replace('\\', '/', @readlink(SERVERPATH . '/' . ZENFOLDER)))) {
-			// no error reading the link info
-			$os = strtoupper(PHP_OS);
-			$sp = SERVERPATH;
-			if (substr($os, 0, 3) == 'WIN' || $os == 'DARWIN') { // canse insensitive file systems
-				$sp = strtolower($sp);
-				$zen = strtolower($zen);
-			}
-			define('PRIMARY_INSTALLATION', $sp == dirname($zen));
-		} else {
-			define('PRIMARY_INSTALLATION', true);
-		}
-	}
-	return PRIMARY_INSTALLATION;
 }
 
 /**
@@ -2834,7 +2946,7 @@ function tagURLs($text) {
 			$text = serialize($text);
 		}
 	} else if (is_string($text)) {
-		$text = str_replace(WEBPATH, '{*WEBPATH*}', str_replace(FULLWEBPATH, '{*FULLWEBPATH*}', $text));
+		$text = str_replace(WEBPATH, '{*WEBPATH*}', str_replace(FULLWEBPATH, '{*FULLWEBPATH*}', strval($text)));
 	}
 	return $text;
 }
@@ -2859,7 +2971,7 @@ function unTagURLs($text) {
 			$text = serialize($text);
 		}
 	} else if (is_string($text)) {
-		$text = str_replace('{*WEBPATH*}', WEBPATH, str_replace('{*FULLWEBPATH*}', FULLWEBPATH, $text));
+		$text = str_replace('{*WEBPATH*}', WEBPATH, str_replace('{*FULLWEBPATH*}', FULLWEBPATH, strval($text)));
 	}
 	return $text;
 }
@@ -2950,7 +3062,7 @@ function removeTrailingSlash($string) {
  * 	'linktext' => '<The defined text>'
  * )
  * 
- * @since Zenphoto 1.5
+ * @since 1.5
  * 
  * @return array
  */
@@ -2985,7 +3097,7 @@ function getDataUsageNotice() {
  * Prints the data privacy policy page and the data usage confirmation text as defined on Options > Security
  * If there is no page defined it only prints the default text.
  * 
- * @since Zenphoto 1.5
+ * @since 1.5
  */
 function printDataUsageNotice() {
 	$data = getDataUsageNotice();
@@ -2998,9 +3110,9 @@ function printDataUsageNotice() {
 /**
  * Returns an array with predefined info about general cookies set by the system and/or plugins
  * 
- * @since ZenphotoCMS 1.5.8
+ * @since 1.5.8
  * 
- * @param string $section Name of the section to get: 'authenticaion', 'search', 'admin', 'cookie', 'various' or null (default) for the full array
+ * @param string $section Name of the section to get: 'authentication', 'search', 'admin', 'cookie', 'various' or null (default) for the full array
  * @return array
  */
 function getCookieInfoData($section = null) {
@@ -3068,9 +3180,9 @@ function getCookieInfoData($section = null) {
 /**
  * Returns a definition list with predefined info about general cookies set by the system and/or plugins as a string
  * 
- * @since ZenphotoCMS 1.5.8
+ * @since 1.5.8
  * 
- * @param string $section Name of the section to get: 'authenticaion', 'search', 'admin', 'cookie', 'various' or null (default) for the full array
+ * @param string $section Name of the section to get: 'authentication', 'search', 'admin', 'cookie', 'various' or null (default) for the full array
  * @param string $sectionheadline Add h2 to h6 to print as the section headline, h2 default.
  * @return string
  */
@@ -3100,9 +3212,9 @@ function getCookieInfoHTML($section = null, $sectionheadline = 'h2') {
 /**
  * Prints a definition list with predefined info about general cookies set by the system and/or plugins
  * 
- * @since ZenphotoCMS 1.5.8
+ * @since 1.5.8
  * 
- * @param string $section Name of the section to get: 'authenticaion', 'search', 'admin', 'cookie', 'various' or null (default) for the full array
+ * @param string $section Name of the section to get: 'authentication', 'search', 'admin', 'cookie', 'various' or null (default) for the full array
  * @param string $sectionheadline Add h2 to h6 to print as the section headline, h2 default.
  */
 function printCookieInfo($section = null, $sectionheadline = 'h2') {
@@ -3126,5 +3238,43 @@ function getCookieInfoMacro($macros) {
 	return $macros;
 }
 
+/**
+ * Gets a formatted metadata field value for display
+ * 
+ * @since 1.6.3
+ * 
+ * @param string $type The field type
+ * @param mixed $value The field value
+ * @param string $name The field name (Metadata Key)
+ */
+function getImageMetadataValue($type = '', $value = '', $name = '') {
+	switch ($type) {
+		case 'datetime':
+			return zpFormattedDate(DATETIME_FORMAT, removeDateTimeZone($value));
+		case 'date':
+			return zpFormattedDate(DATE_FORMAT, removeDateTimeZone($value));
+		case 'time':	
+			return zpFormattedDate(TIME_FORMAT, removeDateTimeZone($value));
+		default:
+			if ($name == 'IPTCImageCaption') {
+				return nl2br(html_decode($value));
+			} else {
+				return html_encode($value);
+			}
+	}
+}
+
+/**
+ * Prints a formatted metadata field value
+ * 
+ * @since 1.6.3
+ * 
+ * @param string $type The field type
+ * @param mixed $value The field value
+ * @param string $name The field name (Metadata Key)
+ */
+function printImageMetadataValue($type, $value = '', $name = '') {
+	echo getImageMetadataValue($type, $value, $name);
+}
 
 setexifvars();

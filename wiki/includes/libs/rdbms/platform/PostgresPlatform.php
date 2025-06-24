@@ -20,6 +20,7 @@
 namespace Wikimedia\Rdbms\Platform;
 
 use Wikimedia\Rdbms\DBLanguageError;
+use Wikimedia\Rdbms\Query;
 use Wikimedia\Timestamp\ConvertibleTimestamp;
 
 /**
@@ -107,7 +108,10 @@ class PostgresPlatform extends SQLPlatform {
 				}
 			}
 
-			if ( isset( $options['ORDER BY'] ) && $options['ORDER BY'] == 'NULL' ) {
+			if (
+				isset( $options['ORDER BY'] ) &&
+				( $options['ORDER BY'] == 'NULL' || $options['ORDER BY'] == [ 'NULL' ] )
+			) {
 				unset( $options['ORDER BY'] );
 			}
 		}
@@ -218,9 +222,9 @@ class PostgresPlatform extends SQLPlatform {
 		return parent::makeUpdateOptionsArray( $options );
 	}
 
-	public function isTransactableQuery( $sql ) {
+	public function isTransactableQuery( Query $sql ) {
 		return parent::isTransactableQuery( $sql ) &&
-			!preg_match( '/^SELECT\s+pg_(try_|)advisory_\w+\(/', $sql );
+			!preg_match( '/^SELECT\s+pg_(try_|)advisory_\w+\(/', $sql->getSQL() );
 	}
 
 	public function lockSQLText( $lockName, $timeout ) {
@@ -236,7 +240,7 @@ class PostgresPlatform extends SQLPlatform {
 		// http://www.postgresql.org/docs/9.2/static/functions-admin.html#FUNCTIONS-ADVISORY-LOCKS
 		$key = $this->quoter->addQuotes( $this->bigintFromLockName( $lockName ) );
 		return "SELECT (CASE(pg_try_advisory_lock($key))
-			WHEN 'f' THEN 'f' ELSE pg_advisory_unlock($key) END) AS unlocked";
+			WHEN FALSE THEN FALSE ELSE pg_advisory_unlock($key) END) AS unlocked";
 	}
 
 	public function unlockSQLText( $lockName ) {

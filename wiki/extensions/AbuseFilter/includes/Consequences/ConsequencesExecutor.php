@@ -12,8 +12,9 @@ use MediaWiki\Extension\AbuseFilter\Consequences\Consequence\HookAborterConseque
 use MediaWiki\Extension\AbuseFilter\FilterLookup;
 use MediaWiki\Extension\AbuseFilter\GlobalNameUtils;
 use MediaWiki\Extension\AbuseFilter\Variables\VariableHolder;
+use MediaWiki\Status\Status;
+use MediaWiki\User\UserIdentityUtils;
 use Psr\Log\LoggerInterface;
-use Status;
 
 class ConsequencesExecutor {
 	public const CONSTRUCTOR_OPTIONS = [
@@ -33,6 +34,8 @@ class ConsequencesExecutor {
 	private $filterLookup;
 	/** @var LoggerInterface */
 	private $logger;
+	/** @var UserIdentityUtils */
+	private $userIdentityUtils;
 	/** @var ServiceOptions */
 	private $options;
 	/** @var ActionSpecifier */
@@ -46,6 +49,7 @@ class ConsequencesExecutor {
 	 * @param ConsequencesRegistry $consRegistry
 	 * @param FilterLookup $filterLookup
 	 * @param LoggerInterface $logger
+	 * @param UserIdentityUtils $userIdentityUtils
 	 * @param ServiceOptions $options
 	 * @param ActionSpecifier $specifier
 	 * @param VariableHolder $vars
@@ -56,6 +60,7 @@ class ConsequencesExecutor {
 		ConsequencesRegistry $consRegistry,
 		FilterLookup $filterLookup,
 		LoggerInterface $logger,
+		UserIdentityUtils $userIdentityUtils,
 		ServiceOptions $options,
 		ActionSpecifier $specifier,
 		VariableHolder $vars
@@ -65,6 +70,7 @@ class ConsequencesExecutor {
 		$this->consRegistry = $consRegistry;
 		$this->filterLookup = $filterLookup;
 		$this->logger = $logger;
+		$this->userIdentityUtils = $userIdentityUtils;
 		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
 		$this->options = $options;
 		$this->specifier = $specifier;
@@ -154,12 +160,13 @@ class ConsequencesExecutor {
 	 * @return array[]
 	 */
 	private function specializeParameters( array $consParams ): array {
+		$user = $this->specifier->getUser();
+		$isNamed = $this->userIdentityUtils->isNamed( $user );
 		foreach ( $consParams as $filter => $actions ) {
 			foreach ( $actions as $name => $parameters ) {
 				if ( $name === 'block' ) {
-					$user = $this->specifier->getUser();
 					$consParams[$filter][$name] = [
-						'expiry' => $user->isRegistered() ? $parameters[2] : $parameters[1],
+						'expiry' => $isNamed ? $parameters[2] : $parameters[1],
 						'blocktalk' => $parameters[0] === 'blocktalk'
 					];
 				}
@@ -326,7 +333,7 @@ class ConsequencesExecutor {
 		switch ( $actionName ) {
 			case 'throttle':
 				$throttleId = array_shift( $rawParams );
-				list( $rateCount, $ratePeriod ) = explode( ',', array_shift( $rawParams ) );
+				[ $rateCount, $ratePeriod ] = explode( ',', array_shift( $rawParams ) );
 
 				$throttleParams = [
 					'id' => $throttleId,

@@ -22,8 +22,7 @@ class ga_colorbox {
 
 	function theme_head($_zp_themeroot) {
 		?>
-		<script type="text/javascript">
-			// <!-- <![CDATA[
+		<script>
 			$(document).ready(function() {
 				$("a.thickbox").colorbox({
 					maxWidth: "98%",
@@ -32,7 +31,6 @@ class ga_colorbox {
 					close: '<?php echo gettext("close"); ?>'
 				});
 			});
-			// ]]> -->
 		</script>
 		<?php
 	}

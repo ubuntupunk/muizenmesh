@@ -27,20 +27,24 @@ use WANObjectCache;
 /**
  * Database load monitoring interface
  *
+ * @internal This class should not be called outside of LoadBalancer
  * @ingroup Database
  */
 interface ILoadMonitor extends LoggerAwareInterface, StatsdAwareInterface {
+	public const STATE_UP = 'up';
+	public const STATE_CONN_COUNT = 'conn_count';
+	public const STATE_AS_OF = 'time';
+
 	/**
 	 * Construct a new LoadMonitor with a given LoadBalancer parent
 	 *
 	 * @param ILoadBalancer $lb LoadBalancer this instance serves
 	 * @param BagOStuff $sCache Local server memory cache
 	 * @param WANObjectCache $wCache Local cluster memory cache
-	 * @param array $options Options map
+	 * @param array $options Additional parameters include:
+	 *   - maxConnCount: maximum number of connections before logging a warning [default: 500]
 	 */
-	public function __construct(
-		ILoadBalancer $lb, BagOStuff $sCache, WANObjectCache $wCache, array $options = []
-	);
+	public function __construct( ILoadBalancer $lb, BagOStuff $sCache, WANObjectCache $wCache, $options );
 
 	/**
 	 * Perform load ratio adjustment before deciding which server to use
@@ -48,14 +52,4 @@ interface ILoadMonitor extends LoggerAwareInterface, StatsdAwareInterface {
 	 * @param int[] &$weightByServer Map of (server index => float weight)
 	 */
 	public function scaleLoads( array &$weightByServer );
-
-	/**
-	 * Get an estimate of replication lag (in seconds) for each server
-	 *
-	 * Values may be "false" if replication is too broken to estimate
-	 *
-	 * @param int[] $serverIndexes
-	 * @return array Map of (server index => float|int|false)
-	 */
-	public function getLagTimes( array $serverIndexes );
 }

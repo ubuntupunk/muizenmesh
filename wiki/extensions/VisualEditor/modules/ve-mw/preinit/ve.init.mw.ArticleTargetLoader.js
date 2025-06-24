@@ -1,7 +1,7 @@
 /*!
  * VisualEditor MediaWiki ArticleTargetLoader.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see AUTHORS.txt
+ * @copyright See AUTHORS.txt
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
@@ -35,6 +35,28 @@
 		mw.loader.getState( 'ext.visualEditor.mwwikitext' )
 	) {
 		modules.push( 'ext.visualEditor.mwwikitext' );
+	}
+
+	// A/B test enrollment for edit check (T342930)
+	if ( conf.editCheckABTest ) {
+		var inABTest;
+		if ( mw.user.isAnon() ) {
+			// can't just use mw.user.sessionId() because we need this to last across sessions
+			var token = mw.cookie.get( 'VEECid', '', mw.user.generateRandomSessionId() );
+			// Store the token so our state is consistent across pages
+			mw.cookie.set( 'VEECid', token, { path: '/', expires: 90 * 86400, prefix: '' } );
+			inABTest = parseInt( token.slice( 0, 8 ), 16 ) % 2 === 1;
+		} else {
+			inABTest = mw.user.getId() % 2 === 1;
+		}
+		conf.editCheck = inABTest;
+		// Communicate the bucket to instrumentation:
+		mw.config.set( 'wgVisualEditorEditCheckABTestBucket', '2024-02-editcheck-reference-' + ( inABTest ? 'test' : 'control' ) );
+	}
+
+	var editCheck = conf.editCheck || !!url.searchParams.get( 'ecenable' ) || !!window.MWVE_FORCE_EDIT_CHECK_ENABLED;
+	if ( conf.editCheckTagging || editCheck ) {
+		modules.push( 'ext.visualEditor.editCheck' );
 	}
 
 	var namespaces = mw.config.get( 'wgNamespaceIds' );
@@ -89,7 +111,12 @@
 					pluginCallbacks.push( ve.init.platform.getInitializedPromise.bind( ve.init.platform ) );
 					// Execute plugin callbacks and collect promises
 					return $.when.apply( $, pluginCallbacks.map( function ( callback ) {
-						return callback();
+						try {
+							return callback();
+						} catch ( e ) {
+							mw.log.warn( 'Failed to load VE plugin:', e );
+							return null;
+						}
 					} ) );
 				} );
 		},
@@ -191,11 +218,11 @@
 		 * @param {null|string} [options.section] Section to edit; number, 'T-'-prefixed, null or 'new' (currently just source mode)
 		 * @param {number} [options.oldId] Old revision ID. Current if omitted.
 		 * @param {string} [options.targetName] Optional target name for tracking
-		 * @param {boolean} [options.modified] The page was been modified before loading (e.g. in source mode)
+		 * @param {boolean} [options.modified] The page has been modified before loading (e.g. in source mode)
 		 * @param {string} [options.wikitext] Wikitext to convert to HTML. The original document is fetched if undefined.
 		 * @param {string} [options.editintro] Name of a page to use as edit intro message
 		 * @param {string} [options.preload] Name of a page to use as preloaded content if pageName is empty
-		 * @param {Array} [options.preloadparams] Parameters to substitute into preload if it's used
+		 * @param {string[]} [options.preloadparams] Parameters to substitute into preload if it's used
 		 * @return {jQuery.Promise} Abortable promise resolved with a JSON object
 		 */
 		requestPageData: function ( mode, pageName, options ) {
@@ -327,15 +354,10 @@
 				}
 			}
 			if ( !apiPromise ) {
-				apiPromise = apiXhr.then( function ( response, jqxhr ) {
+				apiPromise = apiXhr.then( function ( response ) {
 					ve.track( 'trace.apiLoad.exit', { mode: 'visual' } );
-					ve.track( 'mwtiming.performance.system.apiLoad', {
-						bytes: require( 'mediawiki.String' ).byteLength( jqxhr.responseText ),
-						duration: ve.now() - start,
-						cacheHit: /hit/i.test( jqxhr.getResponseHeader( 'X-Cache' ) ),
-						targetName: options.targetName,
-						mode: 'visual'
-					} );
+					mw.track( 'timing.ve.' + options.targetName + '.performance.system.apiLoad',
+						ve.now() - start );
 					if ( response.visualeditor ) {
 						response.visualeditor.switched = switched;
 						response.visualeditor.fromEditedState = fromEditedState;
@@ -350,7 +372,7 @@
 
 				var headers = {
 					// Should be synchronised with DirectParsoidClient.php
-					Accept: 'text/html; charset=utf-8; profile="https://www.mediawiki.org/wiki/Specs/HTML/2.6.0"',
+					Accept: 'text/html; charset=utf-8; profile="https://www.mediawiki.org/wiki/Specs/HTML/2.8.0"',
 					'Accept-Language': mw.config.get( 'wgVisualEditor' ).pageLanguageCode,
 					'Api-User-Agent': 'VisualEditor-MediaWiki/' + mw.config.get( 'wgVersion' )
 				};
@@ -403,12 +425,8 @@
 				var restbasePromise = restbaseXhr.then(
 					function ( response, status, jqxhr ) {
 						ve.track( 'trace.restbaseLoad.exit', { mode: 'visual' } );
-						ve.track( 'mwtiming.performance.system.restbaseLoad', {
-							bytes: require( 'mediawiki.String' ).byteLength( jqxhr.responseText ),
-							duration: ve.now() - start,
-							targetName: options.targetName,
-							mode: 'visual'
-						} );
+						mw.track( 'timing.ve.' + options.targetName + '.performance.system.restbaseLoad',
+							ve.now() - start );
 						return [ response, jqxhr.getResponseHeader( 'etag' ) ];
 					},
 					function ( xhr, code, _ ) {

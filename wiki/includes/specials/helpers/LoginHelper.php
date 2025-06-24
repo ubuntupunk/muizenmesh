@@ -1,7 +1,11 @@
 <?php
 
+use MediaWiki\Context\ContextSource;
+use MediaWiki\Context\IContextSource;
+use MediaWiki\HookContainer\HookRunner;
 use MediaWiki\HookContainer\ProtectedHookAccessorTrait;
 use MediaWiki\MainConfigNames;
+use MediaWiki\MediaWikiServices;
 use MediaWiki\Title\Title;
 
 /**
@@ -44,7 +48,8 @@ class LoginHelper extends ContextSource {
 		static $messages = null;
 		if ( !$messages ) {
 			$messages = self::$validErrorMessages;
-			Hooks::runner()->onLoginFormValidErrorMessages( $messages );
+			( new HookRunner( MediaWikiServices::getInstance()->getHookContainer() ) )
+				->onLoginFormValidErrorMessages( $messages );
 		}
 
 		return $messages;

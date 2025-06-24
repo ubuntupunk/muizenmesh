@@ -3,8 +3,7 @@
  * zenpage admin-edit.php
  *
  * @author Malte Müller (acrylian)
- * @package plugins
- * @subpackage zenpage
+ * @package zpcore\plugins\zenpage
  */
 define("OFFSET_PATH", 4);
 require_once(dirname(dirname(dirname(__FILE__))) . '/admin-globals.php');
@@ -127,8 +126,7 @@ zenpageJSCSS();
 datepickerJS();
 codeblocktabsJS();
 ?>
-<script type="text/javascript">
-	//<!-- <![CDATA[
+<script>
 	var deleteArticle = "<?php echo gettext("Are you sure you want to delete this article? THIS CANNOT BE UNDONE!"); ?>";
 	var deletePage = "<?php echo gettext("Are you sure you want to delete this page? THIS CANNOT BE UNDONE!"); ?>";
 	var deleteCategory = "<?php echo gettext("Are you sure you want to delete this category? THIS CANNOT BE UNDONE!"); ?>";
@@ -163,7 +161,6 @@ if (!isset($_GET['add'])) { // prevent showing the message when adding page or a
 	<?php
 }
 ?>
-	// ]]> -->
 </script>
 <?php Authority::printPasswordFormJS(); ?>
 </head>
@@ -263,24 +260,19 @@ if (!isset($_GET['add'])) { // prevent showing the message when adding page or a
 							?>
 							<h1><?php echo gettext('Edit Article:'); ?> <em><?php checkForEmptyTitle($result->getTitle(), 'news', false); ?></em></h1>
 							<?php
-							printScheduledPublishingNotes($result);
-							if ($result->inProtectedCategory()) {
-								echo '<p class="notebox">' . gettext('<strong>Note:</strong> This article belongs to a password protected category.') . '</p>';
-							}
+							printStatusNotes($result);
 						}
 						if (is_AdminEditPage('newscategory')) {
 							?>
 							<h1><?php echo gettext('Edit Category:'); ?> <em><?php checkForEmptyTitle($result->getTitle(), 'category', false); ?></em></h1>
 							<?php
+							printStatusNotes($result);
 						}
 						if (is_AdminEditPage('page')) {
 							?>
 							<h1><?php echo gettext('Edit Page:'); ?> <em><?php checkForEmptyTitle($result->getTitle(), 'page', false); ?></em></h1>
 							<?php
-							printScheduledPublishingNotes($result);
-							if ($result->getPassword()) {
-								echo '<p class="notebox">' . gettext('<strong>Note:</strong> This page is password protected.') . '</p>';
-							}
+							printStatusNotes($result);
 						}
 					}
 					if ($result->loaded || $result->transient) {
@@ -577,8 +569,7 @@ if (!isset($_GET['add'])) { // prevent showing the message when adding page or a
 													<div class="box-edit">
 														<p>
 
-															<script type="text/javascript">
-																// <!-- <![CDATA[
+															<script>
 																$(function() {
 																	$("#date").datepicker({
 																		dateFormat: 'yy-mm-dd',
@@ -588,7 +579,6 @@ if (!isset($_GET['add'])) { // prevent showing the message when adding page or a
 																		buttonImageOnly: true
 																	});
 																});
-																// ]]> -->
 															</script>
 															<?php
 															$date = $result->getDatetime();
@@ -605,8 +595,7 @@ if (!isset($_GET['add'])) { // prevent showing the message when adding page or a
 														</p>
 														<hr />
 														<p>
-															<script type="text/javascript">
-																// <!-- <![CDATA[
+															<script>
 																$(function() {
 																	$("#expiredate").datepicker({
 																		dateFormat: 'yy-mm-dd',
@@ -616,7 +605,6 @@ if (!isset($_GET['add'])) { // prevent showing the message when adding page or a
 																		buttonImageOnly: true
 																	});
 																});
-																// ]]> -->
 															</script>
 
 															<?php
@@ -694,7 +682,7 @@ if (!isset($_GET['add'])) { // prevent showing the message when adding page or a
 															if (is_object($result)) {
 																?>
 																<ul>
-																	<?php printNestedItemsList('cats-checkboxlist', $result->getID()); ?>
+																	<?php printNestedItemsList('cats-checkboxlist', $result); ?>
 																</ul>
 																<?php
 															} else {

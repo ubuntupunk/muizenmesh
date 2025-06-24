@@ -1,14 +1,17 @@
 <?php
 
+use MediaWiki\CommentStore\CommentStoreComment;
 use MediaWiki\Logger\Spi as LoggerSpi;
+use MediaWiki\PoolCounter\PoolWorkArticleView;
 use MediaWiki\Revision\MutableRevisionRecord;
 use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\Revision\SlotRecord;
+use MediaWiki\Status\Status;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
 /**
- * @covers PoolWorkArticleView
+ * @covers \MediaWiki\PoolCounter\PoolWorkArticleView
  * @group Database
  */
 class PoolWorkArticleViewTest extends MediaWikiIntegrationTestCase {
@@ -117,7 +120,7 @@ class PoolWorkArticleViewTest extends MediaWikiIntegrationTestCase {
 		$this->assertStringNotContainsString( 'NOPE', $text );
 	}
 
-	public function provideMagicWords() {
+	public static function provideMagicWords() {
 		yield 'PAGEID' => [
 			'Test {{PAGEID}} Test',
 			static function ( RevisionRecord $rev ) {
@@ -192,7 +195,7 @@ class PoolWorkArticleViewTest extends MediaWikiIntegrationTestCase {
 		$work = $this->newPoolWorkArticleView( $page, $fakeRev, $options );
 		/** @var Status $status */
 		$status = $work->execute();
-		$this->assertTrue( $status->isGood() );
+		$this->assertStatusGood( $status );
 	}
 
 }

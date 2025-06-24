@@ -1,6 +1,9 @@
 <?php
+
+use MediaWiki\Output\OutputPage;
+
 /**
- * @covers BadTitleError
+ * @covers \BadTitleError
  * @author Addshore
  */
 class BadTitleErrorTest extends MediaWikiIntegrationTestCase {
@@ -18,6 +21,7 @@ class BadTitleErrorTest extends MediaWikiIntegrationTestCase {
 			ob_start();
 			$e->report();
 			$text = ob_get_clean();
+			$this->expectDeprecationAndContinue( '/MWException::getText was deprecated/' );
 			$this->assertStringContainsString( $e->getText(), $text );
 		}
 	}

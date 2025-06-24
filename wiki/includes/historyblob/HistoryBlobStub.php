@@ -97,13 +97,12 @@ class HistoryBlobStub {
 		if ( isset( self::$blobCache[$this->mOldId] ) ) {
 			$obj = self::$blobCache[$this->mOldId];
 		} else {
-			$dbr = wfGetDB( DB_REPLICA );
-			$row = $dbr->selectRow(
-				'text',
-				[ 'old_flags', 'old_text' ],
-				[ 'old_id' => $this->mOldId ],
-				__METHOD__
-			);
+			$dbr = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
+			$row = $dbr->newSelectQueryBuilder()
+				->select( [ 'old_flags', 'old_text' ] )
+				->from( 'text' )
+				->where( [ 'old_id' => $this->mOldId ] )
+				->caller( __METHOD__ )->fetchRow();
 
 			if ( !$row ) {
 				return false;
@@ -138,7 +137,11 @@ class HistoryBlobStub {
 			self::$blobCache = [ $this->mOldId => $obj ];
 		}
 
-		return $obj->getItem( $this->mHash );
+		if ( method_exists( $obj, 'getItem' ) ) {
+			return $obj->getItem( $this->mHash );
+		}
+
+		return false;
 	}
 
 	/**

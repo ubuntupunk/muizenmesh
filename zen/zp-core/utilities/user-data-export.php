@@ -3,7 +3,7 @@
  * GDPR data export tool
  *
  * @author Malte Müller (acrylian)
- * @package admin
+ * @package zpcore\admin\utilities
  */
 define('OFFSET_PATH', 3);
 
@@ -51,7 +51,7 @@ if (isset($_REQUEST['userdata-username'])) {
 $webpath = WEBPATH . '/' . ZENFOLDER . '/';
 printAdminHeader('overview', 'User data export');
 ?>
-<link rel="stylesheet" href="../admin-statistics.css" type="text/css" media="screen" />
+<link rel="stylesheet" href="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/css/admin-statistics.css" type="text/css" media="screen" />
 </head>
 <body>
 	<?php printLogoAndLinks(); ?>

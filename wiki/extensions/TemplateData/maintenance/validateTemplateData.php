@@ -7,7 +7,11 @@ if ( $IP === false ) {
 require_once "$IP/maintenance/Maintenance.php";
 
 use MediaWiki\Extension\TemplateData\TemplateDataBlob;
+use MediaWiki\Title\Title;
 
+/**
+ * @license GPL-2.0-or-later
+ */
 class ValidateTemplateData extends Maintenance {
 
 	public function __construct() {
@@ -31,7 +35,7 @@ class ValidateTemplateData extends Maintenance {
 				->join( 'page', null, 'pp_page=page_id' )
 				->fields( [ 'pp_page', 'pp_value', 'page_namespace', 'page_title' ] )
 				->where( [
-					'pp_page > ' . $db->addQuotes( $lastId ),
+					$db->expr( 'pp_page', '>', $lastId ),
 					'pp_propname' => 'templatedata'
 				] )
 				->orderBy( 'pp_page' )
@@ -59,6 +63,7 @@ class ValidateTemplateData extends Maintenance {
 		$this->output( "Rows checked: {$rowsChecked}\n" );
 		$this->output( "Bad rows: {$badRows}\n" );
 	}
+
 }
 
 $maintClass = ValidateTemplateData::class;

@@ -6,18 +6,15 @@ namespace Wikimedia\Parsoid\Wt2Html\PP\Processors;
 use Wikimedia\Parsoid\Config\Env;
 use Wikimedia\Parsoid\DOM\Element;
 use Wikimedia\Parsoid\DOM\Node;
+use Wikimedia\Parsoid\Utils\DiffDOMUtils;
 use Wikimedia\Parsoid\Utils\DOMDataUtils;
-use Wikimedia\Parsoid\Utils\DOMUtils;
 use Wikimedia\Parsoid\Utils\WTUtils;
 use Wikimedia\Parsoid\Wt2Html\Frame;
 use Wikimedia\Parsoid\Wt2Html\Wt2HtmlDOMProcessor;
 
 class ProcessTreeBuilderFixups implements Wt2HtmlDOMProcessor {
-	/**
-	 * @param Frame $frame
-	 * @param Node $node
-	 */
-	private static function removeAutoInsertedEmptyTags( Frame $frame, Node $node ) {
+
+	private static function removeAutoInsertedEmptyTags( Frame $frame, Node $node ): void {
 		$c = $node->firstChild;
 		while ( $c !== null ) {
 			// FIXME: Encapsulation only happens after this phase, so you'd think
@@ -42,7 +39,7 @@ class ProcessTreeBuilderFixups implements Wt2HtmlDOMProcessor {
 				// Delete empty auto-inserted elements
 				if ( !empty( $dp->autoInsertedStart ) && !empty( $dp->autoInsertedEnd ) &&
 					( !$c->hasChildNodes() ||
-						( DOMUtils::hasNChildren( $c, 1 ) &&
+						( DiffDOMUtils::hasNChildren( $c, 1 ) &&
 							!( $c->firstChild instanceof Element ) &&
 							preg_match( '/^\s*$/D', $c->textContent )
 						)

@@ -2,12 +2,14 @@
 @import '../../minerva.less/minerva.mixins.less';
 
 .overlay {
-	textarea {
-		.editor-textarea();
+	// Needed for MultimediaViewer.
+	button {
+		background: none;
+		border: 0;
 	}
 
-	.header-cancel {
-		padding-left: 4px;
+	textarea {
+		.editor-textarea();
 	}
 
 	.license {
@@ -21,39 +23,42 @@
 }
 
 .overlay-header {
-	height: @overlayHeaderHeight;
+	height: @height-overlay-header;
 
 	.header-chrome & {
-		height: @siteHeaderHeight;
+		height: @height-site-header;
 	}
 
-	.mw-ui-anchor,
-	.mw-ui-button:not( .mw-ui-icon ) {
-		height: @overlayHeaderHeight;
+	.mw-ui-anchor {
+		height: @height-overlay-header;
 
 		.header-chrome & {
-			height: @siteHeaderHeight;
+			height: @height-site-header;
 		}
 	}
 
+	.cdx-button {
+		height: @height-overlay-header;
+	}
+
 	.overlay-title {
-		padding: @headerVerticalPadding 0;
+		padding: @padding-vertical-header 0;
 
 		&:last-child {
 			// Reserve space to the right in case the search form in the header or
-			// overlay title in the overlay header is the last element. Use @iconGutterWidth
+			// overlay title in the overlay header is the last element. Use @width-icon-gutter
 			// because there is a hamburger or close/back icon next to this element and
 			// the space between them is exactly that.
-			padding-right: @iconGutterWidth;
+			padding-right: @width-icon-gutter;
 		}
 	}
 }
 
 .overlay-header-container + .overlay-content {
-	padding-top: @overlayHeaderHeight;
+	padding-top: @height-overlay-header;
 
 	.header-chrome& {
-		padding-top: @siteHeaderHeight;
+		padding-top: @height-site-header;
 	}
 }
 
@@ -61,6 +66,6 @@
 	.overlay-header {
 		// Make sure the close button and secondary button icon images are aligned
 		// with the content.
-		max-width: @contentMaxWidthTablet + ( 2 * @iconGutterWidth );
+		max-width: @max-width-content-tablet + ( 2 * @width-icon-gutter );
 	}
 }

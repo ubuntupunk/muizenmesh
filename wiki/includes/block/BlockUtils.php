@@ -23,23 +23,24 @@ namespace MediaWiki\Block;
 
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\MainConfigNames;
+use MediaWiki\Status\Status;
 use MediaWiki\User\UserIdentity;
 use MediaWiki\User\UserIdentityLookup;
 use MediaWiki\User\UserIdentityValue;
 use MediaWiki\User\UserNameUtils;
-use Status;
 use Wikimedia\IPUtils;
 
 /**
  * Backend class for blocking utils
  *
  * This service should contain any methods that are useful
- * to more than one blocking-related class and doesn't fit any
+ * to more than one blocking-related class and don't fit any
  * other service.
  *
  * For now, this includes only
  * - block target parsing
  * - block target validation
+ * - parsing the target and type of a block in the database
  *
  * @since 1.36
  */
@@ -53,6 +54,9 @@ class BlockUtils {
 	/** @var UserNameUtils */
 	private $userNameUtils;
 
+	/** @var string|false */
+	private $wikiId;
+
 	/**
 	 * @internal Only for use by ServiceWiring
 	 */
@@ -64,20 +68,24 @@ class BlockUtils {
 	 * @param ServiceOptions $options
 	 * @param UserIdentityLookup $userIdentityLookup
 	 * @param UserNameUtils $userNameUtils
+	 * @param string|false $wikiId
 	 */
 	public function __construct(
 		ServiceOptions $options,
 		UserIdentityLookup $userIdentityLookup,
-		UserNameUtils $userNameUtils
+		UserNameUtils $userNameUtils,
+		$wikiId = Block::LOCAL
 	) {
 		$options->assertRequiredOptions( self::CONSTRUCTOR_OPTIONS );
 		$this->options = $options;
 		$this->userIdentityLookup = $userIdentityLookup;
 		$this->userNameUtils = $userNameUtils;
+		$this->wikiId = $wikiId;
 	}
 
 	/**
-	 * From an existing block, get the target and the type of target.
+	 * From string specification or UserIdentity, get the block target and the
+	 * type of target.
 	 *
 	 * Note that, except for null, it is always safe to treat the target
 	 * as a string; for UserIdentityValue objects this will return
@@ -85,6 +93,10 @@ class BlockUtils {
 	 * UserIdentityValue::getName().
 	 *
 	 * If the type is not null, it will be an AbstractBlock::TYPE_ constant.
+	 *
+	 * Since 1.42, it is no longer safe to pass a value from the database field
+	 * ipb_address/bt_address to this method, since the username is normalized.
+	 * Use parseBlockTargetRow() instead. (T346683)
 	 *
 	 * @param string|UserIdentity|null $target
 	 * @return array [ UserIdentity|String|null, int|null ]
@@ -105,20 +117,13 @@ class BlockUtils {
 
 		if ( IPUtils::isValid( $target ) ) {
 			return [
-				UserIdentityValue::newAnonymous( IPUtils::sanitizeIP( $target ) ),
+				UserIdentityValue::newAnonymous( IPUtils::sanitizeIP( $target ), $this->wikiId ),
 				AbstractBlock::TYPE_IP
 			];
 
 		} elseif ( IPUtils::isValidRange( $target ) ) {
 			// Can't create a UserIdentity from an IP range
 			return [ IPUtils::sanitizeRange( $target ), AbstractBlock::TYPE_RANGE ];
-		}
-
-		// Consider the possibility that this is not a username at all
-		// but actually an old subpage (T31797)
-		if ( str_contains( $target, '/' ) ) {
-			// An old subpage, drill down to the user behind it
-			$target = explode( '/', $target )[0];
 		}
 
 		if ( preg_match( '/^#\d+$/', $target ) ) {
@@ -134,9 +139,11 @@ class BlockUtils {
 			return [ $userFromDB, AbstractBlock::TYPE_USER ];
 		}
 
-		// TODO: figure out if it makes sense to have users that do not exist in the DB here
+		// Wrap the invalid user in a UserIdentityValue.
+		// This allows validateTarget() to return a "nosuchusershort" message,
+		// which is needed for Special:Block.
 		$canonicalName = $this->userNameUtils->getCanonical( $target );
-		if ( $canonicalName ) {
+		if ( $canonicalName !== false ) {
 			return [
 				new UserIdentityValue( 0, $canonicalName ),
 				AbstractBlock::TYPE_USER
@@ -144,6 +151,39 @@ class BlockUtils {
 		}
 
 		return [ null, null ];
+	}
+
+	/**
+	 * From a row which must contain bt_auto, bt_user, bt_address and bl_id,
+	 * and optionally bt_user_text, determine the block target and type.
+	 *
+	 * @since 1.42
+	 * @param \stdClass $row
+	 * @return array [ UserIdentity|String|null, int|null ]
+	 */
+	public function parseBlockTargetRow( $row ) {
+		if ( $row->bt_auto ) {
+			return [ $row->bl_id, AbstractBlock::TYPE_AUTO ];
+		} elseif ( isset( $row->bt_user ) ) {
+			if ( isset( $row->bt_user_text ) ) {
+				$user = new UserIdentityValue( $row->bt_user, $row->bt_user_text, $this->wikiId );
+			} else {
+				$user = $this->userIdentityLookup->getUserIdentityByUserId( $row->bt_user );
+			}
+			return [ $user, AbstractBlock::TYPE_USER ];
+		} elseif ( $row->bt_address === null ) {
+			return [ null, null ];
+		} elseif ( IPUtils::isValid( $row->bt_address ) ) {
+			return [
+				UserIdentityValue::newAnonymous( IPUtils::sanitizeIP( $row->bt_address ), $this->wikiId ),
+				AbstractBlock::TYPE_IP
+			];
+		} elseif ( IPUtils::isValidRange( $row->bt_address ) ) {
+			// Can't create a UserIdentity from an IP range
+			return [ IPUtils::sanitizeRange( $row->bt_address ), AbstractBlock::TYPE_RANGE ];
+		} else {
+			return [ null, null ];
+		}
 	}
 
 	/**

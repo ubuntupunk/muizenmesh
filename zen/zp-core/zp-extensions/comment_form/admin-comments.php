@@ -1,7 +1,7 @@
 <?php
 /**
  * provides the Comments tab of admin
- * @package admin
+ * @package zpcore\plugins\commentform
  */
 // force UTF-8 Ø
 
@@ -92,8 +92,7 @@ if (isset($_GET['action'])) {
 printAdminHeader('comments');
 zp_apply_filter('texteditor_config', 'comments');
 ?>
-<script type="text/javascript">
-	//<!-- <![CDATA[
+<script>
 	function confirmAction() {
 		if ($('#checkallaction').val() == 'deleteall') {
 			return confirm('<?php echo js_encode(gettext("Are you sure you want to delete the checked items?")); ?>');
@@ -101,7 +100,6 @@ zp_apply_filter('texteditor_config', 'comments');
 			return true;
 		}
 	}
-	// ]]> -->
 </script>
 <?php
 zp_apply_filter('texteditor_config', 'zenphoto');
@@ -115,7 +113,7 @@ echo "\n" . '<div id="content">';
 if ($page == "editcomment" && isset($_GET['id'])) {
 	zp_apply_filter('admin_note', 'comments', 'edit');
 	?>
-	<h1><?php echo gettext("edit comment"); ?></h1>
+	<h1><?php echo gettext("Edit comment"); ?></h1>
 	<div class="box" style="padding: 10px">
 		<?php
 		$id = sanitize_numeric($_GET['id']);
@@ -352,7 +350,7 @@ if ($page == "editcomment" && isset($_GET['id'])) {
 			?>
 				
 			<tr>
-				<th colspan="11"><?php echo gettext("Edit this comment"); ?>
+				<th colspan="11"><?php echo gettext("Edit comments"); ?>
 					<?php
 					$checkarray = array(
 									gettext('*Bulk actions*')	 => 'noaction',

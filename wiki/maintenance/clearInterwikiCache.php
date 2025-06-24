@@ -19,8 +19,6 @@
  * @ingroup Maintenance
  */
 
-use MediaWiki\MediaWikiServices;
-
 require_once __DIR__ . '/Maintenance.php';
 
 /**
@@ -36,9 +34,9 @@ class ClearInterwikiCache extends Maintenance {
 	}
 
 	public function execute() {
-		$lookup = MediaWikiServices::getInstance()->getInterwikiLookup();
+		$lookup = $this->getServiceContainer()->getInterwikiLookup();
 
-		$dbr = $this->getDB( DB_REPLICA );
+		$dbr = $this->getReplicaDB();
 		$prefixes = $dbr->newSelectQueryBuilder()
 			->select( 'iw_prefix' )
 			->from( 'interwiki' )

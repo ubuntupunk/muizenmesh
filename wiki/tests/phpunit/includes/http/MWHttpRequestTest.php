@@ -1,17 +1,13 @@
 <?php
 
 use MediaWiki\MediaWikiServices;
+use Wikimedia\Http\TelemetryHeadersInterface;
 use Wikimedia\TestingAccessWrapper;
 
 /**
- * @covers MWHttpRequest
+ * @covers \MWHttpRequest
  */
 class MWHttpRequestTest extends PHPUnit\Framework\TestCase {
-
-	public function testFactory() {
-		MWDebug::filterDeprecationForTest( '/Use of MWHttpRequest::factory /' );
-		$this->assertInstanceOf( MWHttpRequest::class, MWHttpRequest::factory( 'http://example.test' ) );
-	}
 
 	/**
 	 * Feeds URI to test a long regular expression in MWHttpRequest::isValidURI
@@ -47,7 +43,7 @@ class MWHttpRequestTest extends PHPUnit\Framework\TestCase {
 			// commented these out in order to remove @group Broken
 			// @todo are these valid tests? if so, fix MWHttpRequest::isValidURI so it can handle them
 			// [ false, 'http://!"èèè¿¿¿~~\'', 'hostname is made of any non whitespace' ],
-			// [ false, 'http://exam:ple.org/', 'hostname can not use colons!' ],
+			// [ false, 'http://exam:ple.org/', 'hostname cannot use colons!' ],
 
 			# (:[0-9]+)? - port number
 			[ true, 'http://example.org:80/' ],
@@ -83,7 +79,7 @@ class MWHttpRequestTest extends PHPUnit\Framework\TestCase {
 	/**
 	 * T29854 : MWHttpRequest::isValidURI is too lax
 	 * @dataProvider provideURI
-	 * @covers MWHttpRequest::isValidURI
+	 * @covers \MWHttpRequest::isValidURI
 	 */
 	public function testIsValidUri( $expect, $uri, $message = '' ) {
 		$this->assertSame( $expect, MWHttpRequest::isValidURI( $uri ), $message );
@@ -98,4 +94,33 @@ class MWHttpRequestTest extends PHPUnit\Framework\TestCase {
 		$this->assertSame( 'example.org', $req->reqHeaders['Host'] );
 	}
 
+	public function testItInjectsTelemetryHeaders() {
+		$telemetry = $this->createMock( TelemetryHeadersInterface::class );
+		$telemetry->expects( $this->once() )
+			->method( 'getRequestHeaders' )
+			->willReturn( [
+				'X-Request-Id' => 'request_identifier',
+				'tracestate' => 'tracestate_value',
+				'traceparent' => 'traceparent_value',
+			] );
+
+		$httpRequest = $this->getMockForAbstractClass(
+			MWHttpRequest::class,
+			[
+				'http://localhost/test',
+				[
+					'timeout' => 30,
+					'connectTimeout' => 30
+				]
+			]
+		);
+		$httpRequest->addTelemetry( $telemetry );
+
+		$accessWrapper = TestingAccessWrapper::newFromObject( $httpRequest );
+		$requestHeaders = $accessWrapper->reqHeaders;
+
+		$this->assertEquals( 'request_identifier', $requestHeaders['X-Request-Id'] );
+		$this->assertEquals( 'tracestate_value', $requestHeaders['tracestate'] );
+		$this->assertEquals( 'traceparent_value', $requestHeaders['traceparent'] );
+	}
 }

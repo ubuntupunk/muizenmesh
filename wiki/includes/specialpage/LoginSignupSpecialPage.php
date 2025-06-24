@@ -21,17 +21,36 @@
  * @ingroup SpecialPage
  */
 
+namespace MediaWiki\SpecialPage;
+
+use ErrorPageError;
+use Exception;
+use FatalError;
+use LogicException;
+use LoginHelper;
 use MediaWiki\Auth\AuthenticationRequest;
 use MediaWiki\Auth\AuthenticationResponse;
 use MediaWiki\Auth\AuthManager;
 use MediaWiki\Auth\PasswordAuthenticationRequest;
+use MediaWiki\Context\DerivativeContext;
+use MediaWiki\Context\RequestContext;
 use MediaWiki\Html\Html;
+use MediaWiki\HTMLForm\HTMLForm;
+use MediaWiki\Language\RawMessage;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Message\Message;
+use MediaWiki\Parser\Sanitizer;
 use MediaWiki\Session\SessionManager;
+use MediaWiki\Status\Status;
 use MediaWiki\StubObject\StubGlobalUser;
 use MediaWiki\Title\Title;
+use MediaWiki\User\User;
+use PermissionsError;
+use ReadOnlyError;
+use Skin;
+use StatusValue;
 use Wikimedia\ScopedCallback;
 
 /**
@@ -44,6 +63,7 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 	protected $mPosted;
 	protected $mAction;
 	protected $mLanguage;
+	protected $mVariant;
 	protected $mReturnToQuery;
 	protected $mToken;
 	protected $mStickHTTPS;
@@ -86,15 +106,6 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 	 */
 	abstract protected function logAuthResult( $success, $status = null );
 
-	public function __construct( $name, $restriction = '' ) {
-		// phpcs:ignore MediaWiki.Usage.ExtendClassUsage.FunctionConfigUsage
-		global $wgUseMediaWikiUIEverywhere;
-		parent::__construct( $name, $restriction );
-
-		// Override UseMediaWikiEverywhere to true, to force login and create form to use mw ui
-		$wgUseMediaWikiUIEverywhere = true;
-	}
-
 	protected function setRequest( array $data, $wasPosted = null ) {
 		parent::setRequest( $data, $wasPosted );
 		$this->mLoadedRequest = false;
@@ -118,6 +129,7 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 			|| ( !$this->mFromHTTP && $request->getProtocol() === 'https' )
 			|| $request->getBool( 'wpForceHttps', false );
 		$this->mLanguage = $request->getText( 'uselang' );
+		$this->mVariant = $request->getText( 'variant' );
 		$this->mReturnTo = $request->getVal( 'returnto', '' );
 		$this->mReturnToQuery = $request->getVal( 'returntoquery', '' );
 	}
@@ -161,6 +173,7 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 				'returnto' => $this->mReturnTo,
 				'returntoquery' => $this->mReturnToQuery,
 				'uselang' => $this->mLanguage ?: null,
+				'variant' => $this->mVariant ?: null,
 				'fromhttp' => $this->getConfig()->get( MainConfigNames::SecureLogin ) &&
 					$this->mFromHTTP ? '1' : null,
 			]
@@ -220,8 +233,11 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 			$time = microtime( true );
 			$profilingScope = new ScopedCallback( function () use ( $time ) {
 				$time = microtime( true ) - $time;
-				$statsd = MediaWikiServices::getInstance()->getStatsdDataFactory();
-				$statsd->timing( "timing.login.ui.{$this->authAction}", $time * 1000 );
+				$stats = MediaWikiServices::getInstance()->getStatsFactory();
+				$stats->getTiming( 'auth_specialpage_executeTiming_seconds' )
+					->setLabel( 'action', $this->authAction )
+					->copyToStatsdAt( "timing.login.ui.{$this->authAction}" )
+					->observe( $time * 1000 );
 			} );
 		}
 
@@ -445,7 +461,11 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 		$type, $title, $msgname, $injected_html, $extraMessages
 	) {
 		$out = $this->getOutput();
-		$out->setPageTitle( $title );
+		if ( is_string( $title ) ) {
+			wfDeprecated( __METHOD__ . ' with string title', '1.41' ); // T343849
+			$title = ( new RawMessage( '$1' ) )->rawParams( $title );
+		}
+		$out->setPageTitleMsg( $title );
 		if ( $msgname ) {
 			$out->addWikiMsg( $msgname, wfEscapeWikiText( $this->getUser()->getName() ) );
 		}
@@ -515,7 +535,6 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 	 * @throws ErrorPageError
 	 * @throws Exception
 	 * @throws FatalError
-	 * @throws MWException
 	 * @throws PermissionsError
 	 * @throws ReadOnlyError
 	 * @internal
@@ -535,10 +554,6 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 
 		// Generic styles and scripts for both login and signup form
 		$out->addModuleStyles( [
-			'mediawiki.ui',
-			'mediawiki.ui.button',
-			'mediawiki.ui.checkbox',
-			'mediawiki.ui.input',
 			'mediawiki.special.userlogin.common.styles'
 		] );
 		if ( $this->isSignup() ) {
@@ -559,7 +574,7 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 		}
 		$out->disallowUserJs(); // just in case...
 
-		$form = $this->getAuthForm( $requests, $this->authAction, $msg, $msgtype );
+		$form = $this->getAuthForm( $requests, $this->authAction );
 		$form->prepareForm();
 
 		$submitStatus = Status::newGood();
@@ -604,7 +619,11 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 				Html::rawElement( 'p', [], $languageLinks )
 			);
 		}
-
+		if ( $this->getUser()->isTemp() ) {
+			$noticeHtml = $this->getNoticeHtml();
+		} else {
+			$noticeHtml = '';
+		}
 		$formBlock = Html::rawElement( 'div', [ 'id' => 'userloginForm' ], $formHtml );
 		$formAndBenefits = $formBlock;
 		if ( $this->isSignup() && $this->showExtraInformation() ) {
@@ -631,6 +650,7 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 			$loginPrompt
 			. $languageLinks
 			. $signupStart
+			. $noticeHtml
 			. $formAndBenefits
 		);
 	}
@@ -644,29 +664,78 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 	 */
 	protected function getBenefitsContainerHtml(): string {
 		$benefitsContainer = '';
+		$this->getOutput()->addModuleStyles( [ 'oojs-ui.styles.icons-user' ] );
 		if ( $this->isSignup() && $this->showExtraInformation() ) {
-			// The following messages are used here:
-			// * createacct-benefit-icon1 createacct-benefit-head1 createacct-benefit-body1
-			// * createacct-benefit-icon2 createacct-benefit-head2 createacct-benefit-body2
-			// * createacct-benefit-icon3 createacct-benefit-head3 createacct-benefit-body3
-			$benefitCount = 3;
-			$benefitList = '';
-			for ( $benefitIdx = 1; $benefitIdx <= $benefitCount; $benefitIdx++ ) {
-				$headUnescaped = $this->msg( "createacct-benefit-head$benefitIdx" )->text();
-				$iconClass = $this->msg( "createacct-benefit-icon$benefitIdx" )->text();
-				$benefitList .= Html::rawElement( 'div', [ 'class' => "mw-number-text $iconClass" ],
-					Html::rawElement( 'h3', [],
-						$this->msg( "createacct-benefit-head$benefitIdx" )->escaped()
-					)
-					. Html::rawElement( 'p', [],
-						$this->msg( "createacct-benefit-body$benefitIdx" )->params( $headUnescaped )->escaped()
-					)
+			if ( !$this->getUser()->isTemp() ) {
+				// The following messages are used here:
+				// * createacct-benefit-icon1 createacct-benefit-head1 createacct-benefit-body1
+				// * createacct-benefit-icon2 createacct-benefit-head2 createacct-benefit-body2
+				// * createacct-benefit-icon3 createacct-benefit-head3 createacct-benefit-body3
+				$benefitCount = 3;
+				$benefitList = '';
+				for ( $benefitIdx = 1; $benefitIdx <= $benefitCount; $benefitIdx++ ) {
+					$headUnescaped = $this->msg( "createacct-benefit-head$benefitIdx" )->text();
+					$iconClass = $this->msg( "createacct-benefit-icon$benefitIdx" )->text();
+					$benefitList .= Html::rawElement( 'div', [ 'class' => "mw-number-text $iconClass" ],
+						Html::rawElement( 'h3', [],
+							$this->msg( "createacct-benefit-head$benefitIdx" )->escaped()
+						)
+						. Html::rawElement( 'p', [],
+							$this->msg( "createacct-benefit-body$benefitIdx" )->params( $headUnescaped )->escaped()
+						)
+					);
+				}
+				$benefitsContainer = Html::rawElement( 'div', [ 'class' => 'mw-createacct-benefits-container' ],
+					Html::rawElement( 'h2', [], $this->msg( 'createacct-benefit-heading' )->escaped() )
+					. Html::rawElement( 'div', [ 'class' => 'mw-createacct-benefits-list' ], $benefitList )
+				);
+			} else {
+				$benefitList = '';
+				$this->getOutput()->addModuleStyles(
+					[
+						'oojs-ui.styles.icons-moderation',
+						'oojs-ui.styles.icons-interactions',
+					]
+				);
+				$benefits = [
+					[
+						'icon' => 'oo-ui-icon-unStar',
+						'description' => $this->msg( "benefit-1-description" )->escaped()
+					],
+					[
+						'icon' => 'oo-ui-icon-userContributions',
+						'description' => $this->msg( "benefit-2-description" )->escaped()
+					],
+					[
+						'icon' => 'oo-ui-icon-settings',
+						'description' => $this->msg( "benefit-3-description" )->escaped()
+					]
+				];
+				foreach ( $benefits as $benefit ) {
+					$benefitContent = Html::rawElement( 'div', [ 'class' => 'mw-benefit-item' ],
+						Html::rawElement( 'span', [ 'class' => $benefit[ 'icon' ] ] )
+						. Html::rawElement( 'p', [], $benefit['description'] )
+					);
+
+					$benefitList .= Html::rawElement(
+						'div', [ 'class' => 'mw-benefit-item-wrapper' ], $benefitContent );
+				}
+
+				$benefitsListWrapper = Html::rawElement(
+					'div', [ 'class' => 'mw-benefit-list-wrapper' ], $benefitList );
+
+				$headingSubheadingWrapper = Html::rawElement( 'div', [ 'class' => 'mw-heading-subheading-wrapper' ],
+					Html::rawElement( 'h2', [], $this->msg( 'createacct-benefit-heading-temp-user' )->escaped() )
+					. Html::rawElement( 'p', [ 'class' => 'mw-benefit-subheading' ], $this->msg(
+						'createacct-benefit-subheading-temp-user' )->escaped() )
+				);
+
+				$benefitsContainer = Html::rawElement(
+					'div', [ 'class' => 'mw-createacct-benefits-container' ],
+					$headingSubheadingWrapper
+					. $benefitsListWrapper
 				);
 			}
-			$benefitsContainer = Html::rawElement( 'div', [ 'class' => 'mw-createacct-benefits-container' ],
-				Html::rawElement( 'h2', [], $this->msg( 'createacct-benefit-heading' )->escaped() )
-				. Html::rawElement( 'div', [ 'class' => 'mw-createacct-benefits-list' ], $benefitList )
-			);
 		}
 		return $benefitsContainer;
 	}
@@ -675,11 +744,9 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 	 * Generates a form from the given request.
 	 * @param AuthenticationRequest[] $requests
 	 * @param string $action AuthManager action name
-	 * @param string|Message $msg
-	 * @param string $msgType
 	 * @return HTMLForm
 	 */
-	protected function getAuthForm( array $requests, $action, $msg = '', $msgType = 'error' ) {
+	protected function getAuthForm( array $requests, $action ) {
 		// FIXME merge this with parent
 
 		if ( isset( $this->authForm ) ) {
@@ -700,11 +767,14 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 			$context = new DerivativeContext( $this->getContext() );
 			$context->setRequest( $this->getRequest() );
 		}
-		$form = HTMLForm::factory( 'vform', $formDescriptor, $context );
+		$form = HTMLForm::factory( 'codex', $formDescriptor, $context );
 
 		$form->addHiddenField( 'authAction', $this->authAction );
 		if ( $this->mLanguage ) {
 			$form->addHiddenField( 'uselang', $this->mLanguage );
+		}
+		if ( $this->mVariant ) {
+			$form->addHiddenField( 'variant', $this->mVariant );
 		}
 		$form->addHiddenField( 'force', $this->securityLevel );
 		$form->addHiddenField( $this->getTokenName(), $this->getToken()->toString() );
@@ -767,13 +837,13 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 		if ( $this->mSecureLoginUrl ) {
 			$secureLoginLink = Html::element( 'a', [
 				'href' => $this->mSecureLoginUrl,
-				'class' => 'mw-ui-flush-right mw-secure',
+				'class' => 'mw-login-flush-right mw-secure',
 			], $this->msg( 'userlogin-signwithsecure' )->text() );
 		}
 		$usernameHelpLink = '';
 		if ( !$this->msg( 'createacct-helpusername' )->isDisabled() ) {
 			$usernameHelpLink = Html::rawElement( 'span', [
-				'class' => 'mw-ui-flush-right',
+				'class' => 'mw-login-flush-right',
 			], $this->msg( 'createacct-helpusername' )->parse() );
 		}
 
@@ -870,6 +940,7 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 					'label-message' => 'createacct-realname',
 					'cssclass' => 'loginText',
 					'size' => 20,
+					'placeholder-message' => 'createacct-realname',
 					'id' => 'wpRealName',
 					'autocomplete' => 'name',
 				],
@@ -999,7 +1070,7 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 		$fieldDefinitions['username'] += [
 			'type' => 'text',
 			'name' => 'wpName',
-			'cssclass' => 'loginText',
+			'cssclass' => 'loginText mw-userlogin-username',
 			'size' => 20,
 			'autocomplete' => 'username',
 			// 'required' => true,
@@ -1008,7 +1079,7 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 			'type' => 'password',
 			// 'label-message' => 'userlogin-yourpassword', // would override the changepassword label
 			'name' => 'wpPassword',
-			'cssclass' => 'loginPassword',
+			'cssclass' => 'loginPassword mw-userlogin-password',
 			'size' => 20,
 			// 'required' => true,
 		];
@@ -1026,17 +1097,6 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 				'raw' => true,
 				'rawrow' => true,
 				'weight' => -100,
-			];
-		}
-		if ( $this->isSignup() && $this->getUser()->isTemp() ) {
-			$fieldDefinitions['tempWarning'] = [
-				'type' => 'info',
-				'default' => Html::warningBox(
-					$this->msg( 'createacct-temp-warning' )->parse()
-				),
-				'raw' => true,
-				'rawrow' => true,
-				'weight' => -90,
 			];
 		}
 		if ( !$this->showExtraInformation() ) {
@@ -1083,6 +1143,9 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 				if ( $this->mLanguage ) {
 					$linkq .= '&uselang=' . urlencode( $this->mLanguage );
 				}
+				if ( $this->mVariant ) {
+					$linkq .= '&variant=' . urlencode( $this->mVariant );
+				}
 				$isLoggedIn = $this->getUser()->isRegistered()
 					&& !$this->getUser()->isTemp();
 
@@ -1091,6 +1154,9 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 					'raw' => true,
 					'linkQuery' => $linkq,
 					'default' => function ( $params ) use ( $isLoggedIn, $linkTitle ) {
+						$buttonClasses = 'cdx-button cdx-button--action-progressive '
+							. 'cdx-button--fake-button cdx-button--fake-button--enabled';
+
 						return Html::rawElement( 'div',
 							[ 'id' => 'mw-createaccount' . ( !$isLoggedIn ? '-cta' : '' ),
 								'class' => ( $isLoggedIn ? 'mw-form-related-link-container' : 'mw-ui-vform-field' ) ],
@@ -1099,7 +1165,7 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 								[
 									'id' => 'mw-createaccount-join' . ( $isLoggedIn ? '-loggedin' : '' ),
 									'href' => $linkTitle->getLocalURL( $params['linkQuery'] ),
-									'class' => ( $isLoggedIn ? '' : 'mw-ui-button' ),
+									'class' => $isLoggedIn ? '' : $buttonClasses,
 									'tabindex' => 100,
 								],
 								$this->msg(
@@ -1127,10 +1193,8 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 	 */
 	protected function hasSessionCookie() {
 		$config = $this->getConfig();
-		return $config->get( MainConfigNames::DisableCookieCheck ) || (
-			$config->get( 'InitialSessionId' ) &&
-			$this->getRequest()->getSession()->getId() === (string)$config->get( 'InitialSessionId' )
-		);
+		return $config->get( 'InitialSessionId' ) &&
+			$this->getRequest()->getSession()->getId() === (string)$config->get( 'InitialSessionId' );
 	}
 
 	/**
@@ -1202,6 +1266,9 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 			return htmlspecialchars( $text );
 		}
 		$query = [ 'uselang' => $lang ];
+		if ( $this->mVariant ) {
+			$query['variant'] = $this->mVariant;
+		}
 		if ( $this->mReturnTo !== '' ) {
 			$query['returnto'] = $this->mReturnTo;
 			$query['returntoquery'] = $this->mReturnToQuery;
@@ -1266,4 +1333,23 @@ abstract class LoginSignupSpecialPage extends AuthManagerSpecialPage {
 
 		$this->addTabIndex( $formDescriptor );
 	}
+
+	/**
+	 * Generates the HTML for a notice box to be displayed to a temporary user.
+	 *
+	 * @return string HTML representing the notice box
+	 */
+	protected function getNoticeHtml() {
+		$noticeContent = $this->msg( 'createacct-temp-warning', $this->getUser()->getName() )->parse();
+		return Html::noticeBox(
+			$noticeContent,
+			'',
+			'',
+			'mw-userLogin-icon--user-temporary'
+		);
+	}
+
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( LoginSignupSpecialPage::class, 'LoginSignupSpecialPage' );

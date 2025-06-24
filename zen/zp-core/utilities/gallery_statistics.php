@@ -4,7 +4,7 @@
  *
  * This plugin shows statistical graphs and info about your gallery\'s images and albums
  *
- * @package admin
+ * @package zpcore\admin\utilities
  */
 define('OFFSET_PATH', 3);
 
@@ -37,7 +37,7 @@ $_zp_admin_menu['overview']['subtabs'] = array(gettext('Statistics') => FULLWEBP
 printAdminHeader('overview', 'statistics');
 
 ?>
-<link rel="stylesheet" href="../admin-statistics.css" type="text/css" media="screen" />
+<link rel="stylesheet" href="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/css/admin-statistics.css" type="text/css" media="screen" />
 <?php
 /*
  * http://php.net/manual/de/function.filesize.php
@@ -417,7 +417,7 @@ function printBarGraph($sortorder = "mostimages", $type = "albums", $from_number
 				break;
 			case "tags":
 				$editurl = $webpath . "/admin-tags.php";
-				$viewurl = WEBPATH . "/index.php?p=search&amp;searchfields=tags&amp;search=" . $item['name'];
+				$viewurl = WEBPATH . "/index.php?p=search&amp;searchfields=tags&amp;s=" . $item['name'];
 				$title = $item['name'];
 				break;
 			case "rss":

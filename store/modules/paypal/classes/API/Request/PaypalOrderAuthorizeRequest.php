@@ -1,6 +1,6 @@
 <?php
-/**
- * 2007-2023 PayPal
+/*
+ * Since 2007 PayPal
  *
  * NOTICE OF LICENSE
  *
@@ -18,21 +18,23 @@
  *  versions in the future. If you wish to customize PrestaShop for your
  *  needs please refer to http://www.prestashop.com for more information.
  *
- *  @author 2007-2023 PayPal
+ *  @author Since 2007 PayPal
  *  @author 202 ecommerce <tech@202-ecommerce.com>
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
+ *
  */
 
 namespace PaypalAddons\classes\API\Request;
 
 use Exception;
 use PaypalAddons\classes\AbstractMethodPaypal;
+use PaypalAddons\classes\API\Client\HttpClient;
+use PaypalAddons\classes\API\ExtensionSDK\Order\OrdersAuthorizeRequest;
+use PaypalAddons\classes\API\HttpAdoptedResponse;
 use PaypalAddons\classes\API\Response\Error;
 use PaypalAddons\classes\API\Response\ResponseOrderCapture;
-use PayPalCheckoutSdk\Core\PayPalHttpClient;
-use PayPalCheckoutSdk\Orders\OrdersAuthorizeRequest;
-use PayPalHttp\HttpException;
+use PaypalAddons\classes\PaypalException;
 use Throwable;
 
 if (!defined('_PS_VERSION_')) {
@@ -44,7 +46,7 @@ class PaypalOrderAuthorizeRequest extends RequestAbstract
     /** @var string */
     protected $paymentId;
 
-    public function __construct(PayPalHttpClient $client, AbstractMethodPaypal $method, $paymentId)
+    public function __construct(HttpClient $client, AbstractMethodPaypal $method, $paymentId)
     {
         parent::__construct($client, $method);
         $this->paymentId = $paymentId;
@@ -54,10 +56,13 @@ class PaypalOrderAuthorizeRequest extends RequestAbstract
     {
         $response = new ResponseOrderCapture();
         $orderAuthorize = new OrdersAuthorizeRequest($this->paymentId);
-        $orderAuthorize->headers = array_merge($this->getHeaders(), $orderAuthorize->headers);
 
         try {
             $exec = $this->client->execute($orderAuthorize);
+
+            if ($exec instanceof HttpAdoptedResponse) {
+                $exec = $exec->getAdoptedResponse();
+            }
 
             if (in_array($exec->statusCode, [200, 201, 202])) {
                 $response->setSuccess(true)
@@ -80,7 +85,7 @@ class PaypalOrderAuthorizeRequest extends RequestAbstract
                 $error->setMessage($resultDecoded->message);
                 $response->setSuccess(false)->setError($error);
             }
-        } catch (HttpException $e) {
+        } catch (PaypalException $e) {
             $error = new Error();
             $resultDecoded = json_decode($e->getMessage());
             $error->setMessage($resultDecoded->details[0]->description)->setErrorCode($e->getCode());

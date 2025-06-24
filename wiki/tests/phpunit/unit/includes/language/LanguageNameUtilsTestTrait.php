@@ -11,17 +11,15 @@ const DEFINED = LanguageNameUtils::DEFINED;
 const SUPPORTED = LanguageNameUtils::SUPPORTED;
 
 /**
- * For code shared between LanguageNameUtilsTest and LanguageTest.
- * @internal For use by LanguageNameUtilsTest and LanguageTest only.
+ * @internal For use by LanguageNameUtilsTest only.
  */
 trait LanguageNameUtilsTestTrait {
 	abstract protected function isSupportedLanguage( $code );
 
 	/**
 	 * @dataProvider provideIsSupportedLanguage
-	 * @covers MediaWiki\Languages\LanguageNameUtils::__construct
-	 * @covers MediaWiki\Languages\LanguageNameUtils::isSupportedLanguage
-	 * @covers Language::isSupportedLanguage
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::__construct
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::isSupportedLanguage
 	 */
 	public function testIsSupportedLanguage( $code, $expected ) {
 		$this->assertSame( $expected, $this->isSupportedLanguage( $code ) );
@@ -50,8 +48,7 @@ trait LanguageNameUtilsTestTrait {
 	 * Is it possible to change it usefully without breaking everything?
 	 *
 	 * @dataProvider provideIsValidCode
-	 * @covers MediaWiki\Languages\LanguageNameUtils::isValidCode
-	 * @covers Language::isValidCode
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::isValidCode
 	 *
 	 * @param string $code
 	 * @param bool $expected
@@ -91,8 +88,7 @@ trait LanguageNameUtilsTestTrait {
 
 	/**
 	 * @dataProvider provideIsValidBuiltInCode
-	 * @covers MediaWiki\Languages\LanguageNameUtils::isValidBuiltInCode
-	 * @covers Language::isValidBuiltInCode
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::isValidBuiltInCode
 	 *
 	 * @param string $code
 	 * @param bool $expected
@@ -121,8 +117,7 @@ trait LanguageNameUtilsTestTrait {
 
 	/**
 	 * @dataProvider provideIsKnownLanguageTag
-	 * @covers MediaWiki\Languages\LanguageNameUtils::isKnownLanguageTag
-	 * @covers Language::isKnownLanguageTag
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::isKnownLanguageTag
 	 *
 	 * @param string $code
 	 * @param bool $expected
@@ -159,13 +154,12 @@ trait LanguageNameUtilsTestTrait {
 
 	/**
 	 * @dataProvider provideGetLanguageNames
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageNames
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageNamesUncached
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageName
-	 * @covers Language::fetchLanguageNames
-	 * @covers Language::fetchLanguageName
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageNames
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageNamesUncached
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageName
 	 */
 	public function testGetLanguageNames( $expected, $code, ...$otherArgs ) {
+		$this->clearLanguageHook( 'LanguageGetTranslatedLanguageNames' );
 		$this->assertGetLanguageNames( [], $expected, $code, ...$otherArgs );
 	}
 
@@ -173,33 +167,34 @@ trait LanguageNameUtilsTestTrait {
 		// @todo There are probably lots of interesting tests to add here.
 		return [
 			'Simple code' => [ 'Deutsch', 'de' ],
-			'Simple code in a different language (doesn\'t work without hook)' =>
-				[ 'Deutsch', 'de', 'fr' ],
+			'Simple code in a different language' => [ 'Deutsch', 'de', 'fr' ],
 			'Invalid code' => [ '', '&' ],
 			'Pig Latin' => [ 'Igpay Atinlay', 'en-x-piglatin', AUTONYMS, ALL ],
 			'qqq doesn\'t have a name' => [ '', 'qqq', AUTONYMS, ALL ],
 			'An MW legacy tag is recognized' => [ 'žemaitėška', 'bat-smg' ],
-			// @todo Is the next test's result desired?
-			'An MW legacy tag is not supported' => [ '', 'bat-smg', AUTONYMS, SUPPORTED ],
 			'An internal standard name, for which a legacy tag is used externally, is supported' =>
 				[ 'žemaitėška', 'sgs', AUTONYMS, SUPPORTED ],
 		];
 	}
 
 	/**
-	 * Set a temporary hook, allows using DI.
+	 * Set hook for current test.
 	 * @param string $hookName
 	 * @param mixed $handler Value suitable for a hook handler
 	 */
 	abstract protected function setLanguageTemporaryHook( string $hookName, $handler ): void;
 
 	/**
+	 * Clear hook for the current test.
+	 * @param string $hookName
+	 */
+	abstract protected function clearLanguageHook( string $hookName ): void;
+
+	/**
 	 * @dataProvider provideGetLanguageNames_withHook
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageNames
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageNamesUncached
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageName
-	 * @covers Language::fetchLanguageNames
-	 * @covers Language::fetchLanguageName
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageNames
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageNamesUncached
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageName
 	 */
 	public function testGetLanguageNames_withHook( $expected, $code, ...$otherArgs ) {
 		$this->setLanguageTemporaryHook( 'LanguageGetTranslatedLanguageNames',
@@ -247,7 +242,7 @@ trait LanguageNameUtilsTestTrait {
 			'Invalid inLanguage defaults to English' => [ 'German', 'de', '&' ],
 			'If inLanguage not provided, default to autonym' => [ 'Deutsch', 'de' ],
 			'Hooks ignored for explicitly-requested autonym' => [ 'français', 'fr', 'fr' ],
-			'Hooks don\'t make a language supported' => [ '', 'bat-smg', 'en', SUPPORTED ],
+			'Hooks don\'t make a language supported' => [ '', 'es-419', 'en', SUPPORTED ],
 			'Hooks don\'t make a language defined' => [ '', 'sqsqsqsq', 'en', DEFINED ],
 			'Hooks do make a language name returned with ALL' => [ '!!?!', 'sqsqsqsq', 'en', ALL ],
 		];
@@ -255,11 +250,9 @@ trait LanguageNameUtilsTestTrait {
 
 	/**
 	 * @dataProvider provideGetLanguageNames_ExtraLanguageNames
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageNames
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageNamesUncached
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageName
-	 * @covers Language::fetchLanguageNames
-	 * @covers Language::fetchLanguageName
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageNames
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageNamesUncached
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageName
 	 */
 	public function testGetLanguageNames_ExtraLanguageNames( $expected, $code, ...$otherArgs ) {
 		$this->setLanguageTemporaryHook( 'LanguageGetTranslatedLanguageNames',
@@ -273,7 +266,7 @@ trait LanguageNameUtilsTestTrait {
 		);
 	}
 
-	public function provideGetLanguageNames_ExtraLanguageNames() {
+	public static function provideGetLanguageNames_ExtraLanguageNames() {
 		return [
 			'Simple extra language name' => [ '!!?!', 'sqsqsqsq' ],
 			'Extra language is defined' => [ '!!?!', 'sqsqsqsq', AUTONYMS, DEFINED ],
@@ -289,11 +282,9 @@ trait LanguageNameUtilsTestTrait {
 	/**
 	 * Test that getLanguageNames() defaults to DEFINED, and getLanguageName() defaults to ALL.
 	 *
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageNames
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageNamesUncached
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageName
-	 * @covers Language::fetchLanguageNames
-	 * @covers Language::fetchLanguageName
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageNames
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageNamesUncached
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageName
 	 */
 	public function testGetLanguageNames_parameterDefault() {
 		$this->setLanguageTemporaryHook( 'LanguageGetTranslatedLanguageNames',
@@ -311,9 +302,8 @@ trait LanguageNameUtilsTestTrait {
 
 	/**
 	 * @dataProvider provideGetLanguageNames_sorted
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageNames
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageNamesUncached
-	 * @covers Language::fetchLanguageNames
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageNames
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageNamesUncached
 	 */
 	public function testGetLanguageNames_sorted( ...$args ) {
 		$names = $this->getLanguageNames( ...$args );
@@ -322,7 +312,7 @@ trait LanguageNameUtilsTestTrait {
 		$this->assertSame( $sortedNames, $names );
 	}
 
-	public function provideGetLanguageNames_sorted() {
+	public static function provideGetLanguageNames_sorted() {
 		return [
 			[],
 			[ AUTONYMS ],
@@ -336,9 +326,8 @@ trait LanguageNameUtilsTestTrait {
 	}
 
 	/**
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageNames
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageNamesUncached
-	 * @covers Language::fetchLanguageNames
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageNames
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageNamesUncached
 	 */
 	public function testGetLanguageNames_hookNotCalledForAutonyms() {
 		$count = 0;
@@ -359,11 +348,9 @@ trait LanguageNameUtilsTestTrait {
 
 	/**
 	 * @dataProvider provideGetLanguageNames_pigLatin
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageNames
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageNamesUncached
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageName
-	 * @covers Language::fetchLanguageNames
-	 * @covers Language::fetchLanguageName
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageNames
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageNamesUncached
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageName
 	 */
 	public function testGetLanguageNames_pigLatin( $expected, ...$otherArgs ) {
 		$this->setLanguageTemporaryHook( 'LanguageGetTranslatedLanguageNames',
@@ -385,7 +372,7 @@ trait LanguageNameUtilsTestTrait {
 			[ MainConfigNames::UsePigLatinVariant => true ], $expected, 'en-x-piglatin', ...$otherArgs );
 	}
 
-	public function provideGetLanguageNames_pigLatin() {
+	public static function provideGetLanguageNames_pigLatin() {
 		# Pig Latin is supported only if UsePigLatinVariant is true
 		# (which it is, for these tests)
 		return [
@@ -398,11 +385,9 @@ trait LanguageNameUtilsTestTrait {
 	}
 
 	/**
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageNames
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageNamesUncached
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageName
-	 * @covers Language::fetchLanguageNames
-	 * @covers Language::fetchLanguageName
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageNames
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageNamesUncached
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageName
 	 */
 	public function testGetLanguageNames_pigLatinNotSupported() {
 		// Pig Latin is "not supported" when UsePigLatinVariant is false
@@ -418,11 +403,9 @@ trait LanguageNameUtilsTestTrait {
 	 * about this, but once we're testing the whole file we may as
 	 * well be comprehensive.
 	 *
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageNames
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageNamesUncached
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getLanguageName
-	 * @covers Language::fetchLanguageNames
-	 * @covers Language::fetchLanguageName
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageNames
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageNamesUncached
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageName
 	 */
 	public function testGetLanguageNames_pigLatinAndExtraLanguageNames() {
 		$this->assertGetLanguageNames(
@@ -435,18 +418,41 @@ trait LanguageNameUtilsTestTrait {
 		);
 	}
 
+	/**
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageNames
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageNamesUncached
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getLanguageName
+	 */
+	public function testGetLanguageNames_xss(): void {
+		// not supported if disabled
+		$this->assertGetLanguageNames(
+			[
+				MainConfigNames::UseXssLanguage => false,
+			],
+			'',
+			'x-xss'
+		);
+		// supported if enabled
+		$this->assertGetLanguageNames(
+			[
+				MainConfigNames::UseXssLanguage => true,
+			],
+			'fake xss language (see $wgUseXssLanguage)',
+			'x-xss'
+		);
+	}
+
 	abstract protected function getFileName( ...$args );
 
 	/**
 	 * @dataProvider provideGetFileName
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getFileName
-	 * @covers Language::getFileName
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getFileName
 	 */
 	public function testGetFileName( $expected, ...$args ) {
 		$this->assertSame( $expected, $this->getFileName( ...$args ) );
 	}
 
-	public function provideGetFileName() {
+	public static function provideGetFileName() {
 		return [
 			'Simple case' => [ 'MessagesXx.php', 'Messages', 'xx' ],
 			'With extension' => [ 'MessagesXx.ext', 'Messages', 'xx', '.ext' ],
@@ -460,8 +466,7 @@ trait LanguageNameUtilsTestTrait {
 
 	/**
 	 * @dataProvider provideGetMessagesFileName
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getMessagesFileName
-	 * @covers Language::getMessagesFileName
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getMessagesFileName
 	 *
 	 * @param string $code
 	 * @param string $expected
@@ -470,7 +475,7 @@ trait LanguageNameUtilsTestTrait {
 		$this->assertSame( $expected, $this->getMessagesFileName( $code ) );
 	}
 
-	public function provideGetMessagesFileName() {
+	public static function provideGetMessagesFileName() {
 		global $IP;
 		return [
 			'Simple case' => [ 'en', "$IP/languages/messages/MessagesEn.php" ],
@@ -480,8 +485,7 @@ trait LanguageNameUtilsTestTrait {
 	}
 
 	/**
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getMessagesFileName
-	 * @covers Language::getMessagesFileName
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getMessagesFileName
 	 */
 	public function testGetMessagesFileName_withHook() {
 		$called = 0;
@@ -505,8 +509,7 @@ trait LanguageNameUtilsTestTrait {
 	abstract protected function getJsonMessagesFileName( $code );
 
 	/**
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getJsonMessagesFileName
-	 * @covers Language::getJsonMessagesFileName
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getJsonMessagesFileName
 	 */
 	public function testGetJsonMessagesFileName() {
 		global $IP;
@@ -521,18 +524,15 @@ trait LanguageNameUtilsTestTrait {
 	 * invalid code. To save boilerplate, test them all in one method.
 	 *
 	 * @dataProvider provideExceptionFromInvalidCode
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getFileName
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getMessagesFileName
-	 * @covers MediaWiki\Languages\LanguageNameUtils::getJsonMessagesFileName
-	 * @covers Language::getFileName
-	 * @covers Language::getMessagesFileName
-	 * @covers Language::getJsonMessagesFileName
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getFileName
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getMessagesFileName
+	 * @covers \MediaWiki\Languages\LanguageNameUtils::getJsonMessagesFileName
 	 *
 	 * @param callable $callback Will throw when passed $code
 	 * @param string $code
 	 */
 	public function testExceptionFromInvalidCode( $callback, $code ) {
-		$this->expectException( MWException::class );
+		$this->expectException( InvalidArgumentException::class );
 		$this->expectExceptionMessage( "Invalid language code \"$code\"" );
 
 		$callback( $code );

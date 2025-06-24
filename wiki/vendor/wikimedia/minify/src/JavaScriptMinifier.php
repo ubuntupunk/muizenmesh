@@ -35,12 +35,19 @@ namespace Wikimedia\Minify;
  * So this class is meant to allow arbitrary (but syntactically correct) input, while being
  * fast enough to be used for on-the-fly minifying.
  *
- * This class was written with ECMA-262 Edition 6 in mind ("ECMAScript 6"). Parsing features
+ * This class was written with ECMA-262 7th Edition in mind ("ECMAScript 2016"). Parsing features
  * new to later editions of ECMAScript might not be supported. It's assumed that the input is
  * syntactically correct; if it's not, this class may not detect that, and may produce incorrect
  * output.
  *
- * See <https://262.ecma-international.org/6.0/>.
+ * This class has limited support for 8.0 spec ("ECMAScript 2017"), specifically, the await
+ * keyword and most kinds of async functions are implemented. Other new parsing features of ES2017
+ * are not yet supported.
+ *
+ * See also:
+ * - <https://262.ecma-international.org/8.0/>
+ * - <https://262.ecma-international.org/7.0/>
+ * - <https://262.ecma-international.org/6.0/>
  */
 class JavaScriptMinifier {
 
@@ -81,6 +88,7 @@ class JavaScriptMinifier {
 	private const IMPORT_EXPORT                 = 25;
 	private const TEMPLATE_STRING_HEAD          = 26;
 	private const TEMPLATE_STRING_TAIL          = 27;
+	private const PAREN_EXPRESSION_OP_NO_NL     = 28;
 
 	/* Token types */
 	private const TYPE_UN_OP         = 101; // unary operators
@@ -106,6 +114,8 @@ class JavaScriptMinifier {
 	private const TYPE_CLASS         = 121; // keywords: class
 	private const TYPE_LITERAL       = 122; // all literals, identifiers, unrecognised tokens, and other keywords
 	private const TYPE_SPECIAL       = 123; // For special treatment of tokens that usually mean something else
+	private const TYPE_ASYNC         = 124; // keywords: async
+	private const TYPE_AWAIT         = 125; // keywords: await
 
 	private const ACTION_GOTO = 201; // Go to another state
 	private const ACTION_PUSH = 202; // Push a state to the stack
@@ -190,6 +200,11 @@ class JavaScriptMinifier {
 		'typeof'     => self::TYPE_UN_OP,
 		'~'          => self::TYPE_UN_OP,
 		'!'          => self::TYPE_UN_OP,
+		// ECMAScript 8.0 § 14.6 AwaitExpression
+		//
+		//    await UnaryExpression
+		//
+		'await'      => self::TYPE_AWAIT,
 		// ECMAScript 6.0 § 12.2 Primary Expression, among others
 		'...'        => self::TYPE_UN_OP,
 		// ECMAScript 6.0 § 12.7 Additive Operators
@@ -201,6 +216,8 @@ class JavaScriptMinifier {
 		'*'          => self::TYPE_BIN_OP,
 		'/'          => self::TYPE_BIN_OP,
 		'%'          => self::TYPE_BIN_OP,
+		// ECMAScript 7.0 § 12.6 Exponentiation Operator
+		'**'         => self::TYPE_BIN_OP,
 		// ECMAScript 6.0 § 12.8 Bitwise Shift Operators
 		'<<'         => self::TYPE_BIN_OP,
 		'>>'         => self::TYPE_BIN_OP,
@@ -334,7 +351,7 @@ class JavaScriptMinifier {
 		//   TYPE_IF or TYPE_FUNC keyword.
 		// - PrimaryExpression (ECMAScript 6.0 § 12.2 Primary Expression)
 		// - CallExpression (ECMAScript 6.0 § 12.3 Left-Hand-Side Expressions)
-		// - Beginning or an ArrowFunction (ECMAScript 6.0 § 14.2 Arrow Function Definitions)
+		// - Beginning of an ArrowFunction (ECMAScript 6.0 § 14.2 Arrow Function Definitions)
 		'('          => self::TYPE_PAREN_OPEN,
 		')'          => self::TYPE_PAREN_CLOSE,
 
@@ -348,6 +365,11 @@ class JavaScriptMinifier {
 		// - End of any statement
 		// - EmptyStatement (ECMAScript 6.0 § 13.4 Empty Statement)
 		';'          => self::TYPE_SEMICOLON,
+
+		// ECMAScript 8.0 § 14.6 Async Function Definitions
+		// async [no LineTerminator here] function ...
+		// async [no LineTerminator here] propertyName() ...
+		'async'      => self::TYPE_ASYNC,
 	];
 
 	/**
@@ -412,6 +434,12 @@ class JavaScriptMinifier {
 			],
 			self::TYPE_LITERAL => [
 				self::ACTION_GOTO => self::EXPRESSION_OP,
+			],
+			self::TYPE_ASYNC => [
+				self::ACTION_GOTO => self::EXPRESSION_OP,
+			],
+			self::TYPE_AWAIT => [
+				self::ACTION_GOTO => self::EXPRESSION,
 			],
 		],
 		// The state after if/catch/while/for/switch/with
@@ -509,6 +537,9 @@ class JavaScriptMinifier {
 			self::TYPE_LITERAL => [
 				self::ACTION_GOTO => self::EXPRESSION_OP,
 			],
+			self::TYPE_ASYNC => [
+				self::ACTION_GOTO => self::EXPRESSION_OP,
+			],
 		],
 		// An expression immediately after return/throw/break/continue, where a newline
 		// is not allowed. This state is identical to EXPRESSION, except that semicolon
@@ -554,6 +585,12 @@ class JavaScriptMinifier {
 			self::TYPE_LITERAL => [
 				self::ACTION_GOTO => self::EXPRESSION_OP,
 			],
+			self::TYPE_ASYNC => [
+				self::ACTION_GOTO => self::EXPRESSION_OP,
+			],
+			self::TYPE_AWAIT => [
+				self::ACTION_GOTO => self::EXPRESSION,
+			],
 		],
 		// Place in an expression after an operand, where we expect an operator
 		self::EXPRESSION_OP => [
@@ -588,6 +625,10 @@ class JavaScriptMinifier {
 			],
 			self::TYPE_BRACE_CLOSE => [
 				self::ACTION_POP => true,
+			],
+			self::TYPE_FUNC => [
+				self::ACTION_PUSH => self::EXPRESSION_OP,
+				self::ACTION_GOTO => self::FUNC,
 			],
 		],
 		// State after a dot (.). Like EXPRESSION, except that many keywords behave like literals
@@ -674,6 +715,9 @@ class JavaScriptMinifier {
 				self::ACTION_GOTO => self::CLASS_DEF,
 			],
 			self::TYPE_LITERAL => [
+				self::ACTION_GOTO => self::EXPRESSION_OP,
+			],
+			self::TYPE_ASYNC => [
 				self::ACTION_GOTO => self::EXPRESSION_OP,
 			],
 		],
@@ -852,6 +896,9 @@ class JavaScriptMinifier {
 			self::TYPE_LITERAL => [
 				self::ACTION_GOTO => self::PAREN_EXPRESSION_OP,
 			],
+			self::TYPE_ASYNC => [
+				self::ACTION_GOTO => self::PAREN_EXPRESSION_OP_NO_NL,
+			],
 		],
 		// Like EXPRESSION_OP, but in parentheses, see PAREN_EXPRESSION
 		self::PAREN_EXPRESSION_OP => [
@@ -950,6 +997,42 @@ class JavaScriptMinifier {
 			],
 			self::TYPE_LITERAL => [
 				self::ACTION_GOTO => self::PAREN_EXPRESSION_OP,
+			],
+		],
+
+		// Like PAREN_EXPRESSION_OP, for the state after "async" in a PAREN_EXPRESSION,
+		// for use by the $semicolon model.
+		self::PAREN_EXPRESSION_OP_NO_NL => [
+			self::TYPE_BIN_OP => [
+				self::ACTION_GOTO => self::PAREN_EXPRESSION,
+			],
+			self::TYPE_ADD_OP => [
+				self::ACTION_GOTO => self::PAREN_EXPRESSION,
+			],
+			self::TYPE_DOT => [
+				self::ACTION_GOTO => self::PAREN_EXPRESSION_DOT,
+			],
+			self::TYPE_HOOK => [
+				self::ACTION_GOTO => self::PAREN_EXPRESSION,
+			],
+			self::TYPE_COLON => [
+				self::ACTION_GOTO => self::PAREN_EXPRESSION,
+			],
+			self::TYPE_COMMA => [
+				self::ACTION_GOTO => self::PAREN_EXPRESSION,
+			],
+			self::TYPE_SEMICOLON => [
+				self::ACTION_GOTO => self::PAREN_EXPRESSION,
+			],
+			self::TYPE_ARROW => [
+				self::ACTION_GOTO => self::PAREN_EXPRESSION_ARROWFUNC,
+			],
+			self::TYPE_PAREN_OPEN => [
+				self::ACTION_PUSH => self::PAREN_EXPRESSION_OP,
+				self::ACTION_GOTO => self::PAREN_EXPRESSION,
+			],
+			self::TYPE_PAREN_CLOSE => [
+				self::ACTION_POP => true,
 			],
 		],
 		// Expression as the value of a key in an object literal. Like EXPRESSION, except that
@@ -1151,7 +1234,8 @@ class JavaScriptMinifier {
 			self::TYPE_VAR => true,
 			self::TYPE_FUNC => true,
 			self::TYPE_CLASS => true,
-			self::TYPE_LITERAL => true
+			self::TYPE_LITERAL => true,
+			self::TYPE_ASYNC => true,
 		],
 		self::EXPRESSION_OP => [
 			self::TYPE_UN_OP => true,
@@ -1163,7 +1247,8 @@ class JavaScriptMinifier {
 			self::TYPE_VAR => true,
 			self::TYPE_FUNC => true,
 			self::TYPE_CLASS => true,
-			self::TYPE_LITERAL => true
+			self::TYPE_LITERAL => true,
+			self::TYPE_ASYNC => true,
 		],
 		self::EXPRESSION_END => [
 			self::TYPE_UN_OP => true,
@@ -1177,7 +1262,11 @@ class JavaScriptMinifier {
 			self::TYPE_VAR => true,
 			self::TYPE_FUNC => true,
 			self::TYPE_CLASS => true,
-			self::TYPE_LITERAL => true
+			self::TYPE_LITERAL => true,
+			self::TYPE_ASYNC => true,
+		],
+		self::PAREN_EXPRESSION_OP_NO_NL => [
+			self::TYPE_FUNC => true,
 		]
 	];
 
@@ -1282,6 +1371,15 @@ class JavaScriptMinifier {
 	 */
 	public static function createSourceMapState() {
 		return new JavaScriptMapperState;
+	}
+
+	/**
+	 * Create a MinifierState that doesn't actually minify
+	 *
+	 * @return IdentityMinifierState
+	 */
+	public static function createIdentityMinifier() {
+		return new IdentityMinifierState;
 	}
 
 	/**
@@ -1591,7 +1689,7 @@ class JavaScriptMinifier {
 				$lineLength++;
 			}
 
-			// self::debug( $topOfStack, $last, $lastType, $state, $ch, $token, $type, );
+			// self::debug( $topOfStack, $last, $state, $ch, $token, $type );
 
 			if ( $mapGenerator ) {
 				$mapGenerator->outputSpace( $pad );
@@ -1641,14 +1739,13 @@ class JavaScriptMinifier {
 	/**
 	 * @param null|false|int $top
 	 * @param string $last
-	 * @param int $lastType
 	 * @param int $state
 	 * @param string $ch
 	 * @param string $token
 	 * @param int $type
 	 */
 	private static function debug(
-		$top, string $last, int $lastType,
+		$top, string $last,
 		int $state, string $ch, string $token, int $type
 	) {
 		static $first = true;
@@ -1659,9 +1756,6 @@ class JavaScriptMinifier {
 			if ( $value === $top ) {
 				$top = $name;
 			}
-			if ( $value === $lastType ) {
-				$lastType = $name;
-			}
 			if ( $value === $state ) {
 				$state = $name;
 			}
@@ -1671,13 +1765,13 @@ class JavaScriptMinifier {
 		}
 
 		if ( $first ) {
-			print sprintf( "| %-29s | %-4s | %-29s | %-29s | %-2s | %-10s | %-29s\n",
-				'topOfStack', 'last', 'lastType', 'state', 'ch', 'token', 'type' );
-			print sprintf( "| %'-29s | %'-4s | %'-29s | %'-29s | %'-2s | %'-10s | %'-29s\n",
-				'', '', '', '', '', '', '' );
+			print sprintf( "| %-29s | %-4s | %-29s | %-2s | %-10s | %-29s\n",
+				'topOfStack', 'last', 'state', 'ch', 'token', 'type' );
+			print sprintf( "| %'-29s | %'-4s | %'-29s | %'-2s | %'-10s | %'-29s\n",
+				'', '', '', '', '', '' );
 			$first = false;
 		}
-		print sprintf( "| %-29s | %-4s | %-29s | %-29s | %-2s | %-10s | %-29s\n",
-			(string)$top, $last, $lastType, $state, $ch, $token, $type );
+		print sprintf( "| %-29s | %-4s | %-29s | %-2s | %-10s | %-29s\n",
+			(string)$top, $last, $state, $ch, $token, $type );
 	}
 }

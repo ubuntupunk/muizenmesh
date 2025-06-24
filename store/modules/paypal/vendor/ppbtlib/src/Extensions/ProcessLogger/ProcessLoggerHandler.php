@@ -1,26 +1,28 @@
 <?php
-/**
+/*
+ * Since 2007 PayPal
+ *
  * NOTICE OF LICENSE
  *
- * This source file is subject to a commercial license from SARL 202 ecommerce
- * Use, copy, modification or distribution of this source file without written
- * license agreement from the SARL 202 ecommerce is strictly forbidden.
- * In order to obtain a license, please contact us: tech@202-ecommerce.com
- * ...........................................................................
- * INFORMATION SUR LA LICENCE D'UTILISATION
+ * This source file is subject to the Academic Free License (AFL 3.0)
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/afl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@prestashop.com so we can send you a copy immediately.
  *
- * L'utilisation de ce fichier source est soumise a une licence commerciale
- * concedee par la societe 202 ecommerce
- * Toute utilisation, reproduction, modification ou distribution du present
- * fichier source sans contrat de licence ecrit de la part de la SARL 202 ecommerce est
- * expressement interdite.
- * Pour obtenir une licence, veuillez contacter 202-ecommerce <tech@202-ecommerce.com>
- * ...........................................................................
+ * DISCLAIMER
  *
- * @author    202-ecommerce <tech@202-ecommerce.com>
- * @copyright 202-ecommerce
- * @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
- * @version   develop
+ * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
+ *  versions in the future. If you wish to customize PrestaShop for your
+ *  needs please refer to http://www.prestashop.com for more information.
+ *
+ *  @author Since 2007 PayPal
+ *  @author 202 ecommerce <tech@202-ecommerce.com>
+ *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
+ *  @copyright PayPal
+ *
  */
 
 namespace PaypalPPBTlib\Extensions\ProcessLogger;
@@ -168,7 +170,7 @@ class ProcessLoggerHandler
     {
         $result = true;
         if (false === empty(self::$logs) && self::getSkippingHooksResult()) {
-            
+
             Hook::exec(
                     'actionProcessLoggerSave',
                     array(
@@ -185,7 +187,7 @@ class ProcessLoggerHandler
                     null,
                     true
             );
-            
+
             $result = Db::getInstance()->insert(
                 'paypal_processlogger',
                 self::$logs
@@ -238,16 +240,16 @@ class ProcessLoggerHandler
 
         return (int)$numberOfDays;
     }
-    
+
     /**
      * Executes the hooks used to skip a ProcessLogger save. This will return
      * false if any module hooked to either 'actionSkipProcessLoggerSave' or
      * 'actionSkipPaypalProcessLoggerSave' returns false (weak comparison)
-     * 
+     *
      * @return bool
      */
     protected static function getSkippingHooksResult() {
-        
+
         if (Hook::getIdByName('actionSkipProcessLoggerSave')) {
             $hookProcessLoggerReturnArray = Hook::exec(
                     'actionSkipProcessLoggerSave',
@@ -261,7 +263,7 @@ class ProcessLoggerHandler
             if (!is_array($hookProcessLoggerReturnArray)) {
                 return false;
             }
-            
+
             if (!empty($hookProcessLoggerReturnArray)) {
                 $hookReturn = array_reduce($hookProcessLoggerReturnArray, function($and, $hookReturn) {
                     return $and && (bool)$hookReturn;
@@ -271,7 +273,7 @@ class ProcessLoggerHandler
                 }
             }
         }
-        
+
         if (Hook::getIdByName('actionSkipPaypalProcessLoggerSave')) {
             $hookModuleProcessLoggerReturnArray = Hook::exec(
                     'actionSkipPaypalProcessLoggerSave',
@@ -285,7 +287,7 @@ class ProcessLoggerHandler
             if (!is_array($hookModuleProcessLoggerReturnArray)) {
                 return false;
             }
-            
+
             if (!empty($hookModuleProcessLoggerReturnArray)) {
                 $hookReturn = array_reduce($hookModuleProcessLoggerReturnArray, function($and, $hookReturn) {
                     return $and && (bool)$hookReturn;
@@ -295,7 +297,7 @@ class ProcessLoggerHandler
                 }
             }
         }
-        
+
         return true;
     }
 }

@@ -19,8 +19,7 @@
  * Note: This is a persistable model that does not save automatically. You MUST
  * call $this->save(); explicitly to persist the data in child classes. 
  * 
- * @package core
- * @subpackage classes\objects
+ * @package zpcore\classes\objects
  */
 class PersistentObject {
 
@@ -38,7 +37,7 @@ class PersistentObject {
 
 	/**
 	 *
-	 * @deprecated Zenphoto 1.6 - Unser instantiate() instead
+	 * @deprecated 1.6 - Unser instantiate() instead
 	 * @since 1.4.6
 	 */
 	function __construct($tablename, $unique_set, $cache_by = NULL, $use_cache = true, $is_transient = false, $allowCreate = true) {
@@ -114,8 +113,8 @@ class PersistentObject {
 	 * Note: You normally never need to use this. But on certain occasions it may be necessary
 	 * to avoid memory issues if you loop through a lot of object creations.
 	 * 
-	 * @since ZenphotoCMS 1.5.8
-	 * @since ZenphotoCMS 1.6: Method was made static
+	 * @since 1.5.8
+	 * @since 1.6: Method was made static
 	 * 
 	 * @global array $_zp_object_cache
 	 * @param string|object $classe A classname or object to clear the cache for specifially (optional, default null for full cache clearing)
@@ -135,7 +134,7 @@ class PersistentObject {
 	/**
 	 * Shortcut to clear the cache of the current object class only
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 */
 	function clearObjectCache() {
 		$this->clearCache($this);
@@ -463,7 +462,7 @@ class PersistentObject {
 	/**
 	 * Returns the last change user
 	 *
-	 * @since ZenphotoCMS 1.5.2
+	 * @since 1.5.2
 	 * @return string
 	 */
 	function getLastChangeUser() {
@@ -473,7 +472,7 @@ class PersistentObject {
 	/**
 	 * stores the last change user
 	 * 
-	 * @since ZenphotoCMS 1.5.2
+	 * @since 1.5.2
 	 */
 	function setLastchangeUser($a) {
 		$this->set("lastchangeuser", $a);
@@ -492,7 +491,7 @@ class PersistentObject {
 	 * 
 	 * @param bool $update True (default) to also update the $updates property with changes found or clear it. False to only check for changes.
 	 * 
-	 * @since ZenphotoCMS 1.5.2
+	 * @since 1.5.2
 	 * 
 	 * @return boolean
 	 */

@@ -1,3 +1,5 @@
+'use strict';
+
 /*!
  * VisualEditor UserInterface MWReferenceGroupInput class.
  *
@@ -8,20 +10,19 @@
 /**
  * Creates an ve.ui.MWReferenceGroupInput object.
  *
- * @class
- * @extends OO.ui.ComboBoxInputWidget
- *
  * @constructor
- * @param {Object} [config] Configuration options
+ * @extends OO.ui.ComboBoxInputWidget
+ * @param {Object} config Configuration options
  * @cfg {string} emptyGroupName Label of the placeholder item
  */
 ve.ui.MWReferenceGroupInputWidget = function VeUiMWReferenceGroupInputWidget( config ) {
-	config = config || {};
-
 	this.emptyGroupName = config.emptyGroupName;
 
 	// Parent constructor
-	ve.ui.MWReferenceGroupInputWidget.super.call( this, ve.extendObject( { placeholder: config.emptyGroupName }, config ) );
+	ve.ui.MWReferenceGroupInputWidget.super.call(
+		this,
+		ve.extendObject( { placeholder: config.emptyGroupName }, config )
+	);
 
 	this.$element.addClass( 've-ui-mwReferenceGroupInputWidget' );
 };
@@ -38,26 +39,15 @@ OO.inheritClass( ve.ui.MWReferenceGroupInputWidget, OO.ui.ComboBoxInputWidget );
  * @param {ve.dm.InternalList} internalList Internal list with which to populate the menu
  */
 ve.ui.MWReferenceGroupInputWidget.prototype.populateMenu = function ( internalList ) {
-	var placeholderGroupItem = new OO.ui.MenuOptionWidget( {
+	const items = [ new OO.ui.MenuOptionWidget( {
 		data: '',
-		label: this.emptyGroupName,
-		flags: 'emptyGroupPlaceholder'
-	} );
-	this.menu.clearItems();
-	this.menu.addItems( [ placeholderGroupItem ].concat(
-		Object.keys( internalList.getNodeGroups() ).map(
-			function ( groupInternalName ) {
-				if ( groupInternalName.indexOf( 'mwReference/' ) === 0 ) {
-					var groupName = groupInternalName.slice( 'mwReference/'.length );
-					if ( groupName ) {
-						return new OO.ui.MenuOptionWidget( { data: groupName, label: groupName } );
-					}
-				}
-				return null;
-			}
-		).filter( function ( item ) {
-			return item;
-		} )
-	), 0 );
-	this.menu.toggle( false );
+		label: this.emptyGroupName
+	} ) ];
+	for ( const groupName in internalList.getNodeGroups() ) {
+		const match = groupName.match( /^mwReference\/(.+)/ );
+		if ( match ) {
+			items.push( new OO.ui.MenuOptionWidget( { data: match[ 1 ], label: match[ 1 ] } ) );
+		}
+	}
+	this.menu.clearItems().addItems( items ).toggle( false );
 };

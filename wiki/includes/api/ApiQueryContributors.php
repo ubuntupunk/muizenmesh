@@ -28,6 +28,7 @@ use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\Revision\RevisionStore;
 use MediaWiki\Title\Title;
 use MediaWiki\User\ActorMigration;
+use MediaWiki\User\TempUser\TempUserConfig;
 use MediaWiki\User\UserGroupManager;
 use Wikimedia\ParamValidator\ParamValidator;
 use Wikimedia\ParamValidator\TypeDef\IntegerDef;
@@ -45,17 +46,11 @@ class ApiQueryContributors extends ApiQueryBase {
 	 */
 	private const MAX_PAGES = 100;
 
-	/** @var RevisionStore */
-	private $revisionStore;
-
-	/** @var ActorMigration */
-	private $actorMigration;
-
-	/** @var UserGroupManager */
-	private $userGroupManager;
-
-	/** @var GroupPermissionsLookup */
-	private $groupPermissionsLookup;
+	private RevisionStore $revisionStore;
+	private ActorMigration $actorMigration;
+	private UserGroupManager $userGroupManager;
+	private GroupPermissionsLookup $groupPermissionsLookup;
+	private TempUserConfig $tempUserConfig;
 
 	/**
 	 * @param ApiQuery $query
@@ -64,6 +59,7 @@ class ApiQueryContributors extends ApiQueryBase {
 	 * @param ActorMigration $actorMigration
 	 * @param UserGroupManager $userGroupManager
 	 * @param GroupPermissionsLookup $groupPermissionsLookup
+	 * @param TempUserConfig $tempUserConfig
 	 */
 	public function __construct(
 		ApiQuery $query,
@@ -71,7 +67,8 @@ class ApiQueryContributors extends ApiQueryBase {
 		RevisionStore $revisionStore,
 		ActorMigration $actorMigration,
 		UserGroupManager $userGroupManager,
-		GroupPermissionsLookup $groupPermissionsLookup
+		GroupPermissionsLookup $groupPermissionsLookup,
+		TempUserConfig $tempUserConfig
 	) {
 		// "pc" is short for "page contributors", "co" was already taken by the
 		// GeoData extension's prop=coordinates.
@@ -80,6 +77,7 @@ class ApiQueryContributors extends ApiQueryBase {
 		$this->actorMigration = $actorMigration;
 		$this->userGroupManager = $userGroupManager;
 		$this->groupPermissionsLookup = $groupPermissionsLookup;
+		$this->tempUserConfig = $tempUserConfig;
 	}
 
 	public function execute() {
@@ -126,7 +124,7 @@ class ApiQueryContributors extends ApiQueryBase {
 		] );
 		$this->addWhereFld( $pageField, $pages );
 		$this->addWhere( $this->actorMigration->isAnon( $revQuery['fields']['rev_user'] ) );
-		$this->addWhere( $db->bitAnd( 'rev_deleted', RevisionRecord::DELETED_USER ) . ' = 0' );
+		$this->addWhere( [ $db->bitAnd( 'rev_deleted', RevisionRecord::DELETED_USER ) => 0 ] );
 		$this->addOption( 'GROUP BY', $pageField );
 		$res = $this->select( __METHOD__ );
 		foreach ( $res as $row ) {
@@ -158,7 +156,7 @@ class ApiQueryContributors extends ApiQueryBase {
 		] );
 		$this->addWhereFld( $pageField, $pages );
 		$this->addWhere( $this->actorMigration->isNotAnon( $revQuery['fields']['rev_user'] ) );
-		$this->addWhere( $db->bitAnd( 'rev_deleted', RevisionRecord::DELETED_USER ) . ' = 0' );
+		$this->addWhere( [ $db->bitAnd( 'rev_deleted', RevisionRecord::DELETED_USER ) => 0 ] );
 		$this->addOption( 'GROUP BY', [ $pageField, $idField ] );
 		$this->addOption( 'LIMIT', $params['limit'] + 1 );
 
@@ -211,12 +209,12 @@ class ApiQueryContributors extends ApiQueryBase {
 				[
 					'ug_user=' . $revQuery['fields']['rev_user'],
 					'ug_group' => $limitGroups,
-					'ug_expiry IS NULL OR ug_expiry >= ' . $db->addQuotes( $db->timestamp() )
+					$db->expr( 'ug_expiry', '=', null )->or( 'ug_expiry', '>=', $db->timestamp() )
 				]
 			] ] );
 			// @phan-suppress-next-next-line PhanTypeMismatchArgumentNullable,PhanPossiblyUndeclaredVariable
 			// excludeGroups declared when limitGroups set
-			$this->addWhereIf( 'ug_user IS NULL', $excludeGroups );
+			$this->addWhereIf( [ 'ug_user' => null ], $excludeGroups );
 		}
 
 		if ( $params['continue'] !== null ) {
@@ -306,5 +304,12 @@ class ApiQueryContributors extends ApiQueryBase {
 
 	public function getHelpUrls() {
 		return 'https://www.mediawiki.org/wiki/Special:MyLanguage/API:Contributors';
+	}
+
+	protected function getSummaryMessage() {
+		if ( $this->tempUserConfig->isEnabled() ) {
+			return 'apihelp-query+contributors-summary-tempusers-enabled';
+		}
+		return parent::getSummaryMessage();
 	}
 }

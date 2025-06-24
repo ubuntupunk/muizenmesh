@@ -2,15 +2,15 @@
 
 namespace MediaWiki\Tests\Rest\Handler;
 
-use DeferredUpdates;
 use Exception;
 use HashBagOStuff;
 use MediaWiki\Config\ServiceOptions;
-use MediaWiki\Json\JsonCodec;
+use MediaWiki\Deferred\DeferredUpdates;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MainConfigSchema;
-use MediaWiki\Parser\ParserCacheFactory;
 use MediaWiki\Parser\Parsoid\ParsoidOutputAccess;
+use MediaWiki\Parser\Parsoid\ParsoidParser;
+use MediaWiki\Parser\Parsoid\ParsoidParserFactory;
 use MediaWiki\Rest\Handler\Helper\HtmlOutputRendererHelper;
 use MediaWiki\Rest\Handler\Helper\PageRestHelperFactory;
 use MediaWiki\Rest\Handler\Helper\RevisionContentHelper;
@@ -18,12 +18,10 @@ use MediaWiki\Rest\Handler\RevisionHTMLHandler;
 use MediaWiki\Rest\LocalizedHttpException;
 use MediaWiki\Rest\RequestData;
 use MediaWiki\Revision\RevisionRecord;
+use MediaWiki\Utils\MWTimestamp;
 use MediaWikiIntegrationTestCase;
-use MWTimestamp;
-use NullStatsdDataFactory;
 use Psr\Http\Message\StreamInterface;
-use Psr\Log\NullLogger;
-use WANObjectCache;
+use ReflectionClass;
 use Wikimedia\Message\MessageValue;
 use Wikimedia\Parsoid\Core\ClientError;
 use Wikimedia\Parsoid\Core\ResourceLimitExceededException;
@@ -50,42 +48,14 @@ class RevisionHTMLHandlerTest extends MediaWikiIntegrationTestCase {
 	protected function setUp(): void {
 		parent::setUp();
 
-		// Clean up these tables after each test
-		$this->tablesUsed = [
-			'page',
-			'revision',
-			'comment',
-			'text',
-			'content'
-		];
-
 		$this->parserCacheBagOStuff = new HashBagOStuff();
 	}
 
 	/**
-	 * @param ?Parsoid $parsoid
-	 *
 	 * @return RevisionHTMLHandler
 	 */
-	private function newHandler( ?Parsoid $parsoid = null ): RevisionHTMLHandler {
-		$parserCacheFactoryOptions = new ServiceOptions( ParserCacheFactory::CONSTRUCTOR_OPTIONS, [
-			'CacheEpoch' => '20200202112233',
-			'OldRevisionParserCacheExpireTime' => 60 * 60,
-		] );
-
+	private function newHandler(): RevisionHTMLHandler {
 		$services = $this->getServiceContainer();
-		$parserCacheFactory = new ParserCacheFactory(
-			$this->parserCacheBagOStuff,
-			new WANObjectCache( [ 'cache' => $this->parserCacheBagOStuff, ] ),
-			$this->createHookContainer(),
-			new JsonCodec(),
-			new NullStatsdDataFactory(),
-			new NullLogger(),
-			$parserCacheFactoryOptions,
-			$services->getTitleFactory(),
-			$services->getWikiPageFactory()
-		);
-
 		$config = [
 			'RightsUrl' => 'https://example.com/rights',
 			'RightsText' => 'some rights',
@@ -94,22 +64,11 @@ class RevisionHTMLHandlerTest extends MediaWikiIntegrationTestCase {
 		];
 
 		$parsoidOutputAccess = new ParsoidOutputAccess(
-			new ServiceOptions(
-				ParsoidOutputAccess::CONSTRUCTOR_OPTIONS,
-				$services->getMainConfig(),
-				[ 'ParsoidWikiID' => 'MyWiki' ]
-			),
-			$parserCacheFactory,
+			$services->getParsoidParserFactory(),
+			$services->getParserOutputAccess(),
 			$services->getPageStore(),
 			$services->getRevisionLookup(),
-			$services->getGlobalIdGenerator(),
-			$services->getStatsdDataFactory(),
-			$parsoid ?? new Parsoid(
-			$services->get( 'ParsoidSiteConfig' ),
-			$services->get( 'ParsoidDataAccess' )
-		),
 			$services->getParsoidSiteConfig(),
-			$services->getParsoidPageConfigFactory(),
 			$services->getContentHandlerFactory()
 		);
 
@@ -156,10 +115,8 @@ class RevisionHTMLHandlerTest extends MediaWikiIntegrationTestCase {
 	}
 
 	public function testExecuteWithHtml() {
-		$this->markTestSkippedIfExtensionNotLoaded( 'Parsoid' );
 		[ $page, $revisions ] = $this->getExistingPageWithRevisions( __METHOD__ );
-		$this->assertTrue(
-			$this->editPage( $page, self::WIKITEXT )->isGood(),
+		$this->assertStatusGood( $this->editPage( $page, self::WIKITEXT ),
 			'Edited a page'
 		);
 
@@ -179,10 +136,8 @@ class RevisionHTMLHandlerTest extends MediaWikiIntegrationTestCase {
 	}
 
 	public function testExecuteHtmlOnly() {
-		$this->markTestSkippedIfExtensionNotLoaded( 'Parsoid' );
 		[ $page, $revisions ] = $this->getExistingPageWithRevisions( __METHOD__ );
-		$this->assertTrue(
-			$this->editPage( $page, self::WIKITEXT )->isGood(),
+		$this->assertStatusGood( $this->editPage( $page, self::WIKITEXT ),
 			'Edited a page'
 		);
 
@@ -202,8 +157,6 @@ class RevisionHTMLHandlerTest extends MediaWikiIntegrationTestCase {
 	}
 
 	public function testEtagLastModified() {
-		$this->markTestSkippedIfExtensionNotLoaded( 'Parsoid' );
-
 		$time = time();
 		MWTimestamp::setFakeTime( $time );
 
@@ -257,7 +210,7 @@ class RevisionHTMLHandlerTest extends MediaWikiIntegrationTestCase {
 			$response->getHeaderLine( 'Last-Modified' ) );
 	}
 
-	public function provideHandlesParsoidError() {
+	public static function provideHandlesParsoidError() {
 		yield 'ClientError' => [
 			new ClientError( 'TEST_TEST' ),
 			new LocalizedHttpException(
@@ -287,19 +240,43 @@ class RevisionHTMLHandlerTest extends MediaWikiIntegrationTestCase {
 		Exception $parsoidException,
 		Exception $expectedException
 	) {
-		$this->markTestSkippedIfExtensionNotLoaded( 'Parsoid' );
-
 		[ $page, $revisions ] = $this->getExistingPageWithRevisions( __METHOD__ );
 		$request = new RequestData(
 			[ 'pathParams' => [ 'id' => $revisions['first']->getId() ] ]
 		);
 
-		$parsoid = $this->createNoOpMock( Parsoid::class, [ 'wikitext2html' ] );
-		$parsoid->expects( $this->once() )
+		$services = $this->getServiceContainer();
+		$parsoidParser = $services->getParsoidParserFactory()->create();
+
+		// Mock Parsoid
+		$mockParsoid = $this->createNoOpMock( Parsoid::class, [ 'wikitext2html' ] );
+		$mockParsoid->expects( $this->once() )
 			->method( 'wikitext2html' )
 			->willThrowException( $parsoidException );
 
-		$handler = $this->newHandler( $parsoid );
+		// Install it in the ParsoidParser object
+		$reflector = new ReflectionClass( ParsoidParser::class );
+		$prop = $reflector->getProperty( 'parsoid' );
+		$prop->setAccessible( true );
+		$prop->setValue( $parsoidParser, $mockParsoid );
+		$this->assertEquals( $prop->getValue( $parsoidParser ), $mockParsoid );
+
+		// Create a mock Parsoid factory that returns the ParsoidParser object
+		// with the mocked Parsoid object.
+		$mockParsoidParserFactory = $this->createNoOpMock( ParsoidParserFactory::class, [ 'create' ] );
+		$mockParsoidParserFactory->expects( $this->once() )
+			->method( 'create' )
+			->willReturn( $parsoidParser );
+
+		// Ensure WiktiextContentHandler has the mock ParsoidParserFactory
+		$wtHandler = $services->getContentHandlerFactory()->getContentHandler( 'wikitext' );
+		$reflector = new ReflectionClass( 'WikitextContentHandler' );
+		$prop = $reflector->getProperty( 'parsoidParserFactory' );
+		$prop->setAccessible( true );
+		$prop->setValue( $wtHandler, $mockParsoidParserFactory );
+		$this->assertEquals( $prop->getValue( $wtHandler ), $mockParsoidParserFactory );
+
+		$handler = $this->newHandler();
 		$this->expectExceptionObject( $expectedException );
 		$this->executeHandler( $handler, $request, [
 			'format' => 'html'
@@ -370,8 +347,8 @@ class RevisionHTMLHandlerTest extends MediaWikiIntegrationTestCase {
 	 * Request Two:
 	 *   This request then uses the request header ETag which is the same as that in
 	 *   the cached stashed key container because during the second request, no stashing
-	 *   was done and the page revision is the same so what is the in output response headers
-	 *   in the user's browser will be exactly what's in the parsoid output stash.
+	 *   was done and the page revision is the same. So what is in the output response headers
+	 *   in the user's browser will be exactly what is in the parsoid output stash.
 	 *
 	 * NOTE: if we make another request which actually stashes, that cached stash key will
 	 *   be updated, and we can use it to access the stash's latest entry.
@@ -390,10 +367,13 @@ class RevisionHTMLHandlerTest extends MediaWikiIntegrationTestCase {
 			$revisions['first']->getId(),
 			[ 'stash' => false ]
 		);
-		$this->assertNotNull( $outputStash->get( $stashKey1 ) );
-		$this->assertNotNull( $outputStash->get( $stashKey2 ) );
 
+		// The etags should be different, but the stash key should be identicl
 		$this->assertNotSame( $etag1, $etag2 );
+		$this->assertSame( $stashKey1->getKey(), $stashKey2->getKey() );
+
+		// Ensure nothing has changed with the output stash
+		$this->assertNotNull( $outputStash->get( $stashKey1 ) );
 
 		// Make sure the output for stashed and unstashed doesn't have the same tag,
 		// since it will actually be different!
@@ -427,11 +407,12 @@ class RevisionHTMLHandlerTest extends MediaWikiIntegrationTestCase {
 
 		$page = $this->getExistingTestPage();
 
-		$this->executeRevisionHTMLRequest( $page->getLatest(), [ 'stash' => true ] );
+		$authority = $this->getAuthority();
+		$this->executeRevisionHTMLRequest( $page->getLatest(), [ 'stash' => true ], [], $authority );
 		// In this request, the rate limit has been exceeded, so it should throw.
 		$this->expectException( LocalizedHttpException::class );
 		$this->expectExceptionCode( 429 );
-		$this->executeRevisionHTMLRequest( $page->getLatest(), [ 'stash' => true ] );
+		$this->executeRevisionHTMLRequest( $page->getLatest(), [ 'stash' => true ], [], $authority );
 	}
 
 	/**
@@ -443,8 +424,7 @@ class RevisionHTMLHandlerTest extends MediaWikiIntegrationTestCase {
 		string $expectedContentLanguage,
 		string $expectedVaryHeader
 	) {
-		$this->markTestSkippedIfExtensionNotLoaded( 'Parsoid' );
-
+		$this->overrideConfigValue( MainConfigNames::UsePigLatinVariant, true );
 		$page = $this->getNonexistingTestPage( __METHOD__ );
 		$this->editPage( $page, '<p>test language conversion</p>', 'Edited a page' );
 		$revRecord = $page->getRevisionRecord();
@@ -479,7 +459,7 @@ class RevisionHTMLHandlerTest extends MediaWikiIntegrationTestCase {
 		$this->assertStringContainsString( $acceptLanguage, $response->getHeaderLine( 'ETag' ) );
 	}
 
-	public function provideExecuteWithVariant() {
+	public static function provideExecuteWithVariant() {
 		yield 'with_html request should contain accept language but not content language' => [
 			'with_html',
 			static function ( StreamInterface $response ) {

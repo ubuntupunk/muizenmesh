@@ -134,23 +134,6 @@ class TransactionProfiler implements LoggerAwareInterface, StatsdAwareInterface 
 	}
 
 	/**
-	 * @param bool $value
-	 * @return bool Old value
-	 * @since 1.28
-	 * @deprecated Since 1.40
-	 */
-	public function setSilenced( bool $value ) {
-		wfDeprecated( __METHOD__, '1.40' );
-
-		$delta = $value ? 1 : -1;
-		foreach ( self::EVENT_NAMES as $event ) {
-			$this->silenced[$event] += $delta;
-		}
-
-		return false;
-	}
-
-	/**
 	 * Temporarily ignore expectations until the returned object goes out of scope
 	 *
 	 * During this time, violation of expectations will not be logged and counters
@@ -315,7 +298,7 @@ class TransactionProfiler implements LoggerAwareInterface, StatsdAwareInterface 
 	 *
 	 * This assumes that all queries are synchronous (non-overlapping)
 	 *
-	 * @param string|GeneralizedSql $query Function name or generalized SQL
+	 * @param string|GeneralizedSql|Query $query Function name or generalized SQL
 	 * @param float $sTime Starting UNIX wall time
 	 * @param bool $isWrite Whether this is a write query
 	 * @param int|null $rowCount Number of affected/read rows
@@ -454,9 +437,9 @@ class TransactionProfiler implements LoggerAwareInterface, StatsdAwareInterface 
 				$trace .= sprintf(
 					"%-2d %.3fs %s\n", $i, ( $end - $sTime ), $this->getGeneralizedSql( $query ) );
 			}
-			$this->logger->warning( "Sub-optimal transaction [{dbs}]:\n{trace}", [
+			$this->logger->warning( "Suboptimal transaction [{dbs}]:\n{trace}", [
 				'dbs' => implode( ', ', array_keys( $this->dbTrxHoldingLocks[$name]['conns'] ) ),
-				'trace' => $trace
+				'trace' => mb_substr( $trace, 0, 2000 )
 			] );
 		}
 		unset( $this->dbTrxHoldingLocks[$name] );
@@ -503,7 +486,7 @@ class TransactionProfiler implements LoggerAwareInterface, StatsdAwareInterface 
 
 	/**
 	 * @param string $event
-	 * @param string|GeneralizedSql $query
+	 * @param string|GeneralizedSql|Query $query
 	 * @param float|int $actual
 	 * @param string|null $trxId Transaction id
 	 * @param string|null $serverName db host name like db1234
@@ -533,6 +516,7 @@ class TransactionProfiler implements LoggerAwareInterface, StatsdAwareInterface 
 		$this->logger->warning(
 			$message,
 			[
+				'db_log_category' => 'performance',
 				'measure' => $event,
 				'maxSeconds' => $max,
 				'by' => $by,
@@ -540,25 +524,32 @@ class TransactionProfiler implements LoggerAwareInterface, StatsdAwareInterface 
 				'query' => $this->getGeneralizedSql( $query ),
 				'exception' => new RuntimeException(),
 				'trxId' => $trxId,
-				'fullQuery' => $this->getRawSql( $query ),
+				// Avoid truncated JSON in Logstash (T349140)
+				'fullQuery' => mb_substr( $this->getRawSql( $query ), 0, 2000 ),
 				'dbHost' => $serverName
 			]
 		);
 	}
 
 	/**
-	 * @param GeneralizedSql|string $query
+	 * @param GeneralizedSql|string|Query $query
 	 * @return string
 	 */
 	private function getGeneralizedSql( $query ) {
+		if ( $query instanceof Query ) {
+			return $query->getCleanedSql();
+		}
 		return $query instanceof GeneralizedSql ? $query->stringify() : $query;
 	}
 
 	/**
-	 * @param GeneralizedSql|string $query
+	 * @param GeneralizedSql|string|Query $query
 	 * @return string
 	 */
 	private function getRawSql( $query ) {
+		if ( $query instanceof Query ) {
+			return $query->getSQL();
+		}
 		return $query instanceof GeneralizedSql ? $query->getRawSql() : $query;
 	}
 

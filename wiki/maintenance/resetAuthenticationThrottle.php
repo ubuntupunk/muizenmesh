@@ -24,7 +24,6 @@
 use MediaWiki\Auth\Throttler;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MainConfigNames;
-use MediaWiki\MediaWikiServices;
 use Wikimedia\IPUtils;
 
 require_once __DIR__ . '/Maintenance.php';
@@ -41,11 +40,12 @@ class ResetAuthenticationThrottle extends Maintenance {
 		parent::__construct();
 		$this->addDescription( 'Reset login/signup throttling for a specified user and/or IP. '
 			. "\n\n"
-			. 'When resetting signup only, provide the IP. When resetting login (or both), provide '
+			. 'When resetting signup or temp account, provide the IP. When resetting login (or both), provide '
 			. 'both username (as entered in login screen) and IP. An easy way to obtain them is '
 			. "the 'throttler' log channel." );
 		$this->addOption( 'login', 'Reset login throttle' );
 		$this->addOption( 'signup', 'Reset account creation throttle' );
+		$this->addOption( 'tempaccount', 'Reset temp account creation throttle' );
 		$this->addOption( 'user', 'Username to reset', false, true );
 		$this->addOption( 'ip', 'IP to reset', false, true );
 	}
@@ -53,15 +53,18 @@ class ResetAuthenticationThrottle extends Maintenance {
 	public function execute() {
 		$forLogin = (bool)$this->getOption( 'login' );
 		$forSignup = (bool)$this->getOption( 'signup' );
+		$forTempAccount = (bool)$this->getOption( 'tempaccount' );
 		$username = $this->getOption( 'user' );
 		$ip = $this->getOption( 'ip' );
 
-		if ( !$forLogin && !$forSignup ) {
-			$this->fatalError( 'At least one of --login and --signup is required!' );
+		if ( !$forLogin && !$forSignup && !$forTempAccount ) {
+			$this->fatalError( 'At least one of --login, --signup or --tempaccount is required!' );
 		} elseif ( $forLogin && ( $ip === null || $username === null ) ) {
 			$this->fatalError( '--user and --ip are both required when using --login!' );
 		} elseif ( $forSignup && $ip === null ) {
 			$this->fatalError( '--ip is required when using --signup!' );
+		} elseif ( $forTempAccount && $ip === null ) {
+			$this->fatalError( '--ip is required when using --tempaccount!' );
 		} elseif ( $ip !== null && !IPUtils::isValid( $ip ) ) {
 			$this->fatalError( "Not a valid IP: $ip" );
 		}
@@ -72,11 +75,15 @@ class ResetAuthenticationThrottle extends Maintenance {
 		if ( $forSignup ) {
 			$this->clearSignupThrottle( $ip );
 		}
+		if ( $forTempAccount ) {
+			$this->clearTempAccountCreationThrottle( $ip );
+		}
 
 		LoggerFactory::getInstance( 'throttler' )->info( 'Manually cleared {type} throttle', [
 			'type' => implode( ' and ', array_filter( [
 				$forLogin ? 'login' : null,
 				$forSignup ? 'signup' : null,
+				$forTempAccount ? 'tempaccount' : null,
 			] ) ),
 			'username' => $username,
 			'ipKey' => $ip,
@@ -101,7 +108,7 @@ class ResetAuthenticationThrottle extends Maintenance {
 			'cache' => ObjectCache::getLocalClusterInstance(),
 		] );
 		if ( $rawUsername !== null ) {
-			$usernames = MediaWikiServices::getInstance()->getAuthManager()
+			$usernames = $this->getServiceContainer()->getAuthManager()
 				->normalizeUsername( $rawUsername );
 			if ( !$usernames ) {
 				$this->fatalError( "Not a valid username: $rawUsername" );
@@ -142,6 +149,24 @@ class ResetAuthenticationThrottle extends Maintenance {
 		}
 		$throttler = new Throttler( $accountCreationThrottle, [
 			'type' => 'acctcreate',
+			'cache' => ObjectCache::getLocalClusterInstance(),
+		] );
+
+		$throttler->clear( null, $ip );
+
+		$this->output( "done\n" );
+	}
+
+	protected function clearTempAccountCreationThrottle( string $ip ): void {
+		$this->output( 'Clearing temp account creation throttle...' );
+
+		$tempAccountCreationThrottle = $this->getConfig()->get( MainConfigNames::TempAccountCreationThrottle );
+		if ( !$tempAccountCreationThrottle ) {
+			$this->output( "none set\n" );
+			return;
+		}
+		$throttler = new Throttler( $tempAccountCreationThrottle, [
+			'type' => 'tempacctcreate',
 			'cache' => ObjectCache::getLocalClusterInstance(),
 		] );
 

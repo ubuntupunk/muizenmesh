@@ -6,7 +6,7 @@
  * Options:
  *   --fix  Actually remove entries; without will only report.
  *
- * Copyright © 2005,2006 Brion Vibber <brion@pobox.com>
+ * Copyright © 2005,2006 Brooke Vibber <bvibber@wikimedia.org>
  * https://www.mediawiki.org/
  *
  * This program is free software; you can redistribute it and/or modify
@@ -25,12 +25,11 @@
  * http://www.gnu.org/copyleft/gpl.html
  *
  * @file
- * @author Brion Vibber <brion at pobox.com>
+ * @author Brooke Vibber <bvibber@wikimedia.org>
  * @ingroup Maintenance
  */
 
 use MediaWiki\MainConfigNames;
-use MediaWiki\MediaWikiServices;
 use MediaWiki\Title\Title;
 
 require_once __DIR__ . '/TableCleanup.php';
@@ -64,7 +63,7 @@ class CleanupWatchlist extends TableCleanup {
 	protected function processRow( $row ) {
 		$current = Title::makeTitle( $row->wl_namespace, $row->wl_title );
 		$display = $current->getPrefixedText();
-		$verified = MediaWikiServices::getInstance()->getContentLanguage()->normalize( $display );
+		$verified = $this->getServiceContainer()->getContentLanguage()->normalize( $display );
 		$title = Title::newFromText( $verified );
 
 		if ( $row->wl_user == 0 || $title === null || !$title->equals( $current ) ) {
@@ -80,7 +79,7 @@ class CleanupWatchlist extends TableCleanup {
 
 	private function removeWatch( $row ) {
 		if ( !$this->dryrun && $this->hasOption( 'fix' ) ) {
-			$dbw = $this->getDB( DB_PRIMARY );
+			$dbw = $this->getPrimaryDB();
 			$dbw->delete(
 				'watchlist',
 				[ 'wl_id' => $row->wl_id ],

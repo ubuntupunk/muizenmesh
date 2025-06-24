@@ -3,9 +3,11 @@
 namespace MediaWiki\Page;
 
 use Iterator;
-use LinkCache;
+use MediaWiki\Cache\LinkCache;
 use Wikimedia\Assert\Assert;
-use Wikimedia\Rdbms\IDatabase;
+use Wikimedia\Rdbms\IExpression;
+use Wikimedia\Rdbms\IReadableDatabase;
+use Wikimedia\Rdbms\LikeValue;
 use Wikimedia\Rdbms\SelectQueryBuilder;
 
 /**
@@ -20,13 +22,13 @@ class PageSelectQueryBuilder extends SelectQueryBuilder {
 	private $linkCache;
 
 	/**
-	 * @param IDatabase $db
+	 * @param IReadableDatabase $db
 	 * @param PageStore $pageStore
 	 * @param LinkCache|null $linkCache A link cache to store any retrieved rows into
 	 *
 	 * @internal
 	 */
-	public function __construct( IDatabase $db, PageStore $pageStore, ?LinkCache $linkCache = null ) {
+	public function __construct( IReadableDatabase $db, PageStore $pageStore, ?LinkCache $linkCache = null ) {
 		parent::__construct( $db );
 		$this->pageStore = $pageStore;
 		$this->table( 'page' );
@@ -74,7 +76,9 @@ class PageSelectQueryBuilder extends SelectQueryBuilder {
 	 */
 	public function whereTitlePrefix( int $namespace, string $prefix ): self {
 		$this->whereNamespace( $namespace );
-		$this->conds( 'page_title ' . $this->db->buildLike( $prefix, $this->db->anyString() ) );
+		$this->conds(
+			$this->db->expr( 'page_title', IExpression::LIKE, new LikeValue( $prefix, $this->db->anyString() ) )
+		);
 		return $this;
 	}
 

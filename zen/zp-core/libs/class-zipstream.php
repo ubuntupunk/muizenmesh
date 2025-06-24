@@ -2,8 +2,7 @@
 /**
  * ZipStream
  * 
- * @package core
- * @subpackage libraries\lib-zipstream
+ * @package zpcore\libs
  */
 error_reporting(0);
 ##########################################################################
@@ -90,7 +89,7 @@ error_reporting(0);
 class ZipStream {
 	const VERSION = '0.2.3';
 
-	var $opt = array(),
+	public $opt = array(),
 	$files = array(),
 	$cdr_ofs = 0,
 	$ofs = 0;

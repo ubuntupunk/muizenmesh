@@ -21,9 +21,15 @@
  * @ingroup SpecialPage
  */
 
+namespace MediaWiki\Specials;
+
+use ErrorPageError;
 use MediaWiki\Auth\AuthManager;
+use MediaWiki\Language\FormatterFactory;
 use MediaWiki\Logger\LoggerFactory;
+use MediaWiki\SpecialPage\LoginSignupSpecialPage;
 use MediaWiki\Title\Title;
+use StatusValue;
 
 /**
  * Implements Special:CreateAccount
@@ -42,13 +48,17 @@ class SpecialCreateAccount extends LoginSignupSpecialPage {
 		'authform-wrongtoken' => 'sessionfailure',
 	];
 
+	private FormatterFactory $formatterFactory;
+
 	/**
 	 * @param AuthManager $authManager
+	 * @param FormatterFactory $formatterFactory
 	 */
-	public function __construct( AuthManager $authManager ) {
+	public function __construct( AuthManager $authManager, FormatterFactory $formatterFactory ) {
 		parent::__construct( 'CreateAccount', 'createaccount' );
 
 		$this->setAuthManager( $authManager );
+		$this->formatterFactory = $formatterFactory;
 	}
 
 	public function doesWrites() {
@@ -64,10 +74,12 @@ class SpecialCreateAccount extends LoginSignupSpecialPage {
 		$status = $this->mPosted ?
 			$authManager->authorizeCreateAccount( $performer ) :
 			$authManager->probablyCanCreateAccount( $performer );
+
 		if ( !$status->isGood() ) {
+			$formatter = $this->formatterFactory->getStatusFormatter( $this->getContext() );
 			throw new ErrorPageError(
 				'createacct-error',
-				Status::wrap( $status )->getMessage()
+				$formatter->getMessage( $status )
 			);
 		}
 	}
@@ -81,7 +93,7 @@ class SpecialCreateAccount extends LoginSignupSpecialPage {
 	}
 
 	public function getDescription() {
-		return $this->msg( 'createaccount' )->text();
+		return $this->msg( 'createaccount' );
 	}
 
 	protected function isSignup() {
@@ -99,6 +111,7 @@ class SpecialCreateAccount extends LoginSignupSpecialPage {
 		$session = $this->getRequest()->getSession();
 		$user = $this->targetUser ?: $this->getUser();
 
+		$injected_html = '';
 		if ( $direct ) {
 			# Only save preferences if the user is not creating an account for someone else.
 			if ( !$this->proxyAccountCreation ) {
@@ -119,7 +132,7 @@ class SpecialCreateAccount extends LoginSignupSpecialPage {
 
 				$out = $this->getOutput();
 				// @phan-suppress-next-line PhanImpossibleCondition
-				$out->setPageTitle( $this->msg( $byEmail ? 'accmailtitle' : 'accountcreated' ) );
+				$out->setPageTitleMsg( $this->msg( $byEmail ? 'accmailtitle' : 'accountcreated' ) );
 				// @phan-suppress-next-line PhanImpossibleCondition
 				if ( $byEmail ) {
 					$out->addWikiMsg( 'accmailtext', $user->getName(), $user->getEmail() );
@@ -134,15 +147,13 @@ class SpecialCreateAccount extends LoginSignupSpecialPage {
 				);
 				return;
 			}
+			$this->getHookRunner()->onUserLoginComplete( $user, $injected_html, $direct );
 		}
 
 		$this->clearToken();
 
 		# Run any hooks; display injected HTML
-		$injected_html = '';
 		$welcome_creation_msg = 'welcomecreation-msg';
-		$this->getHookRunner()->onUserLoginComplete( $user, $injected_html, $direct );
-
 		/**
 		 * Let any extensions change what message is shown.
 		 * @see https://www.mediawiki.org/wiki/Manual:Hooks/BeforeWelcomeCreation
@@ -151,7 +162,8 @@ class SpecialCreateAccount extends LoginSignupSpecialPage {
 		$this->getHookRunner()->onBeforeWelcomeCreation( $welcome_creation_msg, $injected_html );
 
 		$this->showSuccessPage( 'signup',
-			$this->msg( 'welcomeuser', $this->getUser()->getName() )->escaped(),
+			// T308471: ensure username is plaintext (aka escaped)
+			$this->msg( 'welcomeuser' )->plaintextParams( $this->getUser()->getName() ),
 			$welcome_creation_msg, $injected_html, $extraMessages );
 	}
 
@@ -160,7 +172,7 @@ class SpecialCreateAccount extends LoginSignupSpecialPage {
 	}
 
 	protected function clearToken() {
-		return $this->getRequest()->getSession()->resetToken( 'createaccount' );
+		$this->getRequest()->getSession()->resetToken( 'createaccount' );
 	}
 
 	protected function getTokenName() {
@@ -168,7 +180,7 @@ class SpecialCreateAccount extends LoginSignupSpecialPage {
 	}
 
 	protected function getGroupName() {
-		return 'login';
+		return 'users';
 	}
 
 	protected function logAuthResult( $success, $status = null ) {
@@ -179,3 +191,6 @@ class SpecialCreateAccount extends LoginSignupSpecialPage {
 		] );
 	}
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( SpecialCreateAccount::class, 'SpecialCreateAccount' );

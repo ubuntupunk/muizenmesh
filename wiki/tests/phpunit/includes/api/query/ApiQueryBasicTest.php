@@ -20,13 +20,18 @@
  * @file
  */
 
+namespace MediaWiki\Tests\Api\Query;
+
+use Exception;
+use MediaWiki\Title\Title;
+
 /**
  * These tests validate basic functionality of the api query module
  *
  * @group API
  * @group Database
  * @group medium
- * @covers ApiQuery
+ * @covers \ApiQuery
  */
 class ApiQueryBasicTest extends ApiQueryTestBase {
 	protected $exceptionFromAddDBData;
@@ -62,10 +67,10 @@ class ApiQueryBasicTest extends ApiQueryTestBase {
 		[ 'pages' => [
 			'1' => [
 				'pageid' => 1,
-				'ns' => 0,
+				'ns' => NS_MAIN,
 				'title' => 'AQBT-All',
 				'links' => [
-					[ 'ns' => 0, 'title' => 'AQBT-Links' ],
+					[ 'ns' => NS_MAIN, 'title' => 'AQBT-Links' ],
 				]
 			]
 		] ]
@@ -76,10 +81,10 @@ class ApiQueryBasicTest extends ApiQueryTestBase {
 		[ 'pages' => [
 			'1' => [
 				'pageid' => 1,
-				'ns' => 0,
+				'ns' => NS_MAIN,
 				'title' => 'AQBT-All',
 				'templates' => [
-					[ 'ns' => 10, 'title' => 'Template:AQBT-T' ],
+					[ 'ns' => NS_TEMPLATE, 'title' => 'Template:AQBT-T' ],
 				]
 			]
 		] ]
@@ -90,10 +95,10 @@ class ApiQueryBasicTest extends ApiQueryTestBase {
 		[ 'pages' => [
 			'1' => [
 				'pageid' => 1,
-				'ns' => 0,
+				'ns' => NS_MAIN,
 				'title' => 'AQBT-All',
 				'categories' => [
-					[ 'ns' => 14, 'title' => 'Category:AQBT-Cat' ],
+					[ 'ns' => NS_CATEGORY, 'title' => 'Category:AQBT-Cat' ],
 				]
 			]
 		] ]
@@ -102,28 +107,28 @@ class ApiQueryBasicTest extends ApiQueryTestBase {
 	private static $allpages = [
 		[ 'list' => 'allpages', 'apprefix' => 'AQBT-' ],
 		[ 'allpages' => [
-			[ 'pageid' => 1, 'ns' => 0, 'title' => 'AQBT-All' ],
-			[ 'pageid' => 2, 'ns' => 0, 'title' => 'AQBT-Categories' ],
-			[ 'pageid' => 3, 'ns' => 0, 'title' => 'AQBT-Links' ],
-			[ 'pageid' => 4, 'ns' => 0, 'title' => 'AQBT-Templates' ],
+			[ 'pageid' => 1, 'ns' => NS_MAIN, 'title' => 'AQBT-All' ],
+			[ 'pageid' => 2, 'ns' => NS_MAIN, 'title' => 'AQBT-Categories' ],
+			[ 'pageid' => 3, 'ns' => NS_MAIN, 'title' => 'AQBT-Links' ],
+			[ 'pageid' => 4, 'ns' => NS_MAIN, 'title' => 'AQBT-Templates' ],
 		] ]
 	];
 
 	private static $alllinks = [
 		[ 'list' => 'alllinks', 'alprefix' => 'AQBT-' ],
 		[ 'alllinks' => [
-			[ 'ns' => 0, 'title' => 'AQBT-All' ],
-			[ 'ns' => 0, 'title' => 'AQBT-Categories' ],
-			[ 'ns' => 0, 'title' => 'AQBT-Links' ],
-			[ 'ns' => 0, 'title' => 'AQBT-Templates' ],
+			[ 'ns' => NS_MAIN, 'title' => 'AQBT-All' ],
+			[ 'ns' => NS_MAIN, 'title' => 'AQBT-Categories' ],
+			[ 'ns' => NS_MAIN, 'title' => 'AQBT-Links' ],
+			[ 'ns' => NS_MAIN, 'title' => 'AQBT-Templates' ],
 		] ]
 	];
 
 	private static $alltransclusions = [
 		[ 'list' => 'alltransclusions', 'atprefix' => 'AQBT-' ],
 		[ 'alltransclusions' => [
-			[ 'ns' => 10, 'title' => 'Template:AQBT-T' ],
-			[ 'ns' => 10, 'title' => 'Template:AQBT-T' ],
+			[ 'ns' => NS_TEMPLATE, 'title' => 'Template:AQBT-T' ],
+			[ 'ns' => NS_TEMPLATE, 'title' => 'Template:AQBT-T' ],
 		] ]
 	];
 
@@ -138,23 +143,23 @@ class ApiQueryBasicTest extends ApiQueryTestBase {
 	private static $backlinks = [
 		[ 'list' => 'backlinks', 'bltitle' => 'AQBT-Links' ],
 		[ 'backlinks' => [
-			[ 'pageid' => 1, 'ns' => 0, 'title' => 'AQBT-All' ],
+			[ 'pageid' => 1, 'ns' => NS_MAIN, 'title' => 'AQBT-All' ],
 		] ]
 	];
 
 	private static $embeddedin = [
 		[ 'list' => 'embeddedin', 'eititle' => 'Template:AQBT-T' ],
 		[ 'embeddedin' => [
-			[ 'pageid' => 1, 'ns' => 0, 'title' => 'AQBT-All' ],
-			[ 'pageid' => 4, 'ns' => 0, 'title' => 'AQBT-Templates' ],
+			[ 'pageid' => 1, 'ns' => NS_MAIN, 'title' => 'AQBT-All' ],
+			[ 'pageid' => 4, 'ns' => NS_MAIN, 'title' => 'AQBT-Templates' ],
 		] ]
 	];
 
 	private static $categorymembers = [
 		[ 'list' => 'categorymembers', 'cmtitle' => 'Category:AQBT-Cat' ],
 		[ 'categorymembers' => [
-			[ 'pageid' => 1, 'ns' => 0, 'title' => 'AQBT-All' ],
-			[ 'pageid' => 2, 'ns' => 0, 'title' => 'AQBT-Categories' ],
+			[ 'pageid' => 1, 'ns' => NS_MAIN, 'title' => 'AQBT-All' ],
+			[ 'pageid' => 2, 'ns' => NS_MAIN, 'title' => 'AQBT-Categories' ],
 		] ]
 	];
 
@@ -163,19 +168,19 @@ class ApiQueryBasicTest extends ApiQueryTestBase {
 		[ 'pages' => [
 			'1' => [
 				'pageid' => 1,
-				'ns' => 0,
+				'ns' => NS_MAIN,
 				'title' => 'AQBT-All' ],
 			'2' => [
 				'pageid' => 2,
-				'ns' => 0,
+				'ns' => NS_MAIN,
 				'title' => 'AQBT-Categories' ],
 			'3' => [
 				'pageid' => 3,
-				'ns' => 0,
+				'ns' => NS_MAIN,
 				'title' => 'AQBT-Links' ],
 			'4' => [
 				'pageid' => 4,
-				'ns' => 0,
+				'ns' => NS_MAIN,
 				'title' => 'AQBT-Templates' ],
 		] ]
 	];
@@ -185,15 +190,15 @@ class ApiQueryBasicTest extends ApiQueryTestBase {
 		[ 'pages' => [
 			'1' => [
 				'pageid' => 1,
-				'ns' => 0,
+				'ns' => NS_MAIN,
 				'title' => 'AQBT-All' ],
 			'2' => [
 				'pageid' => 2,
-				'ns' => 0,
+				'ns' => NS_MAIN,
 				'title' => 'AQBT-Categories' ],
 			'4' => [
 				'pageid' => 4,
-				'ns' => 0,
+				'ns' => NS_MAIN,
 				'title' => 'AQBT-Templates' ],
 		] ]
 	];
@@ -202,7 +207,7 @@ class ApiQueryBasicTest extends ApiQueryTestBase {
 		[ 'prop' => 'links' ],
 		[ 'pages' => [
 			'1' => [ 'links' => [
-				[ 'ns' => 0, 'title' => 'AQBT-Links' ],
+				[ 'ns' => NS_MAIN, 'title' => 'AQBT-Links' ],
 			] ]
 		] ]
 	];
@@ -211,9 +216,9 @@ class ApiQueryBasicTest extends ApiQueryTestBase {
 		[ 'prop' => 'templates' ],
 		[ 'pages' => [
 			'1' => [ 'templates' => [
-				[ 'ns' => 10, 'title' => 'Template:AQBT-T' ] ] ],
+				[ 'ns' => NS_TEMPLATE, 'title' => 'Template:AQBT-T' ] ] ],
 			'4' => [ 'templates' => [
-				[ 'ns' => 10, 'title' => 'Template:AQBT-T' ] ] ],
+				[ 'ns' => NS_TEMPLATE, 'title' => 'Template:AQBT-T' ] ] ],
 		] ]
 	];
 
@@ -336,7 +341,7 @@ class ApiQueryBasicTest extends ApiQueryTestBase {
 				'pages' => [
 					'6' => [
 						'pageid' => 6,
-						'ns' => 0,
+						'ns' => NS_MAIN,
 						'title' => 'AQBT-Target',
 					]
 				],

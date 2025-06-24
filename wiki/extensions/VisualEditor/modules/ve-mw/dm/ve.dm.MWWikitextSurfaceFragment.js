@@ -1,7 +1,7 @@
 /*!
  * VisualEditor DataModel MWWikitextSurfaceFragment class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
 
 /**
@@ -37,7 +37,7 @@ ve.dm.MWWikitextSurfaceFragment.prototype.hasMatchingAncestor = function ( type,
 		switch ( type ) {
 			case 'paragraph':
 				// Anything but what's matched below
-				all = !/^ |^=|^<blockquote>/.test( text );
+				all = !/^([ =]|<blockquote>)/.test( text );
 				break;
 			case 'mwPreformatted':
 				all = text.slice( 0, 1 ) === ' ';

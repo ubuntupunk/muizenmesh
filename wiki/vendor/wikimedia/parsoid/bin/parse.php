@@ -7,22 +7,25 @@
 
 require_once __DIR__ . '/../tools/Maintenance.php';
 
-use Composer\Factory;
-use Composer\IO\NullIO;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Revision\MutableRevisionRecord;
+use MediaWiki\Revision\SlotRecord;
 use Wikimedia\Parsoid\Config\Api\ApiHelper;
 use Wikimedia\Parsoid\Config\Api\DataAccess;
 use Wikimedia\Parsoid\Config\Api\PageConfig;
 use Wikimedia\Parsoid\Config\Api\SiteConfig;
+use Wikimedia\Parsoid\Config\SiteConfig as ISiteConfig;
 use Wikimedia\Parsoid\Config\StubMetadataCollector;
 use Wikimedia\Parsoid\Core\ClientError;
 use Wikimedia\Parsoid\Core\ContentMetadataCollector;
 use Wikimedia\Parsoid\Core\PageBundle;
 use Wikimedia\Parsoid\Core\SelserData;
 use Wikimedia\Parsoid\Mocks\MockDataAccess;
+use Wikimedia\Parsoid\Mocks\MockMetrics;
 use Wikimedia\Parsoid\Mocks\MockPageConfig;
 use Wikimedia\Parsoid\Mocks\MockPageContent;
 use Wikimedia\Parsoid\Mocks\MockSiteConfig;
+use Wikimedia\Parsoid\ParserTests\DummyAnnotation;
 use Wikimedia\Parsoid\ParserTests\TestUtils;
 use Wikimedia\Parsoid\Parsoid;
 use Wikimedia\Parsoid\Tools\ExtendedOptsProcessor;
@@ -31,10 +34,14 @@ use Wikimedia\Parsoid\Utils\DOMDataUtils;
 use Wikimedia\Parsoid\Utils\DOMUtils;
 use Wikimedia\Parsoid\Utils\PHPUtils;
 use Wikimedia\Parsoid\Utils\ScriptUtils;
+use Wikimedia\Parsoid\Utils\Title;
 
 // phpcs:ignore MediaWiki.Files.ClassMatchesFilename.WrongCase
 class Parse extends \Wikimedia\Parsoid\Tools\Maintenance {
 	use ExtendedOptsProcessor;
+
+	/** @var ISiteConfig */
+	private $siteConfig;
 
 	/** @var PageConfig */
 	private $pageConfig;
@@ -245,13 +252,14 @@ class Parse extends \Wikimedia\Parsoid\Tools\Maintenance {
 			false,
 			true
 		);
+		$this->addOption(
+			'metrics',
+			'Dump a log of the metrics methods that were called from a MockMetrics.'
+		);
 		$this->setAllowUnregisteredOptions( false );
 	}
 
-	/**
-	 * @param array $configOpts
-	 */
-	private function setupMwConfig( array $configOpts ) {
+	private function setupMwConfig( array $configOpts ): void {
 		$services = MediaWikiServices::getInstance();
 		$siteConfig = $services->getParsoidSiteConfig();
 		// Overwriting logger so that it logs to console/file
@@ -267,23 +275,43 @@ class Parse extends \Wikimedia\Parsoid\Tools\Maintenance {
 		$dataAccess = $services->getParsoidDataAccess();
 		$pcFactory = $services->getParsoidPageConfigFactory();
 		// XXX we're ignoring 'pageLanguage' & 'pageLanguageDir' in $configOpts
-		$title = \Title::newFromText(
-			$configOpts['title'] ?? $siteConfig->mainpage()
-		);
+		$title = isset( $configOpts['title'] )
+			? \Title::newFromText( $configOpts['title'] )
+			: $siteConfig->mainPageLinkTarget();
+
+		$wikitextOverride = $configOpts['pageContent'] ?? null;
+		$revision = $configOpts['revid'] ?? null;
+		if ( $wikitextOverride === null ) {
+			$revisionRecord = null;
+		} else {
+			// Create a mutable revision record point to the same revision
+			// and set to the desired wikitext.
+			$revisionRecord = new MutableRevisionRecord( $title );
+			if ( $revision !== null ) {
+				$revisionRecord->setId( $revision );
+			}
+			$revisionRecord->setSlot(
+				SlotRecord::newUnsaved(
+					SlotRecord::MAIN,
+					new WikitextContent( $wikitextOverride )
+				)
+			);
+		}
+
+		$this->siteConfig = $siteConfig;
 		$this->pageConfig = $pcFactory->create(
 			$title,
 			null, // UserIdentity
-			$configOpts['revid'] ?? null,
-			$configOpts['pageContent'] ?? null
+			$revisionRecord ?? $revision,
+			null,
+			null,
+			$configOpts['ensureAccessibleContent']
 		);
 		$this->metadata = new \ParserOutput();
 		$this->parsoid = new Parsoid( $siteConfig, $dataAccess );
 	}
 
-	/**
-	 * @param array $configOpts
-	 */
-	private function setupApiConfig( array $configOpts ) {
+	private function setupApiConfig( array $configOpts ): void {
 		$api = new ApiHelper( $configOpts );
 
 		$siteConfig = new SiteConfig( $api, $configOpts );
@@ -292,24 +320,36 @@ class Parse extends \Wikimedia\Parsoid\Tools\Maintenance {
 			$siteConfig->setLogger( SiteConfig::createLogger( $this->getOption( 'logFile' ) ) );
 		}
 		$dataAccess = new DataAccess( $api, $siteConfig, $configOpts );
-		$this->pageConfig = new PageConfig( $api, $configOpts + [
-			'title' => $siteConfig->mainpage(),
-			'loadData' => true,
+		$this->siteConfig = $siteConfig;
+		$configOpts['title'] = isset( $configOpts['title'] )
+			? Title::newFromText( $configOpts['title'], $siteConfig )
+			: $siteConfig->mainPageLinkTarget();
+
+		$this->pageConfig = new PageConfig( $api, $siteConfig, $configOpts + [
+			'loadData' => true
 		] );
-		$this->metadata = new StubMetadataCollector();
+
+		if ( $configOpts['ensureAccessibleContent'] ) {
+			try {
+				$this->pageConfig->getPageMainContent();
+			} catch ( \Error $e ) {
+				throw new \RuntimeException( 'The specified revision does not exist.' );
+			}
+		}
+
+		$this->metadata = new StubMetadataCollector( $siteConfig );
 		$this->parsoid = new Parsoid( $siteConfig, $dataAccess );
 	}
 
-	/**
-	 * @param array $configOpts
-	 */
-	private function setupMockConfig( array $configOpts ) {
+	private function setupMockConfig( array $configOpts ): void {
 		$siteConfig = new MockSiteConfig( $configOpts );
-		$dataAccess = new MockDataAccess( $configOpts );
+		$siteConfig->registerExtensionModule( DummyAnnotation::class );
+		$dataAccess = new MockDataAccess( $siteConfig, $configOpts );
 		$pageContent = new MockPageContent( [ 'main' =>
 			$configOpts['pageContent'] ?? '' ] );
-		$this->pageConfig = new MockPageConfig( $configOpts, $pageContent );
-		$this->metadata = new StubMetadataCollector();
+		$this->siteConfig = $siteConfig;
+		$this->pageConfig = new MockPageConfig( $siteConfig, $configOpts, $pageContent );
+		$this->metadata = new StubMetadataCollector( $siteConfig );
 		$this->parsoid = new Parsoid( $siteConfig, $dataAccess );
 	}
 
@@ -353,18 +393,11 @@ class Parse extends \Wikimedia\Parsoid\Tools\Maintenance {
 		}
 	}
 
-	/**
-	 * @param array $configOpts
-	 * @param array $parsoidOpts
-	 * @param string $html
-	 * @param ?SelserData $selserData
-	 * @return string
-	 */
 	public function html2Wt(
 		array $configOpts, array $parsoidOpts, string $html,
 		?SelserData $selserData = null
 	): string {
-		$configOpts["pageContent"] = ''; // FIXME: T234549
+		$configOpts["pageContent"] = $selserData->oldText ?? ''; // FIXME: T234549
 		$this->setupConfig( $configOpts );
 
 		try {
@@ -377,10 +410,6 @@ class Parse extends \Wikimedia\Parsoid\Tools\Maintenance {
 		}
 	}
 
-	/**
-	 * @param string $html
-	 * @return string
-	 */
 	private function maybeNormalize( string $html ): string {
 		if ( $this->hasOption( 'normalize' ) ) {
 			$html = TestUtils::normalizeOut(
@@ -394,12 +423,7 @@ class Parse extends \Wikimedia\Parsoid\Tools\Maintenance {
 
 	private function maybeVersion() {
 		if ( $this->hasOption( 'version' ) ) {
-			# XXX: This doesn't work on production machines or in integrated
-			# mode, since Composer\Factory isn't in the production `vendor`
-			# deploy.
-			$composer = Factory::create( new NullIO(), './composer.json', false );
-			$root = $composer->getPackage();
-			$this->output( $root->getFullPrettyVersion() . "\n" );
+			$this->output( Parsoid::version() . "\n" );
 			die( 0 );
 		}
 	}
@@ -513,9 +537,7 @@ class Parse extends \Wikimedia\Parsoid\Tools\Maintenance {
 		}
 
 		if ( $this->hasOption( 'profile' ) ) {
-			if ( !isset( $parsoidOpts['traceFlags'] ) ) {
-				$parsoidOpts['traceFlags'] = [];
-			}
+			$parsoidOpts['traceFlags'] ??= [];
 			$parsoidOpts['traceFlags']['time'] = true;
 		}
 
@@ -523,10 +545,22 @@ class Parse extends \Wikimedia\Parsoid\Tools\Maintenance {
 			$this->hasOption( 'html2html' ) ||
 			$this->hasOption( 'selser' );
 
+		$configOpts['ensureAccessibleContent'] = !$startsAtHtml ||
+			isset( $configOpts['revid'] );
+
 		if ( $startsAtHtml ) {
 			$this->transformFromHtml( $configOpts, $parsoidOpts, $input );
 		} else {
 			$this->transformFromWt( $configOpts, $parsoidOpts, $input );
+		}
+
+		if ( $this->hasOption( 'metrics' ) ) {
+			// FIXME: We're just using whatever siteConfig we ended up with,
+			// even though setupConfig may be called multiple times
+			$metrics = $this->siteConfig->metrics();
+			if ( $metrics instanceof MockMetrics ) {
+				$this->error( print_r( $metrics->log, true ) );
+			}
 		}
 	}
 
@@ -535,19 +569,13 @@ class Parse extends \Wikimedia\Parsoid\Tools\Maintenance {
 	 */
 	private function startFlameGraphProfiler() {
 		$profiler = new ExcimerProfiler;
-		$profiler->setPeriod( 0.01 );
-		$profiler->setEventType( EXCIMER_CPU );
+		$profiler->setPeriod( 0.00001 );
+		$profiler->setEventType( EXCIMER_REAL );
 		$profiler->start();
 		register_shutdown_function( static function () use ( $profiler ) {
 			$profiler->stop();
-			$fgPath = getenv( 'FLAMEGRAPH_PATH' );
-			if ( empty( $fgPath ) ) {
-				$fgPath = "/usr/local/bin/flamegraph.pl";
-			}
-			$fgOutDir = getenv( 'FLAMEGRAPH_OUTDIR' );
-			if ( empty( $fgOutDir ) ) {
-				$fgOutDir = "/tmp";
-			}
+			$fgPath = getenv( 'FLAMEGRAPH_PATH' ) ?: '/usr/local/bin/flamegraph.pl';
+			$fgOutDir = getenv( 'FLAMEGRAPH_OUTDIR' ) ?: '/tmp';
 			// phpcs:disable MediaWiki.Usage.ForbiddenFunctions.popen
 			$pipe = popen( "$fgPath > $fgOutDir/profile.svg", "w" );
 			fwrite( $pipe, $profiler->getLog()->formatCollapsed() );
@@ -711,10 +739,8 @@ class Parse extends \Wikimedia\Parsoid\Tools\Maintenance {
 				$doc = DOMUtils::parseHTML( $html->html );
 				DOMDataUtils::injectPageBundle(
 					$doc,
-					PHPUtils::arrayToObject( [
-						'parsoid' => $html->parsoid,
-						'mw' => $html->mw,
-					] ) );
+					new PageBundle( '', $html->parsoid, $html->mw )
+				);
 				$html = ContentUtils::toXML( $doc );
 			}
 			$this->output( $this->maybeNormalize( $html ) );

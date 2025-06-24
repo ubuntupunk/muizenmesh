@@ -9,8 +9,7 @@
  * Note this plugin embeds the external reCaptcha JavaScript library from Google's servers
  *
  * @author Ben Feather (Epsilon), Stephen Billard (sbillard), Malte Müller (acrylian)
- * @package plugins
- * @subpackage recaptcha
+ * @package zpcore\plugins\recaptcha
  */
 // force UTF-8 Ø
 $plugin_is_filter = 5 | CLASS_PLUGIN;
@@ -26,7 +25,7 @@ $plugin_category = gettext('Spam');
 
 class reCaptcha extends _zp_captcha {
 
-	var $name = 'reCaptcha';
+	public $name = 'reCaptcha';
 
 	/**
 	 * Class instantiator

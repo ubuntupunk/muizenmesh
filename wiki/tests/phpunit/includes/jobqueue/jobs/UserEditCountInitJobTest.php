@@ -6,7 +6,7 @@
  */
 class UserEditCountInitJobTest extends MediaWikiIntegrationTestCase {
 
-	public function provideTestCases() {
+	public static function provideTestCases() {
 		// $startingEditCount, $setCount, $finalCount
 		yield 'Initiate count if not yet set' => [ false, 2, 2 ];
 		yield 'Update count when increasing' => [ 2, 3, 3 ];
@@ -14,7 +14,7 @@ class UserEditCountInitJobTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
-	 * @covers UserEditCountInitJob
+	 * @covers \UserEditCountInitJob
 	 * @dataProvider provideTestCases
 	 */
 	public function testUserEditCountInitJob( $startingEditCount, $setCount, $finalCount ) {

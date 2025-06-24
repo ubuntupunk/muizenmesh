@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright © 2007 Roan Kattouw "<Firstname>.<Lastname>@gmail.com"
+ * Copyright © 2007 Roan Kattouw <roan.kattouw@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,12 +20,13 @@
  * @file
  */
 
+use MediaWiki\Deferred\DeferredUpdates;
 use MediaWiki\MainConfigNames;
 use MediaWiki\Page\RollbackPageFactory;
 use MediaWiki\ParamValidator\TypeDef\UserDef;
 use MediaWiki\Title\Title;
+use MediaWiki\User\Options\UserOptionsLookup;
 use MediaWiki\User\UserIdentity;
-use MediaWiki\User\UserOptionsLookup;
 use MediaWiki\Watchlist\WatchlistManager;
 use Wikimedia\ParamValidator\ParamValidator;
 
@@ -36,8 +37,7 @@ class ApiRollback extends ApiBase {
 
 	use ApiWatchlistTrait;
 
-	/** @var RollbackPageFactory */
-	private $rollbackPageFactory;
+	private RollbackPageFactory $rollbackPageFactory;
 
 	public function __construct(
 		ApiMain $mainModule,
@@ -148,7 +148,7 @@ class ApiRollback extends ApiBase {
 			],
 			'user' => [
 				ParamValidator::PARAM_TYPE => 'user',
-				UserDef::PARAM_ALLOWED_USER_TYPES => [ 'name', 'ip', 'id', 'interwiki' ],
+				UserDef::PARAM_ALLOWED_USER_TYPES => [ 'name', 'ip', 'temp', 'id', 'interwiki' ],
 				UserDef::PARAM_RETURN_OBJECT => true,
 				ParamValidator::PARAM_REQUIRED => true
 			],

@@ -18,9 +18,15 @@
  * @file
  */
 
+namespace MediaWiki\Deferred;
+
+use CdnPurgeJob;
+use Exception;
+use InvalidArgumentException;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Page\PageReference;
+use RuntimeException;
 use Wikimedia\Assert\Assert;
 use Wikimedia\IPUtils;
 
@@ -153,7 +159,7 @@ class CdnCacheUpdate implements DeferrableUpdate, MergeableUpdate {
 		$services = MediaWikiServices::getInstance();
 		/** @var PageReference $page */
 
-		// Avoid multiple queries for HtmlCacheUpdater::getUrls() call
+		// Avoid multiple queries for HTMLCacheUpdater::getUrls() call
 		$lb = $services->getLinkBatchFactory()->newLinkBatch();
 		foreach ( $this->pageTuples as [ $page, ] ) {
 			$lb->addObj( $page );
@@ -182,7 +188,6 @@ class CdnCacheUpdate implements DeferrableUpdate, MergeableUpdate {
 	/**
 	 * Send Hyper Text Caching Protocol (HTCP) CLR requests
 	 *
-	 * @throws MWException
 	 * @param string[] $urls Collection of URLs to purge
 	 */
 	private static function HTCPPurge( array $urls ) {
@@ -226,7 +231,7 @@ class CdnCacheUpdate implements DeferrableUpdate, MergeableUpdate {
 
 		foreach ( $urls as $url ) {
 			if ( !is_string( $url ) ) {
-				throw new MWException( 'Bad purge URL' );
+				throw new InvalidArgumentException( 'Bad purge URL' );
 			}
 			$url = self::expand( $url );
 			$conf = self::getRuleForURL( $url, $htcpRouting );
@@ -242,7 +247,7 @@ class CdnCacheUpdate implements DeferrableUpdate, MergeableUpdate {
 			}
 			foreach ( $conf as $subconf ) {
 				if ( !isset( $subconf['host'] ) || !isset( $subconf['port'] ) ) {
-					throw new MWException( "Invalid HTCP rule for URL $url\n" );
+					throw new RuntimeException( "Invalid HTCP rule for URL $url\n" );
 				}
 			}
 
@@ -326,7 +331,7 @@ class CdnCacheUpdate implements DeferrableUpdate, MergeableUpdate {
 	 * @return string
 	 */
 	private static function expand( $url ) {
-		return wfExpandUrl( $url, PROTO_INTERNAL );
+		return (string)MediaWikiServices::getInstance()->getUrlUtils()->expand( $url, PROTO_INTERNAL );
 	}
 
 	/**
@@ -345,3 +350,6 @@ class CdnCacheUpdate implements DeferrableUpdate, MergeableUpdate {
 		return false;
 	}
 }
+
+/** @deprecated class alias since 1.42 */
+class_alias( CdnCacheUpdate::class, 'CdnCacheUpdate' );

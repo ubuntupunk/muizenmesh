@@ -1,5 +1,6 @@
 <?php
 
+use MediaWiki\CommentStore\CommentStoreComment;
 use MediaWiki\Page\UndeletePage;
 use MediaWiki\Revision\SlotRecord;
 use MediaWiki\Title\Title;
@@ -22,32 +23,8 @@ class UndeletePageTest extends MediaWikiIntegrationTestCase {
 	 */
 	private $ipEditor;
 
-	protected function addCoreDBData() {
-		// Blanked out to keep auto-increment values stable.
-	}
-
 	protected function setUp(): void {
 		parent::setUp();
-
-		$this->tablesUsed = array_merge(
-			$this->tablesUsed,
-			[
-				'page',
-				'revision',
-				'revision_comment_temp',
-				'ip_changes',
-				'text',
-				'archive',
-				'recentchanges',
-				'logging',
-				'page_props',
-				'comment',
-				'slots',
-				'content',
-				'content_models',
-				'slot_roles',
-			]
-		);
 
 		$this->ipEditor = '2001:DB8:0:0:0:0:0:1';
 		$this->setupPage( 'UndeletePageTest_thePage', NS_MAIN, ' ' );
@@ -85,26 +62,29 @@ class UndeletePageTest extends MediaWikiIntegrationTestCase {
 		$revisionStore = $this->getServiceContainer()->getRevisionStore();
 
 		// First make sure old revisions are archived
-		$dbr = wfGetDB( DB_REPLICA );
-		$arQuery = $revisionStore->getArchiveQueryInfo();
+		$dbr = $this->getDb();
 
 		foreach ( [ 0, 1 ] as $key ) {
-			$row = $dbr->selectRow(
-				$arQuery['tables'],
-				$arQuery['fields'],
-				[ 'ar_rev_id' => $this->pages[$key]['revId'] ],
-				__METHOD__,
-				[],
-				$arQuery['joins']
-			);
+			$row = $revisionStore->newArchiveSelectQueryBuilder( $dbr )
+				->joinComment()
+				->where( [ 'ar_rev_id' => $this->pages[$key]['revId'] ] )
+				->caller( __METHOD__ )->fetchRow();
 			$this->assertEquals( $this->ipEditor, $row->ar_user_text );
 
 			// Should not be in revision
-			$row = $dbr->selectRow( 'revision', '1', [ 'rev_id' => $this->pages[$key]['revId'] ] );
+			$row = $dbr->newSelectQueryBuilder()
+				->select( '1' )
+				->from( 'revision' )
+				->where( [ 'rev_id' => $this->pages[$key]['revId'] ] )
+				->fetchRow();
 			$this->assertFalse( $row );
 
 			// Should not be in ip_changes
-			$row = $dbr->selectRow( 'ip_changes', '1', [ 'ipc_rev_id' => $this->pages[$key]['revId'] ] );
+			$row = $dbr->newSelectQueryBuilder()
+				->select( '1' )
+				->from( 'ip_changes' )
+				->where( [ 'ipc_rev_id' => $this->pages[$key]['revId'] ] )
+				->fetchRow();
 			$this->assertFalse( $row );
 		}
 
@@ -117,22 +97,21 @@ class UndeletePageTest extends MediaWikiIntegrationTestCase {
 		$status = $undeletePage->setUndeleteAssociatedTalk( true )->undeleteUnsafe( '' );
 		$this->assertEquals( 2, $status->value[UndeletePage::REVISIONS_RESTORED] );
 
-		$revQuery = $revisionStore->getQueryInfo();
 		// check subject page and talk page are both back in the revision table
 		foreach ( [ 0, 1 ] as $key ) {
-			$row = $dbr->selectRow(
-				$revQuery['tables'],
-				$revQuery['fields'],
-				[ 'rev_id' => $this->pages[$key]['revId'] ],
-				__METHOD__,
-				[],
-				$revQuery['joins']
-			);
+			$row = $revisionStore->newSelectQueryBuilder( $dbr )
+				->where( [ 'rev_id' => $this->pages[$key]['revId'] ] )
+				->caller( __METHOD__ )->fetchRow();
+
 			$this->assertNotFalse( $row, 'row exists in revision table' );
 			$this->assertEquals( $this->ipEditor, $row->rev_user_text );
 
 			// Should be back in ip_changes
-			$row = $dbr->selectRow( 'ip_changes', [ 'ipc_hex' ], [ 'ipc_rev_id' => $this->pages[$key]['revId'] ] );
+			$row = $dbr->newSelectQueryBuilder()
+				->select( [ 'ipc_hex' ] )
+				->from( 'ip_changes' )
+				->where( [ 'ipc_rev_id' => $this->pages[$key]['revId'] ] )
+				->fetchRow();
 			$this->assertNotFalse( $row, 'row exists in ip_changes table' );
 			$this->assertEquals( IPUtils::toHex( $this->ipEditor ), $row->ipc_hex );
 		}

@@ -1,3 +1,5 @@
+'use strict';
+
 /*!
  * VisualEditor MediaWiki Reference dialog tool classes.
  *
@@ -8,9 +10,8 @@
 /**
  * MediaWiki UserInterface reference tool.
  *
- * @class
- * @extends ve.ui.FragmentWindowTool
  * @constructor
+ * @extends ve.ui.FragmentWindowTool
  * @param {OO.ui.ToolGroup} toolGroup
  * @param {Object} [config] Configuration options
  */
@@ -39,9 +40,8 @@ ve.ui.toolFactory.register( ve.ui.MWReferenceDialogTool );
 /**
  * MediaWiki UserInterface use existing reference tool.
  *
- * @class
- * @extends ve.ui.WindowTool
  * @constructor
+ * @extends ve.ui.WindowTool
  * @param {OO.ui.ToolGroup} toolGroup
  * @param {Object} [config] Configuration options
  */
@@ -91,12 +91,13 @@ ve.ui.commandHelpRegistry.register( 'insert', 'ref', {
 
 ve.ui.mwWikitextTransferRegistry.register( 'reference', /<ref[^>]*>/ );
 
+ve.ui.HelpCompletionAction.static.toolGroups.cite = { mergeWith: 'insert' };
+
 /**
  * MediaWiki UserInterface references list tool.
  *
- * @class
- * @extends ve.ui.FragmentWindowTool
  * @constructor
+ * @extends ve.ui.FragmentWindowTool
  * @param {OO.ui.ToolGroup} toolGroup
  * @param {Object} [config] Configuration options
  */

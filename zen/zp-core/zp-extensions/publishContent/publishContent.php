@@ -1,7 +1,6 @@
 <?php
 /**
- * @package plugins
- * @subpackage publishcontent
+ * @package zpcore\plugins\publishcontent
  */
 define('OFFSET_PATH', 3);
 require_once("../../admin-globals.php");
@@ -311,8 +310,7 @@ echo '</head>';
 				</fieldset>
 				<br class="clearall" />
 
-				<script type="text/javascript">
-					//<!-- <![CDATA[
+				<script>
 					$(function() {
 						$("#publish_date").datepicker({
 							dateFormat: 'yy-mm-dd',
@@ -322,7 +320,6 @@ echo '</head>';
 							buttonImageOnly: true
 						});
 					});
-					// ]]> -->
 				</script>
 				<?php $visible = $report == 'images'; ?>
 				<fieldset class="smallbox">
@@ -359,8 +356,7 @@ echo '</head>';
 						}
 						if ($c > 0) {
 							?>
-							<script type="text/javascript">
-								// <!-- <![CDATA[
+							<script>
 								function confirmdel(obj, id, msg) {
 									if (msg) {
 										if (confirm('<?php echo gettext("Are you sure you want to select this image for deletion?"); ?>')) {
@@ -379,7 +375,6 @@ echo '</head>';
 										$('.global_' + what).prop('checked', true);
 									}
 								}
-								// ]]> -->
 							</script>
 							<form class="dirty-check" name="publish_images" action="" method="post" autocomplete="off"><?php echo gettext('Images:'); ?>
 

@@ -2,14 +2,15 @@
 
 namespace MediaWiki\Tests\ResourceLoader;
 
-use Config;
 use Content;
 use CssContent;
 use EmptyResourceLoader;
-use HashConfig;
 use JavaScriptContent;
 use JavaScriptContentHandler;
 use LinkCacheTestTrait;
+use MediaWiki\Config\Config;
+use MediaWiki\Config\HashConfig;
+use MediaWiki\MainConfigNames;
 use MediaWiki\Page\PageIdentity;
 use MediaWiki\Page\PageIdentityValue;
 use MediaWiki\Page\PageRecord;
@@ -19,16 +20,17 @@ use MediaWiki\ResourceLoader\Context;
 use MediaWiki\ResourceLoader\DerivativeContext;
 use MediaWiki\ResourceLoader\WikiModule;
 use MediaWiki\Title\Title;
-use MediaWiki\WikiMap\WikiMap;
+use MediaWiki\Title\TitleValue;
 use ReflectionMethod;
-use ResourceLoaderTestCase;
-use TitleValue;
-use Wikimedia\Rdbms\IDatabase;
+use RuntimeException;
 use Wikimedia\Rdbms\IReadableDatabase;
 use Wikimedia\TestingAccessWrapper;
+use Wikimedia\Timestamp\ConvertibleTimestamp;
 use WikitextContent;
 
 /**
+ * @group ResourceLoader
+ * @group Database
  * @covers \MediaWiki\ResourceLoader\WikiModule
  */
 class WikiModuleTest extends ResourceLoaderTestCase {
@@ -49,11 +51,13 @@ class WikiModuleTest extends ResourceLoaderTestCase {
 		yield 'real settings' => [ [ 'MediaWiki:Common.js' ] ];
 	}
 
-	private function prepareTitleInfo( array $mockInfo ) {
-		$module = TestingAccessWrapper::newFromClass( WikiModule::class );
+	private function makeTitleInfo( array $mockInfo ) {
+		$wikiModuleClass = TestingAccessWrapper::newFromClass( WikiModule::class );
 		$info = [];
-		foreach ( $mockInfo as $key => $val ) {
-			$info[ $module->makeTitleKey( Title::newFromText( $key ) ) ] = $val;
+		foreach ( $mockInfo as $val ) {
+			$title = $val['title'];
+			unset( $val['title'] );
+			$info[ $wikiModuleClass->makeTitleKey( $title ) ] = $val;
 		}
 		return $info;
 	}
@@ -74,8 +78,8 @@ class WikiModuleTest extends ResourceLoaderTestCase {
 
 	public static function provideGetPages() {
 		$settings = self::getSettings() + [
-			'UseSiteJs' => true,
-			'UseSiteCss' => true,
+			MainConfigNames::UseSiteJs => true,
+			MainConfigNames::UseSiteCss => true,
 		];
 
 		$params = [
@@ -89,15 +93,15 @@ class WikiModuleTest extends ResourceLoaderTestCase {
 				'MediaWiki:Common.js' => [ 'type' => 'script' ],
 				'MediaWiki:Common.css' => [ 'type' => 'style' ]
 			] ],
-			[ $params, new HashConfig( [ 'UseSiteCss' => false ] + $settings ), [
+			[ $params, new HashConfig( [ MainConfigNames::UseSiteCss => false ] + $settings ), [
 				'MediaWiki:Common.js' => [ 'type' => 'script' ],
 			] ],
-			[ $params, new HashConfig( [ 'UseSiteJs' => false ] + $settings ), [
+			[ $params, new HashConfig( [ MainConfigNames::UseSiteJs => false ] + $settings ), [
 				'MediaWiki:Common.css' => [ 'type' => 'style' ],
 			] ],
 			[ $params,
 				new HashConfig(
-					[ 'UseSiteJs' => false, 'UseSiteCss' => false ]
+					[ MainConfigNames::UseSiteJs => false, MainConfigNames::UseSiteCss => false ]
 				),
 				[]
 			],
@@ -153,7 +157,7 @@ class WikiModuleTest extends ResourceLoaderTestCase {
 			->onlyMethods( [ 'getTitleInfo', 'getGroup', 'getDependencies' ] )
 			->getMock();
 		$module->method( 'getTitleInfo' )
-			->willReturn( $this->prepareTitleInfo( $titleInfo ) );
+			->willReturn( $this->makeTitleInfo( $titleInfo ) );
 		$module->method( 'getGroup' )
 			->willReturn( $group );
 		$module->method( 'getDependencies' )
@@ -172,7 +176,7 @@ class WikiModuleTest extends ResourceLoaderTestCase {
 		];
 
 		yield 'an empty page exists (no group)' => [
-			[ 'Project:Example/foo.js' => [ 'page_len' => 0 ] ],
+			[ [ 'title' => new TitleValue( NS_USER, 'Example/foo.js' ), 'page_len' => 0 ] ],
 			null,
 			[],
 			// There is an existing page, so we should let the module be queued.
@@ -180,14 +184,14 @@ class WikiModuleTest extends ResourceLoaderTestCase {
 			false,
 		];
 		yield 'an empty page exists (site group)' => [
-			[ 'MediaWiki:Foo.js' => [ 'page_len' => 0 ] ],
+			[ [ 'title' => new TitleValue( NS_MEDIAWIKI, 'Foo.js' ), 'page_len' => 0 ] ],
 			'site',
 			[],
 			// There is an existing page, hence considered non-empty.
 			false,
 		];
 		yield 'an empty page exists (user group)' => [
-			[ 'User:Example/foo.js' => [ 'page_len' => 0 ] ],
+			[ [ 'title' => new TitleValue( NS_USER, 'Example/foo.js' ), 'page_len' => 0 ] ],
 			'user',
 			[],
 			// There is an existing page, but it is empty.
@@ -217,81 +221,63 @@ class WikiModuleTest extends ResourceLoaderTestCase {
 		];
 
 		yield 'a non-empty page exists (user group)' => [
-			[ 'User:Example/foo.js' => [ 'page_len' => 25 ] ],
+			[ [ 'title' => new TitleValue( NS_USER, 'Example/foo.js' ), 'page_len' => 25 ] ],
 			'user',
 			[],
 			false,
 		];
 		yield 'a non-empty page exists (site group)' => [
-			[ 'MediaWiki:Foo.js' => [ 'page_len' => 25 ] ],
+			[ [ 'title' => new TitleValue( NS_MEDIAWIKI, 'Foo.js' ), 'page_len' => 25 ] ],
 			'site',
 			[],
 			false,
 		];
 	}
 
-	public function testGetTitleInfo() {
-		$pages = [
-			'MediaWiki:Common.css' => [ 'type' => 'styles' ],
-			'mediawiki: fallback.css' => [ 'type' => 'styles' ],
-		];
-		$titleInfo = $this->prepareTitleInfo( [
-			'MediaWiki:Common.css' => [ 'page_len' => 1234 ],
-			'MediaWiki:Fallback.css' => [ 'page_len' => 0 ],
-		] );
-		$expected = $titleInfo;
-
-		$module = $this->getMockBuilder( WikiModule::class )
-			->onlyMethods( [ 'getPages', 'getTitleInfo' ] )
-			->getMock();
-		$module->method( 'getPages' )->willReturn( $pages );
-		$module->method( 'getTitleInfo' )->willReturn( $titleInfo );
-
-		$context = $this->createMock( Context::class );
-
-		$module = TestingAccessWrapper::newFromObject( $module );
-		$this->assertSame( $expected, $module->getTitleInfo( $context ), 'Title info' );
-	}
-
 	public function testGetPreloadedTitleInfo() {
-		$pages = [
-			'MediaWiki:Common.css' => [ 'type' => 'styles' ],
-			// Regression against T145673. It's impossible to statically declare page names in
-			// a canonical way since the canonical prefix is localised. As such, the preload
-			// cache computed the right cache key, but failed to find the results when
-			// doing an intersect on the canonical result, producing an empty array.
-			'mediawiki: fallback.css' => [ 'type' => 'styles' ],
-		];
-		$titleInfo = $this->prepareTitleInfo( [
-			'MediaWiki:Common.css' => [ 'page_len' => 1234 ],
-			'MediaWiki:Fallback.css' => [ 'page_len' => 0 ],
-		] );
-		$expected = $titleInfo;
-
-		$module = $this->getMockBuilder( TestResourceLoaderWikiModule::class )
-			->onlyMethods( [ 'getPages' ] )
-			->getMock();
-		$module->method( 'getPages' )->willReturn( $pages );
-		// Can't mock static methods
-		$module::$returnFetchTitleInfo = $titleInfo;
-
+		// Set up
+		ConvertibleTimestamp::setFakeTime( '20110401090000' );
+		$this->editPage( 'MediaWiki:TestA.css', '.mw-first {}', 'First' );
+		$this->editPage( 'MediaWiki:TestEmpty.css', '', 'Empty' );
+		$this->editPage( 'MediaWiki:TestB.css', '.mw-second {}', 'Second' );
 		$rl = new EmptyResourceLoader();
+		$rl->getConfig()->set( 'UseSiteJs', true );
+		$rl->getConfig()->set( 'UseSiteCss', true );
+		$rl->register( 'testmodule1', [
+			'class' => TestResourceLoaderWikiModule::class,
+			'styles' => [
+				'MediaWiki:TestA.css',
+				// Regression against T145673. It's impossible to statically declare page names in
+				// a canonical way since the canonical prefix is localised. As such, the preload
+				// cache computed the right cache key, but failed to find the results when
+				// doing an intersect on the canonical result, producing an empty array.
+				'mediawiki: testEmpty.css',
+			],
+		] );
+		$rl->register( 'testmodule2', [
+			'class' => TestResourceLoaderWikiModule::class,
+			'styles' => [
+				'MediaWiki:TestB.css',
+			],
+		] );
 		$context = new Context( $rl, new FauxRequest() );
 
-		TestResourceLoaderWikiModule::invalidateModuleCache(
-			new PageIdentityValue( 17, NS_MEDIAWIKI, 'Common.css', PageIdentity::LOCAL ),
-			null,
-			null,
-			WikiMap::getCurrentWikiId()
-		);
-		TestResourceLoaderWikiModule::preloadTitleInfo(
+		// Warm up the cache
+		WikiModule::preloadTitleInfo(
 			$context,
-			$this->createMock( IDatabase::class ),
-			[ 'testmodule' ]
+			[ 'testmodule1', 'testmodule2' ]
 		);
-
-		$module = TestingAccessWrapper::newFromObject( $module );
-		$this->assertSame( $expected, $module->getTitleInfo( $context ), 'Title info' );
+		// The module uses TestResourceLoaderWikiModule, which disables fetchTitleInfo() by default.
+		// If getTitleInfo() returns the data here, it means preloadTitleInfo succeeded.
+		$module1 = TestingAccessWrapper::newFromObject( $rl->getModule( 'testmodule1' ) );
+		$this->assertArrayContains( [
+			'8:TestA.css' => [ 'page_len' => '12', 'page_touched' => '20110401090000' ],
+			'8:TestEmpty.css' => [ 'page_len' => '0', 'page_touched' => '20110401090000' ],
+		], $module1->getTitleInfo( $context ), 'Title info' );
+		$module2 = TestingAccessWrapper::newFromObject( $rl->getModule( 'testmodule2' ) );
+		$this->assertArrayContains( [
+			'8:TestB.css' => [ 'page_len' => '13', 'page_touched' => '20110401090000' ],
+		], $module2->getTitleInfo( $context ), 'Title info' );
 	}
 
 	public function testGetPreloadedBadTitle() {
@@ -310,7 +296,6 @@ class WikiModuleTest extends ResourceLoaderTestCase {
 		// Act
 		TestResourceLoaderWikiModule::preloadTitleInfo(
 			$context,
-			$this->createMock( IDatabase::class ),
 			[ 'testmodule' ]
 		);
 
@@ -326,7 +311,6 @@ class WikiModuleTest extends ResourceLoaderTestCase {
 			null,
 			WikiModule::preloadTitleInfo(
 				$context,
-				$this->createMock( IDatabase::class ),
 				[]
 			)
 		);
@@ -478,6 +462,10 @@ class TestResourceLoaderWikiModule extends WikiModule {
 	protected static function fetchTitleInfo( IReadableDatabase $db, array $pages, $fname = null ) {
 		$ret = self::$returnFetchTitleInfo;
 		self::$returnFetchTitleInfo = null;
+		if ( $ret === null ) {
+			// If a call is expected, a mock return value must be planted first
+			throw new RuntimeException( 'Unexpected fetchTitleInfo call' );
+		}
 		return $ret;
 	}
 }

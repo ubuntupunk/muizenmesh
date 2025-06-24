@@ -12,35 +12,65 @@
 		// T251544: Collect search performance metrics to compare Vue search with
 		// mediawiki.searchSuggest performance. Marks and Measures will only be
 		// recorded on the Vector skin.
-		/* eslint-disable compat/compat */
 		shouldTestSearch = !!( mw.config.get( 'skin' ) === 'vector' &&
 			window.performance &&
-			window.requestAnimationFrame &&
 			performance.mark &&
 			performance.measure &&
 			performance.getEntriesByName &&
 			performance.clearMarks ),
-		/* eslint-enable compat/compat */
+
 		loadStartMark = 'mwVectorLegacySearchLoadStart',
 		queryMark = 'mwVectorLegacySearchQuery',
 		renderMark = 'mwVectorLegacySearchRender',
 		queryToRenderMeasure = 'mwVectorLegacySearchQueryToRender',
 		loadStartToFirstRenderMeasure = 'mwVectorLegacySearchLoadStartToFirstRender';
 
+	/**
+	 * Convenience library for making searches for titles that match a string.
+	 * Loaded via the `mediawiki.searchSuggest` ResourceLoader library.
+	 * @example
+	 * mw.loader.using('mediawiki.searchSuggest').then(() => {
+	 *   var api = new mw.Api();
+	 *   mw.searchSuggest.request(api, 'Dogs that', ( results ) => {
+	 *     alert( `Results that match: ${results.join( '\n' );}` );
+	 *   });
+	 * });
+	 * @namespace mw.searchSuggest
+	 */
 	mw.searchSuggest = {
-		// queries the wiki and calls response with the result
-		request: function ( api, query, response, maxRows, namespace ) {
+		/**
+		 * @typedef {Object} mw.searchSuggest~ResponseMetaData
+		 * @property {string} type the contents of the X-OpenSearch-Type response header.
+		 * @property {string} searchId the contents of the X-Search-ID response header.
+		 * @property {string} query
+		 */
+		/**
+		 * @callback mw.searchSuggest~ResponseFunction
+		 * @param {string[]} titles titles of pages that match search
+		 * @param {ResponseMetaData} meta meta data relating to search.
+		 */
+		/**
+		 * Queries the wiki and calls response with the result.
+		 *
+		 * @param {mw.Api} api
+		 * @param {string} query
+		 * @param {ResponseFunction} response
+		 * @param {string|number} [limit]
+		 * @param {string|number|string[]|number[]} [namespace]
+		 * @return {jQuery.Deferred}
+		 */
+		request: function ( api, query, response, limit, namespace ) {
 			return api.get( {
 				formatversion: 2,
 				action: 'opensearch',
 				search: query,
 				namespace: namespace || searchNS,
-				limit: maxRows
+				limit
 			} ).done( function ( data, jqXHR ) {
 				response( data[ 1 ], {
 					type: jqXHR.getResponseHeader( 'X-OpenSearch-Type' ),
 					searchId: jqXHR.getResponseHeader( 'X-Search-ID' ),
-					query: query
+					query
 				} );
 			} );
 		}
@@ -121,7 +151,6 @@
 				performance.clearMarks( queryMark );
 			}
 
-			// eslint-disable-next-line compat/compat
 			performance.mark( queryMark );
 		}
 

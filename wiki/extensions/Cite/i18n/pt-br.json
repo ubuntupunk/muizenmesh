@@ -9,6 +9,7 @@
 			"Felipe L. Ewald",
 			"Fúlvio",
 			"Giro720",
+			"Glaucia Japui Gonçalves",
 			555
 		]
 	},
@@ -29,7 +30,6 @@
 	"cite_error_included_references": "Falta a etiqueta de fechamento para <code>&lt;references&gt;</code>",
 	"cite_error_group_refs_without_references": "Existem marcas <code>&lt;ref&gt;</code> para um grupo chamado \"$1\", mas nenhuma marca <code>&lt;references group=\"$1\"/&gt;</code> correspondente foi encontrada",
 	"cite_error_references_group_mismatch": "marca <code>&lt;ref&gt;</code> em <code>&lt;references&gt;</code> está com o atributo de grupo \"$1\" conflitante.",
-	"cite_error_references_missing_group": "marca <code>&lt;ref&gt;</code> com o nome \"$2\", definida em <code>&lt;references&gt;</code>, está com atributo de grupo \"$1\" que não aparece no texto anterior.",
 	"cite_error_references_missing_key": "marca <code>&lt;ref&gt;</code> com nome \"$1\", definida em <code>&lt;references&gt;</code>, não foi utilizada no texto anterior.",
 	"cite_error_references_no_key": "marca <code>&lt;ref&gt;</code>, definida em <code>&lt;references&gt;</code>, não tem atributo de nome.",
 	"cite_error_empty_references_define": "marca <code>&lt;ref&gt;</code> com o nome \"$1\", definida no grupo <code>&lt;references&gt;</code> \"$2\", não tem nenhum conteúdo.",
@@ -40,5 +40,14 @@
 	"cite_references_link_accessibility_back_label": "Voltar acima",
 	"cite_section_preview_references": "Pré-visualização das referências",
 	"cite_warning": "Citar aviso: $1",
-	"cite_warning_sectionpreview_no_text": "A tag <code>&lt;ref&gt;</code> com o nome <code>$1</code> não pode ser visualizada porque está definida fora da seção atual ou não definida."
+	"cite_warning_sectionpreview_no_text": "A tag <code>&lt;ref&gt;</code> com o nome <code>$1</code> não pode ser visualizada porque está definida fora da seção atual ou não definida.",
+	"cite-wikieditor-tool-reference": "Referência",
+	"cite-wikieditor-help-page-references": "Referências",
+	"cite-wikieditor-help-content-reference-description": "Referência",
+	"cite-wikieditor-help-content-named-reference-description": "Referência nomeada",
+	"cite-wikieditor-help-content-rereference-description": "Reutilização da mesma referência",
+	"cite-wikieditor-help-content-showreferences-description": "Mostrar referências",
+	"cite-wikieditor-help-content-reference-example-text1": "Página\n  texto.$1",
+	"cite-wikieditor-help-content-reference-example-text2": "[$1 Texto do link], texto adicional.",
+	"cite-wikieditor-help-content-reference-example-text3": "[$1 Texto do link]"
 }

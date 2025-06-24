@@ -1,6 +1,6 @@
 <?php
-/**
- * 2007-2023 PayPal
+/*
+ * Since 2007 PayPal
  *
  * NOTICE OF LICENSE
  *
@@ -18,10 +18,11 @@
  *  versions in the future. If you wish to customize PrestaShop for your
  *  needs please refer to http://www.prestashop.com for more information.
  *
- *  @author 2007-2023 PayPal
+ *  @author Since 2007 PayPal
  *  @author 202 ecommerce <tech@202-ecommerce.com>
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
+ *
  */
 if (!defined('_PS_VERSION_')) {
     exit;
@@ -76,7 +77,7 @@ class AdminPaypalConfigurationController extends \PaypalAddons\classes\AdminPayP
     protected function initForms()
     {
         $isoCountryDefault = Tools::strtolower(Country::getIsoById(Configuration::get('PS_COUNTRY_DEFAULT')));
-        $this->forms['checkoutForm'] = new CheckoutForm();
+        $this->forms['checkoutForm'] = new CheckoutForm((int) Tools::getValue('with_factory'));
         $this->forms['trackingForm'] = new TrackingParametersForm();
 
         if (in_array($isoCountryDefault, ConfigurationMap::getBnplAvailableCountries())) {
@@ -108,9 +109,9 @@ class AdminPaypalConfigurationController extends \PaypalAddons\classes\AdminPayP
                 'messagingConfig' => Configuration::get(ConfigurationMap::MESSENGING_CONFIG, null, null, null, '{}'),
             ],
         ]);
-        $this->addJS(_PS_MODULE_DIR_ . 'paypal/views/js/admin.js');
+        $this->addJS(_MODULE_DIR_ . 'paypal/views/js/admin.js');
         $this->addJS('https://www.paypalobjects.com/merchant-library/merchant-configurator.js', false);
-        $this->addCSS(_PS_MODULE_DIR_ . 'paypal/views/css/paypal_bo.css');
+        $this->addCSS(_MODULE_DIR_ . 'paypal/views/css/paypal_bo.css');
     }
 
     public function initContent()
@@ -215,9 +216,9 @@ class AdminPaypalConfigurationController extends \PaypalAddons\classes\AdminPayP
 
         if ($result->isSuccess() == false) {
             if ((int) $result->getError()->getCode() === PayPal::PAYPAL_STATUS_CODE_TOO_MANY_REQUEST) {
-                $errorMessage[] = $tooManyRequestMessage;
+                $errorMessages[] = $tooManyRequestMessage;
             } else {
-                $errorMessage[] = $result->getError()->getMessage();
+                $errorMessages[] = $result->getError()->getMessage();
             }
 
             $this->errorTemplate($response, $errorMessages);
@@ -231,9 +232,9 @@ class AdminPaypalConfigurationController extends \PaypalAddons\classes\AdminPayP
 
         if ($result->isSuccess() == false) {
             if ((int) $result->getError()->getCode() === PayPal::PAYPAL_STATUS_CODE_TOO_MANY_REQUEST) {
-                $errorMessage[] = $tooManyRequestMessage;
+                $errorMessages[] = $tooManyRequestMessage;
             } else {
-                $errorMessage[] = $result->getError()->getMessage();
+                $errorMessages[] = $result->getError()->getMessage();
             }
 
             $this->errorTemplate($response, $errorMessages);

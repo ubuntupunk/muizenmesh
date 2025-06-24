@@ -7,8 +7,7 @@
  * Note: The optional counter prints the total number of the tag used, not just for the select items (as clicking on it will return all anyway.)
  *
  * @author Malte Müller (acrylian)
- * @package plugins
- * @subpackage tag-extras
+ * @package zpcore\plugins\tagextras
  */
 $plugin_description = gettext("Provides functions to print a tag cloud of all tags from a Zenphoto object.");
 $plugin_author = "Malte Müller (acrylian)";
@@ -59,7 +58,7 @@ function getAllTagsFromAlbum($albumname, $subalbums = false, $mode = 'images') {
 				return FALSE;
 			} else {
 				$imageWhere = " WHERE ";
-				$count = "";
+				$count = 0;
 				foreach ($albumids as $albumid) {
 					$count++;
 					$imageWhere .= 'albumid=' . $albumid['id'];
@@ -72,7 +71,7 @@ function getAllTagsFromAlbum($albumname, $subalbums = false, $mode = 'images') {
 			if (count($imageids) == 0) {
 				return FALSE;
 			} else {
-				$count = "";
+				$count = 0;
 				$tagWhere = " WHERE ";
 				foreach ($imageids as $imageid) {
 					$count++;
@@ -88,7 +87,7 @@ function getAllTagsFromAlbum($albumname, $subalbums = false, $mode = 'images') {
 			}
 			break;
 		case "albums":
-			$count = "";
+			$count = 0;
 			if (count($albumids) == 0) {
 				return FALSE;
 			} else {
@@ -151,7 +150,7 @@ function getAllTagsFromZenpage($mode = 'news') {
 			}
 			break;
 	}
-	$count = '';
+	$count = 0;
 	if (count($ids) == 0) {
 		return FALSE;
 	} else {
@@ -254,7 +253,7 @@ function printAllTags($tags, $mode, $separator = '', $class = '', $showcounter =
 		$class = 'class="' . sanitize($class) . '"';
 	$counter = '';
 	echo "<ul " . $class . ">\n";
-	$loopcount = '';
+	$loopcount = 0;
 	$tagcount = count($tags);
 	foreach ($tags as $row) {
 		if ($row['count'] >= $count_min) {

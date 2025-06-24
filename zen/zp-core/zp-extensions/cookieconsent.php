@@ -16,8 +16,7 @@
  * 
  * @author Malte Müller (acrylian), Fred Sondaar (fretzl), Vincent Bourganel (vincent3569)
  * @license GPL v3 or later
- * @package plugins
- * @subpackage cookieconsent
+ * @package zpcore\plugins\cookieconsent
  */
 $plugin_is_filter = 5 | THEME_PLUGIN;
 $plugin_description = gettext("A plugin to add a cookie notify dialog to comply with the EU cookie law and Google's request regarding usages of Google Adwords, Analytics and more. Based on <a href='https://cookieconsent.osano.com/'>https://cookieconsent.osano.com/</a>");
@@ -335,7 +334,7 @@ class cookieConsent {
 	 * 
 	 * NOTE: This will not and cannot work properly while using the static_html_cache plugin unless called before the cache is fetched.
 	 * 
-	 * @since ZenphotoCMS 1.5.8
+	 * @since 1.5.8
 	 * 
 	 * @return boolean
 	 */
@@ -371,7 +370,7 @@ class cookieConsent {
 	 * 
 	 * Plugins or themes can use the "cookieconsent_consentscripts" to add additional ones
 	 * 
-	 * @since ZenphotoCMS 1.5.8
+	 * @since 1.5.8
 	 */
 	static function printConsentJS() {
 		$scripts = getOption('zpcookieconsent_scripts');
@@ -383,7 +382,7 @@ class cookieConsent {
 	 * 
 	 * Plugins or themes can use the "cookieconsent_externalconsentscripts" to add additional ones
 	 * 
-	 * @since ZenphotoCMS 1.5.8
+	 * @since 1.5.8
 	 */
 	static function printExternalConsentJS() {
 		$option = trim(strval(getOption('zpcookieconsent_externalscripts')));
@@ -392,7 +391,7 @@ class cookieConsent {
 			$array = explode(',', $scripts);
 			$externaljs = '';
 			$total = count($array);
-			$count = '';
+			$count = 0;
 			foreach($array as $url) {
 				$count++;
 				$externaljs .= '"' . $url . '"';

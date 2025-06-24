@@ -8,8 +8,7 @@
  * according to the player enabled.
  *
  * @author Stephen Billard (sbillard), Malte Müller (acrylian)
- * @package plugins
- * @subpackage class-video
+ * @package zpcore\plugins\classvideo
  */
 // force UTF-8 Ø
 
@@ -18,6 +17,7 @@ $plugin_description = gettext('The Zenphoto <em>audio-video</em> handler.');
 $plugin_notice = gettext('This plugin must always be enabled to use multimedia content. It supports mp4/m4v video and mp3 audio natively in capable browsers. For more support you should also enable a multimedia player. See the info of the player you use to see how it is configured.');
 $plugin_author = "Stephen Billard (sbillard), Malte Müller (acrylian)";
 $plugin_category = gettext('Media');
+$plugin_deprecated = gettext('This plugin will be restructured and moved to core in later versions');
 
 Gallery::addImageHandler('mp4', 'Video');
 Gallery::addImageHandler('m4v', 'Video');
@@ -41,6 +41,16 @@ class VideoObject_Options {
 		purgeOption('class-video_3gp_w');
 		purgeOption('class-video_3gp_h');
 		purgeOption('class-video_videoalt');
+		setOptionDefault('video_videoposter', 1);
+		setOptionDefault('video_audioposter', 1);
+		setOptionDefault('video_videoposter_width', 1280);
+		setOptionDefault('video_videoposter_height', 720);
+		setOptionDefault('video_audioposter_width', 1280);
+		setOptionDefault('video_audioposter_height', 720);
+		setOptionDefault('video_videoposter_maxspace', true);
+		setOptionDefault('video_audioposter_maxspace', true);
+		setOptionDefault('video_videoposter_css', true);
+		setOptionDefault('video_audioposter_css', true);
 	}
 
 	/**
@@ -49,19 +59,59 @@ class VideoObject_Options {
 	 * @return array
 	 */
 	function getOptionsSupported() {
-		return array(gettext('Watermark default images') => array(
+		return array(
+				gettext('Video Poster') => array(
+						'key' => 'video_videoposter', 
+						'type' => OPTION_TYPE_CHECKBOX,
+						'desc' => gettext('If a sidecar image should be used as the poster of the video. .')),
+				gettext('Video player width') => array(
+						'key' => 'video_videoposter_width', 
+						'type' => OPTION_TYPE_TEXTBOX,
+						'desc' => gettext('Max width of the video player (px). Image will be sized automatially in responsive layouts. Might require theme CSS changes to work correctly.')),
+				gettext('Video player height') => array(
+						'key' => 'video_videoposter_height', 
+						'type' => OPTION_TYPE_TEXTBOX,
+						'desc' => gettext('Height of the video player (px). Image will be sized automatially in responsive layouts. Might require theme CSS changes to work correctly.')),
+				gettext('Video poster - maxspace') => array(
+						'key' => 'video_videoposter_maxspace', 
+						'type' => OPTION_TYPE_CHECKBOX,
+						'desc' => gettext('If enabled (default) the image is resized to fit within width and height without being cropped.')),
+				gettext('Audio poster') => array(
+						'key' => 'video_audioposter', 
+						'type' => OPTION_TYPE_CHECKBOX,
+						'desc' => gettext('If a sidecar image should be shown with audio files. You need to set the width/height. .')),
+				gettext('Audio poster width') => array(
+						'key' => 'video_audioposter_width', 
+						'type' => OPTION_TYPE_TEXTBOX,
+						'desc' => gettext('Max width of the audio poster (px). Image will be sized automatially in responsive layouts. Might require theme CSS changes to work correctly.')),
+				gettext('Audio poster height') => array(
+						'key' => 'video_audioposter_height', 
+						'type' => OPTION_TYPE_TEXTBOX,
+						'desc' => gettext('Height of the audio poster (px). Image will be sized automatially in responsive layouts. Might require theme CSS changes to work correctly.')),
+				gettext('Audio poster - maxspace') => array(
+						'key' => 'video_audioposter_maxspace', 
+						'type' => OPTION_TYPE_CHECKBOX,
+						'desc' => gettext('If enabled (default) the image is resized to fit within width and height without being cropped.')),
+				gettext('Default CSS') => array(
+						'key' => 'video_audioposter_css', 
+						'type' => OPTION_TYPE_CHECKBOX_ARRAY,
+						'checkboxes' => array(
+								gettext('Video player CSS') => 'video_videoposter_css',
+								gettext('Audio player CSS') => 'video_audioposter_css',),
+						'desc' => gettext('Loads default inline CSS if the theme used has no proper support.')),
+				gettext('Watermark default images') => array(
 						'key' => 'video_watermark_default_images',
 						'type' => OPTION_TYPE_CHECKBOX,
-						'order' => 0,
-						'desc' => gettext('Check to place watermark image on default thumbnail images.'))
+						'desc' => gettext('Check to place watermark image on default thumbnail images.')),
 		);
 	}
 
 }
 
 class Video extends Image {
-
-	var $videoalt = array();
+	
+	public $video = false;
+	public $videoalt = array();
 
 	/**
 	 * Constructor for class-video
@@ -117,8 +167,8 @@ class Video extends Image {
 	function updateDimensions() {
 		global $_zp_multimedia_extension;
 		$ext = getSuffix($this->filename);
-		$h = $_zp_multimedia_extension->getHeight($this);
-		$w = $_zp_multimedia_extension->getWidth($this);
+		$h = $_zp_multimedia_extension->getHeight();
+		$w = $_zp_multimedia_extension->getWidth();
 		$this->set('width', $w);
 		$this->set('height', $h);
 	}
@@ -203,7 +253,7 @@ class Video extends Image {
 	/**
 	 * Returns an array with widht and height the sidecar thumb image
 	 * 
-	 * @since ZephotoCMS 1.5.8
+	 * @since 1.5.8
 	 * 
 	 * @return array
 	 */
@@ -239,7 +289,7 @@ class Video extends Image {
 	 * @param bool $effects ignored
 	 * @return string
 	 */
-	function getCustomImage($size, $width, $height, $cropw, $croph, $cropx, $cropy, $thumbStandin = false, $effects = NULL) {
+	function getCustomImage($size = null, $width = null, $height = null, $cropw = null, $croph = null, $cropx = null, $cropy = null, $thumbStandin = false, $effects = NULL) {
 		if ($thumbStandin) {
 			$wmt = getOption('Video_watermark');
 			if (empty($wmt)) {
@@ -287,11 +337,11 @@ class Video extends Image {
 	 * returns URL to the original image or to a high quality alternate
 	 * e.g. ogg, avi, wmv files that can be handled by the client browser
 	 *
-	 * @param unknown_type $path
+	 * @param string $path the "path" to the image. Defaults to the simple WEBPATH
 	 */
-	function getFullImageURL() {
+	function getFullImageURL($path = WEBPATH) {
 		// Search for a high quality version of the video
-		if ($vid = parent::getFullImageURL()) {
+		if ($vid = parent::getFullImageURL($path)) {
 			$folder = ALBUM_FOLDER_SERVERPATH . internalToFilesystem($this->album->getName());
 			$video = stripSuffix($this->filename);
 			$curdir = getcwd();
@@ -399,46 +449,180 @@ class Video extends Image {
 						}
 					}
 				}
+				
+				
 				$title = $this->get('VideoTitle');
-				if (!empty($title)) {
+				if (!empty($title) && $this->metadata_refresh_behaviour == 'full-refresh') {
 					$this->setTitle($title);
 				}
 			}
 		}
 	}
-
+	
 
 }
 
 class pseudoPlayer {
 
 	public $name = '';
-	private $width = 480;
-	private $height = 360;
+	private $width = 1280;
+	private $height = 720;
 
-	function getWidth($dummy) {
+
+	function getWidth() {
 		return $this->width;
 	}
 
-	function getHeight($dummy) {
+	function getHeight() {
 		return $this->height;
+	}
+	
+	/**
+	 * Gets the poster width
+	 * 
+	 * @param object $obj
+	 * @return int
+	 */
+	function getPosterWidth($obj) {
+		$suffix = getSuffix($obj->getFullImage(FULLWEBPATH));
+		switch ($suffix) {
+			case 'mp4':
+			case 'm4v':
+				$width = getOption('video_videoposter_width');
+				break;
+			case 'm4a':
+			case 'mp3':
+				$width = getOption('video_audioposter_width');
+				break;
+		}
+		if (empty($width)) {
+			$width = $this->getWidth();
+		}
+		return $width;
+	}
+	
+	/**
+	 * Gets the poster height
+	 * 
+	 * @sicne 1.6.1
+	 * 
+	 * @param object $obj
+	 * @return int
+	 */
+	function getPosterHeight($obj) {
+		$suffix = getSuffix($obj->getFullImage(FULLWEBPATH));
+		switch ($suffix) {
+			case 'mp4':
+			case 'm4v':
+				$height = getOption('video_videoposter_height');
+				break;
+			case 'm4a':
+			case 'mp3':
+				$height = getOption('video_audioposter_height');
+				break;
+		}
+		if (empty($height)) {
+			$height = $this->getHeight();
+		}
+		return $height;
+	}
+	
+	/**
+	 * Gets an array with the poster data
+	 * 
+	 * @since 1.6.1
+	 * 
+	 * @param object $obj
+	 * @param int $width Default null
+	 * @param int $height Default null
+	 * @return array
+	 */
+	function getPoster($obj, $width = null, $height = null) {
+		$poster = array(
+				'width' => $width,
+				'height' => $height,
+				'cropwidth' => null,
+				'cropheight' => null,
+				'url' => ''
+		);
+		if (getOption('video_videoposter') || getOption('video_audioposter')) {
+			$suffix = getSuffix($obj->getFullImage(FULLWEBPATH));
+			if (empty($poster['width'])) {
+				$poster['width'] = $this->getPosterWidth($obj);
+			}
+			if (empty($poster['height'])) {
+				$poster['height'] = $this->getPosterHeight($obj);
+			}
+			$poster['cropwidth'] = $poster['width'];
+			$poster['cropheight'] = $poster['height'];
+			switch ($suffix) {
+				default:
+				case 'mp4':
+				case 'm4v':
+					if (getOption('video_videoposter')) {
+						if (getOption('video_videoposter_maxspace')) {
+							getMaxSpaceContainer($poster['width'], $poster['height'], $obj, true);
+							$poster['cropwidth'] = null;
+							$poster['cropheight'] = null;
+						}
+						$poster['url'] = $obj->getCustomImage($poster['width'], $poster['width'], $poster['height'], $poster['cropwidth'], $poster['cropheight'], null, null, true);
+					}
+					break;
+				case 'm4a':
+				case 'mp3':
+					if (getOption('video_audioposter')) {
+						if (getOption('video_audioposter_maxspace')) {
+							getMaxSpaceContainer($poster['width'], $poster['height'], $obj, true);
+							$poster['cropwidth'] = null;
+							$poster['cropheight'] = null;
+						}
+						$poster['url'] = $obj->getCustomImage($poster['width'], $poster['width'], $poster['height'], $poster['cropwidth'], $poster['cropheight'], null, null, true);
+					}
+					break;
+			}
+		}
+		return $poster;
 	}
 
 	function getPlayerConfig($obj, $movietitle = NULL, $count = NULL) {
 		$movie = $obj->getFullImage(FULLWEBPATH);
 		$suffix = getSuffix($movie);
-		$poster =  $obj->getCustomImage(null, $obj->getWidth(), $obj->getHeight(), $obj->getWidth(), $obj->getHeight(), null, null, true);
+		$poster = '';
 		$content = '';
+		$posterdata = $this->getPoster($obj);
+		$container_width = $this->getPosterWidth($obj);
+		$container_height = $this->getPosterHeight($obj);
 		switch ($suffix) {
 			case 'mp4':
 			case 'm4v':
-				$content = '<video poster="' . html_encode($poster) . '" src="' . html_encode($movie) . '" controls width="100%">';
+				if (!empty($posterdata['url'])) {
+					$poster = ' poster="' . html_encode($posterdata['url']) . '"';
+				}
+				$style = '';
+				if (getOption('video_videoposter_css')) {
+					$aspectratio = Image::calculateAspectRatio($container_width, $container_height, '/');
+					$style = ' style="max-width: 100%; height: auto; aspect-ratio: ' . $aspectratio . ';"';
+				}
+				$content = '<video class="video_videoplayer"' . $poster . ' src="' . html_encode($movie) . '" controls width="' . $container_width . '" height="' . $container_height . '"' . $style . '>';
 				$content .= gettext('Your browser sadly does not support this video format.');
 				$content .= '</video>';
 				break;
 			case 'm4a':
 			case 'mp3':
-				$content = '<audio src="' . html_encode($movie) . '" controls>';
+				if (!empty($posterdata['url'])) {
+					if (!getOption('video_audioposter_maxspace')) { // here use the real image sizes!
+						$container_width = $posterdata['width'];
+						$container_height = $posterdata['height'];
+					}
+					$style = $style_player = '';
+					if (getOption('video_audioposter_css')) {
+						$aspectratio = Image::calculateAspectRatio($container_width, $container_height, '/');
+						$style = ' style="max-width: 100%; height: auto; object-fit: contain !important; aspect-ratio: ' . $aspectratio . ';"';
+						$style_player = ' style="width: 100%; max-width: ' . $container_width . 'px;"';
+					}
+					$content = '<img class="video_audioposter" src="' . html_encode($posterdata['url']) . '" width="' . $container_width . '" height="' . $container_height . '"' . $style . ' alt="">' . "\n";
+				}
+				$content .= '<audio class="video_audioplayer" src="' . html_encode($movie) . '" controls' . $style_player . '>';
 				$content .= gettext('Your browser sadly does not support this audio format.');
 				$content .= '</audio>';
 				break;

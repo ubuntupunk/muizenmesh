@@ -1,7 +1,7 @@
 <?php
 /**
  * provides the Upload tab of admin
- * @package admin
+ * @package zpcore\admin
  */
 // force UTF-8 Ø
 
@@ -42,7 +42,7 @@ $_GET['page'] = 'upload';
 
 printAdminHeader('upload', 'albums');
 ?>
-<script type="text/javascript" src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/zp_upload.js"></script>
+<script src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/zp_upload.js"></script>
 <?php
 //	load the uploader specific header stuff
 $formAction = upload_head();
@@ -62,14 +62,14 @@ printLogoAndLinks();
 		}
 		$albumlist = $_zp_gallery->getAllAlbumsFromDB();
 		//	remove dynamic albums--can't upload to them
-		foreach ($albumlist as $key => $albumname) {
-			if (hasDynamicAlbumSuffix($key) && !is_dir(ALBUM_FOLDER_SERVERPATH . $key)) {
+		foreach ($albumlist as $key => $albumtitle) {
+			$albumlistobj = AlbumBase::newAlbum($key);
+			if ($albumlistobj->isDynamic() && !is_dir(ALBUM_FOLDER_SERVERPATH . $key)) {
 				unset($albumlist[$key]);
 			}
 		}
 		?>
-		<script type="text/javascript">
-			// <!-- <![CDATA[
+		<script>
 			// Array of album names for javascript functions.
 			var albumArray = new Array(
 <?php
@@ -79,7 +79,6 @@ foreach ($albumlist as $key => $value) {
 	$separator = ", ";
 }
 ?>);
-			// ]]> -->
 		</script>
 
 		<div class="tabbox">
@@ -163,8 +162,7 @@ foreach ($albumlist as $key => $value) {
 					$checked = '';
 				}
 				?>
-				<script type="text/javascript">
-					// <!-- <![CDATA[
+				<script>
 	<?php seoFriendlyJS(); ?>
 					function buttonstate(good) {
 						$('#albumtitleslot').val($('#albumtitle').val());
@@ -207,7 +205,6 @@ foreach ($albumlist as $key => $value) {
 						var state = albumSwitch(sel, true, '<?php echo addslashes(gettext('That name is already used.')); ?>', '<?php echo addslashes(gettext('This upload has to have a folder. Type a title or folder name to continue...')); ?>');
 						buttonstate(state);
 					}
-					// ]]> -->
 				</script>
 				<div id="albumselect">
 
@@ -302,8 +299,7 @@ foreach ($albumlist as $key => $value) {
 						?>
 					</div><!-- upload action -->
 
-					<script type="text/javascript">
-						//<!-- <![CDATA[
+					<script>
 	<?php
 	echo zp_apply_filter('upload_helper_js', '') . "\n";
 	if ($passedalbum) {
@@ -344,7 +340,6 @@ foreach ($albumlist as $key => $value) {
 	}
 	?>
 						buttonstate($('#folderdisplay').val() != '');
-						// ]]> -->
 					</script>
 					<?php
 				} else {

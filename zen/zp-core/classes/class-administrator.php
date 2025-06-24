@@ -5,8 +5,7 @@
  *
  * NOTE: one should use the Authority::newAdministrator() method rather than directly instantiating
  * an administrator object
- * @package core
- * @subpackage classes\authorization
+ * @package zpcore\classes\authorization
  */
 class Administrator extends PersistentObject {
 
@@ -133,7 +132,7 @@ class Administrator extends PersistentObject {
 	/**
 	 * Gets the full name if set 
 	 * 
-	 * @since ZenphotoCNS 1.5.8
+	 * @since 1.5.8
 	 * 
 	 * @param string $user User id 
 	 * @return string
@@ -471,7 +470,7 @@ class Administrator extends PersistentObject {
 	/**
 	 * Returns the last time the user visited the site being loggedin
 	 * 
-	 * @since ZenphotoCMS 1.5.8
+	 * @since 1.5.8
 	 * @return strig
 	 */
 	function getLastVisit() {
@@ -481,7 +480,7 @@ class Administrator extends PersistentObject {
 	/**
 	 * Sets the last time the user visited the site being loggedin
 	 * 
-	 * @since ZenphotoCMS 1.5.8
+	 * @since 1.5.8
 	 */
 	function setLastVisit($datetime = '') {
 		if(empty($datetime)) {
@@ -492,7 +491,7 @@ class Administrator extends PersistentObject {
 	
 	/**
 	 * Updates the last visit date if enabled on the options and the time frame defined has passed.
-	 * @since ZenphotoCMS 1.5.8
+	 * @since 1.5.8
 	 */
 	function updateLastVisit() {
 		if (getOption('admin_lastvisit')) {
@@ -540,7 +539,9 @@ class Administrator extends PersistentObject {
 }
 
 /**
- * @deprecated ZenphotoCMS 2.0 - Use the class Administrator instead
+ * 
+ * @package zpcore\classes\deprecated
+ * @deprecated 2.0 - Use the class Administrator instead
  */
 class Zenphoto_Administrator extends Administrator {
 	

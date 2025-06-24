@@ -21,6 +21,8 @@
  * @ingroup SpecialPage
  */
 
+namespace MediaWiki\SpecialPage;
+
 /**
  * Shortcut to construct an includable special page.
  *
@@ -37,3 +39,6 @@ class IncludableSpecialPage extends SpecialPage {
 		return true;
 	}
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( IncludableSpecialPage::class, 'IncludableSpecialPage' );

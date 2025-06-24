@@ -21,6 +21,8 @@
  * @ingroup SpecialPage
  */
 
+namespace MediaWiki\SpecialPage;
+
 use MediaWiki\Title\Title;
 
 /**
@@ -138,3 +140,6 @@ abstract class RedirectSpecialArticle extends RedirectSpecialPage {
 	}
 
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( RedirectSpecialArticle::class, 'RedirectSpecialArticle' );

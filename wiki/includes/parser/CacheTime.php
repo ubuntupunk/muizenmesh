@@ -27,6 +27,7 @@ use MediaWiki\Json\JsonUnserializer;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Parser\ParserCacheMetadata;
+use MediaWiki\Utils\MWTimestamp;
 use Wikimedia\Reflection\GhostFieldAccessTrait;
 
 /**
@@ -70,6 +71,13 @@ class CacheTime implements ParserCacheMetadata, JsonUnserializable {
 			$this->mCacheTime = MWTimestamp::now();
 		}
 		return $this->mCacheTime;
+	}
+
+	/**
+	 * @return bool true if a cache time has been set
+	 */
+	public function hasCacheTime(): bool {
+		return $this->mCacheTime !== '';
 	}
 
 	/**
@@ -150,19 +158,8 @@ class CacheTime implements ParserCacheMetadata, JsonUnserializable {
 			return 0;
 		}
 
-		$expire = $this->mCacheExpiry;
-
-		if ( $expire === null ) {
-			$expire = $parserCacheExpireTime;
-		} else {
-			$expire = min( $expire, $parserCacheExpireTime );
-		}
-
-		if ( $expire <= 0 ) {
-			return 0; // not cacheable
-		} else {
-			return $expire;
-		}
+		$expire = min( $this->mCacheExpiry ?? $parserCacheExpireTime, $parserCacheExpireTime );
+		return $expire > 0 ? $expire : 0;
 	}
 
 	/**

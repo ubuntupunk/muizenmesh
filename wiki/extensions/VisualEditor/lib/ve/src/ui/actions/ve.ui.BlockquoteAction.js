@@ -1,7 +1,7 @@
 /*!
  * VisualEditor UserInterface BlockquoteAction class.
  *
- * @copyright 2011-2018 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
 
 /**
@@ -11,6 +11,7 @@
  * @extends ve.ui.Action
  * @constructor
  * @param {ve.ui.Surface} surface Surface to act on
+ * @param {string} [source]
  */
 ve.ui.BlockquoteAction = function VeUiBlockquoteAction() {
 	// Parent constructor

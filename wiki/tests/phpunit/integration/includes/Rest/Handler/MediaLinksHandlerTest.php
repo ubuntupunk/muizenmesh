@@ -2,11 +2,13 @@
 
 namespace MediaWiki\Tests\Rest\Handler;
 
+use MediaWiki\Context\RequestContext;
+use MediaWiki\MainConfigNames;
 use MediaWiki\Rest\Handler\MediaLinksHandler;
 use MediaWiki\Rest\LocalizedHttpException;
 use MediaWiki\Rest\RequestData;
 use MediaWiki\Title\Title;
-use RequestContext;
+use MediaWikiIntegrationTestCase;
 use Wikimedia\Message\MessageValue;
 
 /**
@@ -14,7 +16,7 @@ use Wikimedia\Message\MessageValue;
  *
  * @group Database
  */
-class MediaLinksHandlerTest extends \MediaWikiIntegrationTestCase {
+class MediaLinksHandlerTest extends MediaWikiIntegrationTestCase {
 
 	use MediaTestTrait;
 
@@ -24,7 +26,7 @@ class MediaLinksHandlerTest extends \MediaWikiIntegrationTestCase {
 
 	private function newHandler() {
 		return new MediaLinksHandler(
-			$this->getServiceContainer()->getDBLoadBalancerFactory(),
+			$this->getServiceContainer()->getConnectionProvider(),
 			$this->makeMockRepoGroup( [ 'Existing.jpg' ] ),
 			$this->getServiceContainer()->getPageStore()
 		);
@@ -43,7 +45,7 @@ class MediaLinksHandlerTest extends \MediaWikiIntegrationTestCase {
 
 		$user = RequestContext::getMain()->getUser();
 		$userOptionsManager = $this->getServiceContainer()->getUserOptionsManager();
-		$this->setMwGlobals( 'wgImageLimits', [
+		$this->overrideConfigValue( MainConfigNames::ImageLimits, [
 			$userOptionsManager->getIntOption( $user, 'imagesize' ) => [ 100, 100 ],
 		] );
 
@@ -102,7 +104,7 @@ class MediaLinksHandlerTest extends \MediaWikiIntegrationTestCase {
 
 	public function testCacheControl() {
 		$title = Title::newFromText( __METHOD__ );
-		$this->editPage( $title->getPrefixedDBkey(), 'First' );
+		$this->editPage( $title, 'First' );
 
 		$request = new RequestData( [ 'pathParams' => [ 'title' => $title->getPrefixedDBkey() ] ] );
 
@@ -115,7 +117,7 @@ class MediaLinksHandlerTest extends \MediaWikiIntegrationTestCase {
 			$response->getHeaderLine( 'Last-Modified' )
 		);
 
-		$this->editPage( $title->getPrefixedDBkey(), 'Second' );
+		$this->editPage( $title, 'Second' );
 
 		Title::clearCaches();
 		$handler = $this->newHandler();
@@ -140,4 +142,25 @@ class MediaLinksHandlerTest extends \MediaWikiIntegrationTestCase {
 		$this->executeHandler( $handler, $request );
 	}
 
+	public function testMaxNumLinks() {
+		$title = __CLASS__ . '_Foo';
+
+		$handler = new class (
+			$this->getServiceContainer()->getConnectionProvider(),
+			$this->makeMockRepoGroup( [ 'Existing.jpg' ] ),
+			$this->getServiceContainer()->getPageStore()
+		) extends MediaLinksHandler {
+			protected function getMaxNumLinks(): int {
+				return 1;
+			}
+		};
+
+		$request = new RequestData( [ 'pathParams' => [ 'title' => $title ] ] );
+
+		$this->expectExceptionObject(
+			new LocalizedHttpException( new MessageValue( 'rest-media-too-many-links' ), 400 )
+		);
+
+		$data = $this->executeHandlerAndGetBodyData( $handler, $request );
+	}
 }

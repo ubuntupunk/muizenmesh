@@ -21,7 +21,12 @@
  * @ingroup SpecialPage
  */
 
+namespace MediaWiki\Specials;
+
+use MediaWiki\SpecialPage\RedirectSpecialPage;
+use MediaWiki\SpecialPage\SpecialPage;
 use MediaWiki\Title\Title;
+use SearchEngineFactory;
 
 /**
  * A special page that redirects to the URL of a given file
@@ -30,8 +35,7 @@ use MediaWiki\Title\Title;
  */
 class SpecialFilepath extends RedirectSpecialPage {
 
-	/** @var SearchEngineFactory */
-	private $searchEngineFactory;
+	private SearchEngineFactory $searchEngineFactory;
 
 	/**
 	 * @param SearchEngineFactory $searchEngineFactory
@@ -97,3 +101,6 @@ class SpecialFilepath extends RedirectSpecialPage {
 		return 'media';
 	}
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( SpecialFilepath::class, 'SpecialFilepath' );

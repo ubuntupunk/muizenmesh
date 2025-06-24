@@ -6,7 +6,7 @@
 class IPTCTest extends \MediaWikiUnitTestCase {
 
 	/**
-	 * @covers IPTC::getCharset
+	 * @covers \IPTC::getCharset
 	 */
 	public function testRecognizeUtf8() {
 		// utf-8 is the only one used in practise.
@@ -14,7 +14,7 @@ class IPTCTest extends \MediaWikiUnitTestCase {
 		$this->assertEquals( 'UTF-8', $res );
 	}
 
-	public function provideParse() {
+	public static function provideParse() {
 		// $rawData, $expectedKeywords
 
 		// basically IPTC for keyword with value of 0xBC which is 1/4 in iso-8859-1
@@ -62,7 +62,7 @@ class IPTCTest extends \MediaWikiUnitTestCase {
 	}
 
 	/**
-	 * @covers IPTC::parse
+	 * @covers \IPTC::parse
 	 * @dataProvider provideParse
 	 */
 	public function testIPTCParseUTF8( $rawData, $expectedKeywords ) {

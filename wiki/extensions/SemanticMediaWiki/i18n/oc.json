@@ -77,6 +77,7 @@
 	"smw_exportrdf_submit": "Exportar",
 	"uriresolver": "Resolveire d'URI",
 	"properties": "Proprietats",
+	"smw-categories": "Categorias",
 	"smw_properties_docu": "Sus aqueste wiki, son utilizadas las proprietats seguentas.",
 	"smw_property_template": "$1 del tipe $2 ($3 {{PLURAL:$3|utilizacion|utilizacions}})",
 	"smw_propertylackspage": "Tota proprietat deuriá èsser descrita per una pagina !",
@@ -222,7 +223,6 @@
 	"smw-datavalue-external-formatter-invalid-uri": "« $1 » es una URL invalida.",
 	"smw-datavalue-reference-outputformat": "$1 : $2",
 	"smw-parser-invalid-json-format": "L’analisador JSON a tornat un « $1 ».",
-	"smw-property-preferred-title-format": "$1 ($2)",
 	"smw-no-data-available": "Cap de donada pas disponibla.",
 	"smw-listingcontinuesabbrev": "(seguida)",
 	"smw-showingresults": "Afichatge de <b>$1</b> resultat{{PLURAL:$1||s}} a partir del n°<b>$2</b>."

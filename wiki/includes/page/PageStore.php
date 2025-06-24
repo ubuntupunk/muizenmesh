@@ -2,24 +2,25 @@
 
 namespace MediaWiki\Page;
 
-use DBAccessObjectUtils;
 use EmptyIterator;
+use IDBAccessObject;
 use InvalidArgumentException;
 use Iterator;
-use LinkCache;
 use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
-use MalformedTitleException;
+use MediaWiki\Cache\LinkCache;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\DAO\WikiAwareEntity;
-use MediaWiki\Linker\LinkTarget;
 use MediaWiki\MainConfigNames;
-use NamespaceInfo;
+use MediaWiki\Title\MalformedTitleException;
+use MediaWiki\Title\NamespaceInfo;
+use MediaWiki\Title\TitleParser;
 use NullStatsdDataFactory;
 use stdClass;
-use TitleParser;
 use Wikimedia\Assert\Assert;
+use Wikimedia\Parsoid\Core\LinkTarget as ParsoidLinkTarget;
 use Wikimedia\Rdbms\IDatabase;
 use Wikimedia\Rdbms\ILoadBalancer;
+use Wikimedia\Rdbms\IReadableDatabase;
 
 /**
  * @since 1.36
@@ -99,14 +100,14 @@ class PageStore implements PageLookup {
 	}
 
 	/**
-	 * @param LinkTarget $link
+	 * @param ParsoidLinkTarget $link
 	 * @param int $queryFlags
 	 *
 	 * @return ProperPageIdentity
 	 */
 	public function getPageForLink(
-		LinkTarget $link,
-		int $queryFlags = self::READ_NORMAL
+		ParsoidLinkTarget $link,
+		int $queryFlags = IDBAccessObject::READ_NORMAL
 	): ProperPageIdentity {
 		Assert::parameter( !$link->isExternal(), '$link', 'must not be external' );
 		Assert::parameter( $link->getDBkey() !== '', '$link', 'must not be relative' );
@@ -139,7 +140,7 @@ class PageStore implements PageLookup {
 	public function getPageByName(
 		int $namespace,
 		string $dbKey,
-		int $queryFlags = self::READ_NORMAL
+		int $queryFlags = IDBAccessObject::READ_NORMAL
 	): ?ExistingPageRecord {
 		Assert::parameter( $dbKey !== '', '$dbKey', 'must not be empty' );
 		Assert::parameter( !strpos( $dbKey, ' ' ), '$dbKey', 'must not contain spaces' );
@@ -167,14 +168,14 @@ class PageStore implements PageLookup {
 	private function getPageByNameViaLinkCache(
 		int $namespace,
 		string $dbKey,
-		int $queryFlags = self::READ_NORMAL
+		int $queryFlags = IDBAccessObject::READ_NORMAL
 	): ?ExistingPageRecord {
 		$conds = [
 			'page_namespace' => $namespace,
 			'page_title' => $dbKey,
 		];
 
-		if ( $queryFlags === self::READ_NORMAL && $this->linkCache->isBadLink( $conds ) ) {
+		if ( $queryFlags === IDBAccessObject::READ_NORMAL && $this->linkCache->isBadLink( $conds ) ) {
 			$this->incrementStats( "LinkCache.hit.bad.early" );
 			return null;
 		}
@@ -250,7 +251,7 @@ class PageStore implements PageLookup {
 	public function getPageByText(
 		string $text,
 		int $defaultNamespace = NS_MAIN,
-		int $queryFlags = self::READ_NORMAL
+		int $queryFlags = IDBAccessObject::READ_NORMAL
 	): ?ProperPageIdentity {
 		try {
 			$title = $this->titleParser->parseTitle( $text, $defaultNamespace );
@@ -274,7 +275,7 @@ class PageStore implements PageLookup {
 	public function getExistingPageByText(
 		string $text,
 		int $defaultNamespace = NS_MAIN,
-		int $queryFlags = self::READ_NORMAL
+		int $queryFlags = IDBAccessObject::READ_NORMAL
 	): ?ExistingPageRecord {
 		$pageIdentity = $this->getPageByText( $text, $defaultNamespace, $queryFlags );
 		if ( !$pageIdentity ) {
@@ -291,7 +292,7 @@ class PageStore implements PageLookup {
 	 */
 	public function getPageById(
 		int $pageId,
-		int $queryFlags = self::READ_NORMAL
+		int $queryFlags = IDBAccessObject::READ_NORMAL
 	): ?ExistingPageRecord {
 		Assert::parameter( $pageId > 0, '$pageId', 'must be greater than zero' );
 
@@ -312,12 +313,12 @@ class PageStore implements PageLookup {
 	 */
 	public function getPageByReference(
 		PageReference $page,
-		int $queryFlags = self::READ_NORMAL
+		int $queryFlags = IDBAccessObject::READ_NORMAL
 	): ?ExistingPageRecord {
 		$page->assertWiki( $this->wikiId );
 		Assert::parameter( $page->getNamespace() >= 0, '$page', 'namespace must not be virtual' );
 
-		if ( $page instanceof ExistingPageRecord && $queryFlags === self::READ_NORMAL ) {
+		if ( $page instanceof ExistingPageRecord && $queryFlags === IDBAccessObject::READ_NORMAL ) {
 			return $page;
 		}
 		if ( $page instanceof PageIdentity ) {
@@ -334,7 +335,7 @@ class PageStore implements PageLookup {
 	 */
 	private function loadPageFromConditions(
 		array $conds,
-		int $queryFlags = self::READ_NORMAL
+		int $queryFlags = IDBAccessObject::READ_NORMAL
 	): ?ExistingPageRecord {
 		$queryBuilder = $this->newSelectQueryBuilder( $queryFlags )
 			->conds( $conds )
@@ -393,32 +394,28 @@ class PageStore implements PageLookup {
 	/**
 	 * @unstable
 	 *
-	 * @param IDatabase|int $dbOrFlags The database connection to use, or a READ_XXX constant
+	 * @param IReadableDatabase|int $dbOrFlags The database connection to use, or a READ_XXX constant
 	 *        indicating what kind of database connection to use.
 	 *
 	 * @return PageSelectQueryBuilder
 	 */
-	public function newSelectQueryBuilder( $dbOrFlags = self::READ_NORMAL ): PageSelectQueryBuilder {
-		if ( $dbOrFlags instanceof IDatabase ) {
+	public function newSelectQueryBuilder( $dbOrFlags = IDBAccessObject::READ_NORMAL ): PageSelectQueryBuilder {
+		if ( $dbOrFlags instanceof IReadableDatabase ) {
 			$db = $dbOrFlags;
-			$options = [];
+			$flags = IDBAccessObject::READ_NORMAL;
 		} else {
-			[ $mode, $options ] = DBAccessObjectUtils::getDBOptions( $dbOrFlags );
-			$db = $this->getDBConnectionRef( $mode );
+			if ( ( $dbOrFlags & IDBAccessObject::READ_LATEST ) == IDBAccessObject::READ_LATEST ) {
+				$db = $this->dbLoadBalancer->getConnection( DB_PRIMARY, [], $this->wikiId );
+			} else {
+				$db = $this->dbLoadBalancer->getConnection( DB_REPLICA, [], $this->wikiId );
+			}
+			$flags = $dbOrFlags;
 		}
 
 		$queryBuilder = new PageSelectQueryBuilder( $db, $this, $this->linkCache );
-		$queryBuilder->options( $options );
+		$queryBuilder->recency( $flags );
 
 		return $queryBuilder;
-	}
-
-	/**
-	 * @param int $mode DB_PRIMARY or DB_REPLICA
-	 * @return IDatabase
-	 */
-	private function getDBConnectionRef( int $mode = DB_REPLICA ): IDatabase {
-		return $this->dbLoadBalancer->getConnectionRef( $mode, [], $this->wikiId );
 	}
 
 	/**

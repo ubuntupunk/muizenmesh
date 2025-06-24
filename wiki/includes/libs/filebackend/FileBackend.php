@@ -124,9 +124,9 @@ abstract class FileBackend implements LoggerAwareInterface {
 
 	/** @var callable */
 	protected $obResetFunc;
-	/** @var callable */
+	/** @var callable|null */
 	protected $streamMimeFunc;
-	/** @var callable */
+	/** @var callable|null */
 	protected $statusWrapper;
 
 	/** Bitfield flags for supported features */
@@ -1124,7 +1124,7 @@ abstract class FileBackend implements LoggerAwareInterface {
 	 *   - options  : HTTP request header map with lower case keys (since 1.28). Supports:
 	 *                range             : format is "bytes=(\d*-\d*)"
 	 *                if-modified-since : format is an HTTP date
-	 *   - headless : only include the body (and headers from "headers") (since 1.28)
+	 *   - headless : do not send HTTP headers (including those of "headers") (since 1.28)
 	 *   - latest   : use the latest available data
 	 *   - allowOB  : preserve any output buffers (since 1.28)
 	 * @return StatusValue
@@ -1147,7 +1147,7 @@ abstract class FileBackend implements LoggerAwareInterface {
 	 * @param array $params Parameters include:
 	 *   - src    : source storage path
 	 *   - latest : use the latest available data
-	 * @return FSFile|null Local file copy or null (missing file or I/O error)
+	 * @return FSFile|null|false Local file copy or false (missing) or null (error)
 	 */
 	final public function getLocalReference( array $params ) {
 		$fsFiles = $this->getLocalReferenceMulti( [ 'srcs' => [ $params['src'] ] ] + $params );
@@ -1169,7 +1169,7 @@ abstract class FileBackend implements LoggerAwareInterface {
 	 *   - srcs        : list of source storage paths
 	 *   - latest      : use the latest available data
 	 *   - parallelize : try to do operations in parallel when possible
-	 * @return array Map of (path name => FSFile or null on failure)
+	 * @return array Map of (path name => FSFile or false (missing) or null (error))
 	 * @since 1.20
 	 */
 	abstract public function getLocalReferenceMulti( array $params );
@@ -1184,7 +1184,7 @@ abstract class FileBackend implements LoggerAwareInterface {
 	 * @param array $params Parameters include:
 	 *   - src    : source storage path
 	 *   - latest : use the latest available data
-	 * @return TempFSFile|null Temporary local file copy or null (missing file or I/O error)
+	 * @return TempFSFile|null|false Temporary local file copy or false (missing) or null (error)
 	 */
 	final public function getLocalCopy( array $params ) {
 		$tmpFiles = $this->getLocalCopyMulti( [ 'srcs' => [ $params['src'] ] ] + $params );
@@ -1204,7 +1204,7 @@ abstract class FileBackend implements LoggerAwareInterface {
 	 *   - srcs        : list of source storage paths
 	 *   - latest      : use the latest available data
 	 *   - parallelize : try to do operations in parallel when possible
-	 * @return array Map of (path name => TempFSFile or null on failure)
+	 * @return array Map of (path name => TempFSFile or false (missing) or null (error))
 	 * @since 1.20
 	 */
 	abstract public function getLocalCopyMulti( array $params );
@@ -1318,6 +1318,7 @@ abstract class FileBackend implements LoggerAwareInterface {
 	 *   - dir        : storage directory
 	 *   - topOnly    : only return direct child files of the directory (since 1.20)
 	 *   - adviseStat : set to true if stat requests will be made on the files (since 1.22)
+	 *   - forWrite   : true if the list will inform a write operations (since 1.41)
 	 * @return Traversable|array|null File list enumerator or null (initial I/O error)
 	 */
 	abstract public function getFileList( array $params );

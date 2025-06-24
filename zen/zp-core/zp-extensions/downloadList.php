@@ -30,8 +30,7 @@
  * The list has a CSS class <var>downloadList</var> attached.
  *
  * @author Malte Müller (acrylian), Stephen Billard (sbillard), , Antonio Ranesi (bic)
- * @package plugins
- * @subpackage downloadlist
+ * @package zpcore\plugins\downloadlist
  * @tags "file download", "download manager", download
  */
 $plugin_is_filter = 800 | ADMIN_PLUGIN | THEME_PLUGIN;
@@ -448,7 +447,7 @@ class AlbumZip {
 			$albums = $album->getAlbums();
 			foreach ($albums as $albumname) {
 				$subalbum = AlbumBase::newAlbum($albumname);
-				if (!$subalbum->isMyItem(LIST_RIGHTS) && !checkAlbumPassword($subalbum)) {
+				if (!$subalbum->isMyItem(LIST_RIGHTS) && !$subalbum->isProtected()) {
 					continue; // Skip not accessible albums
 				}
 				if ($subalbum->exists) {
@@ -503,7 +502,7 @@ class AlbumZip {
 			$albums = $album->getAlbums();
 			foreach ($albums as $albumname) {
 				$subalbum = AlbumBase::newAlbum($albumname);
-				if (!$subalbum->isMyItem(LIST_RIGHTS) && !checkAlbumPassword($subalbum)) {
+				if (!$subalbum->isMyItem(LIST_RIGHTS) && !$subalbum->isProtected()) {
 					continue; // Skip not accessible albums
 				}
 				if ($subalbum->exists) {
@@ -547,17 +546,17 @@ class AlbumZip {
 			self::pageError(404, gettext('Album not found'));
 		}
 		$album = AlbumBase::newAlbum($albumname);
-		if (!$album->isMyItem(LIST_RIGHTS) && !checkAlbumPassword($albumname)) {
+		if (!$album->isMyItem(LIST_RIGHTS) && $album->isProtected()) {
 			self::pageError(403, gettext("Forbidden"));
 		}
 		$_zp_zip_list = array();
 		if ($fromcache) {
-			$opt = array('large_file_size' => 5 * 1024 * 1024, 'comment' => sprintf(gettext('Created from cached images of %1$s on %2$s.'), $album->name, zpFormattedDate(DATE_FORMAT, time())));
+			$opt = array('large_file_size' => 5 * 1024 * 1024, 'comment' => sprintf(gettext('Created from cached images of %1$s on %2$s.'), $album->name, zpFormattedDate(DATETIME_DISPLAYFORMAT, time())));
 			loadLocalOptions(false, $_zp_gallery->getCurrentTheme());
 			$_zp_downloadlist_defaultsize = getOption('image_size');
 			self::AddAlbumCache($album, strlen($albumname), SERVERPATH . '/' . CACHEFOLDER . '/' . $albumname);
 		} else {
-			$opt = array('large_file_size' => 5 * 1024 * 1024, 'comment' => sprintf(gettext('Created from images in %1$s on %2$s.'), $album->name, zpFormattedDate(DATE_FORMAT, time())));
+			$opt = array('large_file_size' => 5 * 1024 * 1024, 'comment' => sprintf(gettext('Created from images in %1$s on %2$s.'), $album->name, zpFormattedDate(DATETIME_DISPLAYFORMAT, time())));
 			self::AddAlbum($album, strlen($albumname), $album->localpath);
 		}
 		if(!empty($_zp_zip_list)) {
@@ -710,7 +709,7 @@ function printDownloadURL($file, $linktext = NULL) {
 /**
  * Prints the dwnload url link for a full image
  * 
- * @since ZenphotoCMS 1.5.7
+ * @since 1.5.7
  * 
  * @global type $_zp_current_image
  * @param string $linktext Linktext for the download

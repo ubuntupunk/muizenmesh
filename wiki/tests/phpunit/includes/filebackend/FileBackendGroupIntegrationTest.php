@@ -2,13 +2,15 @@
 
 use MediaWiki\FileBackend\LockManager\LockManagerGroupFactory;
 use MediaWiki\MainConfigNames;
+use MediaWiki\Tests\Unit\DummyServicesTrait;
 use MediaWiki\WikiMap\WikiMap;
 
 /**
- * @coversDefaultClass FileBackendGroup
+ * @coversDefaultClass \FileBackendGroup
  */
 class FileBackendGroupIntegrationTest extends MediaWikiIntegrationTestCase {
 	use FileBackendGroupTestTrait;
+	use DummyServicesTrait;
 
 	private static function getWikiID() {
 		return WikiMap::getCurrentWikiId();
@@ -31,7 +33,7 @@ class FileBackendGroupIntegrationTest extends MediaWikiIntegrationTestCase {
 		}
 
 		$serviceMembers = [
-			'configuredROMode' => 'ConfiguredReadOnlyMode',
+			'readOnlyMode' => 'ReadOnlyMode',
 			'srvCache' => 'LocalServerObjectCache',
 			'wanCache' => 'MainWANObjectCache',
 			'mimeAnalyzer' => 'MimeAnalyzer',
@@ -41,7 +43,12 @@ class FileBackendGroupIntegrationTest extends MediaWikiIntegrationTestCase {
 
 		foreach ( $serviceMembers as $key => $name ) {
 			if ( isset( $options[$key] ) ) {
-				$this->setService( $name, $options[$key] );
+				if ( $key === 'readOnlyMode' ) {
+					$this->setService( $name, $this->getDummyReadOnlyMode( $options[$key] ) );
+				} else {
+					$this->setService( $name, $options[$key] );
+				}
+
 			}
 		}
 
@@ -53,7 +60,7 @@ class FileBackendGroupIntegrationTest extends MediaWikiIntegrationTestCase {
 		$obj = $services->getFileBackendGroup();
 
 		foreach ( $serviceMembers as $key => $name ) {
-			if ( $key === 'configuredROMode' || $key === 'mimeAnalyzer' ) {
+			if ( $key === 'readOnlyMode' || $key === 'mimeAnalyzer' ) {
 				continue;
 			}
 			$this->$key = $services->getService( $name );

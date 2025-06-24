@@ -30,6 +30,7 @@ use MediaWiki\Revision\SlotRoleRegistry;
 use MediaWiki\Storage\NameTableAccessException;
 use MediaWiki\Storage\NameTableStore;
 use MediaWiki\Title\Title;
+use MediaWiki\User\UserNameUtils;
 use Wikimedia\ParamValidator\ParamValidator;
 use Wikimedia\ParamValidator\TypeDef\IntegerDef;
 
@@ -41,20 +42,12 @@ use Wikimedia\ParamValidator\TypeDef\IntegerDef;
  */
 class ApiQueryRecentChanges extends ApiQueryGeneratorBase {
 
-	/** @var CommentStore */
-	private $commentStore;
-
-	/** @var RowCommentFormatter */
-	private $commentFormatter;
-
-	/** @var NameTableStore */
-	private $changeTagDefStore;
-
-	/** @var NameTableStore */
-	private $slotRoleStore;
-
-	/** @var SlotRoleRegistry */
-	private $slotRoleRegistry;
+	private CommentStore $commentStore;
+	private RowCommentFormatter $commentFormatter;
+	private NameTableStore $changeTagDefStore;
+	private NameTableStore $slotRoleStore;
+	private SlotRoleRegistry $slotRoleRegistry;
+	private UserNameUtils $userNameUtils;
 
 	private $formattedComments = [];
 
@@ -66,6 +59,7 @@ class ApiQueryRecentChanges extends ApiQueryGeneratorBase {
 	 * @param NameTableStore $changeTagDefStore
 	 * @param NameTableStore $slotRoleStore
 	 * @param SlotRoleRegistry $slotRoleRegistry
+	 * @param UserNameUtils $userNameUtils
 	 */
 	public function __construct(
 		ApiQuery $query,
@@ -74,7 +68,8 @@ class ApiQueryRecentChanges extends ApiQueryGeneratorBase {
 		RowCommentFormatter $commentFormatter,
 		NameTableStore $changeTagDefStore,
 		NameTableStore $slotRoleStore,
-		SlotRoleRegistry $slotRoleRegistry
+		SlotRoleRegistry $slotRoleRegistry,
+		UserNameUtils $userNameUtils
 	) {
 		parent::__construct( $query, $moduleName, 'rc' );
 		$this->commentStore = $commentStore;
@@ -82,6 +77,7 @@ class ApiQueryRecentChanges extends ApiQueryGeneratorBase {
 		$this->changeTagDefStore = $changeTagDefStore;
 		$this->slotRoleStore = $slotRoleStore;
 		$this->slotRoleRegistry = $slotRoleRegistry;
+		$this->userNameUtils = $userNameUtils;
 	}
 
 	private $fld_comment = false, $fld_parsedcomment = false, $fld_user = false, $fld_userid = false,
@@ -152,11 +148,7 @@ class ApiQueryRecentChanges extends ApiQueryGeneratorBase {
 		] );
 
 		if ( $params['type'] !== null ) {
-			try {
-				$this->addWhereFld( 'rc_type', RecentChange::parseToRCType( $params['type'] ) );
-			} catch ( Exception $e ) {
-				ApiBase::dieDebug( __METHOD__, $e->getMessage() );
-			}
+			$this->addWhereFld( 'rc_type', RecentChange::parseToRCType( $params['type'] ) );
 		}
 
 		$title = $params['title'];
@@ -197,30 +189,30 @@ class ApiQueryRecentChanges extends ApiQueryGeneratorBase {
 			}
 
 			/* Add additional conditions to query depending upon parameters. */
-			$this->addWhereIf( 'rc_minor = 0', isset( $show['!minor'] ) );
+			$this->addWhereIf( [ 'rc_minor' => 0 ], isset( $show['!minor'] ) );
 			$this->addWhereIf( 'rc_minor != 0', isset( $show['minor'] ) );
-			$this->addWhereIf( 'rc_bot = 0', isset( $show['!bot'] ) );
+			$this->addWhereIf( [ 'rc_bot' => 0 ], isset( $show['!bot'] ) );
 			$this->addWhereIf( 'rc_bot != 0', isset( $show['bot'] ) );
 			if ( isset( $show['anon'] ) || isset( $show['!anon'] ) ) {
 				$this->addTables( 'actor', 'actor' );
 				$this->addJoinConds( [ 'actor' => [ 'JOIN', 'actor_id=rc_actor' ] ] );
 				$this->addWhereIf(
-					'actor_user IS NULL', isset( $show['anon'] )
+					[ 'actor_user' => null ], isset( $show['anon'] )
 				);
 				$this->addWhereIf(
 					'actor_user IS NOT NULL', isset( $show['!anon'] )
 				);
 			}
-			$this->addWhereIf( 'rc_patrolled = 0', isset( $show['!patrolled'] ) );
+			$this->addWhereIf( [ 'rc_patrolled' => 0 ], isset( $show['!patrolled'] ) );
 			$this->addWhereIf( 'rc_patrolled != 0', isset( $show['patrolled'] ) );
-			$this->addWhereIf( 'page_is_redirect = 1', isset( $show['redirect'] ) );
+			$this->addWhereIf( [ 'page_is_redirect' => 1 ], isset( $show['redirect'] ) );
 
 			if ( isset( $show['unpatrolled'] ) ) {
 				// See ChangesList::isUnpatrolled
 				if ( $user->useRCPatrol() ) {
-					$this->addWhere( 'rc_patrolled = ' . RecentChange::PRC_UNPATROLLED );
+					$this->addWhereFld( 'rc_patrolled', RecentChange::PRC_UNPATROLLED );
 				} elseif ( $user->useNPPatrol() ) {
-					$this->addWhere( 'rc_patrolled = ' . RecentChange::PRC_UNPATROLLED );
+					$this->addWhereFld( 'rc_patrolled', RecentChange::PRC_UNPATROLLED );
 					$this->addWhereFld( 'rc_type', RC_NEW );
 				}
 			}
@@ -230,13 +222,13 @@ class ApiQueryRecentChanges extends ApiQueryGeneratorBase {
 				isset( $show['!autopatrolled'] )
 			);
 			$this->addWhereIf(
-				'rc_patrolled = ' . RecentChange::PRC_AUTOPATROLLED,
+				[ 'rc_patrolled' => RecentChange::PRC_AUTOPATROLLED ],
 				isset( $show['autopatrolled'] )
 			);
 
 			// Don't throw log entries out the window here
 			$this->addWhereIf(
-				'page_is_redirect = 0 OR page_is_redirect IS NULL',
+				[ 'page_is_redirect' => [ 0, null ] ],
 				isset( $show['!redirect'] )
 			);
 		}
@@ -412,7 +404,7 @@ class ApiQueryRecentChanges extends ApiQueryGeneratorBase {
 			} else {
 				// Calling $this->addWhere() with an empty array does nothing, so explicitly
 				// add an unsatisfiable condition
-				$this->addWhere( 'rc_type IS NULL' );
+				$this->addWhere( [ 'rc_type' => null ] );
 			}
 		}
 
@@ -549,6 +541,10 @@ class ApiQueryRecentChanges extends ApiQueryGeneratorBase {
 
 				if ( $this->fld_userid ) {
 					$vals['userid'] = (int)$row->actor_user;
+				}
+
+				if ( isset( $row->actor_name ) && $this->userNameUtils->isTemp( $row->actor_name ) ) {
+					$vals['temp'] = true;
 				}
 
 				if ( !$row->actor_user ) {
@@ -710,11 +706,11 @@ class ApiQueryRecentChanges extends ApiQueryGeneratorBase {
 			],
 			'user' => [
 				ParamValidator::PARAM_TYPE => 'user',
-				UserDef::PARAM_ALLOWED_USER_TYPES => [ 'name', 'ip', 'id', 'interwiki' ],
+				UserDef::PARAM_ALLOWED_USER_TYPES => [ 'name', 'ip', 'temp', 'id', 'interwiki' ],
 			],
 			'excludeuser' => [
 				ParamValidator::PARAM_TYPE => 'user',
-				UserDef::PARAM_ALLOWED_USER_TYPES => [ 'name', 'ip', 'id', 'interwiki' ],
+				UserDef::PARAM_ALLOWED_USER_TYPES => [ 'name', 'ip', 'temp', 'id', 'interwiki' ],
 			],
 			'tag' => null,
 			'prop' => [

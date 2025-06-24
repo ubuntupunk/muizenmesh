@@ -1,7 +1,7 @@
 <?php
 /**
  * admin-edit.php editing of albums.
- * @package admin
+ * @package zpcore\admin
  */
 // force UTF-8 Ø
 
@@ -9,6 +9,7 @@
 define('OFFSET_PATH', 1);
 
 require_once(dirname(__FILE__) . '/admin-globals.php');
+//require_once(dirname(__FILE__) . '/template-functions.php');
 require_once(SERVERPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER . '/tag_suggest.php');
 
 admin_securityChecks(ALBUM_RIGHTS, $return = currentRelativeURL());
@@ -489,10 +490,9 @@ if (isset($_GET['album']) && (empty($subtab) || $subtab == 'albuminfo') || isset
 	sort($dbfields);
 	$imagedbfields = implode(',', $dbfields);
 	?>
-	<script type="text/javascript" src="js/encoder.js"></script>
-	<script type="text/javascript" src="js/tag.js"></script>
-	<script type="text/javascript">
-						//<!-- <![CDATA[
+	<script src="js/encoder.js"></script>
+	<script src="js/tag.js"></script>
+	<script>
 						var albumdbfields = [<?php echo $albumdbfields; ?>];
 						$(function() {
 						$('.customalbumsort').tagSuggest({
@@ -505,13 +505,11 @@ if (isset($_GET['album']) && (empty($subtab) || $subtab == 'albuminfo') || isset
 						tags: imagedbfields
 						});
 						});
-						// ]]> -->
 	</script>
 	<?php
 }
 ?>
-<script type="text/javascript">
-					//<!-- <![CDATA[
+<script>
 					var deleteAlbum1 = "<?php echo gettext("Are you sure you want to delete this entire album?"); ?>";
 					var deleteAlbum2 = "<?php echo gettext("Are you Absolutely Positively sure you want to delete the album? THIS CANNOT BE UNDONE!"); ?>";
 					function newAlbum(folder, albumtab) {
@@ -523,7 +521,7 @@ if (isset($_GET['album']) && (empty($subtab) || $subtab == 'albuminfo') || isset
      	function newDynAlbum(folder, albumtab) {
         var album = prompt('<?php echo addslashes(gettext('New dynamic album name?')); ?>', '<?php echo addslashes(gettext('new dynamic album')); ?>');
 									if (album) {
-          launchScript('admin-dynamic-album.php', ['search=' + encodeURIComponent(album), 'folder=' + encodeURIComponent(folder), 'XSRFToken=<?php echo getXSRFToken('newalbum'); ?>']);
+          launchScript('admin-dynamic-album.php', ['s=' + encodeURIComponent(album), 'folder=' + encodeURIComponent(folder), 'XSRFToken=<?php echo getXSRFToken('newalbum'); ?>']);
         	}
 					}
 	function confirmAction() {
@@ -539,7 +537,6 @@ if (isset($_GET['album']) && (empty($subtab) || $subtab == 'albuminfo') || isset
     return true;
   }
 	}
-	// ]]> -->
 </script>
 
 <?php
@@ -713,7 +710,7 @@ echo "\n</head>";
 					<div id="tab_albuminfo" class="tabbox">
 						<?php 
 						consolidatedEditMessages('albuminfo');
-						printScheduledPublishingNotes($album);
+						printStatusNotes($album);
 						?>
 						<form class="dirty-check" name="albumedit1" id="form_albumedit" autocomplete="off" action="?page=edit&amp;action=save<?php echo "&amp;album=" . pathurlencode($album->name); ?>" method="post">
 							<?php XSRFToken('albumedit'); ?>
@@ -1010,7 +1007,7 @@ echo "\n</head>";
 												<table style="border:none" class="formlayout" id="image-<?php echo $currentimage; ?>">
 													<?php if(checkSchedulePublishingNotes($image)) { ?>
 														<tr>
-															<td colspan="5"><?php printScheduledPublishingNotes($image); ?></td>
+															<td colspan="5"><?php printStatusNotes($image); ?></td>
 														</tr>
 													<?php } ?>
 													<tr>
@@ -1120,8 +1117,7 @@ echo "\n</head>";
 																$publishdate = $image->getPublishDate();
 																$expirationdate = $image->getExpireDate();
 																?>
-																<script type="text/javascript">
-																					// <!-- <![CDATA[
+																<script>
 																					$(function() {
 																					$("#publishdate-<?php echo $currentimage; ?>,#expirationdate-<?php echo $currentimage; ?>").datepicker({
 																					dateFormat: 'yy-mm-dd',
@@ -1149,7 +1145,6 @@ echo "\n</head>";
 																					}
 																					});
 																					});
-																					// ]]> -->
 																</script>
 																<br class="clearall" />
 																<hr />
@@ -1243,84 +1238,24 @@ echo "\n</head>";
 
 																<?php
 																if ($image->isPhoto()) {
-																	?>
-																	<hr />
-																	<strong><?php echo gettext("Rotation:"); ?></strong>
-																	<br />
-																	<?php
-																	$splits = preg_split('/!([(0-9)])/', strval($image->get('EXIFOrientation')));
-																	$rotation = $splits[0];
-																	if (!in_array($rotation, array(3, 6, 8))) {
-																		$rotation = 0;
-																	}
-																	?>
-																	<input type="hidden" name="<?php echo $currentimage; ?>-oldrotation" value="<?php echo $rotation; ?>" />
-																	<label class="checkboxlabel">
-																		<input type="radio" id="rotation_none-<?php echo $currentimage; ?>"	name="<?php echo $currentimage; ?>-rotation" value="0" <?php
-																		checked(0, $rotation);
-																		echo $disablerotate
-																		?> />
-																					 <?php echo gettext('none'); ?>
-																	</label>
-																	<label class="checkboxlabel">
-																		<input type="radio" id="rotation_90-<?php echo $currentimage; ?>"	name="<?php echo $currentimage; ?>-rotation" value="6" <?php
-																		checked(6, $rotation);
-																		echo $disablerotate
-																		?> />
-																					 <?php echo gettext('90 degrees'); ?>
-																	</label>
-																	<label class="checkboxlabel">
-																		<input type="radio" id="rotation_180-<?php echo $currentimage; ?>"	name="<?php echo $currentimage; ?>-rotation" value="3" <?php
-																		checked(3, $rotation);
-																		echo $disablerotate
-																		?> />
-																					 <?php echo gettext('180 degrees'); ?>
-																	</label>
-																	<label class="checkboxlabel">
-																		<input type="radio" id="rotation_270-<?php echo $currentimage; ?>"	name="<?php echo $currentimage; ?>-rotation" value="8" <?php
-																		checked(8, $rotation);
-																		echo $disablerotate
-																		?> />
-																					 <?php echo gettext('270 degrees'); ?>
-																	</label>
-																	<br class="clearall">
-																	<p ><strong><?php echo gettext("Flipping:"); ?></strong></p>
-													
-																			<label class="checkboxlabel">
-																				<input type="radio" id="flipping_none-<?php echo $currentimage; ?>"	name="<?php echo $currentimage; ?>-flipping" value="none" checked="checked" />
-																				<?php echo gettext('none'); ?>
-																			</label>
-																
-																			<label class="checkboxlabel">
-																				<input type="radio" id="flipping_horizontal-<?php echo $currentimage; ?>"	name="<?php echo $currentimage; ?>-flipping" value="horizontal" />
-																				<?php echo gettext('horizontal'); ?>
-																			</label>
-																	
-																			<label class="checkboxlabel">
-																				<input type="radio" id="flipping_vertical--<?php echo $currentimage; ?>"	name="<?php echo $currentimage; ?>-flipping" value="vertical" />
-																	<?php echo gettext('vertical'); ?>
-																			</label>
-																	<br>
-																	<?php 
-																	$warning = gettext('Flipping modifies the original image!');
-																	if (GRAPHICS_LIBRARY == 'GD') {
-																		$warning .= '<strong>' .gettext(' Caution: This will remove any metadata from the file due to your graphics handler (<code>GDlibrary</code>) limitation. Use <code>Imagick</code> instead if supported.').'</strong>';
-																	}
-																	echo '<p class="warningbox clearall">' . $warning . '</p>';
-																	?>
-																	
-																	
-																	<?php
+																	printImageRotationSelector($image, $currentimage);
 																}
 																?>
 																<br class="clearall" />
 																<hr />
 																<div class="button buttons tooltip" title="<?php printf(gettext('Refresh %s metadata'), $image->filename); ?>">
-																	<a href="admin-edit.php?action=refresh&amp;album=<?php echo html_encode(pathurlencode($album->name)); ?>&amp;image=<?php echo urlencode($image->filename); ?>&amp;subpage=<?php echo $pagenum; ?>&amp;tagsort=<?php echo html_encode($tagsort); ?>&amp;XSRFToken=<?php echo getXSRFToken('imagemetadata'); ?>" >
+																	<a href="admin-edit.php?action=refresh&amp;album=<?php echo html_encode(pathurlencode($album->name)); ?>&amp;image=<?php echo urlencode($image->filename); ?>&amp;subpage=<?php echo $pagenum; ?>&amp;tagsort=<?php echo html_encode($tagsort); ?>&amp;XSRFToken=<?php echo getXSRFToken('imagemetadata'); ?>" class="js_confirm_metadata_refresh_<?php echo $currentimage; ?>">
 																		<img src="images/cache.png" alt="" /><?php echo gettext("Refresh Metadata"); ?>
 																	</a>
 																	<br class="clearall" />
 																</div>
+																<script>
+																	$( document ).ready(function() {
+																		var element = '.js_confirm_metadata_refresh_<?php echo $currentimage; ?>';
+																		var message = '<?php echo js_encode(gettext('Refreshing metadata will overwrite existing data. This cannot be undone!')); ?>';
+																		confirmClick(element, message);
+																	});
+																</script>
 																<?php
 																if (($image->isPhoto() || !is_null($image->objectsThumb)) && getOption('thumb_crop')) {
 																	?>
@@ -1380,8 +1315,7 @@ echo "\n</head>";
 													<tr align="left" valign="top">
 														<td valign="top"><?php echo gettext("Date:"); ?></td>
 														<td>
-															<script type="text/javascript">
-																								// <!-- <![CDATA[
+															<script>
 																								$(function() {
 																								$("#datepicker_<?php echo $currentimage; ?>").datepicker({
 																								dateFormat: 'yy-mm-dd',
@@ -1391,7 +1325,6 @@ echo "\n</head>";
 																												buttonImageOnly: true
 																								});
 																								});
-																								// ]]> -->
 															</script>
 															<input type="text" id="datepicker_<?php echo $currentimage; ?>" size="20" name="<?php echo $currentimage; ?>-date"
 																		 value="<?php
@@ -1505,34 +1438,26 @@ echo "\n</head>";
 														</tr>
 														<?php
 													}
-													if ($image->get('hasMetadata')) {
+													if ($image->hasMetadata()) {
 														?>
 														<tr>
 															<td valign="top"><?php echo gettext("Metadata:"); ?></td>
 															<td>
 																<?php
-																$data = '';
-																$exif = $image->getMetaData();
+																$exif = $image->getMetaData(false);
 																if (false !== $exif) {
-																	foreach ($exif as $field => $value) {
-																		if (!empty($value)) {
-																			$display = $_zp_exifvars[$field][3];
-																			if ($display) {
-																				$label = $_zp_exifvars[$field][2];
-																				$data .= "<tr><td class=\"medtadata_tag\">$label: </td> <td>" . html_encode($value) . "</td></tr>\n";
-																			}
-																		}
-																	}
-																}
-																if (empty($data)) {
-																	echo gettext('None selected for display');
-																} else {
 																	?>
 																	<div class="metadata_container">
 																		<table class="metadata_table" >
-																			<?php echo $data; ?>
+																		<?php
+																		foreach ($exif as $field => $value) {
+																			$label = $_zp_exifvars[$field][2];
+																			$value = getImageMetadataValue($_zp_exifvars[$field][6], $value, $field);
+																			echo '<tr><td class="metadata_tag">' . $label . ': </td> <td>' . $value . '</td></tr>'. "\n";
+																		}
+																		?>
 																		</table>
-																	</div>
+																	</div>		
 																	<?php
 																}
 																?>
@@ -1599,10 +1524,8 @@ echo "\n</head>";
 									}
 									if (!empty($target_image)) {
 										?>
-										<script type="text/javascript" >
-																							// <!-- <![CDATA[
+										<script>
 																							toggleExtraInfo('<?php echo $target_image_nr; ?>', 'image', true);
-																							// ]]> -->
 										</script>
 										<?php
 									}
@@ -1731,7 +1654,7 @@ echo "\n</head>";
 						}
 						?>
 						<p>
-							<?php printf(gettext('Current sort: <em>%1s%2$s</em>.'), $sorttype, $dir); ?>
+							<?php printf(gettext('Current sort: <em>%1$s%2$s</em>.'), $sorttype, $dir); ?>
 						</p>
 						<p>
 							<?php echo gettext('Drag the albums into the order you wish them displayed.'); ?>

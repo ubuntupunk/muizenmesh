@@ -2,7 +2,7 @@
 /**
  * Import XML dump files into the current wiki.
  *
- * Copyright © 2005 Brion Vibber <brion@pobox.com>
+ * Copyright © 2005 Brooke Vibber <bvibber@wikimedia.org>
  * https://www.mediawiki.org/
  *
  * This program is free software; you can redistribute it and/or modify
@@ -25,7 +25,7 @@
  */
 
 use MediaWiki\Linker\LinkTarget;
-use MediaWiki\MediaWikiServices;
+use MediaWiki\Permissions\UltimateAuthority;
 
 require_once __DIR__ . '/Maintenance.php';
 
@@ -115,7 +115,7 @@ TEXT
 	}
 
 	public function execute() {
-		if ( MediaWikiServices::getInstance()->getReadOnlyMode()->isReadOnly() ) {
+		if ( $this->getServiceContainer()->getReadOnlyMode()->isReadOnly() ) {
 			$this->fatalError( "Wiki is in read-only mode; you'll need to disable it for import to work." );
 		}
 
@@ -156,7 +156,7 @@ TEXT
 	}
 
 	private function getNsIndex( $namespace ) {
-		$contLang = MediaWikiServices::getInstance()->getContentLanguage();
+		$contLang = $this->getServiceContainer()->getContentLanguage();
 		$result = $contLang->getNsIndex( $namespace );
 		if ( $result !== false ) {
 			return $result;
@@ -170,7 +170,6 @@ TEXT
 
 	/**
 	 * @param LinkTarget|null $title
-	 * @throws MWException
 	 * @return bool
 	 */
 	private function skippedNamespace( $title ) {
@@ -227,7 +226,7 @@ TEXT
 			if ( !$this->dryRun ) {
 				// bluuuh hack
 				// call_user_func( $this->uploadCallback, $revision );
-				$importer = MediaWikiServices::getInstance()->getWikiRevisionUploadImporter();
+				$importer = $this->getServiceContainer()->getWikiRevisionUploadImporter();
 				$statusValue = $importer->import( $revision );
 
 				return $statusValue->isGood();
@@ -275,7 +274,7 @@ TEXT
 				$this->progress( "$this->revCount ($revrate revs/sec)" );
 			}
 		}
-		MediaWikiServices::getInstance()->getDBLoadBalancerFactory()->waitForReplication();
+		$this->waitForReplication();
 	}
 
 	private function progress( $string ) {
@@ -311,10 +310,12 @@ TEXT
 	private function importFromHandle( $handle ) {
 		$this->startTime = microtime( true );
 
+		$user = User::newSystemUser( User::MAINTENANCE_SCRIPT_USER, [ 'steal' => true ] );
+
 		$source = new ImportStreamSource( $handle );
-		$importer = MediaWikiServices::getInstance()
+		$importer = $this->getServiceContainer()
 			->getWikiImporterFactory()
-			->getWikiImporter( $source );
+			->getWikiImporter( $source, new UltimateAuthority( $user ) );
 
 		// Updating statistics require a lot of time so disable it
 		$importer->disableStatisticsUpdate();

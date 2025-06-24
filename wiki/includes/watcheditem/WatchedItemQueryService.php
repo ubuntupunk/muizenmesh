@@ -6,11 +6,15 @@ use MediaWiki\HookContainer\HookRunner;
 use MediaWiki\Linker\LinkTarget;
 use MediaWiki\Permissions\Authority;
 use MediaWiki\Revision\RevisionRecord;
+use MediaWiki\Title\TitleValue;
+use MediaWiki\User\Options\UserOptionsLookup;
+use MediaWiki\User\TempUser\TempUserConfig;
+use MediaWiki\User\User;
 use MediaWiki\User\UserIdentity;
-use MediaWiki\User\UserOptionsLookup;
 use Wikimedia\Assert\Assert;
-use Wikimedia\Rdbms\IDatabase;
-use Wikimedia\Rdbms\ILoadBalancer;
+use Wikimedia\Rdbms\IConnectionProvider;
+use Wikimedia\Rdbms\IExpression;
+use Wikimedia\Rdbms\IReadableDatabase;
 
 /**
  * Class performing complex database queries related to WatchedItems.
@@ -59,9 +63,9 @@ class WatchedItemQueryService {
 	public const SORT_DESC = 'DESC';
 
 	/**
-	 * @var ILoadBalancer
+	 * @var IConnectionProvider
 	 */
-	private $loadBalancer;
+	private $dbProvider;
 
 	/** @var WatchedItemQueryServiceExtension[]|null */
 	private $extensions = null;
@@ -78,6 +82,9 @@ class WatchedItemQueryService {
 	/** @var UserOptionsLookup */
 	private $userOptionsLookup;
 
+	/** @var TempUserConfig */
+	private $tempUserConfig;
+
 	/**
 	 * @var bool Correlates to $wgWatchlistExpiry feature flag.
 	 */
@@ -89,19 +96,21 @@ class WatchedItemQueryService {
 	private $maxQueryExecutionTime;
 
 	public function __construct(
-		ILoadBalancer $loadBalancer,
+		IConnectionProvider $dbProvider,
 		CommentStore $commentStore,
 		WatchedItemStoreInterface $watchedItemStore,
 		HookContainer $hookContainer,
 		UserOptionsLookup $userOptionsLookup,
+		TempUserConfig $tempUserConfig,
 		bool $expiryEnabled = false,
 		int $maxQueryExecutionTime = 0
 	) {
-		$this->loadBalancer = $loadBalancer;
+		$this->dbProvider = $dbProvider;
 		$this->commentStore = $commentStore;
 		$this->watchedItemStore = $watchedItemStore;
 		$this->hookRunner = new HookRunner( $hookContainer );
 		$this->userOptionsLookup = $userOptionsLookup;
+		$this->tempUserConfig = $tempUserConfig;
 		$this->expiryEnabled = $expiryEnabled;
 		$this->maxQueryExecutionTime = $maxQueryExecutionTime;
 	}
@@ -115,13 +124,6 @@ class WatchedItemQueryService {
 			$this->hookRunner->onWatchedItemQueryServiceExtensions( $this->extensions, $this );
 		}
 		return $this->extensions;
-	}
-
-	/**
-	 * @return IDatabase
-	 */
-	private function getConnection() {
-		return $this->loadBalancer->getConnectionRef( DB_REPLICA );
 	}
 
 	/**
@@ -190,7 +192,7 @@ class WatchedItemQueryService {
 			'must be DIR_OLDER or DIR_NEWER'
 		);
 		Assert::parameter(
-			!isset( $options['start'] ) && !isset( $options['end'] ) && $startFrom === null
+			( !isset( $options['start'] ) && !isset( $options['end'] ) && $startFrom === null )
 				|| isset( $options['dir'] ),
 			'$options[\'dir\']',
 			'must be provided when providing the "start" or "end" options or the $startFrom parameter'
@@ -218,7 +220,7 @@ class WatchedItemQueryService {
 			);
 		}
 
-		$db = $this->getConnection();
+		$db = $this->dbProvider->getReplicaDatabase();
 
 		$tables = $this->getWatchedItemsWithRCInfoQueryTables( $options );
 		$fields = $this->getWatchedItemsWithRCInfoQueryFields( $options );
@@ -321,13 +323,13 @@ class WatchedItemQueryService {
 			'must be FILTER_CHANGED or FILTER_NOT_CHANGED'
 		);
 		Assert::parameter(
-			!isset( $options['from'] ) && !isset( $options['until'] ) && !isset( $options['startFrom'] )
-			|| isset( $options['sort'] ),
+			( !isset( $options['from'] ) && !isset( $options['until'] ) && !isset( $options['startFrom'] ) )
+				|| isset( $options['sort'] ),
 			'$options[\'sort\']',
 			'must be provided if any of "from", "until", "startFrom" options is provided'
 		);
 
-		$db = $this->getConnection();
+		$db = $this->dbProvider->getReplicaDatabase();
 
 		$conds = $this->getWatchedItemsForUserQueryConds( $db, $user, $options );
 		$dbOptions = $this->getWatchedItemsForUserQueryDbOptions( $options );
@@ -337,10 +339,7 @@ class WatchedItemQueryService {
 		if ( $this->expiryEnabled ) {
 			// If expiries are enabled, join with the watchlist_expiry table and exclude expired items.
 			$tables = [ 'watchlist', 'watchlist_expiry' ];
-			$conds[] = $db->makeList(
-				[ 'we_expiry' => null, 'we_expiry > ' . $db->addQuotes( $db->timestamp() ) ],
-				$db::LIST_OR
-			);
+			$conds[] = $db->expr( 'we_expiry', '>', $db->timestamp() )->or( 'we_expiry', '=', null );
 			$joinConds['watchlist_expiry'] = [ 'LEFT JOIN', 'wl_id = we_item' ];
 		}
 		$res = $db->select(
@@ -462,7 +461,7 @@ class WatchedItemQueryService {
 	}
 
 	private function getWatchedItemsWithRCInfoQueryConds(
-		IDatabase $db,
+		IReadableDatabase $db,
 		User $user,
 		array $options
 	) {
@@ -470,7 +469,7 @@ class WatchedItemQueryService {
 		$conds = [ 'wl_user' => $watchlistOwnerId ];
 
 		if ( $this->expiryEnabled ) {
-			$conds[] = 'we_expiry IS NULL OR we_expiry > ' . $db->addQuotes( $db->timestamp() );
+			$conds[] = $db->expr( 'we_expiry', '=', null )->or( 'we_expiry', '>', $db->timestamp() );
 		}
 
 		if ( !$options['allRevisions'] ) {
@@ -490,14 +489,14 @@ class WatchedItemQueryService {
 
 		$conds = array_merge(
 			$conds,
-			$this->getWatchedItemsWithRCInfoQueryFilterConds( $user, $options )
+			$this->getWatchedItemsWithRCInfoQueryFilterConds( $db, $user, $options )
 		);
 
 		$conds = array_merge( $conds, $this->getStartEndConds( $db, $options ) );
 
 		if ( !isset( $options['start'] ) && !isset( $options['end'] ) && $db->getType() === 'mysql' ) {
 			// This is an index optimization for mysql
-			$conds[] = 'rc_timestamp > ' . $db->addQuotes( '' );
+			$conds[] = $db->expr( 'rc_timestamp', '>', '' );
 		}
 
 		$conds = array_merge( $conds, $this->getUserRelatedConds( $db, $user, $options ) );
@@ -525,7 +524,11 @@ class WatchedItemQueryService {
 		return $user->getId();
 	}
 
-	private function getWatchedItemsWithRCInfoQueryFilterConds( User $user, array $options ) {
+	private function getWatchedItemsWithRCInfoQueryFilterConds(
+		IReadableDatabase $dbr,
+		User $user,
+		array $options
+	) {
 		$conds = [];
 
 		if ( in_array( self::FILTER_MINOR, $options['filters'] ) ) {
@@ -540,10 +543,21 @@ class WatchedItemQueryService {
 			$conds[] = 'rc_bot = 0';
 		}
 
+		// Treat temporary users as 'anon', to match ChangesListSpecialPage
 		if ( in_array( self::FILTER_ANON, $options['filters'] ) ) {
-			$conds[] = 'watchlist_actor.actor_user IS NULL';
+			if ( $this->tempUserConfig->isEnabled() ) {
+				$conds[] = $dbr->expr( 'watchlist_actor.actor_user', '=', null )
+					->orExpr( $this->tempUserConfig->getMatchCondition( $dbr,
+						'watchlist_actor.actor_name', IExpression::LIKE ) );
+			} else {
+				$conds[] = 'watchlist_actor.actor_user IS NULL';
+			}
 		} elseif ( in_array( self::FILTER_NOT_ANON, $options['filters'] ) ) {
 			$conds[] = 'watchlist_actor.actor_user IS NOT NULL';
+			if ( $this->tempUserConfig->isEnabled() ) {
+				$conds[] = $this->tempUserConfig->getMatchCondition( $dbr,
+					'watchlist_actor.actor_name', IExpression::NOT_LIKE );
+			}
 		}
 
 		if ( $user->useRCPatrol() || $user->useNPPatrol() ) {
@@ -572,7 +586,7 @@ class WatchedItemQueryService {
 		return $conds;
 	}
 
-	private function getStartEndConds( IDatabase $db, array $options ) {
+	private function getStartEndConds( IReadableDatabase $db, array $options ) {
 		if ( !isset( $options['start'] ) && !isset( $options['end'] ) ) {
 			return [];
 		}
@@ -593,7 +607,7 @@ class WatchedItemQueryService {
 		return $conds;
 	}
 
-	private function getUserRelatedConds( IDatabase $db, Authority $user, array $options ) {
+	private function getUserRelatedConds( IReadableDatabase $db, Authority $user, array $options ) {
 		if ( !array_key_exists( 'onlyByUser', $options ) && !array_key_exists( 'notByUser', $options ) ) {
 			return [];
 		}
@@ -620,7 +634,7 @@ class WatchedItemQueryService {
 		return $conds;
 	}
 
-	private function getExtraDeletedPageLogEntryRelatedCond( IDatabase $db, Authority $user ) {
+	private function getExtraDeletedPageLogEntryRelatedCond( IReadableDatabase $db, Authority $user ) {
 		// LogPage::DELETED_ACTION hides the affected page, too. So hide those
 		// entirely from the watchlist, or someone could guess the title.
 		$bitmask = 0;
@@ -638,7 +652,7 @@ class WatchedItemQueryService {
 		return '';
 	}
 
-	private function getStartFromConds( IDatabase $db, array $options, array $startFrom ) {
+	private function getStartFromConds( IReadableDatabase $db, array $options, array $startFrom ) {
 		$op = $options['dir'] === self::DIR_OLDER ? '<=' : '>=';
 		[ $rcTimestamp, $rcId ] = $startFrom;
 		$rcTimestamp = $db->timestamp( $rcTimestamp );
@@ -650,7 +664,7 @@ class WatchedItemQueryService {
 	}
 
 	private function getWatchedItemsForUserQueryConds(
-		IDatabase $db, UserIdentity $user, array $options
+		IReadableDatabase $db, UserIdentity $user, array $options
 	) {
 		$conds = [ 'wl_user' => $user->getId() ];
 		if ( $options['namespaceIds'] ) {
@@ -685,12 +699,12 @@ class WatchedItemQueryService {
 	 * Creates a query condition part for getting only items before or after the given link target
 	 * (while ordering using $sort mode)
 	 *
-	 * @param IDatabase $db
+	 * @param IReadableDatabase $db
 	 * @param LinkTarget $target
 	 * @param string $op comparison operator to use in the conditions
 	 * @return string
 	 */
-	private function getFromUntilTargetConds( IDatabase $db, LinkTarget $target, $op ) {
+	private function getFromUntilTargetConds( IReadableDatabase $db, LinkTarget $target, $op ) {
 		return $db->buildComparison( $op, [
 			'wl_namespace' => $target->getNamespace(),
 			'wl_title' => $target->getDBkey(),

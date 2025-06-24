@@ -15,10 +15,10 @@
 	// and subsequently setting additional properties on the function object.
 
 	/**
-	 * Tools for inspecting page composition and performance.
+	 * @classdesc Tools for inspecting page composition and performance.
 	 *
-	 * @class mw.inspect
-	 * @singleton
+	 * @class mediawiki.inspect
+	 * @hideconstructor
 	 */
 
 	var inspect = mw.inspect,
@@ -53,33 +53,13 @@
 		return bytes.toFixed( i > 0 ? 1 : 0 ) + units[ i ];
 	}
 
-	function serializeModuleScript( script ) {
-		// Based on mw.loader.store.set in startup/mediawiki.js
-		if ( typeof script === 'function' ) {
-			// Classic script
-			return String( script );
-		}
-		if ( $.isPlainObject( script ) ) {
-			// Package files object
-			return '{' +
-				'main:' + JSON.stringify( script.main ) + ',' +
-				'files:{' +
-				Object.keys( script.files ).map( function ( file ) {
-					var value = script.files[ file ];
-					return JSON.stringify( file ) + ':' +
-						( typeof value === 'function' ? value : JSON.stringify( value ) );
-				} ).join( ',' ) +
-				'}}';
-		}
-		// Array of urls, or null.
-		return JSON.stringify( script );
-	}
-
 	/**
 	 * Return a map of all dependency relationships between loaded modules.
 	 *
 	 * @return {Object} Maps module names to objects. Each sub-object has
 	 *  two properties, 'requires' and 'requiredBy'.
+	 * @memberof mediawiki.inspect
+	 * @method mediawiki.inspect.getDependencyGraph
 	 */
 	inspect.getDependencyGraph = function () {
 		var modules = inspect.getLoadedModules(),
@@ -108,42 +88,25 @@
 	 *
 	 * @param {string} moduleName The name of the module
 	 * @return {number|null} Module size in bytes or null
+	 * @memberof mediawiki.inspect
+	 * @method mediawiki.inspect.getModuleSize
 	 */
 	inspect.getModuleSize = function ( moduleName ) {
-		// Approximate the size of this module as originally received from the server.
-		//
 		// We typically receive them from the server through batches from load.php,
 		// or embedded as inline scripts (handled in PHP by ResourceLoader::makeModuleResponse
 		// and ResourceLoader\ClientHtml respectively).
 		//
-		// Each module is bundled by ResourceLoader::makeLoaderImplementScript in PHP,
-		// and might look as follows:
-		//
-		//     mw.loader.implement("example",function(){},{"css":[".x{color:red}"]});
-		//
-		// These parameters are stored by mw.loader.implement in the registry,
-		// and below we'll measure the size of each.
+		// The module declarator function is stored by mw.loader.implement(), allowing easy
+		// computation of the exact size.
 		var module = mw.loader.moduleRegistry[ moduleName ];
 
 		if ( module.state !== 'ready' ) {
 			return null;
 		}
-		if ( !module.style && !module.script ) {
+		if ( !module.declarator ) {
 			return 0;
 		}
-
-		var size = 0;
-		size += byteLength( JSON.stringify( moduleName ) );
-		size += byteLength( serializeModuleScript( module.script ) );
-
-		// The last three parameters are optional. The server omits these when they
-		// are empty (handled via ResourceLoader::trimArray), which is reflected
-		// in the registry as a default null value. Count such nulls as zero instead
-		// of as an actual `null` argument, since they were not actually in the bundle.
-		size += module.style ? byteLength( JSON.stringify( module.style ) ) : 0;
-		size += module.messages ? byteLength( JSON.stringify( module.messages ) ) : 0;
-		size += module.templates ? byteLength( JSON.stringify( module.templates ) ) : 0;
-		return size;
+		return byteLength( module.declarator.toString() );
 	};
 
 	/**
@@ -155,6 +118,8 @@
 	 * @return {Object} Selector counts
 	 * @return {number} return.selectors Total number of selectors
 	 * @return {number} return.matched Number of matched selectors
+	 * @memberof mediawiki.inspect
+	 * @method mediawiki.inspect.auditSelectors
 	 */
 	inspect.auditSelectors = function ( css ) {
 		var selectors = { total: 0, matched: 0 },
@@ -162,8 +127,9 @@
 
 		style.textContent = css;
 		document.body.appendChild( style );
-		// eslint-disable-next-line no-jquery/no-each-util
-		$.each( style.sheet.cssRules, function ( index, rule ) {
+		var cssRules = style.sheet.cssRules;
+		for ( var index in cssRules ) {
+			const rule = cssRules[ index ];
 			selectors.total++;
 			// document.querySelector() on prefixed pseudo-elements can throw exceptions
 			// in Firefox and Safari. Ignore these exceptions.
@@ -174,7 +140,7 @@
 					selectors.matched++;
 				}
 			} catch ( e ) {}
-		} );
+		}
 		document.body.removeChild( style );
 		return selectors;
 	};
@@ -183,6 +149,8 @@
 	 * Get a list of all loaded ResourceLoader modules.
 	 *
 	 * @return {Array} List of module names
+	 * @memberof mediawiki.inspect
+	 * @method mediawiki.inspect.getLoadedModules
 	 */
 	inspect.getLoadedModules = function () {
 		return mw.loader.getModuleNames().filter( function ( module ) {
@@ -191,25 +159,14 @@
 	};
 
 	/**
-	 * Print tabular data to the console, using console.table, console.log,
-	 * or mw.log (in declining order of preference).
+	 * Print tabular data to the console using console.table.
 	 *
 	 * @param {Array} data Tabular data represented as an array of objects
 	 *  with common properties.
+	 * @memberof mediawiki.inspect
+	 * @method mediawiki.inspect.dumpTable
 	 */
-	inspect.dumpTable = function ( data ) {
-		try {
-			// Use Function.prototype#call to force an exception on Firefox,
-			// which doesn't define console#table but doesn't complain if you
-			// try to invoke it.
-			// eslint-disable-next-line no-useless-call, compat/compat
-			console.table.call( console, data );
-			return;
-		} catch ( e ) {}
-		try {
-			console.log( JSON.stringify( data, null, 2 ) );
-		} catch ( e ) {}
-	};
+	inspect.dumpTable = console.table;
 
 	/**
 	 * Generate and print reports.
@@ -217,6 +174,8 @@
 	 * When invoked without arguments, prints all available reports.
 	 *
 	 * @param {...string} [reports] One or more of "size", "css", "store", or "time".
+	 * @memberof mediawiki.inspect
+	 * @method mediawiki.inspect.runReports
 	 */
 	inspect.runReports = function () {
 		var reports = arguments.length > 0 ?
@@ -243,9 +202,12 @@
 	 *
 	 * @param {string|RegExp} pattern String or regexp to match.
 	 * @return {Array} Array of the names of modules that matched.
+	 * @memberof mediawiki.inspect
+	 * @method mediawiki.inspect.grep
 	 */
 	inspect.grep = function ( pattern ) {
 		if ( typeof pattern.test !== 'function' ) {
+			// eslint-disable-next-line security/detect-non-literal-regexp
 			pattern = new RegExp( mw.util.escapeRegExp( pattern ), 'g' );
 		}
 
@@ -317,7 +279,10 @@
 
 				try {
 					css = module.style.css.join();
-				} catch ( e ) { return; } // skip
+				} catch ( e ) {
+					// skip
+					return;
+				}
 
 				stats = inspect.auditSelectors( css );
 				modules.push( {

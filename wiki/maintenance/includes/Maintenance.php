@@ -18,16 +18,19 @@
  * @file
  */
 
+use MediaWiki\Config\Config;
 use MediaWiki\HookContainer\HookContainer;
 use MediaWiki\HookContainer\HookRunner;
 use MediaWiki\MainConfigNames;
 use MediaWiki\Maintenance\MaintenanceParameters;
-use MediaWiki\Maintenance\MaintenanceRunner;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Settings\SettingsBuilder;
 use MediaWiki\Shell\Shell;
+use MediaWiki\User\User;
+use Wikimedia\Rdbms\IConnectionProvider;
 use Wikimedia\Rdbms\IDatabase;
 use Wikimedia\Rdbms\IMaintainableDatabase;
+use Wikimedia\Rdbms\IReadableDatabase;
 
 // NOTE: MaintenanceParameters is needed in the constructor, and we may not have
 //       autoloading enabled at this point?
@@ -51,12 +54,11 @@ require_once __DIR__ . '/MaintenanceParameters.php';
  * bar is the option value of the option for param foo
  * baz is the arg value at index 0 in the arg list
  *
- * WARNING: the constructor, shouldExecute(), setup(), finalSetup(), getName()
- * and loadSettings() are called before Setup.php is complete, which means most of the
- * common infrastructure, like logging or autoloading, is not available. Be
- * careful when changing these methods or the ones called from them. Likewise,
- * be careful with the constructor when subclassing. MediaWikiServices instance
- * is not yet available at this point.
+ * WARNING: the constructor, MaintenanceRunner::shouldExecute(), setup(), finalSetup(),
+ * and getName() are called before Setup.php is complete, which means most of the common
+ * infrastructure, like logging or autoloading, is not available. Be careful when changing
+ * these methods or the ones called from them. Likewise, be careful with the constructor
+ * when subclassing. MediaWikiServices instance is not yet available at this point.
  *
  * @stable to extend
  *
@@ -91,13 +93,6 @@ abstract class Maintenance {
 	 * @phan-var array<string,array{desc:string,require:bool,withArg:string,shortName:string,multiOccurrence:bool}>
 	 */
 	protected $mParams = [];
-
-	/**
-	 * Empty.
-	 * @var array Desired/allowed args
-	 * @deprecated since 1.39, use $this->parameters instead.
-	 */
-	protected $mArgList = [];
 
 	/**
 	 * @var array This is the list of options that were actually passed
@@ -185,6 +180,7 @@ abstract class Maintenance {
 	 * @var array
 	 */
 	public $orderedOptions = [];
+	private ?IConnectionProvider $dbProvider = null;
 
 	/**
 	 * Default constructor. Children should call this *first* if implementing
@@ -206,14 +202,6 @@ abstract class Maintenance {
 	 */
 	public function getParameters() {
 		return $this->parameters;
-	}
-
-	/**
-	 * @deprecated since 1.39, use MaintenanceRunner::shouldExecute().
-	 * @return bool
-	 */
-	public static function shouldExecute() {
-		return MaintenanceRunner::shouldExecute();
 	}
 
 	/**
@@ -364,6 +352,18 @@ abstract class Maintenance {
 	}
 
 	/**
+	 * Get arguments.
+	 * @since 1.40
+	 *
+	 * @param int|string $offset The index (from zero) of the first argument, or
+	 *                   the name declared for the argument by addArg().
+	 * @return string[]
+	 */
+	protected function getArgs( $offset = 0 ) {
+		return $this->parameters->getArgs( $offset );
+	}
+
+	/**
 	 * Programmatically set the value of the given option.
 	 * Useful for setting up child scripts, see runChild().
 	 *
@@ -467,7 +467,7 @@ abstract class Maintenance {
 		// This is sometimes called very early, before Setup.php is included.
 		if ( defined( 'MW_SERVICE_BOOTSTRAP_COMPLETE' ) ) {
 			// Flush stats periodically in long-running CLI scripts to avoid OOM (T181385)
-			$stats = MediaWikiServices::getInstance()->getStatsdDataFactory();
+			$stats = $this->getServiceContainer()->getStatsdDataFactory();
 			if ( $stats->getDataCount() > 1000 ) {
 				MediaWiki::emitBufferedStatsdData( $stats, $this->getConfig() );
 			}
@@ -625,10 +625,20 @@ abstract class Maintenance {
 	 */
 	public function getConfig() {
 		if ( $this->config === null ) {
-			$this->config = MediaWikiServices::getInstance()->getMainConfig();
+			$this->config = $this->getServiceContainer()->getMainConfig();
 		}
 
 		return $this->config;
+	}
+
+	/**
+	 * Returns the main service container.
+	 *
+	 * @since 1.40
+	 * @return MediaWikiServices
+	 */
+	protected function getServiceContainer() {
+		return MediaWikiServices::getInstance();
 	}
 
 	/**
@@ -679,19 +689,6 @@ abstract class Maintenance {
 	}
 
 	/**
-	 * This method used to be for internal use by doMaintenance.php to apply
-	 * some optional global state to LBFactory for debugging purposes.
-	 *
-	 * This is now handled lazily by ServiceWiring.
-	 *
-	 * @deprecated since 1.37 No longer needed.
-	 * @since 1.28
-	 */
-	public function setAgentAndTriggers() {
-		wfDeprecated( __METHOD__, '1.37' );
-	}
-
-	/**
 	 * Run a child maintenance script. Pass all of the current arguments
 	 * to it.
 	 * @param string $maintClass A name of a child maintenance class
@@ -722,6 +719,9 @@ abstract class Maintenance {
 		if ( $this->mDb !== null ) {
 			$child->setDB( $this->mDb );
 		}
+		if ( $this->dbProvider !== null ) {
+			$child->setDBProvider( $this->dbProvider );
+		}
 
 		return $child;
 	}
@@ -743,28 +743,6 @@ abstract class Maintenance {
 	 */
 	public function memoryLimit() {
 		return 'max';
-	}
-
-	/**
-	 * Adjusts PHP's memory limit to better suit our needs, if needed.
-	 * @deprecated since 1.39, now controlled by MaintenanceRunner
-	 */
-	protected function adjustMemoryLimit() {
-		wfDeprecated( __METHOD__, '1.39' );
-
-		if ( $this->parameters->hasOption( 'memory-limit' ) ) {
-			$limit = $this->parameters->getOption( 'memory-limit' );
-			$limit = trim( $limit, "\" '" ); // trim quotes in case someone misunderstood
-		} else {
-			$limit = $this->memoryLimit();
-		}
-
-		if ( $limit == 'max' ) {
-			$limit = -1; // no memory limit
-		}
-		if ( $limit != 'default' ) {
-			ini_set( 'memory_limit', $limit );
-		}
 	}
 
 	/**
@@ -903,17 +881,9 @@ abstract class Maintenance {
 	 *
 	 * @stable to override
 	 *
-	 * @param SettingsBuilder|null $settingsBuilder
+	 * @param SettingsBuilder $settingsBuilder
 	 */
-	public function finalSetup( SettingsBuilder $settingsBuilder = null ) {
-		if ( !$settingsBuilder ) {
-			// HACK for backwards compatibility. All subclasses that override
-			// finalSetup() should be updated to pass $settingsBuilder along.
-			// XXX: We don't want the parameter to be nullable! How can we make it required
-			//      without breaking backwards compatibility?
-			$settingsBuilder = $GLOBALS['wgSettings'];
-		}
-
+	public function finalSetup( SettingsBuilder $settingsBuilder ) {
 		$config = $settingsBuilder->getConfig();
 		$overrides = [];
 		$overrides['DBadminuser'] = $config->get( MainConfigNames::DBadminuser );
@@ -923,8 +893,6 @@ abstract class Maintenance {
 		if ( ob_get_level() ) {
 			ob_end_flush();
 		}
-		# Same with these
-		$overrides['CommandLineMode'] = true;
 
 		# Override $wgServer
 		if ( $this->hasOption( 'server' ) ) {
@@ -945,7 +913,7 @@ abstract class Maintenance {
 			// we can remove this line. This method is called before Setup.php,
 			// so it would be guaranteed DBLoadBalancerFactory is not yet initialized.
 			if ( MediaWikiServices::hasInstance() ) {
-				$service = MediaWikiServices::getInstance()->peekService( 'DBLoadBalancerFactory' );
+				$service = $this->getServiceContainer()->peekService( 'DBLoadBalancerFactory' );
 				if ( $service ) {
 					$service->destroy();
 				}
@@ -978,7 +946,7 @@ abstract class Maintenance {
 			// we can remove this line. This method is called before Setup.php,
 			// so it would be guaranteed DBLoadBalancerFactory is not yet initialized.
 			if ( MediaWikiServices::hasInstance() ) {
-				$service = MediaWikiServices::getInstance()->peekService( 'DBLoadBalancerFactory' );
+				$service = $this->getServiceContainer()->peekService( 'DBLoadBalancerFactory' );
 				if ( $service ) {
 					$service->destroy();
 				}
@@ -1002,83 +970,24 @@ abstract class Maintenance {
 	}
 
 	/**
-	 * Potentially debug globals. Originally a feature only
-	 * for refreshLinks
-	 * @deprecated since 1.39, now controlled by MaintenanceRunner.
-	 */
-	public function globals() {
-		wfDeprecated( __METHOD__, '1.39' );
-		if ( $this->hasOption( 'globals' ) ) {
-			print_r( $GLOBALS );
-		}
-	}
-
-	/**
-	 * Call before exiting CLI process for the last DB commit, and flush
-	 * any remaining buffers and other deferred work.
-	 *
-	 * Equivalent to MediaWiki::restInPeace which handles shutdown for web requests,
-	 * and should perform the same operations and in the same order.
-	 *
-	 * @since 1.36
-	 */
-	public function shutdown() {
-		$lbFactory = null;
-		if (
-			$this->getDbType() !== self::DB_NONE &&
-			// Service might be disabled, e.g. when running install.php
-			!MediaWikiServices::getInstance()->isServiceDisabled( 'DBLoadBalancerFactory' )
-		) {
-			$lbFactory = MediaWikiServices::getInstance()->getDBLoadBalancerFactory();
-			if ( $lbFactory->isReadyForRoundOperations() ) {
-				$lbFactory->commitPrimaryChanges( get_class( $this ) );
-			}
-
-			DeferredUpdates::doUpdates();
-		}
-
-		// Handle profiler outputs
-		// NOTE: MaintenanceRunner ensures Profiler::setAllowOutput() during setup
-		$profiler = Profiler::instance();
-		$profiler->logData();
-		$profiler->logDataPageOutputOnly();
-
-		MediaWiki::emitBufferedStatsdData(
-			MediaWikiServices::getInstance()->getStatsdDataFactory(),
-			$this->getConfig()
-		);
-
-		if ( $lbFactory ) {
-			if ( $lbFactory->isReadyForRoundOperations() ) {
-				$lbFactory->shutdown( $lbFactory::SHUTDOWN_NO_CHRONPROT );
-			}
-		}
-	}
-
-	/**
-	 * @deprecated since 1.39. Does nothing. Unused.
-	 * @return string
-	 */
-	public function loadSettings() {
-		// noop
-		return MW_CONFIG_FILE;
-	}
-
-	/**
 	 * Support function for cleaning up redundant text records
 	 * @param bool $delete Whether or not to actually delete the records
 	 * @author Rob Church <robchur@gmail.com>
 	 */
 	public function purgeRedundantText( $delete = true ) {
 		# Data should come off the master, wrapped in a transaction
-		$dbw = $this->getDB( DB_PRIMARY );
+		$dbw = $this->getPrimaryDB();
 		$this->beginTransaction( $dbw, __METHOD__ );
 
 		# Get "active" text records via the content table
 		$cur = [];
 		$this->output( 'Searching for active text records via contents table...' );
-		$res = $dbw->select( 'content', 'content_address', [], __METHOD__, [ 'DISTINCT' ] );
-		$blobStore = MediaWikiServices::getInstance()->getBlobStore();
+		$res = $dbw->newSelectQueryBuilder()
+			->select( 'content_address' )
+			->distinct()
+			->from( 'content' )
+			->caller( __METHOD__ )->fetchResultSet();
+		$blobStore = $this->getServiceContainer()->getBlobStore();
 		foreach ( $res as $row ) {
 			// @phan-suppress-next-line PhanUndeclaredMethod
 			$textId = $blobStore->getTextIdFromAddress( $row->content_address );
@@ -1090,8 +999,12 @@ abstract class Maintenance {
 
 		# Get the IDs of all text records not in these sets
 		$this->output( 'Searching for inactive text records...' );
-		$cond = 'old_id NOT IN ( ' . $dbw->makeList( $cur ) . ' )';
-		$res = $dbw->select( 'text', 'old_id', [ $cond ], __METHOD__, [ 'DISTINCT' ] );
+		$res = $dbw->newSelectQueryBuilder()
+			->select( 'old_id' )
+			->distinct()
+			->from( 'text' )
+			->where( $dbw->expr( 'old_id', '!=', $cur ) )
+			->caller( __METHOD__ )->fetchResultSet();
 		$old = [];
 		foreach ( $res as $row ) {
 			$old[] = $row->old_id;
@@ -1127,6 +1040,8 @@ abstract class Maintenance {
 	 *
 	 * This function has the same parameters as LoadBalancer::getConnection().
 	 *
+	 * For simple cases, use ::getReplicaDB() or ::getPrimaryDB() instead.
+	 *
 	 * @stable to override
 	 *
 	 * @param int $db DB index (DB_REPLICA/DB_PRIMARY)
@@ -1136,7 +1051,7 @@ abstract class Maintenance {
 	 */
 	protected function getDB( $db, $groups = [], $dbDomain = false ) {
 		if ( $this->mDb === null ) {
-			return MediaWikiServices::getInstance()
+			return $this->getServiceContainer()
 				->getDBLoadBalancerFactory()
 				->getMainLB( $dbDomain )
 				->getMaintenanceConnectionRef( $db, $groups, $dbDomain );
@@ -1153,6 +1068,37 @@ abstract class Maintenance {
 	 */
 	public function setDB( IMaintainableDatabase $db ) {
 		$this->mDb = $db;
+	}
+
+	/**
+	 * @return IReadableDatabase
+	 * @since 1.42
+	 */
+	protected function getReplicaDB(): IReadableDatabase {
+		if ( $this->dbProvider === null ) {
+			$this->dbProvider = $this->getServiceContainer()->getConnectionProvider();
+		}
+		return $this->dbProvider->getReplicaDatabase();
+	}
+
+	/**
+	 * @return IDatabase
+	 * @since 1.42
+	 */
+	protected function getPrimaryDB(): IDatabase {
+		if ( $this->dbProvider === null ) {
+			$this->dbProvider = $this->getServiceContainer()->getConnectionProvider();
+		}
+		return $this->dbProvider->getPrimaryDatabase();
+	}
+
+	/**
+	 * @internal
+	 * @param IConnectionProvider $dbProvider
+	 * @return void
+	 */
+	public function setDBProvider( IConnectionProvider $dbProvider ) {
+		$this->dbProvider = $dbProvider;
 	}
 
 	/**
@@ -1194,7 +1140,7 @@ abstract class Maintenance {
 	 * @since 1.36
 	 */
 	protected function waitForReplication() {
-		$lbFactory = MediaWikiServices::getInstance()->getDBLoadBalancerFactory();
+		$lbFactory = $this->getServiceContainer()->getDBLoadBalancerFactory();
 		$waitSucceeded = $lbFactory->waitForReplication(
 			[ 'timeout' => 30, 'ifWritesSince' => $this->lastReplicationWait ]
 		);
@@ -1394,7 +1340,7 @@ abstract class Maintenance {
 	 */
 	protected function getHookContainer() {
 		if ( !$this->hookContainer ) {
-			$this->hookContainer = MediaWikiServices::getInstance()->getHookContainer();
+			$this->hookContainer = $this->getServiceContainer()->getHookContainer();
 		}
 		return $this->hookContainer;
 	}

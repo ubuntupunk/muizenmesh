@@ -1,7 +1,7 @@
 /*!
  * VisualEditor ContentEditable MWTransclusionNode class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see AUTHORS.txt
+ * @copyright See AUTHORS.txt
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
@@ -160,10 +160,17 @@ ve.ce.MWTransclusionNode.static.filterRendering = function ( contentNodes ) {
 /** @inheritDoc */
 ve.ce.MWTransclusionNode.prototype.executeCommand = function () {
 	var contextItems = this.focusableSurface.getSurface().getContext().items;
-	if ( contextItems[ 0 ] instanceof ve.ui.MWTransclusionContextItem ) {
-		// Utilize the context item when it's there instead of triggering the command manually.
-		// Required to make the context item show the "Loading…" message (see T297773).
-		contextItems[ 0 ].onEditButtonClick( 'command' );
+	var contextClicked = contextItems.some( function ( contextItem ) {
+		if ( contextItem instanceof ve.ui.MWTransclusionContextItem ) {
+			// Utilize the context item when it's there instead of triggering the command manually.
+			// Required to make the context item show the "Loading…" message (see T297773).
+			contextItem.onEditButtonClick();
+			return true;
+		}
+		return false;
+	} );
+
+	if ( contextClicked ) {
 		return;
 	}
 

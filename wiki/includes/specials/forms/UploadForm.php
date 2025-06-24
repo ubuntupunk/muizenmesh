@@ -18,12 +18,17 @@
  * @file
  */
 
+use MediaWiki\Context\IContextSource;
 use MediaWiki\HookContainer\HookContainer;
 use MediaWiki\HookContainer\HookRunner;
 use MediaWiki\Html\Html;
+use MediaWiki\HTMLForm\HTMLForm;
 use MediaWiki\Linker\LinkRenderer;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Specials\SpecialUpload;
+use MediaWiki\Status\Status;
+use MediaWiki\Title\NamespaceInfo;
 use Wikimedia\RequestTimeout\TimeoutException;
 
 /**
@@ -50,17 +55,10 @@ class UploadForm extends HTMLForm {
 	/** @var array */
 	protected $mMaxUploadSize = [];
 
-	/** @var LocalRepo */
-	private $localRepo;
-
-	/** @var Language */
-	private $contentLanguage;
-
-	/** @var NamespaceInfo */
-	private $nsInfo;
-
-	/** @var HookRunner */
-	private $hookRunner;
+	private LocalRepo $localRepo;
+	private Language $contentLanguage;
+	private NamespaceInfo $nsInfo;
+	private HookRunner $hookRunner;
 
 	/**
 	 * @param array $options

@@ -1,7 +1,5 @@
 <?php
 /**
- * Job queue base code.
- *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -18,17 +16,23 @@
  * http://www.gnu.org/copyleft/gpl.html
  *
  * @file
- * @defgroup JobQueue JobQueue
  */
+
 use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
 use MediaWiki\JobQueue\JobFactory;
 use MediaWiki\MediaWikiServices;
-use MediaWiki\WikiMap\WikiMap;
 use Wikimedia\RequestTimeout\TimeoutException;
 use Wikimedia\UUID\GlobalIdGenerator;
 
 /**
- * Class to handle enqueueing and running of background jobs
+ * @defgroup JobQueue JobQueue
+ *
+ *
+ * See [the architecture doc](@ref jobqueuearch) for more information.
+ */
+
+/**
+ * Base class for queueing and running background jobs from a storage backend.
  *
  * See [the architecture doc](@ref jobqueuearch) for more information.
  *
@@ -62,9 +66,11 @@ abstract class JobQueue {
 
 	private JobFactory $jobFactory;
 
-	protected const QOS_ATOMIC = 1; // integer; "all-or-nothing" job insertions
+	/* Bit flag for "all-or-nothing" job insertions */
+	protected const QOS_ATOMIC = 1;
 
-	protected const ROOTJOB_TTL = 2419200; // integer; seconds to remember root jobs (28 days)
+	/* Seconds to remember root jobs (28 days) */
+	protected const ROOTJOB_TTL = 28 * 24 * 3600;
 
 	/**
 	 * @stable to call
@@ -160,15 +166,6 @@ abstract class JobQueue {
 	 */
 	final public function getDomain() {
 		return $this->domain;
-	}
-
-	/**
-	 * @return string Wiki ID
-	 * @deprecated since 1.33 (hard deprecated since 1.37)
-	 */
-	final public function getWiki() {
-		wfDeprecated( __METHOD__, '1.33' );
-		return WikiMap::getWikiIdFromDbDomain( $this->domain );
 	}
 
 	/**

@@ -18,8 +18,10 @@
  * @file
  */
 
+namespace MediaWiki\Site;
+
 /**
- * Interface to retreive Site objects, for implementation by service classes.
+ * Interface to retrieve Site objects, for implementation by service classes.
  *
  * Default implementation is DBSiteStore.
  *
@@ -46,3 +48,6 @@ interface SiteLookup {
 	public function getSites();
 
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( SiteLookup::class, 'SiteLookup' );

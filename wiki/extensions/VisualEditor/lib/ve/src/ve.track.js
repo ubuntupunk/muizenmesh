@@ -1,7 +1,7 @@
 /*!
  * VisualEditor tracking methods.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
 
 ( function () {
@@ -49,17 +49,5 @@
 				}
 			}
 		} );
-	};
-
-	/**
-	 * Register a handler for all analytic events
-	 *
-	 * Like ve#trackSubscribe, but binds the callback to all events, regardless of topic.
-	 *
-	 * @member ve
-	 * @param {Function} callback
-	 */
-	ve.trackSubscribeAll = function ( callback ) {
-		ve.trackSubscribe( '', callback );
 	};
 }() );

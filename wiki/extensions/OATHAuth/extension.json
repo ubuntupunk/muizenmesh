@@ -4,13 +4,14 @@
 	"author": [
 		"Ryan Lane",
 		"Robert Vogel <vogel@hallowelt.com>",
-		"Dejan Savuljesku <savuljesku@hallowelt.com>"
+		"Dejan Savuljesku <savuljesku@hallowelt.com>",
+		"Taavi Väänänen"
 	],
 	"url": "https://www.mediawiki.org/wiki/Extension:OATHAuth",
 	"descriptionmsg": "oathauth-desc",
 	"type": "other",
 	"requires": {
-		"MediaWiki": ">= 1.40.0"
+		"MediaWiki": ">= 1.42"
 	},
 	"license-name": "GPL-2.0-or-later AND GPL-3.0-or-later",
 	"attributes": {
@@ -21,7 +22,8 @@
 		}
 	},
 	"AutoloadNamespaces": {
-		"MediaWiki\\Extension\\OATHAuth\\": "src/"
+		"MediaWiki\\Extension\\OATHAuth\\": "src/",
+		"MediaWiki\\Extension\\OATHAuth\\Maintenance\\": "maintenance/"
 	},
 	"TestAutoloadNamespaces": {
 		"MediaWiki\\Extension\\OATHAuth\\Tests\\": "tests/phpunit/"
@@ -47,7 +49,8 @@
 		"getUserPermissionsErrors": "main",
 		"UserEffectiveGroups": "main",
 		"UserGetRights": "main",
-		"BeforeCreateEchoEvent": "\\MediaWiki\\Extension\\OATHAuth\\Notifications\\Manager::onBeforeCreateEchoEvent"
+		"BeforeCreateEchoEvent": "echo",
+		"MediaWikiServices": "mwservices"
 	},
 	"HookHandlers": {
 		"main": {
@@ -61,6 +64,12 @@
 		},
 		"updater": {
 			"class": "MediaWiki\\Extension\\OATHAuth\\Hook\\UpdateTables"
+		},
+		"echo": {
+			"class": "MediaWiki\\Extension\\OATHAuth\\Hook\\EchoHandler"
+		},
+		"mwservices": {
+			"class": "MediaWiki\\Extension\\OATHAuth\\Hook\\MWServicesHandler"
 		}
 	},
 	"MessagesDirs": {
@@ -71,40 +80,30 @@
 	},
 	"config": {
 		"OATHAuthWindowRadius": {
-			"value": 4
+			"value": 4,
+			"description": "Number of token windows on either side of current time to be considered valid for authentication."
 		},
 		"OATHAuthDatabase": {
-			"value": false
+			"value": false,
+			"description": "Deprecated; configure the virtual-oathauth virtual domain instead."
 		},
 		"OATHAuthAccountPrefix": {
-			"value": false
+			"value": false,
+			"description": "Prefix for user account shown during enrollment."
 		},
 		"OATHExclusiveRights": {
-			"value": []
+			"value": [],
+			"description": "List of permissions that are revoked from users who do not use two-factor authentication."
 		},
 		"OATHRequiredForGroups": {
-			"value": []
+			"value": [],
+			"description": "List of user groups that must use two-factor authentication."
 		}
 	},
 	"ResourceModules": {
-		"ext.oath.totp.showqrcode": {
-			"scripts": [
-				"totp/jquery.qrcode.js",
-				"totp/qrcode.js",
-				"totp/ext.oath.showqrcode.js"
-			],
-			"targets": [
-				"desktop",
-				"mobile"
-			]
-		},
 		"ext.oath.totp.showqrcode.styles": {
 			"styles": [
 				"totp/ext.oath.showqrcode.styles.css"
-			],
-			"targets": [
-				"desktop",
-				"mobile"
 			]
 		}
 	},
@@ -165,11 +164,19 @@
 	"GrantPermissionGroups": {
 		"oath": "authentication"
 	},
+	"GrantRiskGroups": {
+		"oath": "internal"
+	},
 	"APIModules": {
 		"oathvalidate": "\\MediaWiki\\Extension\\OATHAuth\\Api\\Module\\ApiOATHValidate"
 	},
 	"APIMetaModules": {
-		"oath": "\\MediaWiki\\Extension\\OATHAuth\\Api\\Module\\ApiQueryOATH"
+		"oath": {
+			"class": "\\MediaWiki\\Extension\\OATHAuth\\Api\\Module\\ApiQueryOATH",
+			"services": [
+				"OATHUserRepository"
+			]
+		}
 	},
 	"RateLimits": {
 		"badoath": {
@@ -213,5 +220,8 @@
 			]
 		}
 	},
+	"DatabaseVirtualDomains": [
+		"virtual-oathauth"
+	],
 	"manifest_version": 2
 }

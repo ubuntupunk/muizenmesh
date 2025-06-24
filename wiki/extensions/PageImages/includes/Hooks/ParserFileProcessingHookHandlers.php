@@ -7,18 +7,20 @@ use Exception;
 use File;
 use FormatMetadata;
 use MediaWiki\Hook\ParserAfterTidyHook;
-use MediaWiki\Hook\ParserModifyImageHTML;
+use MediaWiki\Hook\ParserModifyImageHTMLHook;
 use MediaWiki\Hook\ParserTestGlobalsHook;
 use MediaWiki\Http\HttpRequestFactory;
+use MediaWiki\Linker\LinksMigration;
 use MediaWiki\Page\PageReference;
+use MediaWiki\Parser\ParserOutput;
+use MediaWiki\Title\TitleFactory;
 use PageImages\PageImageCandidate;
 use PageImages\PageImages;
 use Parser;
-use ParserOutput;
 use RepoGroup;
 use RuntimeException;
-use Title;
 use WANObjectCache;
+use Wikimedia\Rdbms\IConnectionProvider;
 
 /**
  * Handlers for parser hooks.
@@ -39,33 +41,32 @@ use WANObjectCache;
  */
 class ParserFileProcessingHookHandlers implements
 	ParserAfterTidyHook,
-	ParserModifyImageHTML,
+	ParserModifyImageHTMLHook,
 	ParserTestGlobalsHook
 {
 	private const CANDIDATE_REGEX = '/<!--MW-PAGEIMAGES-CANDIDATE-([0-9]+)-->/';
 
-	/** @var RepoGroup */
-	private $repoGroup;
+	private RepoGroup $repoGroup;
+	private WANObjectCache $mainWANObjectCache;
+	private HttpRequestFactory $httpRequestFactory;
+	private IConnectionProvider $connectionProvider;
+	private TitleFactory $titleFactory;
+	private LinksMigration $linksMigration;
 
-	/** @var WANObjectCache */
-	private $mainWANObjectCache;
-
-	/** @var HttpRequestFactory */
-	private $httpRequestFactory;
-
-	/**
-	 * @param RepoGroup $repoGroup
-	 * @param WANObjectCache $mainWANObjectCache
-	 * @param HttpRequestFactory $httpRequestFactory
-	 */
 	public function __construct(
 		RepoGroup $repoGroup,
 		WANObjectCache $mainWANObjectCache,
-		HttpRequestFactory $httpRequestFactory
+		HttpRequestFactory $httpRequestFactory,
+		IConnectionProvider $connectionProvider,
+		TitleFactory $titleFactory,
+		LinksMigration $linksMigration
 	) {
 		$this->repoGroup = $repoGroup;
 		$this->mainWANObjectCache = $mainWANObjectCache;
 		$this->httpRequestFactory = $httpRequestFactory;
+		$this->connectionProvider = $connectionProvider;
+		$this->titleFactory = $titleFactory;
+		$this->linksMigration = $linksMigration;
 	}
 
 	/**
@@ -151,7 +152,7 @@ class ParserFileProcessingHookHandlers implements
 			$text, -1, $count, PREG_OFFSET_CAPTURE
 		);
 
-		list( $bestImageName, $freeImageName ) = $this->findBestImages( $images );
+		[ $bestImageName, $freeImageName ] = $this->findBestImages( $images );
 
 		if ( $freeImageName ) {
 			$parserOutput->setPageProperty( PageImages::getPropName( true ), $freeImageName );
@@ -169,16 +170,17 @@ class ParserFileProcessingHookHandlers implements
 				$parserOutput->setIndicator( $id, $stripped );
 			}
 		}
+		// We may have comments in TOC data - Parser::cleanupTocLine strips them for us.
 	}
 
 	/**
 	 * Find the best images out of an array of candidates
 	 *
 	 * @param PageImageCandidate[] $images
-	 * @return array The best image, and the best free image
+	 * @return array{string|false,string|false} The best image, and the best free image
 	 */
 	private function findBestImages( array $images ) {
-		if ( !count( $images ) ) {
+		if ( !$images ) {
 			return [ false, false ];
 		}
 
@@ -188,13 +190,9 @@ class ParserFileProcessingHookHandlers implements
 		$counter = 0;
 
 		foreach ( $images as $image ) {
+			$score = $this->getScore( $image, $counter++ );
 			$fileName = $image->getFileName();
-
-			if ( !isset( $scores[$fileName] ) ) {
-				$scores[$fileName] = -1;
-			}
-
-			$scores[$fileName] = max( $scores[$fileName], $this->getScore( $image, $counter++ ) );
+			$scores[$fileName] = max( $scores[$fileName] ?? -1, $score );
 		}
 
 		$bestImageName = false;
@@ -239,11 +237,8 @@ class ParserFileProcessingHookHandlers implements
 	 */
 	private function processThisTitle( PageReference $pageReference ) {
 		global $wgPageImagesNamespaces;
-		static $flipped = false;
-
-		if ( $flipped === false ) {
-			$flipped = array_flip( $wgPageImagesNamespaces );
-		}
+		static $flipped = null;
+		$flipped ??= array_flip( $wgPageImagesNamespaces );
 
 		return isset( $flipped[$pageReference->getNamespace()] );
 	}
@@ -289,9 +284,8 @@ class ParserFileProcessingHookHandlers implements
 	protected function getScore( PageImageCandidate $image, $position ) {
 		global $wgPageImagesScores;
 
-		$classes = preg_split( '/\s+/', $image->getFrameClass(), -1, PREG_SPLIT_NO_EMPTY );
-		if ( in_array( 'notpageimage', $classes ) ) {
-			// Exclude images with class=nopageimage
+		// Exclude images with class="notpageimage"
+		if ( preg_match( '/(?:^|\s)notpageimage(?=\s|$)/', $image->getFrameClass() ) ) {
 			return -1000;
 		}
 
@@ -382,21 +376,16 @@ class ParserFileProcessingHookHandlers implements
 	}
 
 	/**
-	 * Returns width/height ratio of an image as displayed or 0 is not available
+	 * Returns width/height ratio of an image as displayed or 0 if not available
 	 *
-	 * @param PageImageCandidate $image Array representing the image to get the aspect ratio from
+	 * @param PageImageCandidate $image
 	 *
 	 * @return float|int
 	 */
 	protected function getRatio( PageImageCandidate $image ) {
 		$width = $image->getFullWidth();
 		$height = $image->getFullHeight();
-
-		if ( !$width || !$height ) {
-			return 0;
-		}
-
-		return $width / $height;
+		return $width > 0 && $height > 0 ? $width / $height : 0;
 	}
 
 	/**
@@ -444,35 +433,35 @@ class ParserFileProcessingHookHandlers implements
 	/**
 	 * Returns list of images linked by the given denylist page
 	 *
-	 * @param string|bool $dbName Database name or false for current database
+	 * @param string|false $dbName Database name or false for current database
 	 * @param string $page
 	 *
 	 * @return string[]
 	 */
 	private function getDbDenylist( $dbName, $page ) {
-		$dbr = wfGetDB( DB_REPLICA, [], $dbName );
-		$title = Title::newFromText( $page );
-		$list = [];
-
-		$id = $dbr->selectField(
-			'page',
-			'page_id',
-			[ 'page_namespace' => $title->getNamespace(), 'page_title' => $title->getDBkey() ],
-			__METHOD__
-		);
-
-		if ( $id ) {
-			$res = $dbr->select( 'pagelinks',
-				'pl_title',
-				[ 'pl_from' => $id, 'pl_namespace' => NS_FILE ],
-				__METHOD__
-			);
-			foreach ( $res as $row ) {
-				$list[] = $row->pl_title;
-			}
+		$title = $this->titleFactory->newFromText( $page );
+		if ( !$title || !$title->canExist() ) {
+			return [];
 		}
 
-		return $list;
+		$dbr = $this->connectionProvider->getReplicaDatabase( $dbName );
+		$id = $dbr->newSelectQueryBuilder()
+			->select( 'page_id' )
+			->from( 'page' )
+			->where( [ 'page_namespace' => $title->getNamespace(), 'page_title' => $title->getDBkey() ] )
+			->caller( __METHOD__ )->fetchField();
+		if ( !$id ) {
+			return [];
+		}
+		[ $blNamespace, $blTitle ] = $this->linksMigration->getTitleFields( 'pagelinks' );
+		$queryInfo = $this->linksMigration->getQueryInfo( 'pagelinks' );
+
+		return $dbr->newSelectQueryBuilder()
+			->select( $blTitle )
+			->tables( $queryInfo['tables'] )
+			->joinConds( $queryInfo['joins'] )
+			->where( [ 'pl_from' => (int)$id, $blNamespace => NS_FILE ] )
+			->caller( __METHOD__ )->fetchFieldValues();
 	}
 
 	/**
@@ -493,7 +482,7 @@ class ParserFileProcessingHookHandlers implements
 
 		if ( $text && preg_match_all( $regex, $text, $matches ) ) {
 			foreach ( $matches[1] as $s ) {
-				$t = Title::makeTitleSafe( NS_FILE, $s );
+				$t = $this->titleFactory->makeTitleSafe( NS_FILE, $s );
 
 				if ( $t ) {
 					$list[] = $t->getDBkey();

@@ -23,6 +23,7 @@
 
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\PoolCounter\PoolCounterWorkViaCallback;
 use MediaWiki\Shell\Shell;
 
 /**
@@ -31,7 +32,7 @@ use MediaWiki\Shell\Shell;
  * @ingroup Media
  */
 class DjVuHandler extends ImageHandler {
-	private const EXPENSIVE_SIZE_LIMIT = 10485760; // 10MiB
+	private const EXPENSIVE_SIZE_LIMIT = 10_485_760; // 10MiB
 
 	// Constants for getHandlerState
 	private const STATE_DJVU_IMAGE = 'djvuImage';
@@ -256,7 +257,6 @@ class DjVuHandler extends ImageHandler {
 	 * @param File $file The DjVu file in question
 	 * @param bool $gettext
 	 * @return string|false|array metadata
-	 * @throws MWException
 	 */
 	private function getMetadataInternal( File $file, $gettext ) {
 		$itemNames = [ 'error', '_error', 'data' ];

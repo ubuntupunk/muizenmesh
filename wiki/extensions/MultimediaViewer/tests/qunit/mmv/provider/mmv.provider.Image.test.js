@@ -15,22 +15,24 @@
  * along with MultimediaViewer.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+const { ImageProvider } = require( 'mmv' );
+
 ( function () {
 	QUnit.module( 'mmv.provider.Image', QUnit.newMwEnvironment() );
 
 	QUnit.test( 'Image constructor sense check', function ( assert ) {
-		var imageProvider = new mw.mmv.provider.Image();
+		const imageProvider = new ImageProvider();
 
-		assert.true( imageProvider instanceof mw.mmv.provider.Image );
+		assert.true( imageProvider instanceof ImageProvider );
 	} );
 
 	QUnit.test( 'Image load success', function ( assert ) {
-		var url = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQAQMAAAAlPW0' +
+		const url = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQAQMAAAAlPW0' +
 				'iAAAABlBMVEUAAAD///+l2Z/dAAAAM0lEQVR4nGP4/5/h/1+G/58ZDrAz3D/McH' +
-				'8yw83NDDeNGe4Ug9C9zwz3gVLMDA/A6P9/AFGGFyjOXZtQAAAAAElFTkSuQmCC',
-			imageProvider = new mw.mmv.provider.Image();
+				'8yw83NDDeNGe4Ug9C9zwz3gVLMDA/A6P9/AFGGFyjOXZtQAAAAAElFTkSuQmCC';
+		const imageProvider = new ImageProvider();
 
-		imageProvider.imagePreloadingSupported = function () { return false; };
+		imageProvider.imagePreloadingSupported = () => false;
 
 		return imageProvider.get( url ).then( function ( image ) {
 			assert.true( image instanceof HTMLImageElement,
@@ -40,14 +42,14 @@
 	} );
 
 	QUnit.test( 'Image caching', function ( assert ) {
-		var url = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQAQMAAAAlPW0' +
+		const url = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQAQMAAAAlPW0' +
 				'iAAAABlBMVEUAAAD///+l2Z/dAAAAM0lEQVR4nGP4/5/h/1+G/58ZDrAz3D/McH' +
-				'8yw83NDDeNGe4Ug9C9zwz3gVLMDA/A6P9/AFGGFyjOXZtQAAAAAElFTkSuQmCC',
-			url2 = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==',
-			result,
-			imageProvider = new mw.mmv.provider.Image();
+				'8yw83NDDeNGe4Ug9C9zwz3gVLMDA/A6P9/AFGGFyjOXZtQAAAAAElFTkSuQmCC';
+		const url2 = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+		let result;
+		const imageProvider = new ImageProvider();
 
-		imageProvider.imagePreloadingSupported = function () { return false; };
+		imageProvider.imagePreloadingSupported = () => false;
 
 		return QUnit.whenPromisesComplete(
 			imageProvider.get( url ).then( function ( image ) {
@@ -70,13 +72,15 @@
 	} );
 
 	QUnit.test( 'Image load fail', function ( assert ) {
-		var imageProvider = new mw.mmv.provider.Image(),
-			oldMwLog = mw.log,
-			done = assert.async(),
-			mwLogCalled = false;
+		const imageProvider = new ImageProvider();
+		const oldMwLog = mw.log;
+		const done = assert.async();
+		let mwLogCalled = false;
 
-		imageProvider.imagePreloadingSupported = function () { return false; };
-		mw.log = function () { mwLogCalled = true; };
+		imageProvider.imagePreloadingSupported = () => false;
+		mw.log = function () {
+			mwLogCalled = true;
+		};
 
 		imageProvider.get( 'doesntexist.png' ).fail( function () {
 			assert.true( true, 'fail handler was called' );
@@ -87,13 +91,17 @@
 	} );
 
 	QUnit.test( 'Image load with preloading supported', function ( assert ) {
-		var url = mw.config.get( 'wgExtensionAssetsPath' ) + '/MultimediaViewer/resources/mmv.bootstrap/img/expand.svg',
-			imageProvider = new mw.mmv.provider.Image(),
-			endsWith = function ( a, b ) { return a.indexOf( b ) === a.length - b.length; };
+		const url = mw.config.get( 'wgExtensionAssetsPath' ) + '/MultimediaViewer/resources/mmv.bootstrap/img/expand.svg';
+		const imageProvider = new ImageProvider();
+		const endsWith = function ( a, b ) {
+			return a.indexOf( b ) === a.length - b.length;
+		};
 
-		imageProvider.imagePreloadingSupported = function () { return true; };
+		imageProvider.imagePreloadingSupported = () => true;
 		imageProvider.performance = {
-			record: function () { return $.Deferred().resolve(); }
+			record: function () {
+				return $.Deferred().resolve();
+			}
 		};
 
 		return imageProvider.get( url ).then( function ( image ) {
@@ -103,13 +111,15 @@
 	} );
 
 	QUnit.test( 'Failed image load with preloading supported', function ( assert ) {
-		var url = 'nosuchimage.png',
-			imageProvider = new mw.mmv.provider.Image(),
-			done = assert.async();
+		const url = 'nosuchimage.png';
+		const imageProvider = new ImageProvider();
+		const done = assert.async();
 
-		imageProvider.imagePreloadingSupported = function () { return true; };
+		imageProvider.imagePreloadingSupported = () => true;
 		imageProvider.performance = {
-			record: function () { return $.Deferred().resolve(); }
+			record: function () {
+				return $.Deferred().resolve();
+			}
 		};
 
 		imageProvider.get( url ).fail( function () {
@@ -119,10 +129,10 @@
 	} );
 
 	QUnit.test( 'imageQueryParameter', function ( assert ) {
-		var imageProvider = new mw.mmv.provider.Image( 'foo' ),
-			done = assert.async();
+		const imageProvider = new ImageProvider( 'foo' );
+		const done = assert.async();
 
-		imageProvider.imagePreloadingSupported = function () { return false; };
+		imageProvider.imagePreloadingSupported = () => false;
 		imageProvider.rawGet = function ( url ) {
 			assert.strictEqual( url, 'http://www.wikipedia.org/?foo', 'Extra parameter added' );
 

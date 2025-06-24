@@ -1,4 +1,7 @@
 <?php
+/**
+ * @package zpcore\plugins\menumanager
+ */
 define('OFFSET_PATH', 4);
 require_once(dirname(dirname(dirname(__FILE__))) . '/admin-globals.php');
 require_once(dirname(dirname(dirname(__FILE__))) . '/template-functions.php');
@@ -106,8 +109,7 @@ printSortableHead();
 
 			$count = $_zp_db->count('menu', NULL, 'DISTINCT `menuset`');
 			?>
-			<script type="text/javascript">
-				//<!-- <![CDATA[
+			<script>
 				function newMenuSet() {
 					var new_menuset = prompt("<?php echo gettext('Name for new menu:'); ?>", "<?php echo 'menu_' . $count; ?>");
 					if (new_menuset) {
@@ -137,7 +139,6 @@ printSortableHead();
 						return true;
 					}
 				}
-				// ]]> -->
 			</script>
 			<h1><?php
 				echo gettext("Menu Manager") . "<small>";

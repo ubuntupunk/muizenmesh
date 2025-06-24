@@ -24,7 +24,7 @@ namespace MediaWiki\ResourceLoader;
 
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
-use TitleValue;
+use MediaWiki\Title\TitleValue;
 
 /**
  * Module for user customizations scripts.
@@ -41,7 +41,8 @@ class UserModule extends WikiModule {
 	 */
 	protected function getPages( Context $context ) {
 		$user = $context->getUserIdentity();
-		if ( !$user || !$user->isRegistered() ) {
+		$tempUserConfig = MediaWikiServices::getInstance()->getTempUserConfig();
+		if ( !$user || !$user->isRegistered() || $tempUserConfig->isTempName( $user->getName() ) ) {
 			return [];
 		}
 
@@ -79,6 +80,3 @@ class UserModule extends WikiModule {
 		return self::GROUP_USER;
 	}
 }
-
-/** @deprecated since 1.39 */
-class_alias( UserModule::class, 'ResourceLoaderUserModule' );

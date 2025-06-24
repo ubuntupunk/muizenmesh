@@ -26,7 +26,7 @@ function testTitle( title ) {
  * @return {string} Full path of screenshot/video file
  */
 function filePath( title, extension ) {
-	return `${browser.config.screenshotPath}/${testTitle( title )}-${makeFilenameDate()}.${extension}`;
+	return `${ browser.config.screenshotPath }/${ testTitle( title ) }-${ makeFilenameDate() }.${ extension }`;
 }
 
 /**
@@ -41,8 +41,10 @@ async function saveScreenshot( title ) {
 	const path = filePath( title, 'png' );
 	// Ensure directory exists, based on WebDriverIO#saveScreenshotSync()
 	try {
+		// eslint-disable-next-line security/detect-non-literal-fs-filename
 		fs.statSync( browser.config.screenshotPath );
 	} catch ( err ) {
+		// eslint-disable-next-line security/detect-non-literal-fs-filename
 		fs.mkdirSync( browser.config.screenshotPath );
 	}
 	// Create and save screenshot

@@ -23,55 +23,40 @@ namespace MediaWiki\Minerva\Menu;
 use IContextSource;
 use MediaWiki\Minerva\Menu\Entries\AuthMenuEntry;
 use MediaWiki\Minerva\Menu\Entries\SingleMenuEntry;
+use MediaWiki\SpecialPage\SpecialPage;
 use MediaWiki\SpecialPage\SpecialPageFactory;
+use MediaWiki\Title\Title;
 use MediaWiki\User\UserIdentity;
-use MediaWiki\User\UserOptionsLookup;
 use Message;
-use MWException;
-use SpecialPage;
-use Title;
 
 /**
  * Set of all known menu items for easier building
  */
 final class Definitions {
 
-	/**
-	 * @var UserIdentity
-	 */
-	private $user;
-
-	/**
-	 * @var IContextSource
-	 */
-	private $context;
-
-	/**
-	 * @var SpecialPageFactory
-	 */
-	private $specialPageFactory;
-
-	/**
-	 * @var UserOptionsLookup
-	 */
-	private $userOptionsLookup;
+	private SpecialPageFactory $specialPageFactory;
+	private IContextSource $context;
+	private UserIdentity $user;
 
 	/**
 	 * Initialize definitions helper class
 	 *
-	 * @param IContextSource $context
-	 * @param SpecialPageFactory $factory
-	 * @param UserOptionsLookup $userOptionsLookup
+	 * @param SpecialPageFactory $specialPageFactory
 	 */
 	public function __construct(
-		IContextSource $context,
-		SpecialPageFactory $factory,
-		UserOptionsLookup $userOptionsLookup
+		SpecialPageFactory $specialPageFactory
 	) {
-		$this->user = $context->getUser();
+		$this->specialPageFactory = $specialPageFactory;
+	}
+
+	/**
+	 * @param IContextSource $context
+	 * @return $this
+	 */
+	public function setContext( IContextSource $context ) {
 		$this->context = $context;
-		$this->specialPageFactory = $factory;
-		$this->userOptionsLookup = $userOptionsLookup;
+		$this->user = $context->getUser();
+		return $this;
 	}
 
 	/**
@@ -83,7 +68,6 @@ final class Definitions {
 	 * @param string $className Optional HTML classes
 	 * @param string|null $icon defaults to $name if not specified
 	 * @param bool $trackable Whether an entry will track clicks or not. Default is false.
-	 * @throws MWException
 	 * @return SingleMenuEntry
 	 */
 	private function buildMenuEntry( $name, $text, $url, $className = '', $icon = null, $trackable = false ) {
@@ -96,7 +80,6 @@ final class Definitions {
 	 * Creates a login or logout button with a profile button.
 	 *
 	 * @param Group $group
-	 * @throws MWException
 	 */
 	public function insertAuthMenuItem( Group $group ) {
 		$group->insertEntry( new AuthMenuEntry(
@@ -118,7 +101,6 @@ final class Definitions {
 	/**
 	 * If Nearby is supported, build and inject the Nearby link
 	 * @param Group $group
-	 * @throws MWException
 	 */
 	public function insertNearbyIfSupported( Group $group ) {
 		// Nearby link (if supported)
@@ -140,7 +122,6 @@ final class Definitions {
 	/**
 	 * Build and insert the Settings link
 	 * @param Group $group
-	 * @throws MWException
 	 */
 	public function insertMobileOptionsItem( Group $group ) {
 		$title = $this->context->getTitle();
@@ -177,7 +158,6 @@ final class Definitions {
 	/**
 	 * Build and insert the Preferences link
 	 * @param Group $group
-	 * @throws MWException
 	 */
 	public function insertPreferencesItem( Group $group ) {
 		$entry = $this->buildMenuEntry(
@@ -205,6 +185,7 @@ final class Definitions {
 			return;
 		}
 		$entry = $this->buildMenuEntry( 'about', $msg->text(), $title->getLocalURL() );
+		$entry->setIcon( null );
 		$group->insertEntry( $entry );
 	}
 
@@ -223,13 +204,13 @@ final class Definitions {
 			return;
 		}
 		$entry = $this->buildMenuEntry( 'disclaimers', $msg->text(), $title->getLocalURL() );
+		$entry->setIcon( null );
 		$group->insertEntry( $entry );
 	}
 
 	/**
 	 * Build and insert the RecentChanges link
 	 * @param Group $group
-	 * @throws MWException
 	 */
 	public function insertRecentChanges( Group $group ) {
 		$entry = $this->buildMenuEntry(
@@ -246,7 +227,6 @@ final class Definitions {
 	/**
 	 * Build and insert the SpecialPages link
 	 * @param Group $group
-	 * @throws MWException
 	 */
 	public function insertSpecialPages( Group $group ) {
 		$entry = $this->buildMenuEntry(
@@ -263,7 +243,6 @@ final class Definitions {
 	/**
 	 * Build and insert the CommunityPortal link
 	 * @param Group $group
-	 * @throws MWException
 	 */
 	public function insertCommunityPortal( Group $group ) {
 		$msg = $this->context->msg( 'portal' );
@@ -300,7 +279,7 @@ final class Definitions {
 			// unset campaign on login link so as not to interfere with A/B tests
 			unset( $returnToQuery['campaign'] );
 		}
-		if ( !empty( $returnToQuery ) ) {
+		if ( $returnToQuery ) {
 			$ret['returntoquery'] = wfArrayToCgi( $returnToQuery );
 		}
 		return $ret;
@@ -329,7 +308,6 @@ final class Definitions {
 	 * Insert the Donate Link in the Mobile Menu.
 	 *
 	 * @param Group $group
-	 * @throws MWException
 	 */
 	public function insertDonateItem( Group $group ) {
 		$labelMsg = $this->context->msg( 'sitesupport' );

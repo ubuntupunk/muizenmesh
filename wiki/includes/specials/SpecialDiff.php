@@ -22,6 +22,10 @@
  * @ingroup SpecialPage
  */
 
+namespace MediaWiki\Specials;
+
+use MediaWiki\HTMLForm\HTMLForm;
+use MediaWiki\SpecialPage\RedirectSpecialPage;
 use MediaWiki\Title\Title;
 
 /**
@@ -122,7 +126,7 @@ class SpecialDiff extends RedirectSpecialPage {
 
 	public function getDescription() {
 		// 'diff' message is in lowercase, using own message
-		return $this->msg( 'diff-form' )->text();
+		return $this->msg( 'diff-form' );
 	}
 
 	public function getName() {
@@ -137,3 +141,6 @@ class SpecialDiff extends RedirectSpecialPage {
 		return 'redirects';
 	}
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( SpecialDiff::class, 'SpecialDiff' );

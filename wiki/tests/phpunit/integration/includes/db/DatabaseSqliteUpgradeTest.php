@@ -31,10 +31,9 @@ class DatabaseSqliteUpgradeTest extends \MediaWikiIntegrationTestCase {
 
 	/**
 	 * @param string|null $version
-	 * @param string|null &$sqlDump
 	 * @return \PHPUnit\Framework\MockObject\MockObject|DatabaseSqlite
 	 */
-	private function newMockDb( $version = null, &$sqlDump = null ) {
+	private function newMockDb( $version = null ) {
 		$mock = $this->getMockBuilder( DatabaseSqlite::class )
 			->setConstructorArgs( [ [
 				'dbFilePath' => ':memory:',
@@ -62,12 +61,7 @@ class DatabaseSqliteUpgradeTest extends \MediaWikiIntegrationTestCase {
 
 		$mock->initConnection();
 
-		$sqlDump = '';
-		$mock->method( 'query' )->willReturnCallback( static function ( $sql ) use ( &$sqlDump ) {
-			$sqlDump .= "$sql;";
-
-			return true;
-		} );
+		$mock->method( 'query' )->willReturn( true );
 
 		if ( $version ) {
 			$mock->method( 'getServerVersion' )->willReturn( $version );
@@ -160,13 +154,15 @@ class DatabaseSqliteUpgradeTest extends \MediaWikiIntegrationTestCase {
 		}
 	}
 
-	public function provideSupportedVersions() {
+	public static function provideSupportedVersions() {
 		return [
 			[ '1.35' ],
 			[ '1.36' ],
 			[ '1.37' ],
 			[ '1.38' ],
 			[ '1.39' ],
+			[ '1.40' ],
+			[ '1.41' ],
 		];
 	}
 

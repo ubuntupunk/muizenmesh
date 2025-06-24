@@ -1,9 +1,13 @@
 <?php
 
+use MediaWiki\Context\RequestContext;
 use MediaWiki\Request\FauxRequest;
+use MediaWiki\SpecialPage\SpecialPage;
+use MediaWiki\Specials\SpecialUserLogout;
 
 /**
- * @covers SpecialUserLogout
+ * @covers \MediaWiki\Specials\SpecialUserLogout
+ * @group Database
  */
 class SpecialUserLogoutTest extends SpecialPageTestBase {
 

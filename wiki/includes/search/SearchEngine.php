@@ -25,11 +25,14 @@
  * @defgroup Search Search
  */
 
+use MediaWiki\Config\Config;
 use MediaWiki\HookContainer\HookContainer;
 use MediaWiki\HookContainer\HookRunner;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Search\TitleMatcher;
+use MediaWiki\Status\Status;
 use MediaWiki\Title\Title;
+use MediaWiki\User\User;
 
 /**
  * Contain a class for special pages
@@ -394,8 +397,6 @@ abstract class SearchEngine {
 	 * @return false|array false if no namespace was extracted, an array
 	 * with the parsed query at index 0 and an array of namespaces at index
 	 * 1 (or null for all namespaces).
-	 * @throws FatalError
-	 * @throws MWException
 	 */
 	public static function parseNamespacePrefixes(
 		$query,
@@ -429,14 +430,16 @@ abstract class SearchEngine {
 
 		if ( !$allQuery && strpos( $query, ':' ) !== false ) {
 			$prefix = str_replace( ' ', '_', substr( $query, 0, strpos( $query, ':' ) ) );
-			$index = MediaWikiServices::getInstance()->getContentLanguage()->getNsIndex( $prefix );
+			$services = MediaWikiServices::getInstance();
+			$index = $services->getContentLanguage()->getNsIndex( $prefix );
 			if ( $index !== false ) {
 				$extractedNamespace = [ $index ];
 				$parsed = substr( $query, strlen( $prefix ) + 1 );
 			} elseif ( $withPrefixSearchExtractNamespaceHook ) {
 				$hookNamespaces = [ NS_MAIN ];
 				$hookQuery = $query;
-				Hooks::runner()->onPrefixSearchExtractNamespace( $hookNamespaces, $hookQuery );
+				( new HookRunner( $services->getHookContainer() ) )
+					->onPrefixSearchExtractNamespace( $hookNamespaces, $hookQuery );
 				if ( $hookQuery !== $query ) {
 					$parsed = $hookQuery;
 					$extractedNamespace = $hookNamespaces;
@@ -678,17 +681,20 @@ abstract class SearchEngine {
 				->updateCount( 'search.completion.missing', $diff );
 		}
 
+		// SearchExactMatchRescorer should probably be refactored to work directly on top of a SearchSuggestionSet
+		// instead of converting it to array and trying to infer if it has re-scored anything by inspected the head
+		// of the returned array.
 		$results = $suggestions->map( static function ( SearchSuggestion $sugg ) {
 			return $sugg->getSuggestedTitle()->getPrefixedText();
 		} );
 
+		$rescorer = new SearchExactMatchRescorer();
 		if ( $this->offset === 0 ) {
 			// Rescore results with an exact title match
 			// NOTE: in some cases like cross-namespace redirects
 			// (frequently used as shortcuts e.g. WP:WP on huwiki) some
 			// backends like Cirrus will return no results. We should still
 			// try an exact title match to workaround this limitation
-			$rescorer = new SearchExactMatchRescorer();
 			$rescoredResults = $rescorer->rescore( $search, $this->namespaces, $results, $this->limit );
 		} else {
 			// No need to rescore if offset is not 0
@@ -704,6 +710,12 @@ abstract class SearchEngine {
 				// means that we found a new exact match
 				$exactMatch = SearchSuggestion::fromTitle( 0, Title::newFromText( $rescoredResults[0] ) );
 				$suggestions->prepend( $exactMatch );
+				if ( $rescorer->getReplacedRedirect() !== null ) {
+					// the exact match rescorer replaced one of the suggestion found by the search engine
+					// let's remove it from our suggestions set to avoid showing duplicates
+					$suggestions->remove( SearchSuggestion::fromTitle( 0,
+						Title::newFromText( $rescorer->getReplacedRedirect() ) ) );
+				}
 				$suggestions->shrink( $this->limit );
 			} else {
 				// if the first result is not the same we need to rescore

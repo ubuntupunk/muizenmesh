@@ -1,31 +1,49 @@
 ( function () {
+	/**
+	 * @typedef {Object} mw.Api.Options
+	 * @property {Object} [parameters = { action: 'query', format: 'json' }] Default query
+	 *  parameters for API requests
+	 * @property {Object} [ajax = { url: mw.util.wikiScript( 'api' ), timeout: 30 * 1000, dataType: 'json' }]
+	 *  Default options for jQuery#ajax
+	 * @property {boolean} [useUS] Whether to use U+001F when joining multi-valued
+	 *  parameters (since 1.28). Default is true if ajax.url is not set, false otherwise for
+	 *  compatibility.
+	 */
+
+	/**
+	 * @private
+	 * @type {mw.Api.Options}
+	 */
 	var defaultOptions;
 
 	/**
 	 * Client library for the action API. See mw.Rest for the REST API.
-	 *
 	 * See also <https://www.mediawiki.org/wiki/API:Main_page>.
 	 *
-	 * Interact with the API of a particular MediaWiki site. mw.Api objects represent the API of
+	 * @classdesc Interact with the API of a particular MediaWiki site. mw.Api objects represent the API of
 	 * one particular MediaWiki site.
 	 *
-	 *     var api = new mw.Api();
-	 *     api.get( {
-	 *         action: 'query',
-	 *         meta: 'userinfo'
-	 *     } ).done( function ( data ) {
-	 *         console.log( data );
-	 *     } );
+	 * ```
+	 * var api = new mw.Api();
+	 * api.get( {
+	 *     action: 'query',
+	 *     meta: 'userinfo'
+	 * } ).done( function ( data ) {
+	 *     console.log( data );
+	 * } );
+	 * ```
 	 *
 	 * Since MW 1.25, multiple values for a parameter can be specified using an array:
 	 *
-	 *     var api = new mw.Api();
-	 *     api.get( {
-	 *         action: 'query',
-	 *         meta: [ 'userinfo', 'siteinfo' ] // same effect as 'userinfo|siteinfo'
-	 *     } ).done( function ( data ) {
-	 *         console.log( data );
-	 *     } );
+	 * ```
+	 * var api = new mw.Api();
+	 * api.get( {
+	 *     action: 'query',
+	 *     meta: [ 'userinfo', 'siteinfo' ] // same effect as 'userinfo|siteinfo'
+	 * } ).done( function ( data ) {
+	 *     console.log( data );
+	 * } );
+	 * ```
 	 *
 	 * Since MW 1.26, boolean values for API parameters can be specified natively. Parameter
 	 * values set to `false` or `undefined` will be omitted from the request, as required by
@@ -33,8 +51,9 @@
 	 *
 	 * @class mw.Api
 	 * @constructor
-	 * @param {Object} [options] See #defaultOptions documentation above. Can also be overridden for
-	 *  each individual request by passing them to #get or #post (or directly #ajax) later on.
+	 * @param {mw.Api.Options} [options] See {@link mw.Api.Options}. This can also be overridden for
+	 *  each request by passing them to [get()]{@link mw.Api#get} or [post()]{@link mw.Api#post} (or directly to
+	 *  [ajax()]{@link mw.Api#ajax}) later on.
 	 */
 	mw.Api = function ( options ) {
 		var defaults = $.extend( {}, options ),
@@ -57,13 +76,7 @@
 
 	/**
 	 * @private
-	 * @property {Object} defaultOptions Default options for #ajax calls. Can be overridden by passing
-	 *     `options` to mw.Api constructor.
-	 * @property {Object} defaultOptions.parameters Default query parameters for API requests.
-	 * @property {Object} defaultOptions.ajax Default options for jQuery#ajax.
-	 * @property {boolean} defaultOptions.useUS Whether to use U+001F when joining multi-valued
-	 *     parameters (since 1.28). Default is true if ajax.url is not set, false otherwise for
-	 *     compatibility.
+	 * @type {mw.Api.Options}
 	 */
 	defaultOptions = {
 		parameters: {
@@ -104,14 +117,15 @@
 	// Pre-populate with fake ajax promises to avoid HTTP requests for tokens that
 	// we already have on the page from the embedded user.options module (T36733).
 	promises[ defaultOptions.ajax.url ] = {};
-	// eslint-disable-next-line no-jquery/no-each-util
-	$.each( mw.user.tokens.get(), function ( key, value ) {
+	var tokens = mw.user.tokens.get();
+	for ( var tokenKey in tokens ) {
+		var value = tokens[ tokenKey ];
 		// This requires #getToken to use the same key as mw.user.tokens.
 		// Format: token-type + "Token" (eg. csrfToken, patrolToken, watchToken).
-		promises[ defaultOptions.ajax.url ][ key ] = $.Deferred()
+		promises[ defaultOptions.ajax.url ][ tokenKey ] = $.Deferred()
 			.resolve( value )
 			.promise( { abort: function () {} } );
-	} );
+	}
 
 	mw.Api.prototype = {
 		/**
@@ -128,7 +142,7 @@
 		},
 
 		/**
-		 * Perform API get request. See #ajax for details.
+		 * Perform API get request. See [ajax()]{@link mw.Api#ajax} for details.
 		 *
 		 * @param {Object} parameters
 		 * @param {Object} [ajaxOptions]
@@ -141,7 +155,7 @@
 		},
 
 		/**
-		 * Perform API post request. See #ajax for details.
+		 * Perform API post request. See [ajax()]{@link mw.Api#ajax} for details.
 		 *
 		 * @param {Object} parameters
 		 * @param {Object} [ajaxOptions]
@@ -161,7 +175,7 @@
 		 *
 		 * @private
 		 * @param {Object} parameters (modified in-place)
-		 * @param {boolean} useUS Whether to use U+001F when joining multi-valued parameters.
+		 * @param {boolean} useUS Whether to use U+001F when joining multivalued parameters.
 		 */
 		preprocessParameters: function ( parameters, useUS ) {
 			var key;
@@ -184,9 +198,9 @@
 		/**
 		 * Perform the API call.
 		 *
-		 * @param {Object} parameters Parameters to the API. See also #defaultOptions.parameters.
+		 * @param {Object} parameters Parameters to the API. See also {@link mw.Api.Options}
 		 * @param {Object} [ajaxOptions] Parameters to pass to jQuery.ajax. See also
-		 *   #defaultOptions.ajax.
+		 *   {@link mw.Api.Options}
 		 * @return {jQuery.Promise} A promise that settles when the API response is processed.
 		 *   Has an 'abort' method which can be used to abort the request.
 		 *
@@ -208,7 +222,7 @@
 		 *       first line of the server response). For HTTP/2, `exception` is always an empty string.
 		 *     - When the response is not valid JSON but the previous error conditions aren't met,
 		 *       textStatus is "parsererror" and exception is the exception object thrown by
-		 *       `JSON.parse`.
+		 *       {@link JSON.parse}.
 		 */
 		ajax: function ( parameters, ajaxOptions ) {
 			var token, requestIndex,
@@ -268,7 +282,7 @@
 			// Make the AJAX request
 			xhr = $.ajax( ajaxOptions )
 				// If AJAX fails, reject API call with error code 'http'
-				// and details in second argument.
+				// and the details in the second argument.
 				.fail( function ( jqXHR, textStatus, exception ) {
 					apiDeferred.reject( 'http', {
 						xhr: jqXHR,
@@ -312,20 +326,21 @@
 		},
 
 		/**
-		 * Post to API with specified type of token. If we have no token, get one and try to post.
-		 * If we have a cached token try using that, and if it fails, blank out the
-		 * cached token and start over. For example to change an user option you could do:
+		 * Post to API with the specified type of token. If we have no token, get one and try to post.
+		 * If we already have a cached token, try using that, and if the request fails using the cached token,
+		 * blank it out and start over.
 		 *
-		 *     new mw.Api().postWithToken( 'csrf', {
-		 *         action: 'options',
-		 *         optionname: 'gender',
-		 *         optionvalue: 'female'
-		 *     } );
+		 * @example <caption>For example, to change a user option, you could do:</caption>
+		 * new mw.Api().postWithToken( 'csrf', {
+		 *     action: 'options',
+		 *     optionname: 'gender',
+		 *     optionvalue: 'female'
+		 * } );
 		 *
 		 * @param {string} tokenType The name of the token, like options or edit.
 		 * @param {Object} params API parameters
 		 * @param {Object} [ajaxOptions]
-		 * @return {jQuery.Promise} See #post
+		 * @return {jQuery.Promise} See [post()]{@link mw.Api#post}
 		 * @since 1.22
 		 */
 		postWithToken: function ( tokenType, params, ajaxOptions ) {
@@ -386,7 +401,7 @@
 		 * @param {string} type Token type
 		 * @param {Object|string} [additionalParams] Additional parameters for the API (since 1.35).
 		 *   When given a string, it's treated as the 'assert' parameter (since 1.25).
-		 * @return {jQuery.Promise} Received token.
+		 * @return {jQuery.Promise<string>} Received token.
 		 */
 		getToken: function ( type, additionalParams ) {
 			var apiPromise, promiseGroup, d, reject;
@@ -420,7 +435,7 @@
 						if ( !res.query ) {
 							return reject( 'query-missing', res );
 						}
-						// If token type is unknown, it is omitted from the response
+						// If the token type is unknown, it is omitted from the response
 						if ( !res.query.tokens[ type + 'token' ] ) {
 							return $.Deferred().reject( 'token-missing', res );
 						}
@@ -439,8 +454,8 @@
 		/**
 		 * Indicate that the cached token for a certain action of the API is bad.
 		 *
-		 * Call this if you get a 'badtoken' error when using the token returned by #getToken.
-		 * You may also want to use #postWithToken instead, which invalidates bad cached tokens
+		 * Call this if you get a 'badtoken' error when using the token returned by [getToken()]{@link mw.Api#getToken}.
+		 * You may also want to use [postWithToken()]{@link mw.Api#postWithToken} instead, which invalidates bad cached tokens
 		 * automatically.
 		 *
 		 * @param {string} type Token type
@@ -462,26 +477,27 @@
 		 * For better quality of error messages, it's recommended to use the following options in your
 		 * API queries:
 		 *
-		 *     errorformat: 'html',
-		 *     errorlang: mw.config.get( 'wgUserLanguage' ),
-		 *     errorsuselocal: true,
+		 * ```
+		 * errorformat: 'html',
+		 * errorlang: mw.config.get( 'wgUserLanguage' ),
+		 * errorsuselocal: true,
+		 * ```
 		 *
 		 * Error messages, particularly for editing pages, may consist of multiple paragraphs of text.
 		 * Your user interface should have enough space for that.
 		 *
-		 * Example usage:
-		 *
-		 *     var api = new mw.Api();
-		 *     // var title = 'Test valid title';
-		 *     var title = 'Test invalid title <>';
-		 *     api.postWithToken( 'watch', {
-		 *       action: 'watch',
-		 *       title: title
-		 *     } ).then( function ( data ) {
-		 *       mw.notify( 'Success!' );
-		 *     }, function ( code, data ) {
-		 *       mw.notify( api.getErrorMessage( data ), { type: 'error' } );
-		 *     } );
+		 * @example
+		 * var api = new mw.Api();
+		 * // var title = 'Test valid title';
+		 * var title = 'Test invalid title <>';
+		 * api.postWithToken( 'watch', {
+		 *   action: 'watch',
+		 *   title: title
+		 * } ).then( function ( data ) {
+		 *   mw.notify( 'Success!' );
+		 * }, function ( code, data ) {
+		 *   mw.notify( api.getErrorMessage( data ), { type: 'error' } );
+		 * } );
 		 *
 		 * @param {Object} data API response indicating an error
 		 * @return {jQuery} Error messages, each wrapped in a `<div>`
@@ -492,7 +508,7 @@
 				// The #ajax method returns the data like this, it's not my fault...
 				data === 'OK response but empty result (check HTTP headers?)'
 			) {
-				// Server failed so horribly it did not even set a HTTP error status
+				// The server failed so horribly that it did not set a HTTP error status
 				return $( '<div>' ).append( mw.message( 'api-clientside-error-invalidresponse' ).parseDom() );
 
 			} else if ( data.xhr ) {
@@ -500,7 +516,7 @@
 					// Hit the timeout (as defined above in defaultOptions)
 					return $( '<div>' ).append( mw.message( 'api-clientside-error-timeout' ).parseDom() );
 				} else if ( data.textStatus === 'abort' ) {
-					// Request cancelled by calling the abort() method on the promise
+					// The request was cancelled by calling the abort() method on the promise
 					return $( '<div>' ).append( mw.message( 'api-clientside-error-aborted' ).parseDom() );
 				} else if ( data.textStatus === 'parsererror' ) {
 					// Server returned invalid JSON
@@ -530,7 +546,7 @@
 				} ) );
 
 			} else {
-				// Server returned some valid but bogus JSON that probably doesn't even come from our API,
+				// The server returned some valid but bogus JSON that probably doesn't even come from our API,
 				// or this method was called incorrectly (e.g. with a successful response)
 				mw.log.warn( 'mw.Api#getErrorMessage could not handle the response:', data );
 				return $( '<div>' ).append( mw.message( 'api-clientside-error-invalidresponse' ).parseDom() );

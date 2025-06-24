@@ -18,8 +18,10 @@
  * @file
  */
 
+use MediaWiki\Context\RequestContext;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Permissions\PermissionStatus;
+use MediaWiki\User\UserGroupMembership;
 
 /**
  * Show an error when a user tries to do something they do not have the necessary
@@ -59,7 +61,7 @@ class PermissionsError extends ErrorPageError {
 				// @phan-suppress-next-line PhanTypeMismatchArgumentNullable Null on permission is check when used here
 				->getGroupsWithPermission( $this->permission ) as $group
 			) {
-				$groups[] = UserGroupMembership::getLink( $group, RequestContext::getMain(), 'wiki' );
+				$groups[] = UserGroupMembership::getLinkWiki( $group, RequestContext::getMain() );
 			}
 
 			if ( $groups ) {

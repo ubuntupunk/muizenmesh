@@ -20,11 +20,11 @@
 	 *
 	 * @constructor
 	 * @param {Object} [config] Configuration options
-	 * @cfg {string} [name] Name of input to submit results (when used in HTML forms)
+	 * @param {string} [config.name] Name of input to submit results (when used in HTML forms)
 	 */
 	mw.widgets.TagMultiselectWidget = function MwWidgetsTagMultiselectWidget( config ) {
 		// Parent constructor
-		mw.widgets.TagMultiselectWidget.parent.call( this, $.extend( {}, config, {} ) );
+		mw.widgets.TagMultiselectWidget.super.call( this, $.extend( {}, config, {} ) );
 
 		if ( 'name' in config ) {
 			// Use this instead of <input type="hidden">, because hidden inputs do not have separate
@@ -42,7 +42,7 @@
 		// Events
 		// When list of selected tags changes, update hidden input
 		this.connect( this, {
-			change: 'onMultiselectChange'
+			change: 'updateHiddenInput'
 		} );
 	};
 
@@ -65,16 +65,6 @@
 			// (it is not triggered when changing the value from JS code).
 			this.$hiddenInput.trigger( 'change' );
 		}
-	};
-
-	/**
-	 * React to the 'change' event.
-	 *
-	 * Updates the hidden input and clears the text from the text box.
-	 */
-	mw.widgets.TagMultiselectWidget.prototype.onMultiselectChange = function () {
-		this.updateHiddenInput();
-		this.input.setValue( '' );
 	};
 
 }() );

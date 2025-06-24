@@ -1,6 +1,6 @@
 <?php
-/**
- * 2007-2023 PayPal
+/*
+ * Since 2007 PayPal
  *
  * NOTICE OF LICENSE
  *
@@ -18,10 +18,11 @@
  *  versions in the future. If you wish to customize PrestaShop for your
  *  needs please refer to http://www.prestashop.com for more information.
  *
- *  @author 2007-2023 PayPal
+ *  @author Since 2007 PayPal
  *  @author 202 ecommerce <tech@202-ecommerce.com>
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
+ *
  */
 
 namespace PaypalAddons\classes;
@@ -38,6 +39,24 @@ if (!defined('_PS_VERSION_')) {
  */
 class PaypalException extends Exception
 {
+    const CART_CHANGED = 1001;
+
+    const PRODUCT_UNAVAILABLE = 1002;
+
+    const INVALID_CUSTOMER = 1003;
+
+    const ARGUMENT_MISSING = 1004;
+
+    const PAYMENT_EXISTS = 1005;
+
+    const CAPTURE_FAIL = 1006;
+
+    const SCA_FAIL = 1007;
+
+    const PAYMENT_ID_INVALID = 1008;
+
+    const CAPTURE_PENDING = 1009;
+
     /** @var string Long detailed error message */
     private $message_long;
 

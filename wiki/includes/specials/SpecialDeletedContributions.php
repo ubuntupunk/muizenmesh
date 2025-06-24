@@ -21,19 +21,28 @@
  * @ingroup SpecialPage
  */
 
-use MediaWiki\Block\DatabaseBlock;
+namespace MediaWiki\Specials;
+
+use LogEventsList;
+use MediaWiki\Block\Block;
+use MediaWiki\Block\DatabaseBlockStore;
 use MediaWiki\Cache\LinkBatchFactory;
 use MediaWiki\CommentFormatter\CommentFormatter;
 use MediaWiki\Html\FormOptions;
+use MediaWiki\HTMLForm\HTMLForm;
 use MediaWiki\MainConfigNames;
+use MediaWiki\Pager\DeletedContribsPager;
 use MediaWiki\Permissions\PermissionManager;
 use MediaWiki\Revision\RevisionFactory;
+use MediaWiki\SpecialPage\SpecialPage;
+use MediaWiki\Title\NamespaceInfo;
+use MediaWiki\User\User;
 use MediaWiki\User\UserFactory;
 use MediaWiki\User\UserNamePrefixSearch;
 use MediaWiki\User\UserNameUtils;
 use MediaWiki\User\UserRigorOptions;
 use Wikimedia\IPUtils;
-use Wikimedia\Rdbms\ILoadBalancer;
+use Wikimedia\Rdbms\IConnectionProvider;
 
 /**
  * Implements Special:DeletedContributions to display archived revisions
@@ -43,36 +52,20 @@ class SpecialDeletedContributions extends SpecialPage {
 	/** @var FormOptions */
 	protected $mOpts;
 
-	/** @var PermissionManager */
-	private $permissionManager;
-
-	/** @var ILoadBalancer */
-	private $loadBalancer;
-
-	/** @var RevisionFactory */
-	private $revisionFactory;
-
-	/** @var NamespaceInfo */
-	private $namespaceInfo;
-
-	/** @var UserFactory */
-	private $userFactory;
-
-	/** @var UserNameUtils */
-	private $userNameUtils;
-
-	/** @var UserNamePrefixSearch */
-	private $userNamePrefixSearch;
-
-	/** @var CommentFormatter */
-	private $commentFormatter;
-
-	/** @var LinkBatchFactory */
-	private $linkBatchFactory;
+	private PermissionManager $permissionManager;
+	private IConnectionProvider $dbProvider;
+	private RevisionFactory $revisionFactory;
+	private NamespaceInfo $namespaceInfo;
+	private UserFactory $userFactory;
+	private UserNameUtils $userNameUtils;
+	private UserNamePrefixSearch $userNamePrefixSearch;
+	private CommentFormatter $commentFormatter;
+	private LinkBatchFactory $linkBatchFactory;
+	private DatabaseBlockStore $blockStore;
 
 	/**
 	 * @param PermissionManager $permissionManager
-	 * @param ILoadBalancer $loadBalancer
+	 * @param IConnectionProvider $dbProvider
 	 * @param RevisionFactory $revisionFactory
 	 * @param NamespaceInfo $namespaceInfo
 	 * @param UserFactory $userFactory
@@ -80,21 +73,23 @@ class SpecialDeletedContributions extends SpecialPage {
 	 * @param UserNamePrefixSearch $userNamePrefixSearch
 	 * @param CommentFormatter $commentFormatter
 	 * @param LinkBatchFactory $linkBatchFactory
+	 * @param DatabaseBlockStore $blockStore
 	 */
 	public function __construct(
 		PermissionManager $permissionManager,
-		ILoadBalancer $loadBalancer,
+		IConnectionProvider $dbProvider,
 		RevisionFactory $revisionFactory,
 		NamespaceInfo $namespaceInfo,
 		UserFactory $userFactory,
 		UserNameUtils $userNameUtils,
 		UserNamePrefixSearch $userNamePrefixSearch,
 		CommentFormatter $commentFormatter,
-		LinkBatchFactory $linkBatchFactory
+		LinkBatchFactory $linkBatchFactory,
+		DatabaseBlockStore $blockStore
 	) {
 		parent::__construct( 'DeletedContributions', 'deletedhistory' );
 		$this->permissionManager = $permissionManager;
-		$this->loadBalancer = $loadBalancer;
+		$this->dbProvider = $dbProvider;
 		$this->revisionFactory = $revisionFactory;
 		$this->namespaceInfo = $namespaceInfo;
 		$this->userFactory = $userFactory;
@@ -102,6 +97,7 @@ class SpecialDeletedContributions extends SpecialPage {
 		$this->userNamePrefixSearch = $userNamePrefixSearch;
 		$this->commentFormatter = $commentFormatter;
 		$this->linkBatchFactory = $linkBatchFactory;
+		$this->blockStore = $blockStore;
 	}
 
 	/**
@@ -157,12 +153,18 @@ class SpecialDeletedContributions extends SpecialPage {
 
 			return;
 		}
-		$this->getSkin()->setRelevantUser( $userObj );
+		// Only set valid local user as the relevant user (T344886)
+		// Uses the same condition as the SpecialContributions class did
+		if ( !IPUtils::isValidRange( $target ) &&
+			( $this->userNameUtils->isIP( $target ) || $userObj->isRegistered() )
+		) {
+			$this->getSkin()->setRelevantUser( $userObj );
+		}
 
 		$target = $userObj->getName();
 
 		$out->addSubtitle( $this->getSubTitle( $userObj ) );
-		$out->setPageTitle( $this->msg( 'deletedcontributions-title', $target ) );
+		$out->setPageTitleMsg( $this->msg( 'deletedcontributions-title' )->plaintextParams( $target ) );
 
 		$this->getForm();
 
@@ -170,7 +172,7 @@ class SpecialDeletedContributions extends SpecialPage {
 			$this->getContext(),
 			$this->getHookContainer(),
 			$this->getLinkRenderer(),
-			$this->loadBalancer,
+			$this->dbProvider,
 			$this->revisionFactory,
 			$this->commentFormatter,
 			$this->linkBatchFactory,
@@ -247,9 +249,9 @@ class SpecialDeletedContributions extends SpecialPage {
 			$links = $this->getLanguage()->pipeList( $tools );
 
 			// Show a note if the user is blocked and display the last block log entry.
-			$block = DatabaseBlock::newFromTarget( $userObj, $userObj );
-			if ( $block !== null && $block->getType() != DatabaseBlock::TYPE_AUTO ) {
-				if ( $block->getType() == DatabaseBlock::TYPE_RANGE ) {
+			$block = $this->blockStore->newFromTarget( $userObj, $userObj );
+			if ( $block !== null && $block->getType() != Block::TYPE_AUTO ) {
+				if ( $block->getType() == Block::TYPE_RANGE ) {
 					$nt = $this->namespaceInfo->getCanonicalName( NS_USER )
 						. ':' . $block->getTargetName();
 				}
@@ -333,3 +335,6 @@ class SpecialDeletedContributions extends SpecialPage {
 		return 'users';
 	}
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( SpecialDeletedContributions::class, 'SpecialDeletedContributions' );

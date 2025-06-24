@@ -23,7 +23,6 @@
 
 use MediaWiki\MainConfigNames;
 use MediaWiki\Maintenance\UndoLog;
-use MediaWiki\MediaWikiServices;
 use MediaWiki\Storage\SqlBlobStore;
 use Wikimedia\AtEase\AtEase;
 
@@ -81,11 +80,14 @@ class MoveToExternal extends Maintenance {
 		$this->resolveStubs = new ResolveStubs;
 		$this->esType = $this->getArg( 0 ); // e.g. "DB" or "mwstore"
 		$this->esLocation = $this->getArg( 1 ); // e.g. "cluster12" or "global-swift"
-		$dbw = $this->getDB( DB_PRIMARY );
+		$dbw = $this->getPrimaryDB();
 
 		$maxID = $this->getOption( 'end' );
 		if ( $maxID === null ) {
-			$maxID = $dbw->selectField( 'text', 'MAX(old_id)', '', __METHOD__ );
+			$maxID = $dbw->newSelectQueryBuilder()
+				->select( 'MAX(old_id)' )
+				->from( 'text' )
+				->caller( __METHOD__ )->fetchField();
 		}
 		$this->maxID = (int)$maxID;
 		$this->minID = (int)$this->getOption( 'start', 1 );
@@ -122,19 +124,19 @@ class MoveToExternal extends Maintenance {
 		}
 		$this->resolveStubs->setUndoLog( $this->undoLog );
 
-		$this->doMoveToExternal();
+		return $this->doMoveToExternal();
 	}
 
 	private function doMoveToExternal() {
-		$dbr = $this->getDB( DB_REPLICA );
+		$success = true;
+		$dbr = $this->getReplicaDB();
 
 		$count = $this->maxID - $this->minID + 1;
 		$blockSize = $this->getBatchSize();
 		$numBlocks = ceil( $count / $blockSize );
 		print "Moving text rows from {$this->minID} to {$this->maxID} to external storage\n";
 
-		$esFactory = MediaWikiServices::getInstance()->getExternalStoreFactory();
-		$lbFactory = MediaWikiServices::getInstance()->getDBLoadBalancerFactory();
+		$esFactory = $this->getServiceContainer()->getExternalStoreFactory();
 		$extStore = $esFactory->getStore( $this->esType );
 		$numMoved = 0;
 		$stubIDs = [];
@@ -145,19 +147,23 @@ class MoveToExternal extends Maintenance {
 
 			if ( $this->reportingInterval && !( $block % $this->reportingInterval ) ) {
 				$this->output( "oldid=$blockStart, moved=$numMoved\n" );
-				$lbFactory->waitForReplication();
+				$this->waitForReplication();
 			}
 
-			$res = $dbr->select( 'text', [ 'old_id', 'old_flags', 'old_text' ],
-				[
-					"old_id BETWEEN $blockStart AND $blockEnd",
-					'old_flags NOT ' . $dbr->buildLike( $dbr->anyString(), 'external', $dbr->anyString() ),
-				], __METHOD__
-			);
+			$res = $dbr->newSelectQueryBuilder()
+				->select( [ 'old_id', 'old_flags', 'old_text' ] )
+				->from( 'text' )
+				->where( $this->getConditions( $blockStart, $blockEnd, $dbr ) )
+				->caller( __METHOD__ )->fetchResultSet();
 			foreach ( $res as $row ) {
 				$text = $row->old_text;
 				$id = $row->old_id;
 				$flags = SqlBlobStore::explodeFlags( $row->old_flags );
+				[ $text, $flags ] = $this->resolveText( $text, $flags );
+
+				if ( $text === false ) {
+					$success = false;
+				}
 
 				if ( in_array( 'error', $flags ) ) {
 					continue;
@@ -171,12 +177,28 @@ class MoveToExternal extends Maintenance {
 						continue;
 					} elseif ( $obj instanceof HistoryBlobCurStub ) {
 						// Copy cur text to ES
-						[ $text, $flags ] = $this->compress( $obj->getText(), [ 'utf-8' ] );
+						$newText = $obj->getText();
+						if ( $newText === false ) {
+							print "Warning: Could not fetch revision blob {$id}: {$text}\n";
+							$success = false;
+							continue;
+						}
+
+						[ $text, $flags ] = $this->resolveLegacyEncoding( $newText, [] );
+
+						if ( $text === false ) {
+							print "Warning: Could not decode legacy-encoded gzip\'ed revision blob {$id}: {$newText}\n";
+							$success = false;
+							continue;
+						}
+
+						[ $text, $flags ] = $this->compress( $text, $flags );
 					} elseif ( $obj instanceof ConcatenatedGzipHistoryBlob ) {
 						// Store as is
 					} else {
 						$className = get_class( $obj );
 						print "Warning: old_id=$id unrecognised object class \"$className\"\n";
+						$success = false;
 						continue;
 					}
 				} elseif ( strlen( $text ) < $this->threshold ) {
@@ -184,7 +206,13 @@ class MoveToExternal extends Maintenance {
 					continue;
 				} else {
 					[ $text, $flags ] = $this->resolveLegacyEncoding( $text, $flags );
-					[ $text, $flags ] = $this->compress( $text, $flags );
+					[ $newText, $flags ] = $this->compress( $text, $flags );
+					if ( $newText === false ) {
+						print "Warning: Could not compress revision blob {$id}: {$text}\n";
+						$success = false;
+						continue;
+					}
+					$text = $newText;
 				}
 				$flags[] = 'external';
 				$flagsString = implode( ',', $flags );
@@ -211,6 +239,7 @@ class MoveToExternal extends Maintenance {
 					$numMoved++;
 				} else {
 					print "Update of old_id $id failed, affected zero rows\n";
+					$success = false;
 				}
 			}
 		}
@@ -218,6 +247,8 @@ class MoveToExternal extends Maintenance {
 		if ( count( $stubIDs ) ) {
 			$this->resolveStubs( $stubIDs );
 		}
+
+		return $success;
 	}
 
 	private function compress( $text, $flags ) {
@@ -233,9 +264,25 @@ class MoveToExternal extends Maintenance {
 			&& !in_array( 'utf-8', $flags )
 			&& !in_array( 'utf8', $flags )
 		) {
+			// First decompress the entry so we don't try to convert a binary gzip to utf-8
+			if ( in_array( 'gzip', $flags ) ) {
+				if ( !$this->gzip ) {
+					return [ $text, $flags ];
+				}
+				$flags = array_diff( $flags, [ 'gzip' ] );
+				$newText = gzinflate( $text );
+				if ( $newText === false ) {
+					return [ false, $flags ];
+				}
+				$text = $newText;
+			}
 			AtEase::suppressWarnings();
-			$text = iconv( $this->legacyEncoding, 'UTF-8//IGNORE', $text );
+			$newText = iconv( $this->legacyEncoding, 'UTF-8//IGNORE', $text );
 			AtEase::restoreWarnings();
+			if ( $newText === false ) {
+				return [ false, $flags ];
+			}
+			$text = $newText;
 			$flags[] = 'utf-8';
 		}
 		return [ $text, $flags ];
@@ -247,18 +294,16 @@ class MoveToExternal extends Maintenance {
 				"because the main blobs have not been moved to external storage.\n";
 		}
 
-		$dbr = $this->getDB( DB_REPLICA );
-		$lbFactory = MediaWikiServices::getInstance()->getDBLoadBalancerFactory();
+		$dbr = $this->getReplicaDB();
 		$this->output( "Resolving " . count( $stubIDs ) . " stubs\n" );
 		$numResolved = 0;
 		$numTotal = 0;
 		foreach ( array_chunk( $stubIDs, $this->getBatchSize() ) as $stubBatch ) {
-			$res = $dbr->select(
-				'text',
-				[ 'old_id', 'old_flags', 'old_text' ],
-				[ 'old_id' => $stubBatch ],
-				__METHOD__
-			);
+			$res = $dbr->newSelectQueryBuilder()
+				->select( [ 'old_id', 'old_flags', 'old_text' ] )
+				->from( 'text' )
+				->where( [ 'old_id' => $stubBatch ] )
+				->caller( __METHOD__ )->fetchResultSet();
 			foreach ( $res as $row ) {
 				$numResolved += $this->resolveStubs->resolveStub( $row, $this->dryRun ) ? 1 : 0;
 				$numTotal++;
@@ -266,11 +311,22 @@ class MoveToExternal extends Maintenance {
 					&& $numTotal % $this->reportingInterval == 0
 				) {
 					$this->output( "$numTotal stubs processed\n" );
-					$lbFactory->waitForReplication();
+					$this->waitForReplication();
 				}
 			}
 		}
 		$this->output( "$numResolved of $numTotal stubs resolved\n" );
+	}
+
+	protected function getConditions( $blockStart, $blockEnd, $dbr ) {
+		return [
+			"old_id BETWEEN $blockStart AND $blockEnd",
+			'old_flags NOT ' . $dbr->buildLike( $dbr->anyString(), 'external', $dbr->anyString() ),
+		];
+	}
+
+	protected function resolveText( $text, $flags ) {
+		return [ $text, $flags ];
 	}
 }
 

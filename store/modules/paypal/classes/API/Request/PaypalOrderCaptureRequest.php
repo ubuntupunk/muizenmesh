@@ -1,6 +1,6 @@
 <?php
-/**
- * 2007-2023 PayPal
+/*
+ * Since 2007 PayPal
  *
  * NOTICE OF LICENSE
  *
@@ -18,23 +18,25 @@
  *  versions in the future. If you wish to customize PrestaShop for your
  *  needs please refer to http://www.prestashop.com for more information.
  *
- *  @author 2007-2023 PayPal
+ *  @author Since 2007 PayPal
  *  @author 202 ecommerce <tech@202-ecommerce.com>
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
+ *
  */
 
 namespace PaypalAddons\classes\API\Request;
 
 use Exception;
 use PaypalAddons\classes\AbstractMethodPaypal;
+use PaypalAddons\classes\API\Client\HttpClient;
+use PaypalAddons\classes\API\ExtensionSDK\Order\OrdersCaptureRequest;
+use PaypalAddons\classes\API\HttpAdoptedResponse;
 use PaypalAddons\classes\API\Model\VaultInfo;
 use PaypalAddons\classes\API\Response\Error;
 use PaypalAddons\classes\API\Response\ResponseOrderCapture;
 use PaypalAddons\classes\Constants\Vaulting;
-use PayPalCheckoutSdk\Orders\OrdersCaptureRequest;
-use PayPalHttp\HttpException;
-use PayPalHttp\HttpResponse;
+use PaypalAddons\classes\PaypalException;
 use Throwable;
 
 if (!defined('_PS_VERSION_')) {
@@ -46,7 +48,7 @@ class PaypalOrderCaptureRequest extends RequestAbstract
     /** @var string */
     protected $paymentId;
 
-    public function __construct($client, AbstractMethodPaypal $method, $paymentId)
+    public function __construct(HttpClient $client, AbstractMethodPaypal $method, $paymentId)
     {
         parent::__construct($client, $method);
         $this->paymentId = $paymentId;
@@ -56,10 +58,13 @@ class PaypalOrderCaptureRequest extends RequestAbstract
     {
         $response = new ResponseOrderCapture();
         $orderCapture = new OrdersCaptureRequest($this->paymentId);
-        $orderCapture->headers = array_merge($this->getHeaders(), $orderCapture->headers);
 
         try {
             $exec = $this->client->execute($orderCapture);
+
+            if ($exec instanceof HttpAdoptedResponse) {
+                $exec = $exec->getAdoptedResponse();
+            }
 
             if (in_array($exec->statusCode, [200, 201, 202])) {
                 $response->setSuccess(true)
@@ -88,7 +93,7 @@ class PaypalOrderCaptureRequest extends RequestAbstract
                 $error->setMessage($resultDecoded->message);
                 $response->setSuccess(false)->setError($error);
             }
-        } catch (HttpException $e) {
+        } catch (PaypalException $e) {
             $error = new Error();
             $resultDecoded = json_decode($e->getMessage());
             $error->setMessage($resultDecoded->details[0]->description)->setErrorCode($e->getCode());
@@ -169,7 +174,7 @@ class PaypalOrderCaptureRequest extends RequestAbstract
         return $method;
     }
 
-    protected function getVaultInfo(HttpResponse $response)
+    protected function getVaultInfo($response)
     {
         if (false === empty($response->result->payment_source->paypal->attributes->vault)) {
             $vaultInfo = new VaultInfo();

@@ -23,8 +23,8 @@
 
 namespace MediaWiki\Auth;
 
+use MediaWiki\User\User;
 use StatusValue;
-use User;
 
 /**
  * A secondary provider mostly acts when the submitted authentication data has
@@ -234,7 +234,7 @@ interface SecondaryAuthenticationProvider extends AuthenticationProvider {
 	 * @param bool|string $autocreate False if this is not an auto-creation, or
 	 *  the source of the auto-creation passed to AuthManager::autoCreateUser().
 	 * @param array $options
-	 *  - flags: (int) Bitfield of User:READ_* constants, default User::READ_NORMAL
+	 *  - flags: (int) Bitfield of IDBAccessObject::READ_* constants, default IDBAccessObject::READ_NORMAL
 	 *  - creating: (bool) If false (or missing), this call is only testing if
 	 *    a user could be created. If set, this (non-autocreation) is for
 	 *    actually creating an account and will be followed by a call to

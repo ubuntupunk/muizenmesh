@@ -19,7 +19,11 @@
  * @ingroup Pager
  */
 
+namespace MediaWiki\Pager;
+
+use MediaWiki\Block\HideUserUtils;
 use MediaWiki\Cache\LinkBatchFactory;
+use MediaWiki\Context\IContextSource;
 use MediaWiki\HookContainer\HookContainer;
 use MediaWiki\Html\FormOptions;
 use MediaWiki\Html\Html;
@@ -29,7 +33,7 @@ use MediaWiki\Title\Title;
 use MediaWiki\User\UserGroupManager;
 use MediaWiki\User\UserIdentityLookup;
 use MediaWiki\User\UserIdentityValue;
-use Wikimedia\Rdbms\ILoadBalancer;
+use Wikimedia\Rdbms\IConnectionProvider;
 
 /**
  * This class is used to get a list of active users. The ones with specials
@@ -39,7 +43,6 @@ use Wikimedia\Rdbms\ILoadBalancer;
  * @ingroup Pager
  */
 class ActiveUsersPager extends UsersPager {
-
 	/**
 	 * @var FormOptions
 	 */
@@ -65,27 +68,30 @@ class ActiveUsersPager extends UsersPager {
 	 * @param IContextSource $context
 	 * @param HookContainer $hookContainer
 	 * @param LinkBatchFactory $linkBatchFactory
-	 * @param ILoadBalancer $loadBalancer
+	 * @param IConnectionProvider $dbProvider
 	 * @param UserGroupManager $userGroupManager
 	 * @param UserIdentityLookup $userIdentityLookup
+	 * @param HideUserUtils $hideUserUtils
 	 * @param FormOptions $opts
 	 */
 	public function __construct(
 		IContextSource $context,
 		HookContainer $hookContainer,
 		LinkBatchFactory $linkBatchFactory,
-		ILoadBalancer $loadBalancer,
+		IConnectionProvider $dbProvider,
 		UserGroupManager $userGroupManager,
 		UserIdentityLookup $userIdentityLookup,
+		HideUserUtils $hideUserUtils,
 		FormOptions $opts
 	) {
 		parent::__construct(
 			$context,
 			$hookContainer,
 			$linkBatchFactory,
-			$loadBalancer,
+			$dbProvider,
 			$userGroupManager,
 			$userIdentityLookup,
+			$hideUserUtils,
 			null,
 			null
 		);
@@ -141,7 +147,7 @@ class ActiveUsersPager extends UsersPager {
 			$conds = array_merge( $conds, $data['conds'] );
 		}
 		if ( $this->requestedUser != '' ) {
-			$conds[] = 'qcc_title >= ' . $dbr->addQuotes( $this->requestedUser );
+			$conds[] = $dbr->expr( 'qcc_title', '>=', $this->requestedUser );
 		}
 		if ( $this->groups !== [] ) {
 			$tables['ug1'] = 'user_groups';
@@ -159,9 +165,7 @@ class ActiveUsersPager extends UsersPager {
 			$conds['ug2.ug_user'] = null;
 		}
 		if ( !$this->canSeeHideuser() ) {
-			$conds[] = 'NOT EXISTS (' . $dbr->selectSQLText(
-					'ipblocks', '1', [ 'ipb_user=user_id', 'ipb_deleted' => 1 ], __METHOD__
-				) . ')';
+			$conds[] = $this->hideUserUtils->getExpression( $dbr );
 		}
 		$subquery = $dbr->buildSelectSubquery( $tables, $fields, $conds, $fname, $options, $jconds );
 
@@ -169,10 +173,10 @@ class ActiveUsersPager extends UsersPager {
 		$tables = [ 'qcc_users' => $subquery, 'recentchanges' ];
 		$jconds = [ 'recentchanges' => [ 'LEFT JOIN', [
 			'rc_actor = actor_id',
-			'rc_type != ' . $dbr->addQuotes( RC_EXTERNAL ), // Don't count wikidata.
-			'rc_type != ' . $dbr->addQuotes( RC_CATEGORIZE ), // Don't count categorization changes.
-			'rc_log_type IS NULL OR rc_log_type != ' . $dbr->addQuotes( 'newusers' ),
-			'rc_timestamp >= ' . $dbr->addQuotes( $timestamp ),
+			$dbr->expr( 'rc_type', '!=', RC_EXTERNAL ), // Don't count wikidata.
+			$dbr->expr( 'rc_type', '!=', RC_CATEGORIZE ), // Don't count categorization changes.
+			$dbr->expr( 'rc_log_type', '=', null )->or( 'rc_log_type', '!=', 'newusers' ),
+			$dbr->expr( 'rc_timestamp', '>=', $timestamp ),
 		] ] ];
 		$conds = [];
 
@@ -182,7 +186,7 @@ class ActiveUsersPager extends UsersPager {
 				'qcc_title',
 				'user_name' => 'qcc_title',
 				'user_id' => 'user_id',
-				'recentedits' => 'COUNT(rc_id)'
+				'recentedits' => 'COUNT(DISTINCT rc_id)'
 			],
 			'options' => [ 'GROUP BY' => [ 'qcc_title', 'user_id' ] ],
 			'conds' => $conds,
@@ -227,22 +231,40 @@ class ActiveUsersPager extends UsersPager {
 
 		$uids = [];
 		foreach ( $this->mResult as $row ) {
-			$uids[] = $row->user_id;
+			$uids[] = (int)$row->user_id;
 		}
 		// Fetch the block status of the user for showing "(blocked)" text and for
 		// striking out names of suppressed users when privileged user views the list.
 		// Although the first query already hits the block table for un-privileged, this
 		// is done in two queries to avoid huge quicksorts and to make COUNT(*) correct.
 		$dbr = $this->getDatabase();
-		$res = $dbr->select( 'ipblocks',
-			[ 'ipb_user', 'deleted' => 'MAX(ipb_deleted)', 'sitewide' => 'MAX(ipb_sitewide)' ],
-			[ 'ipb_user' => $uids ],
-			__METHOD__,
-			[ 'GROUP BY' => [ 'ipb_user' ] ]
-		);
+		if ( $this->blockTargetReadStage === SCHEMA_COMPAT_READ_OLD ) {
+			$res = $dbr->newSelectQueryBuilder()
+				->select( [
+					'bt_user' => 'ipb_user',
+					'deleted' => 'MAX(ipb_deleted)',
+					'sitewide' => 'MAX(ipb_sitewide)'
+				] )
+				->from( 'ipblocks' )
+				->where( [ 'ipb_user' => $uids ] )
+				->groupBy( [ 'ipb_user' ] )
+				->caller( __METHOD__ )->fetchResultSet();
+		} else {
+			$res = $dbr->newSelectQueryBuilder()
+				->select( [
+					'bt_user',
+					'deleted' => 'MAX(bl_deleted)',
+					'sitewide' => 'MAX(bl_sitewide)'
+				] )
+				->from( 'block_target' )
+				->join( 'block', null, 'bl_target=bt_id' )
+				->where( [ 'bt_user' => $uids ] )
+				->groupBy( [ 'bt_user' ] )
+				->caller( __METHOD__ )->fetchResultSet();
+		}
 		$this->blockStatusByUid = [];
 		foreach ( $res as $row ) {
-			$this->blockStatusByUid[$row->ipb_user] = [
+			$this->blockStatusByUid[$row->bt_user] = [
 				'deleted' => $row->deleted,
 				'sitewide' => $row->sitewide,
 			];
@@ -300,3 +322,9 @@ class ActiveUsersPager extends UsersPager {
 	}
 
 }
+
+/**
+ * Retain the old class name for backwards compatibility.
+ * @deprecated since 1.41
+ */
+class_alias( ActiveUsersPager::class, 'ActiveUsersPager' );

@@ -18,7 +18,7 @@
  * http://www.gnu.org/copyleft/gpl.html
  *
  * @file
- * @author <brion@pobox.com>
+ * @author Brooke Vibber
  * @author <mail@tgries.de>
  * @author Tim Starling
  * @author Luke Welling lwelling@wikimedia.org
@@ -34,20 +34,12 @@ use MediaWiki\Mail\UserEmailContact;
  * @newable
  */
 class MailAddress {
-	/**
-	 * @var string
-	 */
-	public $name;
 
-	/**
-	 * @var string
-	 */
-	public $realName;
+	public string $name;
 
-	/**
-	 * @var string
-	 */
-	public $address;
+	public string $realName;
+
+	public string $address;
 
 	/**
 	 * @stable to call
@@ -71,6 +63,17 @@ class MailAddress {
 	 */
 	public static function newFromUser( UserEmailContact $user ) {
 		return new MailAddress( $user->getEmail(), $user->getUser()->getName(), $user->getRealName() );
+	}
+
+	/**
+	 * @param self $other
+	 * @return bool
+	 * @since 1.40
+	 */
+	public function equals( self $other ): bool {
+		return $this->address === $other->address &&
+			$this->name === $other->name &&
+			$this->realName === $other->realName;
 	}
 
 	/**

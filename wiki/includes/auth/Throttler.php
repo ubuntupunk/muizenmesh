@@ -124,7 +124,7 @@ class Throttler implements LoggerAwareInterface {
 
 			// a limit of 0 is used as a disable flag in some throttling configuration settings
 			// throttling the whole world is probably a bad idea
-			if ( !$count || $userKey === null && $ipKey === null ) {
+			if ( !$count || ( $userKey === null && $ipKey === null ) ) {
 				continue;
 			}
 
@@ -160,7 +160,6 @@ class Throttler implements LoggerAwareInterface {
 	 *
 	 * @param string|null $username
 	 * @param string|null $ip
-	 * @throws \MWException
 	 */
 	public function clear( $username = null, $ip = null ) {
 		$userKey = $username ? md5( $username ) : null;

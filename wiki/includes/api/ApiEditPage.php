@@ -21,6 +21,7 @@
  */
 
 use MediaWiki\Content\IContentHandlerFactory;
+use MediaWiki\Context\RequestContext;
 use MediaWiki\EditPage\EditPage;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
@@ -31,7 +32,10 @@ use MediaWiki\Revision\RevisionLookup;
 use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\Revision\SlotRecord;
 use MediaWiki\Title\Title;
-use MediaWiki\User\UserOptionsLookup;
+use MediaWiki\User\Options\UserOptionsLookup;
+use MediaWiki\User\TempUser\TempUserCreator;
+use MediaWiki\User\User;
+use MediaWiki\User\UserFactory;
 use MediaWiki\Watchlist\WatchlistManager;
 use Wikimedia\ParamValidator\ParamValidator;
 use Wikimedia\ParamValidator\TypeDef\IntegerDef;
@@ -53,25 +57,16 @@ use Wikimedia\ParamValidator\TypeDef\IntegerDef;
  * @ingroup API
  */
 class ApiEditPage extends ApiBase {
+	use ApiCreateTempUserTrait;
 	use ApiWatchlistTrait;
 
-	/** @var IContentHandlerFactory */
-	private $contentHandlerFactory;
-
-	/** @var RevisionLookup */
-	private $revisionLookup;
-
-	/** @var WatchedItemStoreInterface */
-	private $watchedItemStore;
-
-	/** @var WikiPageFactory */
-	private $wikiPageFactory;
-
-	/** @var UserOptionsLookup */
-	private $userOptionsLookup;
-
-	/** @var RedirectLookup */
-	private $redirectLookup;
+	private IContentHandlerFactory $contentHandlerFactory;
+	private RevisionLookup $revisionLookup;
+	private WatchedItemStoreInterface $watchedItemStore;
+	private WikiPageFactory $wikiPageFactory;
+	private RedirectLookup $redirectLookup;
+	private TempUserCreator $tempUserCreator;
+	private UserFactory $userFactory;
 
 	/**
 	 * Sends a cookie so anons get talk message notifications, mirroring SubmitAction (T295910)
@@ -90,6 +85,8 @@ class ApiEditPage extends ApiBase {
 	 * @param WatchlistManager|null $watchlistManager
 	 * @param UserOptionsLookup|null $userOptionsLookup
 	 * @param RedirectLookup|null $redirectLookup
+	 * @param TempUserCreator|null $tempUserCreator
+	 * @param UserFactory|null $userFactory
 	 */
 	public function __construct(
 		ApiMain $mainModule,
@@ -100,7 +97,9 @@ class ApiEditPage extends ApiBase {
 		WikiPageFactory $wikiPageFactory = null,
 		WatchlistManager $watchlistManager = null,
 		UserOptionsLookup $userOptionsLookup = null,
-		RedirectLookup $redirectLookup = null
+		RedirectLookup $redirectLookup = null,
+		TempUserCreator $tempUserCreator = null,
+		UserFactory $userFactory = null
 	) {
 		parent::__construct( $mainModule, $moduleName );
 
@@ -118,6 +117,22 @@ class ApiEditPage extends ApiBase {
 		$this->watchlistManager = $watchlistManager ?? $services->getWatchlistManager();
 		$this->userOptionsLookup = $userOptionsLookup ?? $services->getUserOptionsLookup();
 		$this->redirectLookup = $redirectLookup ?? $services->getRedirectLookup();
+		$this->tempUserCreator = $tempUserCreator ?? $services->getTempUserCreator();
+		$this->userFactory = $userFactory ?? $services->getUserFactory();
+	}
+
+	/**
+	 * @see EditPage::getUserForPermissions
+	 * @return User
+	 */
+	private function getUserForPermissions() {
+		$user = $this->getUser();
+		if ( $this->tempUserCreator->shouldAutoCreate( $user, 'edit' ) ) {
+			return $this->userFactory->newUnsavedTempUser(
+				$this->tempUserCreator->getStashedName( $this->getRequest()->getSession() )
+			);
+		}
+		return $user;
 	}
 
 	public function execute() {
@@ -207,7 +222,7 @@ class ApiEditPage extends ApiBase {
 		$this->checkTitleUserPermissions(
 			$titleObj,
 			'edit',
-			[ 'autoblock' => true ]
+			[ 'autoblock' => true, 'user' => $this->getUserForPermissions() ]
 		);
 
 		$toMD5 = $params['text'];
@@ -485,7 +500,10 @@ class ApiEditPage extends ApiBase {
 		$ep->setApiEditOverride( true );
 		$ep->setContextTitle( $titleObj );
 		$ep->importFormData( $req );
-		$ep->maybeActivateTempUserCreate( true );
+		$tempUserCreateStatus = $ep->maybeActivateTempUserCreate( true );
+		if ( !$tempUserCreateStatus->isOK() ) {
+			$this->dieWithError( 'apierror-tempuseracquirefailed', 'tempuseracquirefailed' );
+		}
 
 		// T255700: Ensure content models of the base content
 		// and fetched revision remain the same before attempting to save.
@@ -525,8 +543,8 @@ class ApiEditPage extends ApiBase {
 		switch ( $statusValue ) {
 			case EditPage::AS_HOOK_ERROR:
 			case EditPage::AS_HOOK_ERROR_EXPECTED:
-				if ( isset( $status->apiHookResult ) ) {
-					$r = $status->apiHookResult;
+				if ( $status->statusData !== null ) {
+					$r = $status->statusData;
 					$r['result'] = 'Failure';
 					$apiResult->addValue( null, $this->getModuleName(), $r );
 					return;
@@ -585,6 +603,19 @@ class ApiEditPage extends ApiBase {
 					}
 				}
 				$this->persistGlobalSession();
+
+				if ( isset( $result['savedTempUser'] ) ) {
+					$r['tempusercreated'] = true;
+					$params['returnto'] ??= $titleObj->getPrefixedDBkey();
+					$redirectUrl = $this->getTempUserRedirectUrl(
+						$params,
+						$result['savedTempUser']
+					);
+					if ( $redirectUrl ) {
+						$r['tempusercreatedredirect'] = $redirectUrl;
+					}
+				}
+
 				break;
 
 			default:
@@ -712,7 +743,7 @@ class ApiEditPage extends ApiBase {
 		// which is why this is here and not at the bottom.
 		$params += $this->getWatchlistParams();
 
-		return $params + [
+		$params += [
 			'md5' => null,
 			'prependtext' => [
 				ParamValidator::PARAM_TYPE => 'text',
@@ -745,6 +776,10 @@ class ApiEditPage extends ApiBase {
 				ApiBase::PARAM_HELP_MSG_APPEND => [ 'apihelp-edit-param-token' ],
 			],
 		];
+
+		$params += $this->getCreateTempUserParams();
+
+		return $params;
 	}
 
 	public function needsToken() {

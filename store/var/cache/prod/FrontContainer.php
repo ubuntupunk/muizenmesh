@@ -31,8 +31,140 @@ class FrontContainer extends \PrestaShop\PrestaShop\Adapter\Container\LegacyCont
             'shop' => true,
         ];
         $this->methodMap = [
+            'PrestaShop\\Module\\PsAccounts\\Account\\CommandHandler\\DeleteUserShopHandler' => 'getDeleteUserShopHandlerService',
+            'PrestaShop\\Module\\PsAccounts\\Account\\CommandHandler\\LinkShopHandler' => 'getLinkShopHandlerService',
+            'PrestaShop\\Module\\PsAccounts\\Account\\CommandHandler\\MigrateAndLinkV4ShopHandler' => 'getMigrateAndLinkV4ShopHandlerService',
+            'PrestaShop\\Module\\PsAccounts\\Account\\CommandHandler\\UnlinkShopHandler' => 'getUnlinkShopHandlerService',
+            'PrestaShop\\Module\\PsAccounts\\Account\\CommandHandler\\UpdateUserShopHandler' => 'getUpdateUserShopHandlerService',
+            'PrestaShop\\Module\\PsAccounts\\Account\\CommandHandler\\UpgradeModuleHandler' => 'getUpgradeModuleHandlerService',
+            'PrestaShop\\Module\\PsAccounts\\Account\\CommandHandler\\UpgradeModuleMultiHandler' => 'getUpgradeModuleMultiHandlerService',
+            'PrestaShop\\Module\\PsAccounts\\Account\\LinkShop' => 'getLinkShopService',
+            'PrestaShop\\Module\\PsAccounts\\Account\\Session\\Firebase\\OwnerSession' => 'getOwnerSessionService',
+            'PrestaShop\\Module\\PsAccounts\\Account\\Session\\Firebase\\ShopSession' => 'getShopSessionService',
+            'PrestaShop\\Module\\PsAccounts\\Account\\Session\\ShopSession' => 'getShopSession2Service',
+            'PrestaShop\\Module\\PsAccounts\\Adapter\\Configuration' => 'getConfigurationService',
+            'PrestaShop\\Module\\PsAccounts\\Adapter\\Link' => 'getLinkService',
+            'PrestaShop\\Module\\PsAccounts\\Api\\Client\\AccountsClient' => 'getAccountsClientService',
+            'PrestaShop\\Module\\PsAccounts\\Api\\Client\\IndirectChannelClient' => 'getIndirectChannelClientService',
+            'PrestaShop\\Module\\PsAccounts\\Api\\Client\\ServicesBillingClient' => 'getServicesBillingClientService',
+            'PrestaShop\\Module\\PsAccounts\\Context\\ShopContext' => 'getShopContextService',
+            'PrestaShop\\Module\\PsAccounts\\Cqrs\\CommandBus' => 'getCommandBusService',
+            'PrestaShop\\Module\\PsAccounts\\Factory\\CircuitBreakerFactory' => 'getCircuitBreakerFactoryService',
+            'PrestaShop\\Module\\PsAccounts\\Installer\\Installer' => 'getInstallerService',
+            'PrestaShop\\Module\\PsAccounts\\Middleware\\Oauth2Middleware' => 'getOauth2MiddlewareService',
+            'PrestaShop\\Module\\PsAccounts\\Presenter\\PsAccountsPresenter' => 'getPsAccountsPresenterService',
+            'PrestaShop\\Module\\PsAccounts\\Provider\\OAuth2\\Oauth2Client' => 'getOauth2ClientService',
+            'PrestaShop\\Module\\PsAccounts\\Provider\\OAuth2\\PrestaShopSession' => 'getPrestaShopSessionService',
+            'PrestaShop\\Module\\PsAccounts\\Provider\\OAuth2\\ShopProvider' => 'getShopProviderService',
+            'PrestaShop\\Module\\PsAccounts\\Provider\\RsaKeysProvider' => 'getRsaKeysProviderService',
+            'PrestaShop\\Module\\PsAccounts\\Provider\\ShopProvider' => 'getShopProvider2Service',
+            'PrestaShop\\Module\\PsAccounts\\Repository\\ConfigurationRepository' => 'getConfigurationRepositoryService',
+            'PrestaShop\\Module\\PsAccounts\\Repository\\ShopTokenRepository' => 'getShopTokenRepositoryService',
+            'PrestaShop\\Module\\PsAccounts\\Repository\\UserTokenRepository' => 'getUserTokenRepositoryService',
+            'PrestaShop\\Module\\PsAccounts\\Service\\AnalyticsService' => 'getAnalyticsServiceService',
+            'PrestaShop\\Module\\PsAccounts\\Service\\PsAccountsService' => 'getPsAccountsServiceService',
+            'PrestaShop\\Module\\PsAccounts\\Service\\PsBillingService' => 'getPsBillingServiceService',
+            'PrestaShop\\Module\\PsAccounts\\Service\\SentryService' => 'getSentryServiceService',
+            'PrestaShop\\Module\\PsEventbus\\Api\\CollectorApiClient' => 'getCollectorApiClientService',
+            'PrestaShop\\Module\\PsEventbus\\Api\\LiveSyncApiClient' => 'getLiveSyncApiClientService',
+            'PrestaShop\\Module\\PsEventbus\\Api\\SyncApiClient' => 'getSyncApiClientService',
+            'PrestaShop\\Module\\PsEventbus\\Builder\\CarrierBuilder' => 'getCarrierBuilderService',
+            'PrestaShop\\Module\\PsEventbus\\Decorator\\CategoryDecorator' => 'getCategoryDecoratorService',
+            'PrestaShop\\Module\\PsEventbus\\Decorator\\CurrencyDecorator' => 'getCurrencyDecoratorService',
+            'PrestaShop\\Module\\PsEventbus\\Decorator\\CustomPriceDecorator' => 'getCustomPriceDecoratorService',
+            'PrestaShop\\Module\\PsEventbus\\Decorator\\CustomerDecorator' => 'getCustomerDecoratorService',
+            'PrestaShop\\Module\\PsEventbus\\Decorator\\EmployeeDecorator' => 'getEmployeeDecoratorService',
+            'PrestaShop\\Module\\PsEventbus\\Decorator\\ImageDecorator' => 'getImageDecoratorService',
+            'PrestaShop\\Module\\PsEventbus\\Decorator\\ImageTypeDecorator' => 'getImageTypeDecoratorService',
+            'PrestaShop\\Module\\PsEventbus\\Decorator\\LanguageDecorator' => 'getLanguageDecoratorService',
+            'PrestaShop\\Module\\PsEventbus\\Decorator\\ManufacturerDecorator' => 'getManufacturerDecoratorService',
+            'PrestaShop\\Module\\PsEventbus\\Decorator\\PayloadDecorator' => 'getPayloadDecoratorService',
+            'PrestaShop\\Module\\PsEventbus\\Decorator\\ProductDecorator' => 'getProductDecoratorService',
+            'PrestaShop\\Module\\PsEventbus\\Decorator\\ProductSupplierDecorator' => 'getProductSupplierDecoratorService',
+            'PrestaShop\\Module\\PsEventbus\\Decorator\\StockDecorator' => 'getStockDecoratorService',
+            'PrestaShop\\Module\\PsEventbus\\Decorator\\StoreDecorator' => 'getStoreDecoratorService',
+            'PrestaShop\\Module\\PsEventbus\\Decorator\\SupplierDecorator' => 'getSupplierDecoratorService',
+            'PrestaShop\\Module\\PsEventbus\\Decorator\\TranslationDecorator' => 'getTranslationDecoratorService',
+            'PrestaShop\\Module\\PsEventbus\\Decorator\\WishlistDecorator' => 'getWishlistDecoratorService',
+            'PrestaShop\\Module\\PsEventbus\\Formatter\\ArrayFormatter' => 'getArrayFormatterService',
+            'PrestaShop\\Module\\PsEventbus\\Formatter\\JsonFormatter' => 'getJsonFormatterService',
+            'PrestaShop\\Module\\PsEventbus\\Handler\\ErrorHandler\\ErrorHandler' => 'getErrorHandlerService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\CarrierDataProvider' => 'getCarrierDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\CartDataProvider' => 'getCartDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\CartRuleDataProvider' => 'getCartRuleDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\CategoryDataProvider' => 'getCategoryDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\CurrencyDataProvider' => 'getCurrencyDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\CustomPriceDataProvider' => 'getCustomPriceDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\CustomProductCarrierDataProvider' => 'getCustomProductCarrierDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\CustomerDataProvider' => 'getCustomerDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\EmployeeDataProvider' => 'getEmployeeDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\GoogleTaxonomyDataProvider' => 'getGoogleTaxonomyDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\ImageDataProvider' => 'getImageDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\ImageTypeDataProvider' => 'getImageTypeDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\LanguageDataProvider' => 'getLanguageDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\ManufacturerDataProvider' => 'getManufacturerDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\ModuleDataProvider' => 'getModuleDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\OrderDataProvider' => 'getOrderDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\ProductDataProvider' => 'getProductDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\ProductSupplierDataProvider' => 'getProductSupplierDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\StockDataProvider' => 'getStockDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\StoreDataProvider' => 'getStoreDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\SupplierDataProvider' => 'getSupplierDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\TranslationDataProvider' => 'getTranslationDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Provider\\WishlistDataProvider' => 'getWishlistDataProviderService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\BundleRepository' => 'getBundleRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\CarrierRepository' => 'getCarrierRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\CartProductRepository' => 'getCartProductRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\CartRepository' => 'getCartRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\CartRuleRepository' => 'getCartRuleRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\CategoryRepository' => 'getCategoryRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\ConfigurationRepository' => 'getConfigurationRepository2Service',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\CountryRepository' => 'getCountryRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\CurrencyRepository' => 'getCurrencyRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\CustomPriceRepository' => 'getCustomPriceRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\CustomerRepository' => 'getCustomerRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\DeletedObjectsRepository' => 'getDeletedObjectsRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\EmployeeRepository' => 'getEmployeeRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\EventbusSyncRepository' => 'getEventbusSyncRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\GoogleTaxonomyRepository' => 'getGoogleTaxonomyRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\ImageRepository' => 'getImageRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\ImageTypeRepository' => 'getImageTypeRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\IncrementalSyncRepository' => 'getIncrementalSyncRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\LanguageRepository' => 'getLanguageRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\LiveSyncRepository' => 'getLiveSyncRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\ManufacturerRepository' => 'getManufacturerRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\ModuleRepository' => 'getModuleRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\OrderCartRuleRepository' => 'getOrderCartRuleRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\OrderDetailsRepository' => 'getOrderDetailsRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\OrderHistoryRepository' => 'getOrderHistoryRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\OrderRepository' => 'getOrderRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\ProductCarrierRepository' => 'getProductCarrierRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\ProductRepository' => 'getProductRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\ProductSupplierRepository' => 'getProductSupplierRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\ServerInformationRepository' => 'getServerInformationRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\ShopRepository' => 'getShopRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\SpecificPriceRepository' => 'getSpecificPriceRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\StateRepository' => 'getStateRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\StockMvtRepository' => 'getStockMvtRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\StockRepository' => 'getStockRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\StoreRepository' => 'getStoreRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\SupplierRepository' => 'getSupplierRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\TaxRepository' => 'getTaxRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\ThemeRepository' => 'getThemeRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\TranslationRepository' => 'getTranslationRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\WishlistProductRepository' => 'getWishlistProductRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Repository\\WishlistRepository' => 'getWishlistRepositoryService',
+            'PrestaShop\\Module\\PsEventbus\\Service\\ApiAuthorizationService' => 'getApiAuthorizationServiceService',
+            'PrestaShop\\Module\\PsEventbus\\Service\\CacheService' => 'getCacheServiceService',
+            'PrestaShop\\Module\\PsEventbus\\Service\\CompressionService' => 'getCompressionServiceService',
+            'PrestaShop\\Module\\PsEventbus\\Service\\DeletedObjectsService' => 'getDeletedObjectsServiceService',
+            'PrestaShop\\Module\\PsEventbus\\Service\\PresenterService' => 'getPresenterServiceService',
+            'PrestaShop\\Module\\PsEventbus\\Service\\ProxyService' => 'getProxyServiceService',
+            'PrestaShop\\Module\\PsEventbus\\Service\\PsAccountsAdapterService' => 'getPsAccountsAdapterServiceService',
+            'PrestaShop\\Module\\PsEventbus\\Service\\SpecificPriceService' => 'getSpecificPriceServiceService',
+            'PrestaShop\\Module\\PsEventbus\\Service\\SynchronizationService' => 'getSynchronizationServiceService',
             'PrestaShop\\Module\\Psgdpr\\Repository\\ConsentRepository' => 'getConsentRepositoryService',
-            'PrestaShop\\Module\\Psgdpr\\Repository\\CustomerRepository' => 'getCustomerRepositoryService',
+            'PrestaShop\\Module\\Psgdpr\\Repository\\CustomerRepository' => 'getCustomerRepository2Service',
             'PrestaShop\\Module\\Psgdpr\\Repository\\LoggerRepository' => 'getLoggerRepositoryService',
             'PrestaShop\\Module\\Psgdpr\\Service\\ExportService' => 'getExportServiceService',
             'PrestaShop\\Module\\Psgdpr\\Service\\Export\\ExportFactory' => 'getExportFactoryService',
@@ -43,16 +175,16 @@ class FrontContainer extends \PrestaShop\PrestaShop\Adapter\Container\LegacyCont
             'PrestaShop\\Module\\Psgdpr\\Service\\FrontResponder\\Strategy\\FrontResponderForCsv' => 'getFrontResponderForCsvService',
             'PrestaShop\\Module\\Psgdpr\\Service\\FrontResponder\\Strategy\\FrontResponderForPdf' => 'getFrontResponderForPdfService',
             'PrestaShop\\Module\\Psgdpr\\Service\\LoggerService' => 'getLoggerServiceService',
-            'PrestaShop\\PrestaShop\\Adapter\\Configuration' => 'getConfigurationService',
+            'PrestaShop\\PrestaShop\\Adapter\\Configuration' => 'getConfiguration2Service',
             'PrestaShop\\PrestaShop\\Adapter\\ContextStateManager' => 'getContextStateManagerService',
-            'PrestaShop\\PrestaShop\\Adapter\\Currency\\CurrencyDataProvider' => 'getCurrencyDataProviderService',
+            'PrestaShop\\PrestaShop\\Adapter\\Currency\\CurrencyDataProvider' => 'getCurrencyDataProvider2Service',
             'PrestaShop\\PrestaShop\\Adapter\\LegacyContext' => 'getLegacyContextService',
             'PrestaShop\\PrestaShop\\Adapter\\Tools' => 'getToolsService',
             'PrestaShop\\PrestaShop\\Core\\Localization\\Locale\\Repository' => 'getRepositoryService',
             'Psgdpr' => 'getPsgdprService',
             'annotation_reader' => 'getAnnotationReaderService',
             'array' => 'getArrayService',
-            'configuration' => 'getConfiguration2Service',
+            'configuration' => 'getConfiguration3Service',
             'container.env_var_processors_locator' => 'getContainer_EnvVarProcessorsLocatorService',
             'context' => 'getContextService',
             'db' => 'getDbService',
@@ -96,6 +228,26 @@ class FrontContainer extends \PrestaShop\PrestaShop\Adapter\Container\LegacyCont
             'prestashop.translation.translator_language_loader' => 'getPrestashop_Translation_TranslatorLanguageLoaderService',
             'product_comment_criterion_repository' => 'getProductCommentCriterionRepositoryService',
             'product_comment_repository' => 'getProductCommentRepositoryService',
+            'ps_accounts.context' => 'getPsAccounts_ContextService',
+            'ps_accounts.logger' => 'getPsAccounts_LoggerService',
+            'ps_accounts.module' => 'getPsAccounts_ModuleService',
+            'ps_eventbus' => 'getPsEventbusService',
+            'ps_eventbus.context' => 'getPsEventbus_ContextService',
+            'ps_eventbus.controller' => 'getPsEventbus_ControllerService',
+            'ps_eventbus.cookie' => 'getPsEventbus_CookieService',
+            'ps_eventbus.currency' => 'getPsEventbus_CurrencyService',
+            'ps_eventbus.db' => 'getPsEventbus_DbService',
+            'ps_eventbus.helper.module' => 'getPsEventbus_Helper_ModuleService',
+            'ps_eventbus.language' => 'getPsEventbus_LanguageService',
+            'ps_eventbus.link' => 'getPsEventbus_LinkService',
+            'ps_eventbus.shop' => 'getPsEventbus_ShopService',
+            'ps_eventbus.smarty' => 'getPsEventbus_SmartyService',
+            'qapla.module.qaplapudo.cache.cache_file' => 'getQapla_Module_Qaplapudo_Cache_CacheFileService',
+            'qapla.module.qaplapudo.cache.symfony_filesystem_adapter' => 'getQapla_Module_Qaplapudo_Cache_SymfonyFilesystemAdapterService',
+            'qapla.module.qaplapudo.provider.cart_pudo_provider' => 'getQapla_Module_Qaplapudo_Provider_CartPudoProviderService',
+            'qapla.module.qaplapudo.qaplaapi.http_client' => 'getQapla_Module_Qaplapudo_Qaplaapi_HttpClientService',
+            'qapla.module.qaplapudo.qaplaapi.pudo.pudo_provider' => 'getQapla_Module_Qaplapudo_Qaplaapi_Pudo_PudoProviderService',
+            'qapla.module.qaplapudo.qaplaapi.pudo.pudo_provider_cached' => 'getQapla_Module_Qaplapudo_Qaplaapi_Pudo_PudoProviderCachedService',
             'prestashop.adapter.tools' => 'getPrestashop_Adapter_ToolsService',
         ];
         $this->aliases = [
@@ -139,6 +291,7 @@ class FrontContainer extends \PrestaShop\PrestaShop\Adapter\Container\LegacyCont
             'Doctrine\\Persistence\\ManagerRegistry' => true,
             'PrestaShopBundle\\DependencyInjection\\CacheAdapterFactory' => true,
             'PrestaShopBundle\\DependencyInjection\\RuntimeConstEnvVarProcessor' => true,
+            'PrestaShop\\Module\\PsEventbus\\Handler\\ErrorHandler\\ErrorHandlerInterface' => true,
             'Psr\\Container\\ContainerInterface' => true,
             'Symfony\\Component\\DependencyInjection\\ContainerInterface' => true,
             'data_collector.doctrine' => true,
@@ -214,6 +367,1326 @@ class FrontContainer extends \PrestaShop\PrestaShop\Adapter\Container\LegacyCont
     }
 
     /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Account\CommandHandler\DeleteUserShopHandler' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Account\CommandHandler\DeleteUserShopHandler
+     */
+    protected function getDeleteUserShopHandlerService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Account\\CommandHandler\\DeleteUserShopHandler'] = new \PrestaShop\Module\PsAccounts\Account\CommandHandler\DeleteUserShopHandler(($this->services['PrestaShop\\Module\\PsAccounts\\Api\\Client\\AccountsClient'] ?? ($this->services['PrestaShop\\Module\\PsAccounts\\Api\\Client\\AccountsClient'] = new \PrestaShop\Module\PsAccounts\Api\Client\AccountsClient('https://accounts-api.distribution.prestashop.net/', NULL, 10))), ($this->services['PrestaShop\\Module\\PsAccounts\\Context\\ShopContext'] ?? $this->getShopContextService()), ($this->services['PrestaShop\\Module\\PsAccounts\\Account\\Session\\Firebase\\ShopSession'] ?? $this->getShopSessionService()), ($this->services['PrestaShop\\Module\\PsAccounts\\Account\\Session\\Firebase\\OwnerSession'] ?? $this->getOwnerSessionService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Account\CommandHandler\LinkShopHandler' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Account\CommandHandler\LinkShopHandler
+     */
+    protected function getLinkShopHandlerService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Account\\CommandHandler\\LinkShopHandler'] = new \PrestaShop\Module\PsAccounts\Account\CommandHandler\LinkShopHandler(($this->services['PrestaShop\\Module\\PsAccounts\\Account\\LinkShop'] ?? $this->getLinkShopService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Account\CommandHandler\MigrateAndLinkV4ShopHandler' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Account\CommandHandler\MigrateAndLinkV4ShopHandler
+     */
+    protected function getMigrateAndLinkV4ShopHandlerService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Account\\CommandHandler\\MigrateAndLinkV4ShopHandler'] = new \PrestaShop\Module\PsAccounts\Account\CommandHandler\MigrateAndLinkV4ShopHandler(($this->services['PrestaShop\\Module\\PsAccounts\\Api\\Client\\AccountsClient'] ?? ($this->services['PrestaShop\\Module\\PsAccounts\\Api\\Client\\AccountsClient'] = new \PrestaShop\Module\PsAccounts\Api\Client\AccountsClient('https://accounts-api.distribution.prestashop.net/', NULL, 10))), ($this->services['PrestaShop\\Module\\PsAccounts\\Context\\ShopContext'] ?? $this->getShopContextService()), ($this->services['PrestaShop\\Module\\PsAccounts\\Account\\Session\\Firebase\\ShopSession'] ?? $this->getShopSessionService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Account\CommandHandler\UnlinkShopHandler' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Account\CommandHandler\UnlinkShopHandler
+     */
+    protected function getUnlinkShopHandlerService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Account\\CommandHandler\\UnlinkShopHandler'] = new \PrestaShop\Module\PsAccounts\Account\CommandHandler\UnlinkShopHandler(($this->services['PrestaShop\\Module\\PsAccounts\\Account\\LinkShop'] ?? $this->getLinkShopService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Account\CommandHandler\UpdateUserShopHandler' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Account\CommandHandler\UpdateUserShopHandler
+     */
+    protected function getUpdateUserShopHandlerService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Account\\CommandHandler\\UpdateUserShopHandler'] = new \PrestaShop\Module\PsAccounts\Account\CommandHandler\UpdateUserShopHandler(($this->services['PrestaShop\\Module\\PsAccounts\\Api\\Client\\AccountsClient'] ?? ($this->services['PrestaShop\\Module\\PsAccounts\\Api\\Client\\AccountsClient'] = new \PrestaShop\Module\PsAccounts\Api\Client\AccountsClient('https://accounts-api.distribution.prestashop.net/', NULL, 10))), ($this->services['PrestaShop\\Module\\PsAccounts\\Context\\ShopContext'] ?? $this->getShopContextService()), ($this->services['PrestaShop\\Module\\PsAccounts\\Account\\Session\\Firebase\\ShopSession'] ?? $this->getShopSessionService()), ($this->services['PrestaShop\\Module\\PsAccounts\\Account\\Session\\Firebase\\OwnerSession'] ?? $this->getOwnerSessionService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Account\CommandHandler\UpgradeModuleHandler' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Account\CommandHandler\UpgradeModuleHandler
+     */
+    protected function getUpgradeModuleHandlerService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Account\\CommandHandler\\UpgradeModuleHandler'] = new \PrestaShop\Module\PsAccounts\Account\CommandHandler\UpgradeModuleHandler(($this->services['PrestaShop\\Module\\PsAccounts\\Api\\Client\\AccountsClient'] ?? ($this->services['PrestaShop\\Module\\PsAccounts\\Api\\Client\\AccountsClient'] = new \PrestaShop\Module\PsAccounts\Api\Client\AccountsClient('https://accounts-api.distribution.prestashop.net/', NULL, 10))), ($this->services['PrestaShop\\Module\\PsAccounts\\Account\\LinkShop'] ?? $this->getLinkShopService()), ($this->services['PrestaShop\\Module\\PsAccounts\\Account\\Session\\Firebase\\ShopSession'] ?? $this->getShopSessionService()), ($this->services['PrestaShop\\Module\\PsAccounts\\Context\\ShopContext'] ?? $this->getShopContextService()), ($this->services['PrestaShop\\Module\\PsAccounts\\Repository\\ConfigurationRepository'] ?? $this->getConfigurationRepositoryService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Account\CommandHandler\UpgradeModuleMultiHandler' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Account\CommandHandler\UpgradeModuleMultiHandler
+     */
+    protected function getUpgradeModuleMultiHandlerService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Account\\CommandHandler\\UpgradeModuleMultiHandler'] = new \PrestaShop\Module\PsAccounts\Account\CommandHandler\UpgradeModuleMultiHandler(($this->services['PrestaShop\\Module\\PsAccounts\\Cqrs\\CommandBus'] ?? $this->getCommandBusService()), ($this->services['PrestaShop\\Module\\PsAccounts\\Repository\\ConfigurationRepository'] ?? $this->getConfigurationRepositoryService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Account\LinkShop' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Account\LinkShop
+     */
+    protected function getLinkShopService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Account\\LinkShop'] = new \PrestaShop\Module\PsAccounts\Account\LinkShop(($this->services['PrestaShop\\Module\\PsAccounts\\Repository\\ConfigurationRepository'] ?? $this->getConfigurationRepositoryService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Account\Session\Firebase\OwnerSession' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Account\Session\Firebase\OwnerSession
+     */
+    protected function getOwnerSessionService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Account\\Session\\Firebase\\OwnerSession'] = new \PrestaShop\Module\PsAccounts\Account\Session\Firebase\OwnerSession(($this->services['PrestaShop\\Module\\PsAccounts\\Repository\\ConfigurationRepository'] ?? $this->getConfigurationRepositoryService()), ($this->services['PrestaShop\\Module\\PsAccounts\\Account\\Session\\ShopSession'] ?? $this->getShopSession2Service()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Account\Session\Firebase\ShopSession' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Account\Session\Firebase\ShopSession
+     */
+    protected function getShopSessionService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Account\\Session\\Firebase\\ShopSession'] = new \PrestaShop\Module\PsAccounts\Account\Session\Firebase\ShopSession(($this->services['PrestaShop\\Module\\PsAccounts\\Repository\\ConfigurationRepository'] ?? $this->getConfigurationRepositoryService()), ($this->services['PrestaShop\\Module\\PsAccounts\\Account\\Session\\ShopSession'] ?? $this->getShopSession2Service()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Account\Session\ShopSession' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Account\Session\ShopSession
+     */
+    protected function getShopSession2Service()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Account\\Session\\ShopSession'] = new \PrestaShop\Module\PsAccounts\Account\Session\ShopSession(($this->services['PrestaShop\\Module\\PsAccounts\\Repository\\ConfigurationRepository'] ?? $this->getConfigurationRepositoryService()), ($this->services['PrestaShop\\Module\\PsAccounts\\Provider\\OAuth2\\ShopProvider'] ?? $this->getShopProviderService()), ($this->services['PrestaShop\\Module\\PsAccounts\\Account\\LinkShop'] ?? $this->getLinkShopService()), ($this->services['PrestaShop\\Module\\PsAccounts\\Cqrs\\CommandBus'] ?? $this->getCommandBusService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Adapter\Configuration' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Adapter\Configuration
+     */
+    protected function getConfigurationService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Adapter\\Configuration'] = new \PrestaShop\Module\PsAccounts\Adapter\Configuration(($this->services['ps_accounts.context'] ?? $this->getPsAccounts_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Adapter\Link' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Adapter\Link
+     */
+    protected function getLinkService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Adapter\\Link'] = new \PrestaShop\Module\PsAccounts\Adapter\Link(($this->services['PrestaShop\\Module\\PsAccounts\\Context\\ShopContext'] ?? $this->getShopContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Api\Client\AccountsClient' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Api\Client\AccountsClient
+     */
+    protected function getAccountsClientService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Api\\Client\\AccountsClient'] = new \PrestaShop\Module\PsAccounts\Api\Client\AccountsClient('https://accounts-api.distribution.prestashop.net/', NULL, 10);
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Api\Client\IndirectChannelClient' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Api\Client\IndirectChannelClient
+     */
+    protected function getIndirectChannelClientService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Api\\Client\\IndirectChannelClient'] = new \PrestaShop\Module\PsAccounts\Api\Client\IndirectChannelClient('https://indirect-channel-api.prestashop.net');
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Api\Client\ServicesBillingClient' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Api\Client\ServicesBillingClient
+     */
+    protected function getServicesBillingClientService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Api\\Client\\ServicesBillingClient'] = new \PrestaShop\Module\PsAccounts\Api\Client\ServicesBillingClient('https://billing-api.distribution.prestashop.net/', ($this->services['PrestaShop\\Module\\PsAccounts\\Service\\PsAccountsService'] ?? $this->getPsAccountsServiceService()), ($this->services['PrestaShop\\Module\\PsAccounts\\Provider\\ShopProvider'] ?? $this->getShopProvider2Service()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Context\ShopContext' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Context\ShopContext
+     */
+    protected function getShopContextService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Context\\ShopContext'] = new \PrestaShop\Module\PsAccounts\Context\ShopContext(($this->services['PrestaShop\\Module\\PsAccounts\\Repository\\ConfigurationRepository'] ?? $this->getConfigurationRepositoryService()), ($this->services['ps_accounts.context'] ?? $this->getPsAccounts_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Cqrs\CommandBus' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Cqrs\CommandBus
+     */
+    protected function getCommandBusService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Cqrs\\CommandBus'] = new \PrestaShop\Module\PsAccounts\Cqrs\CommandBus(($this->services['ps_accounts.module'] ?? $this->getPsAccounts_ModuleService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Factory\CircuitBreakerFactory' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Factory\CircuitBreakerFactory
+     */
+    protected function getCircuitBreakerFactoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Factory\\CircuitBreakerFactory'] = new \PrestaShop\Module\PsAccounts\Factory\CircuitBreakerFactory(($this->services['PrestaShop\\Module\\PsAccounts\\Adapter\\Configuration'] ?? $this->getConfigurationService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Installer\Installer' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Installer\Installer
+     */
+    protected function getInstallerService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Installer\\Installer'] = new \PrestaShop\Module\PsAccounts\Installer\Installer(($this->services['PrestaShop\\Module\\PsAccounts\\Context\\ShopContext'] ?? $this->getShopContextService()), ($this->services['PrestaShop\\Module\\PsAccounts\\Adapter\\Link'] ?? $this->getLinkService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Middleware\Oauth2Middleware' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Middleware\Oauth2Middleware
+     */
+    protected function getOauth2MiddlewareService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Middleware\\Oauth2Middleware'] = new \PrestaShop\Module\PsAccounts\Middleware\Oauth2Middleware(($this->services['ps_accounts.module'] ?? $this->getPsAccounts_ModuleService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Presenter\PsAccountsPresenter' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Presenter\PsAccountsPresenter
+     */
+    protected function getPsAccountsPresenterService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Presenter\\PsAccountsPresenter'] = new \PrestaShop\Module\PsAccounts\Presenter\PsAccountsPresenter(($this->services['ps_accounts.module'] ?? $this->getPsAccounts_ModuleService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Provider\OAuth2\Oauth2Client' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Provider\OAuth2\Oauth2Client
+     */
+    protected function getOauth2ClientService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Provider\\OAuth2\\Oauth2Client'] = new \PrestaShop\Module\PsAccounts\Provider\OAuth2\Oauth2Client(($this->services['PrestaShop\\Module\\PsAccounts\\Repository\\ConfigurationRepository'] ?? $this->getConfigurationRepositoryService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Provider\OAuth2\PrestaShopSession' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Provider\OAuth2\PrestaShopSession
+     */
+    protected function getPrestaShopSessionService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Provider\\OAuth2\\PrestaShopSession'] = \PrestaShop\Module\PsAccounts\Factory\PrestaShopSessionFactory::create();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Provider\OAuth2\ShopProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Provider\OAuth2\ShopProvider
+     */
+    protected function getShopProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Provider\\OAuth2\\ShopProvider'] = \PrestaShop\Module\PsAccounts\Provider\OAuth2\ShopProvider::create();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Provider\RsaKeysProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Provider\RsaKeysProvider
+     */
+    protected function getRsaKeysProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Provider\\RsaKeysProvider'] = new \PrestaShop\Module\PsAccounts\Provider\RsaKeysProvider(($this->services['PrestaShop\\Module\\PsAccounts\\Repository\\ConfigurationRepository'] ?? $this->getConfigurationRepositoryService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Provider\ShopProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Provider\ShopProvider
+     */
+    protected function getShopProvider2Service()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Provider\\ShopProvider'] = new \PrestaShop\Module\PsAccounts\Provider\ShopProvider(($this->services['PrestaShop\\Module\\PsAccounts\\Context\\ShopContext'] ?? $this->getShopContextService()), ($this->services['PrestaShop\\Module\\PsAccounts\\Adapter\\Link'] ?? $this->getLinkService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Repository\ConfigurationRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Repository\ConfigurationRepository
+     */
+    protected function getConfigurationRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Repository\\ConfigurationRepository'] = new \PrestaShop\Module\PsAccounts\Repository\ConfigurationRepository(($this->services['PrestaShop\\Module\\PsAccounts\\Adapter\\Configuration'] ?? $this->getConfigurationService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Repository\ShopTokenRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Repository\ShopTokenRepository
+     */
+    protected function getShopTokenRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Repository\\ShopTokenRepository'] = new \PrestaShop\Module\PsAccounts\Repository\ShopTokenRepository(($this->services['PrestaShop\\Module\\PsAccounts\\Account\\Session\\Firebase\\ShopSession'] ?? $this->getShopSessionService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Repository\UserTokenRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Repository\UserTokenRepository
+     */
+    protected function getUserTokenRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Repository\\UserTokenRepository'] = new \PrestaShop\Module\PsAccounts\Repository\UserTokenRepository(($this->services['PrestaShop\\Module\\PsAccounts\\Account\\Session\\Firebase\\OwnerSession'] ?? $this->getOwnerSessionService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Service\AnalyticsService' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Service\AnalyticsService
+     */
+    protected function getAnalyticsServiceService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Service\\AnalyticsService'] = new \PrestaShop\Module\PsAccounts\Service\AnalyticsService('pEJGnRxw47CU01efFjMyl1S7YcxshLxl', ($this->services['ps_accounts.logger'] ?? $this->getPsAccounts_LoggerService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Service\PsAccountsService' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Service\PsAccountsService
+     */
+    protected function getPsAccountsServiceService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Service\\PsAccountsService'] = new \PrestaShop\Module\PsAccounts\Service\PsAccountsService(($this->services['ps_accounts.module'] ?? $this->getPsAccounts_ModuleService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Service\PsBillingService' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Service\PsBillingService
+     */
+    protected function getPsBillingServiceService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Service\\PsBillingService'] = new \PrestaShop\Module\PsAccounts\Service\PsBillingService(($this->services['PrestaShop\\Module\\PsAccounts\\Api\\Client\\ServicesBillingClient'] ?? $this->getServicesBillingClientService()), ($this->services['PrestaShop\\Module\\PsAccounts\\Repository\\ShopTokenRepository'] ?? $this->getShopTokenRepositoryService()), ($this->services['PrestaShop\\Module\\PsAccounts\\Repository\\ConfigurationRepository'] ?? $this->getConfigurationRepositoryService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsAccounts\Service\SentryService' shared service.
+     *
+     * @return \PrestaShop\Module\PsAccounts\Service\SentryService
+     */
+    protected function getSentryServiceService()
+    {
+        return $this->services['PrestaShop\\Module\\PsAccounts\\Service\\SentryService'] = new \PrestaShop\Module\PsAccounts\Service\SentryService('https://cd2a5f089edb6d6efe742c0cbe004106@o298402.ingest.us.sentry.io/5354585', 'production', ($this->services['PrestaShop\\Module\\PsAccounts\\Account\\LinkShop'] ?? $this->getLinkShopService()), ($this->services['ps_accounts.context'] ?? $this->getPsAccounts_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Api\CollectorApiClient' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Api\CollectorApiClient
+     */
+    protected function getCollectorApiClientService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Api\\CollectorApiClient'] = new \PrestaShop\Module\PsEventbus\Api\CollectorApiClient('https://eventbus-proxy.psessentials.net', ($this->services['ps_eventbus'] ?? $this->getPsEventbusService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Service\\PsAccountsAdapterService'] ?? $this->getPsAccountsAdapterServiceService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Api\LiveSyncApiClient' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Api\LiveSyncApiClient
+     */
+    protected function getLiveSyncApiClientService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Api\\LiveSyncApiClient'] = new \PrestaShop\Module\PsEventbus\Api\LiveSyncApiClient('https://api.cloudsync.prestashop.com/live-sync/v1', ($this->services['ps_eventbus'] ?? $this->getPsEventbusService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Service\\PsAccountsAdapterService'] ?? $this->getPsAccountsAdapterServiceService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Api\SyncApiClient' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Api\SyncApiClient
+     */
+    protected function getSyncApiClientService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Api\\SyncApiClient'] = new \PrestaShop\Module\PsEventbus\Api\SyncApiClient('https://eventbus-sync.psessentials.net', ($this->services['ps_eventbus'] ?? $this->getPsEventbusService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Service\\PsAccountsAdapterService'] ?? $this->getPsAccountsAdapterServiceService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Builder\CarrierBuilder' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Builder\CarrierBuilder
+     */
+    protected function getCarrierBuilderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Builder\\CarrierBuilder'] = new \PrestaShop\Module\PsEventbus\Builder\CarrierBuilder(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CarrierRepository'] ?? $this->getCarrierRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CountryRepository'] ?? $this->getCountryRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\StateRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\StateRepository'] = new \PrestaShop\Module\PsEventbus\Repository\StateRepository())), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\TaxRepository'] ?? $this->getTaxRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ConfigurationRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ConfigurationRepository'] = new \PrestaShop\Module\PsEventbus\Repository\ConfigurationRepository())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Decorator\CategoryDecorator' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Decorator\CategoryDecorator
+     */
+    protected function getCategoryDecoratorService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\CategoryDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\CategoryDecorator();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Decorator\CurrencyDecorator' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Decorator\CurrencyDecorator
+     */
+    protected function getCurrencyDecoratorService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\CurrencyDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\CurrencyDecorator();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Decorator\CustomPriceDecorator' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Decorator\CustomPriceDecorator
+     */
+    protected function getCustomPriceDecoratorService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\CustomPriceDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\CustomPriceDecorator(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Service\\SpecificPriceService'] ?? $this->getSpecificPriceServiceService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Decorator\CustomerDecorator' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Decorator\CustomerDecorator
+     */
+    protected function getCustomerDecoratorService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\CustomerDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\CustomerDecorator();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Decorator\EmployeeDecorator' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Decorator\EmployeeDecorator
+     */
+    protected function getEmployeeDecoratorService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\EmployeeDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\EmployeeDecorator();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Decorator\ImageDecorator' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Decorator\ImageDecorator
+     */
+    protected function getImageDecoratorService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\ImageDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\ImageDecorator();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Decorator\ImageTypeDecorator' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Decorator\ImageTypeDecorator
+     */
+    protected function getImageTypeDecoratorService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\ImageTypeDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\ImageTypeDecorator();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Decorator\LanguageDecorator' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Decorator\LanguageDecorator
+     */
+    protected function getLanguageDecoratorService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\LanguageDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\LanguageDecorator();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Decorator\ManufacturerDecorator' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Decorator\ManufacturerDecorator
+     */
+    protected function getManufacturerDecoratorService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\ManufacturerDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\ManufacturerDecorator();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Decorator\PayloadDecorator' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Decorator\PayloadDecorator
+     */
+    protected function getPayloadDecoratorService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\PayloadDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\PayloadDecorator(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ConfigurationRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ConfigurationRepository'] = new \PrestaShop\Module\PsEventbus\Repository\ConfigurationRepository())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Decorator\ProductDecorator' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Decorator\ProductDecorator
+     */
+    protected function getProductDecoratorService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\ProductDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\ProductDecorator(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\LanguageRepository'] ?? $this->getLanguageRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ProductRepository'] ?? $this->getProductRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CategoryRepository'] ?? $this->getCategoryRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Formatter\\ArrayFormatter'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Formatter\\ArrayFormatter'] = new \PrestaShop\Module\PsEventbus\Formatter\ArrayFormatter())), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\BundleRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\BundleRepository'] = new \PrestaShop\Module\PsEventbus\Repository\BundleRepository())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Decorator\ProductSupplierDecorator' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Decorator\ProductSupplierDecorator
+     */
+    protected function getProductSupplierDecoratorService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\ProductSupplierDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\ProductSupplierDecorator();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Decorator\StockDecorator' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Decorator\StockDecorator
+     */
+    protected function getStockDecoratorService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\StockDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\StockDecorator();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Decorator\StoreDecorator' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Decorator\StoreDecorator
+     */
+    protected function getStoreDecoratorService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\StoreDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\StoreDecorator();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Decorator\SupplierDecorator' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Decorator\SupplierDecorator
+     */
+    protected function getSupplierDecoratorService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\SupplierDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\SupplierDecorator();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Decorator\TranslationDecorator' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Decorator\TranslationDecorator
+     */
+    protected function getTranslationDecoratorService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\TranslationDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\TranslationDecorator();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Decorator\WishlistDecorator' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Decorator\WishlistDecorator
+     */
+    protected function getWishlistDecoratorService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\WishlistDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\WishlistDecorator();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Formatter\ArrayFormatter' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Formatter\ArrayFormatter
+     */
+    protected function getArrayFormatterService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Formatter\\ArrayFormatter'] = new \PrestaShop\Module\PsEventbus\Formatter\ArrayFormatter();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Formatter\JsonFormatter' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Formatter\JsonFormatter
+     */
+    protected function getJsonFormatterService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Formatter\\JsonFormatter'] = new \PrestaShop\Module\PsEventbus\Formatter\JsonFormatter();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Handler\ErrorHandler\ErrorHandler' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Handler\ErrorHandler\ErrorHandler
+     */
+    protected function getErrorHandlerService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Handler\\ErrorHandler\\ErrorHandler'] = new \PrestaShop\Module\PsEventbus\Handler\ErrorHandler\ErrorHandler(($this->services['ps_eventbus'] ?? $this->getPsEventbusService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Service\\PsAccountsAdapterService'] ?? $this->getPsAccountsAdapterServiceService()), 'https://457f191226df4b8f9a0d7bf6f250bab2@o298402.ingest.sentry.io/6066714', 'production');
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\CarrierDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\CarrierDataProvider
+     */
+    protected function getCarrierDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\CarrierDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\CarrierDataProvider(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ConfigurationRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ConfigurationRepository'] = new \PrestaShop\Module\PsEventbus\Repository\ConfigurationRepository())), ($this->services['PrestaShop\\Module\\PsEventbus\\Builder\\CarrierBuilder'] ?? $this->getCarrierBuilderService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CarrierRepository'] ?? $this->getCarrierRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\LanguageRepository'] ?? $this->getLanguageRepositoryService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\CartDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\CartDataProvider
+     */
+    protected function getCartDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\CartDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\CartDataProvider(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CartRepository'] ?? $this->getCartRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CartProductRepository'] ?? $this->getCartProductRepositoryService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\CartRuleDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\CartRuleDataProvider
+     */
+    protected function getCartRuleDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\CartRuleDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\CartRuleDataProvider(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CartRuleRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CartRuleRepository'] = new \PrestaShop\Module\PsEventbus\Repository\CartRuleRepository())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\CategoryDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\CategoryDataProvider
+     */
+    protected function getCategoryDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\CategoryDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\CategoryDataProvider(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CategoryRepository'] ?? $this->getCategoryRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\CategoryDecorator'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\CategoryDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\CategoryDecorator())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\CurrencyDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\CurrencyDataProvider
+     */
+    protected function getCurrencyDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\CurrencyDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\CurrencyDataProvider(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CurrencyRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CurrencyRepository'] = new \PrestaShop\Module\PsEventbus\Repository\CurrencyRepository())), ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\CurrencyDecorator'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\CurrencyDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\CurrencyDecorator())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\CustomPriceDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\CustomPriceDataProvider
+     */
+    protected function getCustomPriceDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\CustomPriceDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\CustomPriceDataProvider(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CustomPriceRepository'] ?? $this->getCustomPriceRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\CustomPriceDecorator'] ?? $this->getCustomPriceDecoratorService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\CustomProductCarrierDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\CustomProductCarrierDataProvider
+     */
+    protected function getCustomProductCarrierDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\CustomProductCarrierDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\CustomProductCarrierDataProvider(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ProductCarrierRepository'] ?? $this->getProductCarrierRepositoryService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\CustomerDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\CustomerDataProvider
+     */
+    protected function getCustomerDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\CustomerDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\CustomerDataProvider(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CustomerRepository'] ?? $this->getCustomerRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\CustomerDecorator'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\CustomerDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\CustomerDecorator())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\EmployeeDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\EmployeeDataProvider
+     */
+    protected function getEmployeeDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\EmployeeDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\EmployeeDataProvider(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\EmployeeRepository'] ?? $this->getEmployeeRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\EmployeeDecorator'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\EmployeeDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\EmployeeDecorator())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\GoogleTaxonomyDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\GoogleTaxonomyDataProvider
+     */
+    protected function getGoogleTaxonomyDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\GoogleTaxonomyDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\GoogleTaxonomyDataProvider(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\GoogleTaxonomyRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\GoogleTaxonomyRepository'] = new \PrestaShop\Module\PsEventbus\Repository\GoogleTaxonomyRepository())), ($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\ImageDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\ImageDataProvider
+     */
+    protected function getImageDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\ImageDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\ImageDataProvider(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ImageRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ImageRepository'] = new \PrestaShop\Module\PsEventbus\Repository\ImageRepository())), ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\ImageDecorator'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\ImageDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\ImageDecorator())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\ImageTypeDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\ImageTypeDataProvider
+     */
+    protected function getImageTypeDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\ImageTypeDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\ImageTypeDataProvider(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ImageTypeRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ImageTypeRepository'] = new \PrestaShop\Module\PsEventbus\Repository\ImageTypeRepository())), ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\ImageTypeDecorator'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\ImageTypeDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\ImageTypeDecorator())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\LanguageDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\LanguageDataProvider
+     */
+    protected function getLanguageDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\LanguageDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\LanguageDataProvider(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\LanguageRepository'] ?? $this->getLanguageRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\LanguageDecorator'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\LanguageDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\LanguageDecorator())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\ManufacturerDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\ManufacturerDataProvider
+     */
+    protected function getManufacturerDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\ManufacturerDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\ManufacturerDataProvider(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ManufacturerRepository'] ?? $this->getManufacturerRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\ManufacturerDecorator'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\ManufacturerDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\ManufacturerDecorator())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\ModuleDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\ModuleDataProvider
+     */
+    protected function getModuleDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\ModuleDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\ModuleDataProvider(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ModuleRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ModuleRepository'] = new \PrestaShop\Module\PsEventbus\Repository\ModuleRepository())), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ShopRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ShopRepository'] = new \PrestaShop\Module\PsEventbus\Repository\ShopRepository())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\OrderDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\OrderDataProvider
+     */
+    protected function getOrderDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\OrderDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\OrderDataProvider(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\OrderRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\OrderRepository'] = new \PrestaShop\Module\PsEventbus\Repository\OrderRepository())), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\OrderDetailsRepository'] ?? $this->getOrderDetailsRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Formatter\\ArrayFormatter'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Formatter\\ArrayFormatter'] = new \PrestaShop\Module\PsEventbus\Formatter\ArrayFormatter())), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\OrderHistoryRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\OrderHistoryRepository'] = new \PrestaShop\Module\PsEventbus\Repository\OrderHistoryRepository())), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\OrderCartRuleRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\OrderCartRuleRepository'] = new \PrestaShop\Module\PsEventbus\Repository\OrderCartRuleRepository())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\ProductDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\ProductDataProvider
+     */
+    protected function getProductDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\ProductDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\ProductDataProvider(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ProductRepository'] ?? $this->getProductRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\ProductDecorator'] ?? $this->getProductDecoratorService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Provider\\ProductSupplierDataProvider'] ?? $this->getProductSupplierDataProviderService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\LanguageRepository'] ?? $this->getLanguageRepositoryService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\ProductSupplierDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\ProductSupplierDataProvider
+     */
+    protected function getProductSupplierDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\ProductSupplierDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\ProductSupplierDataProvider(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ProductSupplierRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ProductSupplierRepository'] = new \PrestaShop\Module\PsEventbus\Repository\ProductSupplierRepository())), ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\ProductSupplierDecorator'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\ProductSupplierDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\ProductSupplierDecorator())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\StockDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\StockDataProvider
+     */
+    protected function getStockDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\StockDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\StockDataProvider(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\StockRepository'] ?? $this->getStockRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\StockMvtRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\StockMvtRepository'] = new \PrestaShop\Module\PsEventbus\Repository\StockMvtRepository())), ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\StockDecorator'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\StockDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\StockDecorator())), ($this->services['PrestaShop\\Module\\PsEventbus\\Formatter\\ArrayFormatter'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Formatter\\ArrayFormatter'] = new \PrestaShop\Module\PsEventbus\Formatter\ArrayFormatter())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\StoreDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\StoreDataProvider
+     */
+    protected function getStoreDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\StoreDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\StoreDataProvider(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\StoreRepository'] ?? $this->getStoreRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\StoreDecorator'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\StoreDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\StoreDecorator())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\SupplierDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\SupplierDataProvider
+     */
+    protected function getSupplierDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\SupplierDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\SupplierDataProvider(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\SupplierRepository'] ?? $this->getSupplierRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\SupplierDecorator'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\SupplierDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\SupplierDecorator())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\TranslationDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\TranslationDataProvider
+     */
+    protected function getTranslationDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\TranslationDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\TranslationDataProvider(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\TranslationRepository'] ?? $this->getTranslationRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\TranslationDecorator'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\TranslationDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\TranslationDecorator())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Provider\WishlistDataProvider' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Provider\WishlistDataProvider
+     */
+    protected function getWishlistDataProviderService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Provider\\WishlistDataProvider'] = new \PrestaShop\Module\PsEventbus\Provider\WishlistDataProvider(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\WishlistRepository'] ?? $this->getWishlistRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\WishlistProductRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\WishlistProductRepository'] = new \PrestaShop\Module\PsEventbus\Repository\WishlistProductRepository())), ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\WishlistDecorator'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\WishlistDecorator'] = new \PrestaShop\Module\PsEventbus\Decorator\WishlistDecorator())), ($this->services['PrestaShop\\Module\\PsEventbus\\Formatter\\ArrayFormatter'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Formatter\\ArrayFormatter'] = new \PrestaShop\Module\PsEventbus\Formatter\ArrayFormatter())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\BundleRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\BundleRepository
+     */
+    protected function getBundleRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\BundleRepository'] = new \PrestaShop\Module\PsEventbus\Repository\BundleRepository();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\CarrierRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\CarrierRepository
+     */
+    protected function getCarrierRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CarrierRepository'] = new \PrestaShop\Module\PsEventbus\Repository\CarrierRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\CartProductRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\CartProductRepository
+     */
+    protected function getCartProductRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CartProductRepository'] = new \PrestaShop\Module\PsEventbus\Repository\CartProductRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\CartRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\CartRepository
+     */
+    protected function getCartRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CartRepository'] = new \PrestaShop\Module\PsEventbus\Repository\CartRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\CartRuleRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\CartRuleRepository
+     */
+    protected function getCartRuleRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CartRuleRepository'] = new \PrestaShop\Module\PsEventbus\Repository\CartRuleRepository();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\CategoryRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\CategoryRepository
+     */
+    protected function getCategoryRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CategoryRepository'] = new \PrestaShop\Module\PsEventbus\Repository\CategoryRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\ConfigurationRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\ConfigurationRepository
+     */
+    protected function getConfigurationRepository2Service()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ConfigurationRepository'] = new \PrestaShop\Module\PsEventbus\Repository\ConfigurationRepository();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\CountryRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\CountryRepository
+     */
+    protected function getCountryRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CountryRepository'] = new \PrestaShop\Module\PsEventbus\Repository\CountryRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\CurrencyRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\CurrencyRepository
+     */
+    protected function getCurrencyRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CurrencyRepository'] = new \PrestaShop\Module\PsEventbus\Repository\CurrencyRepository();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\CustomPriceRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\CustomPriceRepository
+     */
+    protected function getCustomPriceRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CustomPriceRepository'] = new \PrestaShop\Module\PsEventbus\Repository\CustomPriceRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\CustomerRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\CustomerRepository
+     */
+    protected function getCustomerRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CustomerRepository'] = new \PrestaShop\Module\PsEventbus\Repository\CustomerRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\DeletedObjectsRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\DeletedObjectsRepository
+     */
+    protected function getDeletedObjectsRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\DeletedObjectsRepository'] = new \PrestaShop\Module\PsEventbus\Repository\DeletedObjectsRepository(($this->services['PrestaShop\\Module\\PsEventbus\\Handler\\ErrorHandler\\ErrorHandler'] ?? $this->getErrorHandlerService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\EmployeeRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\EmployeeRepository
+     */
+    protected function getEmployeeRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\EmployeeRepository'] = new \PrestaShop\Module\PsEventbus\Repository\EmployeeRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\EventbusSyncRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\EventbusSyncRepository
+     */
+    protected function getEventbusSyncRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\EventbusSyncRepository'] = new \PrestaShop\Module\PsEventbus\Repository\EventbusSyncRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\GoogleTaxonomyRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\GoogleTaxonomyRepository
+     */
+    protected function getGoogleTaxonomyRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\GoogleTaxonomyRepository'] = new \PrestaShop\Module\PsEventbus\Repository\GoogleTaxonomyRepository();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\ImageRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\ImageRepository
+     */
+    protected function getImageRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ImageRepository'] = new \PrestaShop\Module\PsEventbus\Repository\ImageRepository();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\ImageTypeRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\ImageTypeRepository
+     */
+    protected function getImageTypeRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ImageTypeRepository'] = new \PrestaShop\Module\PsEventbus\Repository\ImageTypeRepository();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\IncrementalSyncRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\IncrementalSyncRepository
+     */
+    protected function getIncrementalSyncRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\IncrementalSyncRepository'] = new \PrestaShop\Module\PsEventbus\Repository\IncrementalSyncRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Handler\\ErrorHandler\\ErrorHandler'] ?? $this->getErrorHandlerService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\LanguageRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\LanguageRepository
+     */
+    protected function getLanguageRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\LanguageRepository'] = new \PrestaShop\Module\PsEventbus\Repository\LanguageRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\LiveSyncRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\LiveSyncRepository
+     */
+    protected function getLiveSyncRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\LiveSyncRepository'] = new \PrestaShop\Module\PsEventbus\Repository\LiveSyncRepository();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\ManufacturerRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\ManufacturerRepository
+     */
+    protected function getManufacturerRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ManufacturerRepository'] = new \PrestaShop\Module\PsEventbus\Repository\ManufacturerRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\ModuleRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\ModuleRepository
+     */
+    protected function getModuleRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ModuleRepository'] = new \PrestaShop\Module\PsEventbus\Repository\ModuleRepository();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\OrderCartRuleRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\OrderCartRuleRepository
+     */
+    protected function getOrderCartRuleRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\OrderCartRuleRepository'] = new \PrestaShop\Module\PsEventbus\Repository\OrderCartRuleRepository();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\OrderDetailsRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\OrderDetailsRepository
+     */
+    protected function getOrderDetailsRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\OrderDetailsRepository'] = new \PrestaShop\Module\PsEventbus\Repository\OrderDetailsRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\OrderHistoryRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\OrderHistoryRepository
+     */
+    protected function getOrderHistoryRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\OrderHistoryRepository'] = new \PrestaShop\Module\PsEventbus\Repository\OrderHistoryRepository();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\OrderRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\OrderRepository
+     */
+    protected function getOrderRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\OrderRepository'] = new \PrestaShop\Module\PsEventbus\Repository\OrderRepository();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\ProductCarrierRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\ProductCarrierRepository
+     */
+    protected function getProductCarrierRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ProductCarrierRepository'] = new \PrestaShop\Module\PsEventbus\Repository\ProductCarrierRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\ProductRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\ProductRepository
+     */
+    protected function getProductRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ProductRepository'] = new \PrestaShop\Module\PsEventbus\Repository\ProductRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\ProductSupplierRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\ProductSupplierRepository
+     */
+    protected function getProductSupplierRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ProductSupplierRepository'] = new \PrestaShop\Module\PsEventbus\Repository\ProductSupplierRepository();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\ServerInformationRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\ServerInformationRepository
+     */
+    protected function getServerInformationRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ServerInformationRepository'] = new \PrestaShop\Module\PsEventbus\Repository\ServerInformationRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Service\\PsAccountsAdapterService'] ?? $this->getPsAccountsAdapterServiceService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CurrencyRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\CurrencyRepository'] = new \PrestaShop\Module\PsEventbus\Repository\CurrencyRepository())), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\LanguageRepository'] ?? $this->getLanguageRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ConfigurationRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ConfigurationRepository'] = new \PrestaShop\Module\PsEventbus\Repository\ConfigurationRepository())), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ShopRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ShopRepository'] = new \PrestaShop\Module\PsEventbus\Repository\ShopRepository())), ($this->services['PrestaShop\\Module\\PsEventbus\\Handler\\ErrorHandler\\ErrorHandler'] ?? $this->getErrorHandlerService()), 'https://eventbus-sync.psessentials.net', 'https://api.cloudsync.prestashop.com/live-sync/v1', 'https://eventbus-proxy.psessentials.net');
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\ShopRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\ShopRepository
+     */
+    protected function getShopRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ShopRepository'] = new \PrestaShop\Module\PsEventbus\Repository\ShopRepository();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\SpecificPriceRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\SpecificPriceRepository
+     */
+    protected function getSpecificPriceRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\SpecificPriceRepository'] = new \PrestaShop\Module\PsEventbus\Repository\SpecificPriceRepository();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\StateRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\StateRepository
+     */
+    protected function getStateRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\StateRepository'] = new \PrestaShop\Module\PsEventbus\Repository\StateRepository();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\StockMvtRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\StockMvtRepository
+     */
+    protected function getStockMvtRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\StockMvtRepository'] = new \PrestaShop\Module\PsEventbus\Repository\StockMvtRepository();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\StockRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\StockRepository
+     */
+    protected function getStockRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\StockRepository'] = new \PrestaShop\Module\PsEventbus\Repository\StockRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\StoreRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\StoreRepository
+     */
+    protected function getStoreRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\StoreRepository'] = new \PrestaShop\Module\PsEventbus\Repository\StoreRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\SupplierRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\SupplierRepository
+     */
+    protected function getSupplierRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\SupplierRepository'] = new \PrestaShop\Module\PsEventbus\Repository\SupplierRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\TaxRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\TaxRepository
+     */
+    protected function getTaxRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\TaxRepository'] = new \PrestaShop\Module\PsEventbus\Repository\TaxRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\ThemeRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\ThemeRepository
+     */
+    protected function getThemeRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\ThemeRepository'] = new \PrestaShop\Module\PsEventbus\Repository\ThemeRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\TranslationRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\TranslationRepository
+     */
+    protected function getTranslationRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\TranslationRepository'] = new \PrestaShop\Module\PsEventbus\Repository\TranslationRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\WishlistProductRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\WishlistProductRepository
+     */
+    protected function getWishlistProductRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\WishlistProductRepository'] = new \PrestaShop\Module\PsEventbus\Repository\WishlistProductRepository();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Repository\WishlistRepository' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Repository\WishlistRepository
+     */
+    protected function getWishlistRepositoryService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Repository\\WishlistRepository'] = new \PrestaShop\Module\PsEventbus\Repository\WishlistRepository(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Service\ApiAuthorizationService' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Service\ApiAuthorizationService
+     */
+    protected function getApiAuthorizationServiceService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Service\\ApiAuthorizationService'] = new \PrestaShop\Module\PsEventbus\Service\ApiAuthorizationService(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\EventbusSyncRepository'] ?? $this->getEventbusSyncRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Api\\SyncApiClient'] ?? $this->getSyncApiClientService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Service\CacheService' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Service\CacheService
+     */
+    protected function getCacheServiceService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Service\\CacheService'] = new \PrestaShop\Module\PsEventbus\Service\CacheService();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Service\CompressionService' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Service\CompressionService
+     */
+    protected function getCompressionServiceService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Service\\CompressionService'] = new \PrestaShop\Module\PsEventbus\Service\CompressionService(($this->services['PrestaShop\\Module\\PsEventbus\\Formatter\\JsonFormatter'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Formatter\\JsonFormatter'] = new \PrestaShop\Module\PsEventbus\Formatter\JsonFormatter())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Service\DeletedObjectsService' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Service\DeletedObjectsService
+     */
+    protected function getDeletedObjectsServiceService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Service\\DeletedObjectsService'] = new \PrestaShop\Module\PsEventbus\Service\DeletedObjectsService(($this->services['ps_eventbus.context'] ?? $this->getPsEventbus_ContextService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\DeletedObjectsRepository'] ?? $this->getDeletedObjectsRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Service\\ProxyService'] ?? $this->getProxyServiceService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Service\PresenterService' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Service\PresenterService
+     */
+    protected function getPresenterServiceService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Service\\PresenterService'] = new \PrestaShop\Module\PsEventbus\Service\PresenterService();
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Service\ProxyService' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Service\ProxyService
+     */
+    protected function getProxyServiceService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Service\\ProxyService'] = new \PrestaShop\Module\PsEventbus\Service\ProxyService(($this->services['PrestaShop\\Module\\PsEventbus\\Api\\CollectorApiClient'] ?? $this->getCollectorApiClientService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Formatter\\JsonFormatter'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Formatter\\JsonFormatter'] = new \PrestaShop\Module\PsEventbus\Formatter\JsonFormatter())), ($this->services['PrestaShop\\Module\\PsEventbus\\Handler\\ErrorHandler\\ErrorHandler'] ?? $this->getErrorHandlerService()));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Service\PsAccountsAdapterService' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Service\PsAccountsAdapterService
+     */
+    protected function getPsAccountsAdapterServiceService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Service\\PsAccountsAdapterService'] = new \PrestaShop\Module\PsEventbus\Service\PsAccountsAdapterService(($this->services['ps_eventbus.helper.module'] ?? ($this->services['ps_eventbus.helper.module'] = new \PrestaShop\Module\PsEventbus\Helper\ModuleHelper())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Service\SpecificPriceService' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Service\SpecificPriceService
+     */
+    protected function getSpecificPriceServiceService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Service\\SpecificPriceService'] = new \PrestaShop\Module\PsEventbus\Service\SpecificPriceService(($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\SpecificPriceRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\SpecificPriceRepository'] = new \PrestaShop\Module\PsEventbus\Repository\SpecificPriceRepository())));
+    }
+
+    /**
+     * Gets the public 'PrestaShop\Module\PsEventbus\Service\SynchronizationService' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Service\SynchronizationService
+     */
+    protected function getSynchronizationServiceService()
+    {
+        return $this->services['PrestaShop\\Module\\PsEventbus\\Service\\SynchronizationService'] = new \PrestaShop\Module\PsEventbus\Service\SynchronizationService(($this->services['ps_eventbus'] ?? $this->getPsEventbusService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\EventbusSyncRepository'] ?? $this->getEventbusSyncRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\IncrementalSyncRepository'] ?? $this->getIncrementalSyncRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\LiveSyncRepository'] ?? ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\LiveSyncRepository'] = new \PrestaShop\Module\PsEventbus\Repository\LiveSyncRepository())), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\DeletedObjectsRepository'] ?? $this->getDeletedObjectsRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Repository\\LanguageRepository'] ?? $this->getLanguageRepositoryService()), ($this->services['PrestaShop\\Module\\PsEventbus\\Decorator\\PayloadDecorator'] ?? $this->getPayloadDecoratorService()));
+    }
+
+    /**
      * Gets the public 'PrestaShop\Module\Psgdpr\Repository\ConsentRepository' shared service.
      *
      * @return \PrestaShop\Module\Psgdpr\Repository\ConsentRepository
@@ -228,7 +1701,7 @@ class FrontContainer extends \PrestaShop\PrestaShop\Adapter\Container\LegacyCont
      *
      * @return \PrestaShop\Module\Psgdpr\Repository\CustomerRepository
      */
-    protected function getCustomerRepositoryService()
+    protected function getCustomerRepository2Service()
     {
         return $this->services['PrestaShop\\Module\\Psgdpr\\Repository\\CustomerRepository'] = new \PrestaShop\Module\Psgdpr\Repository\CustomerRepository(($this->services['doctrine.dbal.default_connection'] ?? $this->getDoctrine_Dbal_DefaultConnectionService()));
     }
@@ -337,7 +1810,7 @@ class FrontContainer extends \PrestaShop\PrestaShop\Adapter\Container\LegacyCont
      */
     protected function getLoggerServiceService()
     {
-        return $this->services['PrestaShop\\Module\\Psgdpr\\Service\\LoggerService'] = new \PrestaShop\Module\Psgdpr\Service\LoggerService(($this->services['PrestaShop\\Module\\Psgdpr\\Repository\\LoggerRepository'] ?? $this->getLoggerRepositoryService()), ($this->services['PrestaShop\\Module\\Psgdpr\\Repository\\CustomerRepository'] ?? $this->getCustomerRepositoryService()));
+        return $this->services['PrestaShop\\Module\\Psgdpr\\Service\\LoggerService'] = new \PrestaShop\Module\Psgdpr\Service\LoggerService(($this->services['PrestaShop\\Module\\Psgdpr\\Repository\\LoggerRepository'] ?? $this->getLoggerRepositoryService()), ($this->services['PrestaShop\\Module\\Psgdpr\\Repository\\CustomerRepository'] ?? $this->getCustomerRepository2Service()));
     }
 
     /**
@@ -345,7 +1818,7 @@ class FrontContainer extends \PrestaShop\PrestaShop\Adapter\Container\LegacyCont
      *
      * @return \PrestaShop\PrestaShop\Adapter\Configuration
      */
-    protected function getConfigurationService()
+    protected function getConfiguration2Service()
     {
         return $this->services['PrestaShop\\PrestaShop\\Adapter\\Configuration'] = new \PrestaShop\PrestaShop\Adapter\Configuration();
     }
@@ -365,7 +1838,7 @@ class FrontContainer extends \PrestaShop\PrestaShop\Adapter\Container\LegacyCont
      *
      * @return \PrestaShop\PrestaShop\Adapter\Currency\CurrencyDataProvider
      */
-    protected function getCurrencyDataProviderService()
+    protected function getCurrencyDataProvider2Service()
     {
         return $this->services['PrestaShop\\PrestaShop\\Adapter\\Currency\\CurrencyDataProvider'] = new \PrestaShop\PrestaShop\Adapter\Currency\CurrencyDataProvider(($this->services['PrestaShop\\PrestaShop\\Adapter\\Configuration'] ?? ($this->services['PrestaShop\\PrestaShop\\Adapter\\Configuration'] = new \PrestaShop\PrestaShop\Adapter\Configuration())), ((($this->services['PrestaShop\\PrestaShop\\Adapter\\LegacyContext'] ?? $this->getLegacyContextService())->getContext()->shop) ? (($this->services['PrestaShop\\PrestaShop\\Adapter\\LegacyContext'] ?? $this->getLegacyContextService())->getContext()->shop->id) : (null)));
     }
@@ -435,7 +1908,7 @@ class FrontContainer extends \PrestaShop\PrestaShop\Adapter\Container\LegacyCont
      *
      * @return \PrestaShop\PrestaShop\Adapter\Configuration
      */
-    protected function getConfiguration2Service()
+    protected function getConfiguration3Service()
     {
         return $this->services['configuration'] = new \PrestaShop\PrestaShop\Adapter\Configuration();
     }
@@ -507,14 +1980,20 @@ class FrontContainer extends \PrestaShop\PrestaShop\Adapter\Container\LegacyCont
         $c = new \Doctrine\Persistence\Mapping\Driver\MappingDriverChain();
 
         $d = ($this->services['annotation_reader'] ?? ($this->services['annotation_reader'] = new \Doctrine\Common\Annotations\AnnotationReader()));
-        $e = new \Doctrine\ORM\Mapping\Driver\AnnotationDriver($d, [0 => '/home/sexthera/public_html/muizenmesh.co.za/store/modules/productcomments/src/Entity']);
-        $e->addExcludePaths([0 => '/home/sexthera/public_html/muizenmesh.co.za/store/modules/productcomments/src/Entity/index.php']);
-        $f = new \Doctrine\ORM\Mapping\Driver\AnnotationDriver($d, [0 => '/home/sexthera/public_html/muizenmesh.co.za/store/modules/psgdpr/src/Entity']);
-        $f->addExcludePaths([0 => '/home/sexthera/public_html/muizenmesh.co.za/store/modules/psgdpr/src/Entity/index.php']);
+        $e = new \Doctrine\ORM\Mapping\Driver\AnnotationDriver($d, [0 => '/home/sexthera/public_html/muizenmesh.co.za/store/modules/psgdpr/src/Entity']);
+        $e->addExcludePaths([0 => '/home/sexthera/public_html/muizenmesh.co.za/store/modules/psgdpr/src/Entity/index.php']);
+        $f = new \Doctrine\ORM\Mapping\Driver\AnnotationDriver($d, [0 => '/home/sexthera/public_html/muizenmesh.co.za/store/modules/ps_accounts/src/Entity']);
+        $f->addExcludePaths([0 => '/home/sexthera/public_html/muizenmesh.co.za/store/modules/ps_accounts/src/Entity/index.php']);
+        $g = new \Doctrine\ORM\Mapping\Driver\AnnotationDriver($d, [0 => '/home/sexthera/public_html/muizenmesh.co.za/store/modules/productcomments/src/Entity']);
+        $g->addExcludePaths([0 => '/home/sexthera/public_html/muizenmesh.co.za/store/modules/productcomments/src/Entity/index.php']);
+        $h = new \Doctrine\ORM\Mapping\Driver\AnnotationDriver($d, [0 => '/home/sexthera/public_html/muizenmesh.co.za/store/modules/supdropshipping/src/Entity']);
+        $h->addExcludePaths([0 => '/home/sexthera/public_html/muizenmesh.co.za/store/modules/supdropshipping/src/Entity/index.php']);
 
         $c->addDriver(new \Doctrine\ORM\Mapping\Driver\AnnotationDriver($d, [0 => '/home/sexthera/public_html/muizenmesh.co.za/store/src/PrestaShopBundle/Entity']), 'PrestaShop');
-        $c->addDriver($e, 'PrestaShop\\Module\\ProductComment\\Entity');
-        $c->addDriver($f, 'PrestaShop\\Module\\Psgdpr\\Entity');
+        $c->addDriver($e, 'PrestaShop\\Module\\Psgdpr\\Entity');
+        $c->addDriver($f, 'PrestaShop\\Module\\PsAccounts\\Entity');
+        $c->addDriver($g, 'PrestaShop\\Module\\ProductComment\\Entity');
+        $c->addDriver($h, 'supdropshipping\\Entity');
 
         $a->setEntityNamespaces(['PrestaShopBundle\\Entity' => 'PrestaShop']);
         $a->setMetadataCache($b);
@@ -531,8 +2010,10 @@ class FrontContainer extends \PrestaShop\PrestaShop\Adapter\Container\LegacyCont
         $a->setEntityListenerResolver(new \Doctrine\Bundle\DoctrineBundle\Mapping\ContainerEntityListenerResolver($this));
         $a->setRepositoryFactory(new \Doctrine\Bundle\DoctrineBundle\Repository\ContainerRepositoryFactory(new \Symfony\Component\DependencyInjection\ServiceLocator([])));
         $a->addCustomStringFunction('regexp', 'DoctrineExtensions\\Query\\Mysql\\Regexp');
-        $a->addEntityNamespace('Moduleproductcomments', 'PrestaShop\\Module\\ProductComment\\Entity');
         $a->addEntityNamespace('Modulepsgdpr', 'PrestaShop\\Module\\Psgdpr\\Entity');
+        $a->addEntityNamespace('ModulepsAccounts', 'PrestaShop\\Module\\PsAccounts\\Entity');
+        $a->addEntityNamespace('Moduleproductcomments', 'PrestaShop\\Module\\ProductComment\\Entity');
+        $a->addEntityNamespace('Modulesupdropshipping', 'supdropshipping\\Entity');
 
         $this->services['doctrine.orm.default_entity_manager'] = $instance = \Doctrine\ORM\EntityManager::create(($this->services['doctrine.dbal.default_connection'] ?? $this->getDoctrine_Dbal_DefaultConnectionService()), $a);
 
@@ -834,7 +2315,7 @@ class FrontContainer extends \PrestaShop\PrestaShop\Adapter\Container\LegacyCont
      */
     protected function getPrestashop_Core_Localization_Currency_Middleware_DatabaseService()
     {
-        $this->services['prestashop.core.localization.currency.middleware.database'] = $instance = new \PrestaShop\PrestaShop\Core\Localization\Currency\DataLayer\CurrencyDatabase(($this->services['PrestaShop\\PrestaShop\\Adapter\\Currency\\CurrencyDataProvider'] ?? $this->getCurrencyDataProviderService()));
+        $this->services['prestashop.core.localization.currency.middleware.database'] = $instance = new \PrestaShop\PrestaShop\Core\Localization\Currency\DataLayer\CurrencyDatabase(($this->services['PrestaShop\\PrestaShop\\Adapter\\Currency\\CurrencyDataProvider'] ?? $this->getCurrencyDataProvider2Service()));
 
         $instance->setLowerLayer(($this->services['prestashop.core.localization.currency.middleware.reference'] ?? $this->getPrestashop_Core_Localization_Currency_Middleware_ReferenceService()));
 
@@ -848,7 +2329,7 @@ class FrontContainer extends \PrestaShop\PrestaShop\Adapter\Container\LegacyCont
      */
     protected function getPrestashop_Core_Localization_Currency_Middleware_InstalledService()
     {
-        return $this->services['prestashop.core.localization.currency.middleware.installed'] = new \PrestaShop\PrestaShop\Core\Localization\Currency\DataLayer\CurrencyInstalled(($this->services['PrestaShop\\PrestaShop\\Adapter\\Currency\\CurrencyDataProvider'] ?? $this->getCurrencyDataProviderService()));
+        return $this->services['prestashop.core.localization.currency.middleware.installed'] = new \PrestaShop\PrestaShop\Core\Localization\Currency\DataLayer\CurrencyInstalled(($this->services['PrestaShop\\PrestaShop\\Adapter\\Currency\\CurrencyDataProvider'] ?? $this->getCurrencyDataProvider2Service()));
     }
 
     /**
@@ -933,6 +2414,206 @@ class FrontContainer extends \PrestaShop\PrestaShop\Adapter\Container\LegacyCont
     protected function getProductCommentRepositoryService()
     {
         return $this->services['product_comment_repository'] = new \PrestaShop\Module\ProductComment\Repository\ProductCommentRepository(($this->services['doctrine'] ?? $this->getDoctrineService()), ($this->services['doctrine.dbal.default_connection'] ?? $this->getDoctrine_Dbal_DefaultConnectionService()), 'ps_', ($this->services['PrestaShop\\PrestaShop\\Adapter\\Configuration'] ?? ($this->services['PrestaShop\\PrestaShop\\Adapter\\Configuration'] = new \PrestaShop\PrestaShop\Adapter\Configuration()))->get("PRODUCT_COMMENTS_ALLOW_GUESTS"), ($this->services['PrestaShop\\PrestaShop\\Adapter\\Configuration'] ?? ($this->services['PrestaShop\\PrestaShop\\Adapter\\Configuration'] = new \PrestaShop\PrestaShop\Adapter\Configuration()))->get("PRODUCT_COMMENTS_MINIMAL_TIME"));
+    }
+
+    /**
+     * Gets the public 'ps_accounts.context' shared service.
+     *
+     * @return \Context
+     */
+    protected function getPsAccounts_ContextService()
+    {
+        return $this->services['ps_accounts.context'] = \Context::getContext();
+    }
+
+    /**
+     * Gets the public 'ps_accounts.logger' shared service.
+     *
+     * @return \Monolog\Logger
+     */
+    protected function getPsAccounts_LoggerService()
+    {
+        return $this->services['ps_accounts.logger'] = \PrestaShop\Module\PsAccounts\Factory\PsAccountsLogger::create();
+    }
+
+    /**
+     * Gets the public 'ps_accounts.module' shared service.
+     *
+     * @return \Ps_accounts
+     */
+    protected function getPsAccounts_ModuleService()
+    {
+        return $this->services['ps_accounts.module'] = \Module::getInstanceByName('ps_accounts');
+    }
+
+    /**
+     * Gets the public 'ps_eventbus' shared service.
+     *
+     * @return \Ps_eventbus
+     */
+    protected function getPsEventbusService()
+    {
+        return $this->services['ps_eventbus'] = \Module::getInstanceByName('ps_eventbus');
+    }
+
+    /**
+     * Gets the public 'ps_eventbus.context' shared service.
+     *
+     * @return \Context
+     */
+    protected function getPsEventbus_ContextService()
+    {
+        return $this->services['ps_eventbus.context'] = \PrestaShop\Module\PsEventbus\Factory\ContextFactory::getContext();
+    }
+
+    /**
+     * Gets the public 'ps_eventbus.controller' shared service.
+     *
+     * @return \Controller
+     */
+    protected function getPsEventbus_ControllerService()
+    {
+        return $this->services['ps_eventbus.controller'] = \PrestaShop\Module\PsEventbus\Factory\ContextFactory::getController();
+    }
+
+    /**
+     * Gets the public 'ps_eventbus.cookie' shared service.
+     *
+     * @return \Cookie
+     */
+    protected function getPsEventbus_CookieService()
+    {
+        return $this->services['ps_eventbus.cookie'] = \PrestaShop\Module\PsEventbus\Factory\ContextFactory::getCookie();
+    }
+
+    /**
+     * Gets the public 'ps_eventbus.currency' shared service.
+     *
+     * @return \Currency
+     */
+    protected function getPsEventbus_CurrencyService()
+    {
+        return $this->services['ps_eventbus.currency'] = \PrestaShop\Module\PsEventbus\Factory\ContextFactory::getCurrency();
+    }
+
+    /**
+     * Gets the public 'ps_eventbus.db' shared service.
+     *
+     * @return \Db
+     */
+    protected function getPsEventbus_DbService()
+    {
+        return $this->services['ps_eventbus.db'] = \Db::getInstance();
+    }
+
+    /**
+     * Gets the public 'ps_eventbus.helper.module' shared service.
+     *
+     * @return \PrestaShop\Module\PsEventbus\Helper\ModuleHelper
+     */
+    protected function getPsEventbus_Helper_ModuleService()
+    {
+        return $this->services['ps_eventbus.helper.module'] = new \PrestaShop\Module\PsEventbus\Helper\ModuleHelper();
+    }
+
+    /**
+     * Gets the public 'ps_eventbus.language' shared service.
+     *
+     * @return \Language
+     */
+    protected function getPsEventbus_LanguageService()
+    {
+        return $this->services['ps_eventbus.language'] = \PrestaShop\Module\PsEventbus\Factory\ContextFactory::getLanguage();
+    }
+
+    /**
+     * Gets the public 'ps_eventbus.link' shared service.
+     *
+     * @return \Link
+     */
+    protected function getPsEventbus_LinkService()
+    {
+        return $this->services['ps_eventbus.link'] = \PrestaShop\Module\PsEventbus\Factory\ContextFactory::getLink();
+    }
+
+    /**
+     * Gets the public 'ps_eventbus.shop' shared service.
+     *
+     * @return \Shop
+     */
+    protected function getPsEventbus_ShopService()
+    {
+        return $this->services['ps_eventbus.shop'] = \PrestaShop\Module\PsEventbus\Factory\ContextFactory::getShop();
+    }
+
+    /**
+     * Gets the public 'ps_eventbus.smarty' shared service.
+     *
+     * @return \Smarty
+     */
+    protected function getPsEventbus_SmartyService()
+    {
+        return $this->services['ps_eventbus.smarty'] = \PrestaShop\Module\PsEventbus\Factory\ContextFactory::getSmarty();
+    }
+
+    /**
+     * Gets the public 'qapla.module.qaplapudo.cache.cache_file' shared service.
+     *
+     * @return \Qapla\Module\Qaplapudo\Cache\CacheFile
+     */
+    protected function getQapla_Module_Qaplapudo_Cache_CacheFileService()
+    {
+        return $this->services['qapla.module.qaplapudo.cache.cache_file'] = new \Qapla\Module\Qaplapudo\Cache\CacheFile('', 0, '/home/sexthera/public_html/muizenmesh.co.za/store/var/cache/prod//qapla');
+    }
+
+    /**
+     * Gets the public 'qapla.module.qaplapudo.cache.symfony_filesystem_adapter' shared service.
+     *
+     * @return \Symfony\Component\Cache\Adapter\FilesystemAdapter
+     */
+    protected function getQapla_Module_Qaplapudo_Cache_SymfonyFilesystemAdapterService()
+    {
+        return $this->services['qapla.module.qaplapudo.cache.symfony_filesystem_adapter'] = new \Symfony\Component\Cache\Adapter\FilesystemAdapter('', 0, '/home/sexthera/public_html/muizenmesh.co.za/store/var/cache/prod//qapla');
+    }
+
+    /**
+     * Gets the public 'qapla.module.qaplapudo.provider.cart_pudo_provider' shared service.
+     *
+     * @return \Qapla\Module\Qaplapudo\Provider\CartPudoProvider
+     */
+    protected function getQapla_Module_Qaplapudo_Provider_CartPudoProviderService()
+    {
+        return $this->services['qapla.module.qaplapudo.provider.cart_pudo_provider'] = new \Qapla\Module\Qaplapudo\Provider\CartPudoProvider();
+    }
+
+    /**
+     * Gets the public 'qapla.module.qaplapudo.qaplaapi.http_client' shared service.
+     *
+     * @return \Qapla\Module\Qaplapudo\QaplaApi\HttpClient
+     */
+    protected function getQapla_Module_Qaplapudo_Qaplaapi_HttpClientService()
+    {
+        return $this->services['qapla.module.qaplapudo.qaplaapi.http_client'] = new \Qapla\Module\Qaplapudo\QaplaApi\HttpClient(($this->services['PrestaShop\\PrestaShop\\Adapter\\Configuration'] ?? ($this->services['PrestaShop\\PrestaShop\\Adapter\\Configuration'] = new \PrestaShop\PrestaShop\Adapter\Configuration()))->get("QAPLAPUDO_PRIVATEKEY", ""));
+    }
+
+    /**
+     * Gets the public 'qapla.module.qaplapudo.qaplaapi.pudo.pudo_provider' shared service.
+     *
+     * @return \Qapla\Module\Qaplapudo\QaplaApi\Pudo\PudoProvider
+     */
+    protected function getQapla_Module_Qaplapudo_Qaplaapi_Pudo_PudoProviderService()
+    {
+        return $this->services['qapla.module.qaplapudo.qaplaapi.pudo.pudo_provider'] = new \Qapla\Module\Qaplapudo\QaplaApi\Pudo\PudoProvider(($this->services['qapla.module.qaplapudo.qaplaapi.http_client'] ?? $this->getQapla_Module_Qaplapudo_Qaplaapi_HttpClientService()));
+    }
+
+    /**
+     * Gets the public 'qapla.module.qaplapudo.qaplaapi.pudo.pudo_provider_cached' shared service.
+     *
+     * @return \Qapla\Module\Qaplapudo\QaplaApi\Pudo\PudoProviderCached
+     */
+    protected function getQapla_Module_Qaplapudo_Qaplaapi_Pudo_PudoProviderCachedService()
+    {
+        return $this->services['qapla.module.qaplapudo.qaplaapi.pudo.pudo_provider_cached'] = new \Qapla\Module\Qaplapudo\QaplaApi\Pudo\PudoProviderCached(($this->services['qapla.module.qaplapudo.qaplaapi.http_client'] ?? $this->getQapla_Module_Qaplapudo_Qaplaapi_HttpClientService()), ($this->services['qapla.module.qaplapudo.cache.cache_file'] ?? ($this->services['qapla.module.qaplapudo.cache.cache_file'] = new \Qapla\Module\Qaplapudo\Cache\CacheFile('', 0, '/home/sexthera/public_html/muizenmesh.co.za/store/var/cache/prod//qapla'))));
     }
 
     /**
@@ -1118,6 +2799,17 @@ class FrontContainer extends \PrestaShop\PrestaShop\Adapter\Container\LegacyCont
                 71 => 'ps_searchbarjqauto',
                 72 => 'ps_eft',
                 73 => 'payfast',
+                74 => 'tooleamazonmarkettool',
+                75 => 'qaplapudo',
+                76 => 'ps_accounts',
+                77 => 'bonaicontent',
+                78 => 'cedconnectoraliexpress',
+                79 => 'smartargetfacebookmessenger',
+                80 => 'smartargetwhatsapp',
+                81 => 'smartargetsocialfollowbar',
+                82 => 'supdropshipping',
+                83 => 'fraudlabspro',
+                84 => 'ps_eventbus',
             ],
             'ps_cache_dir' => '/home/sexthera/public_html/muizenmesh.co.za/store/var/cache/prod/',
             'mail_themes_uri' => '/mails/themes',
@@ -1191,6 +2883,28 @@ class FrontContainer extends \PrestaShop\PrestaShop\Adapter\Container\LegacyCont
             'doctrine.orm.auto_generate_proxy_classes' => false,
             'doctrine.orm.proxy_dir' => '/home/sexthera/public_html/muizenmesh.co.za/store/var/cache/prod//doctrine/orm/Proxies',
             'doctrine.orm.proxy_namespace' => 'Proxies',
+            'ps_eventbus.proxy_api_url' => 'https://eventbus-proxy.psessentials.net',
+            'ps_eventbus.sync_api_url' => 'https://eventbus-sync.psessentials.net',
+            'ps_eventbus.live_sync_api_url' => 'https://api.cloudsync.prestashop.com/live-sync/v1',
+            'ps_eventbus.sentry_dsn' => 'https://457f191226df4b8f9a0d7bf6f250bab2@o298402.ingest.sentry.io/6066714',
+            'ps_eventbus.sentry_env' => 'production',
+            'ps_accounts.environment' => 'production',
+            'ps_accounts.accounts_api_url' => 'https://accounts-api.distribution.prestashop.net/',
+            'ps_accounts.accounts_ui_url' => 'https://accounts.distribution.prestashop.net',
+            'ps_accounts.sso_api_url' => 'https://auth.prestashop.com/api/v1/',
+            'ps_accounts.sso_account_url' => 'https://auth.prestashop.com/login',
+            'ps_accounts.sso_resend_verification_email_url' => 'https://auth.prestashop.com/account/send-verification-email',
+            'ps_accounts.billing_api_url' => 'https://billing-api.distribution.prestashop.net/',
+            'ps_accounts.indirect_channel_api_url' => 'https://indirect-channel-api.prestashop.net',
+            'ps_accounts.sentry_credentials' => 'https://cd2a5f089edb6d6efe742c0cbe004106@o298402.ingest.us.sentry.io/5354585',
+            'ps_accounts.segment_write_key' => 'pEJGnRxw47CU01efFjMyl1S7YcxshLxl',
+            'ps_accounts.check_api_ssl_cert' => true,
+            'ps_accounts.verify_account_tokens' => true,
+            'ps_accounts.accounts_vue_cdn_url' => 'https://unpkg.com/prestashop_accounts_vue_components@3/dist/psaccountsVue.umd.min.js',
+            'ps_accounts.accounts_cdn_url' => 'https://unpkg.com/prestashop_accounts_vue_components@5',
+            'ps_accounts.svc_accounts_ui_url' => 'https://accounts.psessentials.net',
+            'ps_accounts.oauth2_url' => 'https://oauth.prestashop.com',
+            'ps_accounts.testimonials_url' => 'https://assets.prestashop3.com/dst/accounts/assets/testimonials.json',
         ];
     }
 }

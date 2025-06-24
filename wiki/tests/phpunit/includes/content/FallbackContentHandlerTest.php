@@ -1,5 +1,7 @@
 <?php
 
+use MediaWiki\Context\RequestContext;
+use MediaWiki\Parser\ParserObserver;
 use MediaWiki\Request\FauxRequest;
 use MediaWiki\Title\Title;
 
@@ -18,6 +20,7 @@ class FallbackContentHandlerTest extends MediaWikiLangTestCase {
 			'wgContentHandlers',
 			[ self::CONTENT_MODEL => FallbackContentHandler::class ]
 		);
+		$this->setService( '_ParserObserver', $this->createMock( ParserObserver::class ) );
 	}
 
 	/**
@@ -31,13 +34,14 @@ class FallbackContentHandlerTest extends MediaWikiLangTestCase {
 	}
 
 	/**
-	 * @covers ContentHandler::getSlotDiffRenderer
+	 * @covers \ContentHandler::getSlotDiffRenderer
 	 */
 	public function testGetSlotDiffRenderer() {
 		$context = new RequestContext();
 		$context->setRequest( new FauxRequest() );
 
 		$handler = new FallbackContentHandler( 'horkyporky' );
+		$this->hideDeprecated( 'ContentHandler::getSlotDiffRendererInternal' );
 		$slotDiffRenderer = $handler->getSlotDiffRenderer( $context );
 
 		$oldContent = $handler->unserializeContent( 'Foo' );
@@ -48,13 +52,16 @@ class FallbackContentHandlerTest extends MediaWikiLangTestCase {
 	}
 
 	/**
-	 * @covers FallbackContentHandler::fillParserOutput
+	 * @covers \FallbackContentHandler::fillParserOutput
 	 */
 	public function testGetParserOutput() {
 		$this->setUserLang( 'en' );
 		$this->setContentLang( 'qqx' );
 
-		$title = Title::newFromText( 'Test' );
+		$title = $this->createMock( Title::class );
+		$title->method( 'getPageLanguage' )
+			->willReturn( $this->getServiceContainer()->getContentLanguage() );
+
 		$content = $this->newContent( 'Horkyporky' );
 		$contentRenderer = $this->getServiceContainer()->getContentRenderer();
 		$po = $contentRenderer->getParserOutput( $content, $title );

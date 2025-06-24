@@ -6,10 +6,11 @@ namespace Wikimedia\Parsoid\Config;
 
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
-use Psr\Log\NullLogger;
 use Wikimedia\Parsoid\Core\ContentMetadataCollector;
 use Wikimedia\Parsoid\Core\ContentMetadataCollectorCompat;
+use Wikimedia\Parsoid\Core\LinkTarget;
 use Wikimedia\Parsoid\Core\TOCData;
+use Wikimedia\Parsoid\Utils\Title;
 
 /**
  * Minimal implementation of a ContentMetadataCollector which just
@@ -18,6 +19,9 @@ use Wikimedia\Parsoid\Core\TOCData;
  */
 class StubMetadataCollector implements ContentMetadataCollector {
 	use ContentMetadataCollectorCompat;
+
+	/** @var SiteConfig */
+	private $siteConfig;
 
 	/** @var LoggerInterface */
 	private $logger;
@@ -45,15 +49,21 @@ class StubMetadataCollector implements ContentMetadataCollector {
 	private const MERGE_STRATEGY_WRITE_ONCE = 'write-once';
 
 	/**
-	 * @param ?LoggerInterface $logger Optional logger to log warnings
-	 * for unsafe metadata updates
+	 * @param SiteConfig $siteConfig Used to resolve title namespaces
+	 *  and to log warnings for unsafe metadata updates
 	 */
-	public function __construct( ?LoggerInterface $logger = null ) {
-		$this->logger = $logger ?? new NullLogger;
+	public function __construct(
+		SiteConfig $siteConfig
+	) {
+		$this->siteConfig = $siteConfig;
+		$this->logger = $siteConfig->getLogger();
 	}
 
 	/** @inheritDoc */
 	public function addCategory( $c, $sort = '' ): void {
+		if ( $c instanceof LinkTarget ) {
+			$c = $c->getDBkey();
+		}
 		// Numeric strings often become an `int` when passed to addCategory()
 		$this->collect( 'categories', (string)$c, $sort, self::MERGE_STRATEGY_WRITE_ONCE );
 	}
@@ -71,6 +81,13 @@ class StubMetadataCollector implements ContentMetadataCollector {
 	/** @inheritDoc */
 	public function setOutputFlag( string $name, bool $value = true ): void {
 		$this->collect( 'outputflags', $name, (string)$value, self::MERGE_STRATEGY_WRITE_ONCE );
+	}
+
+	/** @inheritDoc */
+	public function appendOutputStrings( string $name, array $value ): void {
+		foreach ( $value as $v ) {
+			$this->collect( 'outputstrings', $name, $v );
+		}
 	}
 
 	/** @inheritDoc */
@@ -131,6 +148,29 @@ class StubMetadataCollector implements ContentMetadataCollector {
 		$this->collect( 'tocdata', '', $tocData, self::MERGE_STRATEGY_WRITE_ONCE );
 	}
 
+	/** @inheritDoc */
+	public function addLink( LinkTarget $link, $id = null ): void {
+		$this->collect( 'links', '', $this->linkToString( $link ) );
+	}
+
+	/** @inheritDoc */
+	public function addImage( LinkTarget $name, $timestamp = null, $sha1 = null ): void {
+		$title = Title::newFromLinkTarget( $name, $this->siteConfig );
+		$this->collect( 'images', '', $title->getDBkey() );
+	}
+
+	/** @inheritDoc */
+	public function addLanguageLink( LinkTarget $lt ): void {
+		$this->collect( 'language-link', '', $this->linkToString( $lt ) );
+	}
+
+	/** @return LinkTarget[] */
+	public function getLanguageLinks(): array {
+		return array_map( function ( $v ) {
+			return $this->stringToLink( $v );
+		}, $this->get( 'language-link', '' ) );
+	}
+
 	/**
 	 * Unified internal implementation of metadata collection.
 	 * @param string $which Internal string identifying the type of metadata.
@@ -176,12 +216,12 @@ class StubMetadataCollector implements ContentMetadataCollector {
 			return;
 		} elseif ( $strategy === self::MERGE_STRATEGY_UNION ) {
 			if ( !( is_string( $value ) || is_int( $value ) ) ) {
-				throw new \Exception( "Bad value type for $key: " . gettype( $value ) );
+				throw new \InvalidArgumentException( "Bad value type for $key: " . gettype( $value ) );
 			}
 			$this->storage[$which][$key][$value] = true;
 			return;
 		} else {
-			throw new \Exception( "Unknown strategy: $strategy" );
+			throw new \InvalidArgumentException( "Unknown strategy: $strategy" );
 		}
 	}
 
@@ -206,7 +246,7 @@ class StubMetadataCollector implements ContentMetadataCollector {
 		}
 		$result = [];
 		foreach ( ( $this->storage[$which] ?? [] ) as $key => $ignore ) {
-			$result[$key] = $this->get( $which, $key );
+			$result[$key] = $this->get( $which, (string)$key );
 		}
 		return $result;
 	}
@@ -238,9 +278,19 @@ class StubMetadataCollector implements ContentMetadataCollector {
 		return $result;
 	}
 
-	/** @return array<string,string> */
-	public function getCategories(): array {
-		return $this->get( 'categories' );
+	/** @return list<string> */
+	public function getCategoryNames(): array {
+		// array keys can get converted to int if numeric, so ensure
+		// return value is all strings.
+		return array_map( 'strval', array_keys( $this->get( 'categories' ) ) );
+	}
+
+	/**
+	 * @param string $name Category name
+	 * @return ?string Sort key
+	 */
+	public function getCategorySortKey( string $name ): ?string {
+		return $this->get( 'categories', $name );
 	}
 
 	/**
@@ -280,5 +330,56 @@ class StubMetadataCollector implements ContentMetadataCollector {
 	 */
 	public function getTOCData(): ?TOCData {
 		return $this->get( 'tocdata', '', self::MERGE_STRATEGY_WRITE_ONCE );
+	}
+
+	/**
+	 * Set the content for an indicator.
+	 * @param string $name
+	 * @param string $content
+	 */
+	public function setIndicator( $name, $content ): void {
+		$this->collect( 'indicators', $name, $content, self::MERGE_STRATEGY_WRITE_ONCE );
+	}
+
+	/**
+	 * Return a "name" => "content-id" mapping of recorded indicators
+	 * @return array
+	 */
+	public function getIndicators(): array {
+		return $this->get( 'indicators' );
+	}
+
+	/**
+	 * @return array
+	 */
+	public function getImages(): array {
+		return $this->get( 'images', '' );
+	}
+
+	// helper functions for recording LinkTarget objects
+
+	/**
+	 * Convert a LinkTarget to a string for storing in the collected metadata.
+	 * @param LinkTarget $lt
+	 * @return string
+	 */
+	private function linkToString( LinkTarget $lt ): string {
+		$title = Title::newFromLinkTarget( $lt, $this->siteConfig );
+		$text = $title->getPrefixedText();
+		$fragment = $title->getFragment();
+		if ( $fragment !== '' ) {
+			$text .= '#' . $fragment;
+		}
+		return $text;
+	}
+
+	/**
+	 * Convert a string back into a LinkTarget for retrieval from the
+	 * collected metadata.
+	 * @param string $s
+	 * @return LinkTarget
+	 */
+	private function stringToLink( string $s ): LinkTarget {
+		return Title::newFromText( $s, $this->siteConfig );
 	}
 }

@@ -1,7 +1,7 @@
 /*!
  * VisualEditor MediaWiki CollabTarget init.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see AUTHORS.txt
+ * @copyright See AUTHORS.txt
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
@@ -126,7 +126,7 @@
 								// Something (an animation?) steals focus during load, so wait a bit
 								// before opening and focusing the authorList.
 								setTimeout( function () {
-									target.actionsToolbar.tools.authorList.onSelect();
+									target.toolbar.tools.authorList.onSelect();
 								}, 500 );
 							}
 						} );
@@ -174,7 +174,7 @@
 
 						// Look for import metadata in document
 						surfaceModel = target.getSurface().getModel();
-						surfaceModel.getMetaList().getItemsInGroup( 'misc' ).some( function ( item ) {
+						surfaceModel.getDocument().getMetaList().getItemsInGroup( 'misc' ).some( function ( item ) {
 							var importedDocument = item.getAttribute( 'importedDocument' );
 							if ( importedDocument ) {
 								target.importTitle = mw.Title.newFromText( importedDocument.title );

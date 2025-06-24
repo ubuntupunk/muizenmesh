@@ -22,6 +22,8 @@
  * @defgroup Pager Pager
  */
 
+namespace MediaWiki\Pager;
+
 /**
  * Basic pager interface for efficient paging through SQL queries.
  *
@@ -36,3 +38,6 @@ interface Pager {
 
 	public function getBody();
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( Pager::class, 'Pager' );

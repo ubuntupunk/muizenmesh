@@ -1,7 +1,7 @@
 /*!
  * VisualEditor user interface MWGalleryItemWidget class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see AUTHORS.txt
+ * @copyright See AUTHORS.txt
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
@@ -22,6 +22,7 @@ ve.ui.MWGalleryItemWidget = function VeUiMWGalleryItemWidget( imageInfo, config 
 	this.resource = imageInfo.resource;
 	this.altText = imageInfo.altText || '';
 	this.altTextSame = imageInfo.altTextSame;
+	this.href = imageInfo.href;
 	// Keep the original value which may be null
 	this.originalAltText = imageInfo.altText;
 	this.src = imageInfo.src;
@@ -32,6 +33,11 @@ ve.ui.MWGalleryItemWidget = function VeUiMWGalleryItemWidget( imageInfo, config 
 	this.highlighted = false;
 	this.tagName = imageInfo.tagName;
 	this.isError = imageInfo.isError;
+	this.imageClassAttr = imageInfo.imageClassAttr;
+	this.imgWrapperClassAttr = imageInfo.imgWrapperClassAttr;
+	this.mw = imageInfo.mw;
+	this.mediaClass = imageInfo.mediaClass;
+	this.mediaTag = imageInfo.mediaTag;
 
 	// Configuration initialization
 	config = config || {};
@@ -40,7 +46,7 @@ ve.ui.MWGalleryItemWidget = function VeUiMWGalleryItemWidget( imageInfo, config 
 	ve.ui.MWGalleryItemWidget.super.call( this, config );
 
 	this.$element
-		.addClass( 've-ui-mwGalleryDialog-image-container' ) // TODO: put in new CSS file?
+		.addClass( 've-ui-mwGalleryDialog-image-container mw-no-invert' ) // TODO: put in new CSS file?
 		.addClass( config.isMobile ?
 			've-ui-mwGalleryDialog-image-container-mobile' :
 			've-ui-mwGalleryDialog-image-container-desktop'

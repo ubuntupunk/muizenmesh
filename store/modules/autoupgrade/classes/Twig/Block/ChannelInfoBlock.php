@@ -29,7 +29,7 @@ namespace PrestaShop\Module\AutoUpgrade\Twig\Block;
 
 use PrestaShop\Module\AutoUpgrade\ChannelInfo;
 use PrestaShop\Module\AutoUpgrade\Parameters\UpgradeConfiguration;
-use Twig_Environment;
+use Twig\Environment;
 
 class ChannelInfoBlock
 {
@@ -44,7 +44,7 @@ class ChannelInfoBlock
     private $channelInfo;
 
     /**
-     * @var Twig_Environment|\Twig\Environment
+     * @var Environment
      */
     private $twig;
 
@@ -53,7 +53,7 @@ class ChannelInfoBlock
      *
      * @param UpgradeConfiguration $config
      * @param ChannelInfo $channelInfo
-     * @param Twig_Environment|\Twig\Environment $twig
+     * @param Environment $twig
      */
     public function __construct(UpgradeConfiguration $config, ChannelInfo $channelInfo, $twig)
     {
@@ -63,9 +63,9 @@ class ChannelInfoBlock
     }
 
     /**
-     * @return string HTML
+     * @return array<string, mixed>
      */
-    public function render()
+    public function getTemplateVars(): array
     {
         $channel = $this->channelInfo->getChannel();
         $upgradeInfo = $this->channelInfo->getInfo();
@@ -75,11 +75,17 @@ class ChannelInfoBlock
             $upgradeInfo['md5'] = $this->config->get('private_release_md5');
         }
 
-        return $this->twig->render(
-            '@ModuleAutoUpgrade/block/channelInfo.twig',
-            [
-                'upgradeInfo' => $upgradeInfo,
-            ]
-        );
+        return [
+            'psBaseUri' => __PS_BASE_URI__,
+            'upgradeInfo' => $upgradeInfo,
+        ];
+    }
+
+    /**
+     * @return string HTML
+     */
+    public function render(): string
+    {
+        return $this->twig->render('@ModuleAutoUpgrade/block/channelInfo.html.twig', $this->getTemplateVars());
     }
 }

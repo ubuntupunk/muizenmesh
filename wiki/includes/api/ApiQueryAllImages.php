@@ -30,7 +30,10 @@ use MediaWiki\Permissions\GroupPermissionsLookup;
 use MediaWiki\Title\Title;
 use Wikimedia\ParamValidator\ParamValidator;
 use Wikimedia\ParamValidator\TypeDef\IntegerDef;
-use Wikimedia\Rdbms\IDatabase;
+use Wikimedia\Rdbms\IExpression;
+use Wikimedia\Rdbms\IReadableDatabase;
+use Wikimedia\Rdbms\LikeValue;
+use Wikimedia\Rdbms\OrExpressionGroup;
 
 /**
  * Query module to enumerate all images.
@@ -44,8 +47,7 @@ class ApiQueryAllImages extends ApiQueryGeneratorBase {
 	 */
 	protected $mRepo;
 
-	/** @var GroupPermissionsLookup */
-	private $groupPermissionsLookup;
+	private GroupPermissionsLookup $groupPermissionsLookup;
 
 	/**
 	 * @param ApiQuery $query
@@ -69,7 +71,7 @@ class ApiQueryAllImages extends ApiQueryGeneratorBase {
 	 * which may not necessarily be the same as the local DB.
 	 *
 	 * TODO: allow querying non-local repos.
-	 * @return IDatabase
+	 * @return IReadableDatabase
 	 */
 	protected function getDB() {
 		return $this->mRepo->getReplicaDB();
@@ -154,7 +156,7 @@ class ApiQueryAllImages extends ApiQueryGeneratorBase {
 			if ( $params['continue'] !== null ) {
 				$cont = $this->parseContinueParamOrDie( $params['continue'], [ 'string' ] );
 				$op = $ascendingOrder ? '>=' : '<=';
-				$this->addWhere( $db->buildComparison( $op, [ 'img_name' => $cont[0] ] ) );
+				$this->addWhere( $db->expr( 'img_name', $op, $cont[0] ) );
 			}
 
 			// Image filters
@@ -163,9 +165,13 @@ class ApiQueryAllImages extends ApiQueryGeneratorBase {
 			$this->addWhereRange( 'img_name', $ascendingOrder ? 'newer' : 'older', $from, $to );
 
 			if ( isset( $params['prefix'] ) ) {
-				$this->addWhere( 'img_name' . $db->buildLike(
-					$this->titlePartToKey( $params['prefix'], NS_FILE ),
-					$db->anyString() ) );
+				$this->addWhere(
+					$db->expr(
+						'img_name',
+						IExpression::LIKE,
+						new LikeValue( $this->titlePartToKey( $params['prefix'], NS_FILE ), $db->anyString() )
+					)
+				);
 			}
 		} else {
 			// Check mutually exclusive params
@@ -220,7 +226,7 @@ class ApiQueryAllImages extends ApiQueryGeneratorBase {
 					[
 						'ug_group' => $this->groupPermissionsLookup->getGroupsWithPermission( 'bot' ),
 						'ug_user = actor_user',
-						'ug_expiry IS NULL OR ug_expiry >= ' . $db->addQuotes( $db->timestamp() )
+						$db->expr( 'ug_expiry', '=', null )->or( 'ug_expiry', '>=', $db->timestamp() )
 					]
 				] ] );
 				$groupCond = $params['filterbots'] == 'nobots' ? 'NULL' : 'NOT NULL';
@@ -262,17 +268,12 @@ class ApiQueryAllImages extends ApiQueryGeneratorBase {
 			$mimeConds = [];
 			foreach ( $params['mime'] as $mime ) {
 				[ $major, $minor ] = File::splitMime( $mime );
-				$mimeConds[] = $db->makeList(
-					[
-						'img_major_mime' => $major,
-						'img_minor_mime' => $minor,
-					],
-					LIST_AND
-				);
+				$mimeConds[] =
+					$db->expr( 'img_major_mime', '=', $major )
+						->and( 'img_minor_mime', '=', $minor );
 			}
-			// safeguard against internal_api_error_DBQueryError
 			if ( count( $mimeConds ) > 0 ) {
-				$this->addWhere( $db->makeList( $mimeConds, LIST_OR ) );
+				$this->addWhere( new OrExpressionGroup( ...$mimeConds ) );
 			} else {
 				// no MIME types, no files
 				$this->getResult()->addValue( 'query', $this->getModuleName(), [] );
@@ -377,7 +378,7 @@ class ApiQueryAllImages extends ApiQueryGeneratorBase {
 			'sha1base36' => null,
 			'user' => [
 				ParamValidator::PARAM_TYPE => 'user',
-				UserDef::PARAM_ALLOWED_USER_TYPES => [ 'name', 'ip', 'id', 'interwiki' ],
+				UserDef::PARAM_ALLOWED_USER_TYPES => [ 'name', 'ip', 'temp', 'id', 'interwiki' ],
 			],
 			'filterbots' => [
 				ParamValidator::PARAM_DEFAULT => 'all',

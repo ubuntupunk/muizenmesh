@@ -6,12 +6,17 @@
  * Represents files in a repository.
  */
 
+use MediaWiki\Config\ConfigException;
+use MediaWiki\Context\IContextSource;
 use MediaWiki\HookContainer\ProtectedHookAccessorTrait;
 use MediaWiki\Linker\LinkTarget;
+use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Page\PageIdentity;
 use MediaWiki\Permissions\Authority;
+use MediaWiki\PoolCounter\PoolCounterWorkViaCallback;
+use MediaWiki\Status\Status;
 use MediaWiki\Title\Title;
 use MediaWiki\User\UserIdentity;
 
@@ -65,7 +70,7 @@ use MediaWiki\User\UserIdentity;
  * @stable to extend
  * @ingroup FileAbstraction
  */
-abstract class File implements IDBAccessObject, MediaHandlerState {
+abstract class File implements MediaHandlerState {
 	use ProtectedHookAccessorTrait;
 
 	// Bitfield values akin to the revision deletion constants
@@ -120,7 +125,10 @@ abstract class File implements IDBAccessObject, MediaHandlerState {
 	/** @var string Text of last error */
 	protected $lastError;
 
-	/** @var string Main part of the title, with underscores (Title::getDBkey) */
+	/** @var ?string The name that was used to access the file, before
+	 *       resolving redirects. Main part of the title, with underscores
+	 *       per Title::getDBkey().
+	 */
 	protected $redirected;
 
 	/** @var Title */
@@ -201,7 +209,6 @@ abstract class File implements IDBAccessObject, MediaHandlerState {
 	 *
 	 * @param PageIdentity|LinkTarget|string $title
 	 * @param string|false $exception Use 'exception' to throw an error on bad titles
-	 * @throws MWException
 	 * @return Title|null
 	 */
 	public static function normalizeTitle( $title, $exception = false ) {
@@ -228,7 +235,7 @@ abstract class File implements IDBAccessObject, MediaHandlerState {
 			$ret = Title::makeTitleSafe( NS_FILE, (string)$ret );
 		}
 		if ( !$ret && $exception !== false ) {
-			throw new MWException( "`$title` is not a valid file title." );
+			throw new RuntimeException( "`$title` is not a valid file title." );
 		}
 
 		return $ret;
@@ -371,7 +378,7 @@ abstract class File implements IDBAccessObject, MediaHandlerState {
 	 * @return Title
 	 */
 	public function getOriginalTitle() {
-		if ( $this->redirected ) {
+		if ( $this->redirected !== null ) {
 			return $this->getRedirectedTitle();
 		}
 
@@ -577,14 +584,13 @@ abstract class File implements IDBAccessObject, MediaHandlerState {
 	 * @param int $maxWidth Max width to display at
 	 * @param int $maxHeight Max height to display at
 	 * @param int $page
-	 * @throws MWException
 	 * @return array Array (width, height)
 	 * @since 1.35
 	 */
 	public function getDisplayWidthHeight( $maxWidth, $maxHeight, $page = 1 ) {
 		if ( !$maxWidth || !$maxHeight ) {
 			// should never happen
-			throw new MWException( 'Using a choice from $wgImageLimits that is 0x0' );
+			throw new ConfigException( 'Using a choice from $wgImageLimits that is 0x0' );
 		}
 
 		$width = $this->getWidth( $page );
@@ -851,14 +857,12 @@ abstract class File implements IDBAccessObject, MediaHandlerState {
 	}
 
 	/**
-	 * Checks if the output of transform() for this file is likely
-	 * to be valid. If this is false, various user elements will
-	 * display a placeholder instead.
+	 * Checks if the output of transform() for this file is likely to be valid.
 	 *
-	 * Currently, this checks if the file is an image format
-	 * that can be converted to a format
-	 * supported by all browsers (namely GIF, PNG and JPEG),
-	 * or if it is an SVG image and SVG conversion is enabled.
+	 * In other words, this will return true if a thumbnail can be provided for this
+	 * image (e.g. if [[File:...|thumb]] produces a result on a wikitext page).
+	 *
+	 * If this is false, various user elements will display a placeholder instead.
 	 *
 	 * @return bool
 	 */
@@ -995,7 +999,7 @@ abstract class File implements IDBAccessObject, MediaHandlerState {
 	 * Overridden by LocalFile to actually query the DB
 	 *
 	 * @stable to override
-	 * @param int $flags Bitfield of File::READ_* constants
+	 * @param int $flags Bitfield of IDBAccessObject::READ_* constants
 	 */
 	public function load( $flags = 0 ) {
 	}
@@ -1242,6 +1246,8 @@ abstract class File implements IDBAccessObject, MediaHandlerState {
 
 				// Check to see if local transformation is disabled.
 				if ( !$this->repo->canTransformLocally() ) {
+					LoggerFactory::getInstance( 'thumbnail' )
+						->error( 'Local transform denied by configuration' );
 					$thumb = new MediaTransformError(
 						wfMessage(
 							'thumbnail_error',
@@ -1278,6 +1284,8 @@ abstract class File implements IDBAccessObject, MediaHandlerState {
 			->get( MainConfigNames::IgnoreImageErrors );
 
 		if ( !$this->repo->canTransformLocally() ) {
+			LoggerFactory::getInstance( 'thumbnail' )
+				->error( 'Local transform denied by configuration' );
 			return new MediaTransformError(
 				wfMessage(
 					'thumbnail_error',
@@ -1974,11 +1982,10 @@ abstract class File implements IDBAccessObject, MediaHandlerState {
 	}
 
 	/**
-	 * @throws MWException
 	 * @return never
 	 */
 	protected function readOnlyError() {
-		throw new MWException( static::class . ': write operations are not supported' );
+		throw new LogicException( static::class . ': write operations are not supported' );
 	}
 
 	/**
@@ -2406,9 +2413,10 @@ abstract class File implements IDBAccessObject, MediaHandlerState {
 	}
 
 	/**
-	 * @return string
+	 * @return ?string The name that was used to access the file, before
+	 *         resolving redirects.
 	 */
-	public function getRedirected() {
+	public function getRedirected(): ?string {
 		return $this->redirected;
 	}
 
@@ -2416,7 +2424,7 @@ abstract class File implements IDBAccessObject, MediaHandlerState {
 	 * @return Title|null
 	 */
 	protected function getRedirectedTitle() {
-		if ( $this->redirected ) {
+		if ( $this->redirected !== null ) {
 			if ( !$this->redirectTitle ) {
 				$this->redirectTitle = Title::makeTitle( NS_FILE, $this->redirected );
 			}
@@ -2428,10 +2436,10 @@ abstract class File implements IDBAccessObject, MediaHandlerState {
 	}
 
 	/**
-	 * @param string $from
-	 * @return void
+	 * @param string $from The name that was used to access the file, before
+	 *        resolving redirects.
 	 */
-	public function redirectedFrom( $from ) {
+	public function redirectedFrom( string $from ) {
 		$this->redirected = $from;
 	}
 
@@ -2454,21 +2462,19 @@ abstract class File implements IDBAccessObject, MediaHandlerState {
 
 	/**
 	 * Assert that $this->repo is set to a valid FileRepo instance
-	 * @throws MWException
 	 */
 	protected function assertRepoDefined() {
 		if ( !( $this->repo instanceof $this->repoClass ) ) {
-			throw new MWException( "A {$this->repoClass} object is not set for this File.\n" );
+			throw new LogicException( "A {$this->repoClass} object is not set for this File.\n" );
 		}
 	}
 
 	/**
 	 * Assert that $this->title is set to a Title
-	 * @throws MWException
 	 */
 	protected function assertTitleDefined() {
 		if ( !( $this->title instanceof Title ) ) {
-			throw new MWException( "A Title object is not set for this File.\n" );
+			throw new LogicException( "A Title object is not set for this File.\n" );
 		}
 	}
 
@@ -2478,7 +2484,7 @@ abstract class File implements IDBAccessObject, MediaHandlerState {
 	 */
 	public function isExpensiveToThumbnail() {
 		$handler = $this->getHandler();
-		return $handler ? $handler->isExpensiveToThumbnail( $this ) : false;
+		return $handler && $handler->isExpensiveToThumbnail( $this );
 	}
 
 	/**

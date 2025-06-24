@@ -21,8 +21,21 @@
  * @ingroup SpecialPage
  */
 
+namespace MediaWiki\Specials;
+
+use IDBAccessObject;
+use MediaWiki\HTMLForm\HTMLForm;
 use MediaWiki\Language\RawMessage;
+use MediaWiki\Parser\Sanitizer;
+use MediaWiki\SpecialPage\SpecialPage;
+use MediaWiki\SpecialPage\UnlistedSpecialPage;
+use MediaWiki\Status\Status;
+use MediaWiki\User\User;
 use MediaWiki\User\UserFactory;
+use PermissionsError;
+use Profiler;
+use ReadOnlyError;
+use UserNotLoggedIn;
 use Wikimedia\ScopedCallback;
 
 /**
@@ -30,13 +43,12 @@ use Wikimedia\ScopedCallback;
  * processing of the confirmation code when the link in the email is followed
  *
  * @ingroup SpecialPage
- * @author Brion Vibber
+ * @author Brooke Vibber
  * @author Rob Church <robchur@gmail.com>
  */
 class SpecialConfirmEmail extends UnlistedSpecialPage {
 
-	/** @var UserFactory */
-	private $userFactory;
+	private UserFactory $userFactory;
 
 	/**
 	 * @param UserFactory $userFactory
@@ -75,7 +87,7 @@ class SpecialConfirmEmail extends UnlistedSpecialPage {
 		}
 
 		if ( $code === null || $code === '' ) {
-			$this->requireLogin( 'confirmemail_needlogin' );
+			$this->requireNamedUser( 'confirmemail_needlogin' );
 			if ( Sanitizer::validateEmail( $this->getUser()->getEmail() ) ) {
 				$this->showRequestForm();
 			} else {
@@ -162,31 +174,34 @@ class SpecialConfirmEmail extends UnlistedSpecialPage {
 	private function attemptConfirm( $code ) {
 		$user = $this->userFactory->newFromConfirmationCode(
 			$code,
-			UserFactory::READ_LATEST
+			IDBAccessObject::READ_LATEST
 		);
 
 		if ( !is_object( $user ) ) {
-			$this->getOutput()->addWikiMsg( 'confirmemail_invalid' );
+			if ( User::isWellFormedConfirmationToken( $code ) ) {
+				$this->getOutput()->addWikiMsg( 'confirmemail_invalid' );
+			} else {
+				$this->getOutput()->addWikiMsg( 'confirmemail_invalid_format' );
+			}
 
 			return;
 		}
 
-		// rate limit email confirmations
-		if ( $user->pingLimiter( 'confirmemail' ) ) {
-			$this->getOutput()->addWikiMsg( 'actionthrottledtext' );
-
-			return;
-		}
+		// Enforce permissions, user blocks, and rate limits
+		$this->authorizeAction( 'confirmemail' )->throwErrorPageError();
 
 		$userLatest = $user->getInstanceForUpdate();
 		$userLatest->confirmEmail();
 		$userLatest->saveSettings();
-		$message = $this->getUser()->isRegistered() ? 'confirmemail_loggedin' : 'confirmemail_success';
+		$message = $this->getUser()->isNamed() ? 'confirmemail_loggedin' : 'confirmemail_success';
 		$this->getOutput()->addWikiMsg( $message );
 
-		if ( !$this->getUser()->isRegistered() ) {
+		if ( !$this->getUser()->isNamed() ) {
 			$title = SpecialPage::getTitleFor( 'Userlogin' );
 			$this->getOutput()->returnToMain( true, $title );
 		}
 	}
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( SpecialConfirmEmail::class, 'SpecialConfirmEmail' );

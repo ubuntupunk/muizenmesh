@@ -1,7 +1,7 @@
 /*!
  * VisualEditor DataModel Fragment class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
 
 /**
@@ -532,13 +532,13 @@ ve.dm.SurfaceFragment.prototype.getLeafNodes = function () {
 /**
  * Get all leaf nodes excluding nodes where the selection is empty.
  *
- * @return {Array} List of nodes and related information
+ * @return {ve.dm.Node[]} List of nodes and related information
  */
 ve.dm.SurfaceFragment.prototype.getSelectedLeafNodes = function () {
 	var selectedLeafNodes = [],
 		leafNodes = this.getLeafNodes();
 	for ( var i = 0, len = leafNodes.length; i < len; i++ ) {
-		if ( len === 1 || !leafNodes[ i ].range || leafNodes[ i ].range.getLength() ) {
+		if ( len === 1 || !leafNodes[ i ].range || !leafNodes[ i ].range.isCollapsed() ) {
 			selectedLeafNodes.push( leafNodes[ i ].node );
 		}
 	}
@@ -786,11 +786,12 @@ ve.dm.SurfaceFragment.prototype.annotateContent = function ( method, nameOrAnnot
  * in a paragraph.
  *
  * @param {string|Array} content Content to insert, can be either a string or array of data
- * @param {boolean} [annotate] Content should be automatically annotated to match surrounding content
+ * @param {boolean|ve.dm.AnnotationSet} [annotateOrSet] Content should be automatically annotated to match surrounding content,
+ *  or an AnnotationSet from the current offset (calculated from the view)
  * @return {ve.dm.SurfaceFragment}
  * @chainable
  */
-ve.dm.SurfaceFragment.prototype.insertContent = function ( content, annotate ) {
+ve.dm.SurfaceFragment.prototype.insertContent = function ( content, annotateOrSet ) {
 	var range = this.getSelection().getCoveringRange(),
 		doc = this.getDocument();
 
@@ -798,7 +799,14 @@ ve.dm.SurfaceFragment.prototype.insertContent = function ( content, annotate ) {
 		return this;
 	}
 
-	var annotations;
+	var annotations, annotate;
+	if ( annotateOrSet instanceof ve.dm.AnnotationSet ) {
+		annotations = annotateOrSet;
+		annotate = true;
+	} else {
+		annotate = annotateOrSet;
+	}
+
 	if ( !range.isCollapsed() ) {
 		if ( annotate ) {
 			// If we're replacing content, use the annotations selected
@@ -880,11 +888,12 @@ ve.dm.SurfaceFragment.prototype.insertHtml = function ( html, importRules ) {
  *
  * @param {ve.dm.Document} newDoc Document to insert
  * @param {ve.Range} [newDocRange] Range from the new document to insert (defaults to entire document)
- * @param {boolean} [annotate] Content should be automatically annotated to match surrounding content
+ * @param {boolean|ve.dm.AnnotationSet} [annotateOrSet] Content should be automatically annotated to match surrounding content,
+ *  or an AnnotationSet from the current offset (calculated from the view)
  * @return {ve.dm.SurfaceFragment}
  * @chainable
  */
-ve.dm.SurfaceFragment.prototype.insertDocument = function ( newDoc, newDocRange, annotate ) {
+ve.dm.SurfaceFragment.prototype.insertDocument = function ( newDoc, newDocRange, annotateOrSet ) {
 	var range = this.getSelection().getCoveringRange(),
 		doc = this.getDocument();
 
@@ -892,7 +901,14 @@ ve.dm.SurfaceFragment.prototype.insertDocument = function ( newDoc, newDocRange,
 		return this;
 	}
 
-	var annotations;
+	var annotations, annotate;
+	if ( annotateOrSet instanceof ve.dm.AnnotationSet ) {
+		annotations = annotateOrSet;
+		annotate = true;
+	} else {
+		annotate = annotateOrSet;
+	}
+
 	if ( !range.isCollapsed() ) {
 		if ( annotate ) {
 			// If we're replacing content, use the annotations selected
@@ -1422,4 +1438,67 @@ ve.dm.SurfaceFragment.prototype.isolateAndUnwrap = function ( isolateForType ) {
 	this.unwrapNodes( outerDepth, 0 );
 
 	return this;
+};
+
+/**
+ * Insert new metadata into the document. This builds and processes a transaction that inserts
+ * metadata into the document.
+ *
+ * Pass a plain object rather than a MetaItem into this function unless you know what you're doing.
+ *
+ * @param {Object|ve.dm.MetaItem} meta Metadata element (or MetaItem) to insert
+ * @param {number} offset Document offset to insert at; must be a valid offset for metadata;
+ * defaults to document end
+ */
+ve.dm.SurfaceFragment.prototype.insertMeta = function ( meta, offset ) {
+	if ( arguments[ 2 ] !== undefined ) {
+		throw new Error( 'Old "index" argument is no longer supported' );
+	}
+	if ( meta instanceof ve.dm.MetaItem ) {
+		meta = meta.getElement();
+	}
+	var closeMeta = { type: '/' + meta.type };
+	var doc = this.getDocument();
+	if ( offset === undefined ) {
+		offset = doc.getDocumentRange().end;
+	}
+	var tx = ve.dm.TransactionBuilder.static.newFromInsertion( doc, offset, [ meta, closeMeta ] );
+	this.surface.change( tx );
+};
+
+/**
+ * Remove a meta item from the document. This builds and processes a transaction that removes the
+ * associated metadata from the document.
+ *
+ * @param {ve.dm.MetaItem} item Item to remove
+ */
+ve.dm.SurfaceFragment.prototype.removeMeta = function ( item ) {
+	var tx = ve.dm.TransactionBuilder.static.newFromRemoval(
+		this.getDocument(),
+		item.getOuterRange(),
+		true
+	);
+	this.surface.change( tx );
+};
+
+/**
+ * Replace a MetaItem with another in-place.
+ *
+ * Pass a plain object rather than a MetaItem into this function unless you know what you're doing.
+ *
+ * @param {ve.dm.MetaItem} oldItem Old item to replace
+ * @param {Object|ve.dm.MetaItem} meta Metadata element (or MetaItem) to insert
+ */
+ve.dm.SurfaceFragment.prototype.replaceMeta = function ( oldItem, meta ) {
+	if ( meta instanceof ve.dm.MetaItem ) {
+		meta = meta.getElement();
+	}
+	var closeMeta = { type: '/' + meta.type };
+	var tx = ve.dm.TransactionBuilder.static.newFromReplacement(
+		this.getDocument(),
+		oldItem.getOuterRange(),
+		[ meta, closeMeta ],
+		true
+	);
+	this.surface.change( tx );
 };

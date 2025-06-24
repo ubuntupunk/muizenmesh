@@ -27,7 +27,7 @@
 
 require_once __DIR__ . '/Maintenance.php';
 
-use MediaWiki\MediaWikiServices;
+use MediaWiki\Deferred\SearchUpdate;
 use MediaWiki\Revision\SlotRecord;
 use MediaWiki\Title\Title;
 use Wikimedia\Rdbms\DatabaseSqlite;
@@ -51,7 +51,7 @@ class RebuildTextIndex extends Maintenance {
 
 	public function execute() {
 		// Shouldn't be needed for Postgres
-		$dbw = $this->getDB( DB_PRIMARY );
+		$dbw = $this->getPrimaryDB();
 		if ( $dbw->getType() == 'postgres' ) {
 			$this->fatalError( "This script is not needed when using Postgres.\n" );
 		}
@@ -80,30 +80,29 @@ class RebuildTextIndex extends Maintenance {
 	 * Populates the search index with content from all pages
 	 */
 	protected function populateSearchIndex() {
-		$dbw = $this->getDB( DB_PRIMARY );
-		$res = $dbw->select( 'page', 'MAX(page_id) AS count', [], __METHOD__ );
+		$dbw = $this->getPrimaryDB();
+		$res = $dbw->newSelectQueryBuilder()
+			->select( [ 'count' => 'MAX(page_id)' ] )
+			->from( 'page' )
+			->caller( __METHOD__ )->fetchResultSet();
 		$s = $res->fetchObject();
 		$count = $s->count;
 		$this->output( "Rebuilding index fields for {$count} pages...\n" );
 		$n = 0;
 
-		$revStore = MediaWikiServices::getInstance()->getRevisionStore();
-		$revQuery = $revStore->getQueryInfo( [ 'page' ] );
+		$revStore = $this->getServiceContainer()->getRevisionStore();
+		$queryBuilderTemplate = $revStore->newSelectQueryBuilder( $dbw )
+			->joinPage()
+			->joinComment();
 
 		while ( $n < $count ) {
 			if ( $n ) {
 				$this->output( $n . "\n" );
 			}
 			$end = $n + self::RTI_CHUNK_SIZE - 1;
-
-			$res = $dbw->select(
-				$revQuery['tables'],
-				$revQuery['fields'],
-				[ "page_id BETWEEN $n AND $end", 'page_latest = rev_id' ],
-				__METHOD__,
-				[],
-				$revQuery['joins']
-			);
+			$queryBuilder = clone $queryBuilderTemplate;
+			$res = $queryBuilder->where( [ "page_id BETWEEN $n AND $end", 'page_latest = rev_id' ] )
+				->caller( __METHOD__ )->fetchResultSet();
 
 			foreach ( $res as $s ) {
 
@@ -145,7 +144,7 @@ class RebuildTextIndex extends Maintenance {
 	 * (MySQL only) Adds back fulltext index after populating the table.
 	 */
 	private function createMysqlTextIndex() {
-		$dbw = $this->getDB( DB_PRIMARY );
+		$dbw = $this->getPrimaryDB();
 		$searchindex = $dbw->tableName( 'searchindex' );
 		$this->output( "\nRebuild the index...\n" );
 		foreach ( [ 'si_title', 'si_text' ] as $field ) {
@@ -158,9 +157,12 @@ class RebuildTextIndex extends Maintenance {
 	 * Deletes everything from search index.
 	 */
 	private function clearSearchIndex() {
-		$dbw = $this->getDB( DB_PRIMARY );
+		$dbw = $this->getPrimaryDB();
 		$this->output( 'Clearing searchindex table...' );
-		$dbw->delete( 'searchindex', '*', __METHOD__ );
+		$dbw->newDeleteQueryBuilder()
+			->deleteFrom( 'searchindex' )
+			->where( '*' )
+			->caller( __METHOD__ )->execute();
 		$this->output( "Done\n" );
 	}
 }

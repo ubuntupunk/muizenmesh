@@ -4,13 +4,15 @@ namespace MediaWiki\Extension\CategoryTree;
 
 use ApiBase;
 use ApiMain;
-use Config;
-use ConfigFactory;
 use FormatJson;
+use MediaWiki\Config\Config;
+use MediaWiki\Config\ConfigFactory;
 use MediaWiki\Languages\LanguageConverterFactory;
-use Title;
+use MediaWiki\Linker\LinkRenderer;
+use MediaWiki\Title\Title;
 use WANObjectCache;
 use Wikimedia\ParamValidator\ParamValidator;
+use Wikimedia\Rdbms\IConnectionProvider;
 
 /**
  * This program is free software; you can redistribute it and/or modify
@@ -36,6 +38,12 @@ class ApiCategoryTree extends ApiBase {
 	/** @var LanguageConverterFactory */
 	private $languageConverterFactory;
 
+	/** @var LinkRenderer */
+	private $linkRenderer;
+
+	/** @var IConnectionProvider */
+	private $dbProvider;
+
 	/** @var WANObjectCache */
 	private $wanCache;
 
@@ -43,19 +51,25 @@ class ApiCategoryTree extends ApiBase {
 	 * @param ApiMain $main
 	 * @param string $action
 	 * @param ConfigFactory $configFactory
+	 * @param IConnectionProvider $dbProvider
 	 * @param LanguageConverterFactory $languageConverterFactory
+	 * @param LinkRenderer $linkRenderer
 	 * @param WANObjectCache $wanCache
 	 */
 	public function __construct(
 		ApiMain $main,
 		$action,
 		ConfigFactory $configFactory,
+		IConnectionProvider $dbProvider,
 		LanguageConverterFactory $languageConverterFactory,
+		LinkRenderer $linkRenderer,
 		WANObjectCache $wanCache
 	) {
 		parent::__construct( $main, $action );
 		$this->configFactory = $configFactory;
 		$this->languageConverterFactory = $languageConverterFactory;
+		$this->linkRenderer = $linkRenderer;
+		$this->dbProvider = $dbProvider;
 		$this->wanCache = $wanCache;
 	}
 
@@ -64,14 +78,8 @@ class ApiCategoryTree extends ApiBase {
 	 */
 	public function execute() {
 		$params = $this->extractRequestParams();
-		$options = [];
-		if ( isset( $params['options'] ) ) {
-			$options = FormatJson::decode( $params['options'] );
-			if ( !is_object( $options ) ) {
-				$this->dieWithError( 'apierror-categorytree-invalidjson', 'invalidjson' );
-			}
-			$options = get_object_vars( $options );
-		}
+
+		$options = $this->extractOptions( $params );
 
 		$title = CategoryTree::makeTitle( $params['category'] );
 		if ( !$title || $title->isExternal() ) {
@@ -80,14 +88,43 @@ class ApiCategoryTree extends ApiBase {
 
 		$depth = isset( $options['depth'] ) ? (int)$options['depth'] : 1;
 
-		$ct = new CategoryTree( $options );
-		$depth = CategoryTree::capDepth( $ct->getOption( 'mode' ), $depth );
+		$ct = new CategoryTree( $options, $this->getConfig(), $this->dbProvider, $this->linkRenderer );
+		$depth = $ct->optionManager->capDepth( $depth );
 		$ctConfig = $this->configFactory->makeConfig( 'categorytree' );
 		$html = $this->getHTML( $ct, $title, $depth, $ctConfig );
 
 		$this->getMain()->setCacheMode( 'public' );
 
 		$this->getResult()->addContentValue( $this->getModuleName(), 'html', $html );
+	}
+
+	/**
+	 * @param array $params
+	 * @return string[]
+	 */
+	private function extractOptions( $params ): array {
+		if ( !isset( $params['options'] ) ) {
+			return [];
+		}
+
+		$options = FormatJson::decode( $params['options'] );
+		if ( !is_object( $options ) ) {
+			$this->dieWithError( 'apierror-categorytree-invalidjson', 'invalidjson' );
+		}
+
+		foreach ( $options as $option => $value ) {
+			if ( is_scalar( $value ) || $value === null ) {
+				continue;
+			}
+			if ( $option === 'namespaces' && is_array( $value ) ) {
+				continue;
+			}
+			$this->dieWithError(
+				[ 'apierror-categorytree-invalidjson-option', $option ], 'invalidjson-option'
+			);
+		}
+
+		return get_object_vars( $options );
 	}
 
 	/**
@@ -99,7 +136,7 @@ class ApiCategoryTree extends ApiBase {
 		if ( $condition === 'last-modified' ) {
 			$params = $this->extractRequestParams();
 			$title = CategoryTree::makeTitle( $params['category'] );
-			return wfGetDB( DB_REPLICA )->selectField( 'page', 'page_touched',
+			return $this->dbProvider->getReplicaDatabase()->selectField( 'page', 'page_touched',
 				[
 					'page_namespace' => NS_CATEGORY,
 					'page_title' => $title->getDBkey(),
@@ -125,7 +162,7 @@ class ApiCategoryTree extends ApiBase {
 			$this->wanCache->makeKey(
 				'categorytree-html-ajax',
 				md5( $title->getDBkey() ),
-				md5( $ct->getOptionsAsCacheKey( $depth ) ),
+				md5( $ct->optionManager->getOptionsAsCacheKey( $depth ) ),
 				$this->getLanguage()->getCode(),
 				$langConv->getExtraHashOptions(),
 				$ctConfig->get( 'RenderHashAppend' )

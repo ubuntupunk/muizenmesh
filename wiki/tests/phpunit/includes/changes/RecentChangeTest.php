@@ -10,6 +10,7 @@ use MediaWiki\Permissions\PermissionStatus;
 use MediaWiki\Tests\Unit\Permissions\MockAuthorityTrait;
 use MediaWiki\Title\Title;
 use MediaWiki\User\UserIdentityValue;
+use MediaWiki\Utils\MWTimestamp;
 
 /**
  * @group Database
@@ -33,9 +34,20 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 		$this->user = new UserIdentityValue( $user->getId(), $user->getName() );
 
 		$this->user_comment = '<User comment about action>';
+
+		$this->overrideConfigValues( [
+			MainConfigNames::CanonicalServer => 'https://example.org',
+			MainConfigNames::ServerName => 'example.org',
+			MainConfigNames::ScriptPath => '/w',
+			MainConfigNames::Script => '/w/index.php',
+			MainConfigNames::UseRCPatrol => false,
+			MainConfigNames::UseNPPatrol => false,
+			MainConfigNames::RCFeeds => [],
+			MainConfigNames::RCEngines => [],
+		] );
 	}
 
-	public function provideAttribs() {
+	public static function provideAttribs() {
 		$attribs = [
 			'rc_timestamp' => wfTimestamp( TS_MW ),
 			'rc_namespace' => NS_USER,
@@ -88,6 +100,8 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 				'rc_title' => 'Log',
 				'rc_type' => RC_LOG,
 				'rc_source' => RecentChange::SRC_LOG,
+				'rc_log_type' => 'delete',
+				'rc_log_action' => 'delete',
 			] + $attribs
 		];
 
@@ -97,19 +111,20 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 				'rc_title' => '',
 				'rc_type' => RC_LOG,
 				'rc_source' => RecentChange::SRC_LOG,
+				'rc_log_type' => 'delete',
+				'rc_log_action' => 'delete',
 			] + $attribs
 		];
 	}
 
 	/**
-	 * @covers RecentChange::save
-	 * @covers RecentChange::newFromId
-	 * @covers RecentChange::getTitle
-	 * @covers RecentChange::getPerformerIdentity
+	 * @covers \RecentChange::save
+	 * @covers \RecentChange::newFromId
+	 * @covers \RecentChange::getTitle
+	 * @covers \RecentChange::getPerformerIdentity
 	 * @dataProvider provideAttribs
 	 */
 	public function testDatabaseRoundTrip( $attribs ) {
-		$this->hideDeprecated( 'RecentChange::getPerformer' );
 		$rc = new RecentChange;
 		$rc->mAttribs = $attribs;
 		$rc->mExtra = [
@@ -125,7 +140,6 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 
 		$user = new UserIdentityValue( $attribs['rc_user'] ?? 0, $attribs['rc_user_text'] );
 		$this->assertTrue( $user->equals( $rc->getPerformerIdentity() ) );
-		$this->assertTrue( $user->equals( $rc->getPerformer() ) );
 
 		if ( empty( $attribs['rc_title'] ) ) {
 			$this->assertNull( $rc->getPage() );
@@ -137,14 +151,12 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
-	 * @covers RecentChange::newFromRow
-	 * @covers RecentChange::loadFromRow
-	 * @covers RecentChange::getAttributes
-	 * @covers RecentChange::getPerformerIdentity
-	 * @covers RecentChange::getPerformer
+	 * @covers \RecentChange::newFromRow
+	 * @covers \RecentChange::loadFromRow
+	 * @covers \RecentChange::getAttributes
+	 * @covers \RecentChange::getPerformerIdentity
 	 */
 	public function testNewFromRow() {
-		$this->hideDeprecated( 'RecentChange::getPerformer' );
 		$user = $this->getTestUser()->getUser();
 
 		$row = (object)[
@@ -170,7 +182,6 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 		];
 		$this->assertEquals( $expected, $rc->getAttributes() );
 		$this->assertTrue( $user->equals( $rc->getPerformerIdentity() ) );
-		$this->assertTrue( $user->equals( $rc->getPerformer() ) );
 
 		$row = (object)[
 			'rc_foo' => 'AAA',
@@ -194,18 +205,15 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 		$this->assertEquals( $expected, $rc->getAttributes() );
 		$this->assertEquals( $expected, $rc->getAttributes() );
 		$this->assertTrue( $user->equals( $rc->getPerformerIdentity() ) );
-		$this->assertTrue( $user->equals( $rc->getPerformer() ) );
 	}
 
 	/**
-	 * @covers RecentChange::notifyNew
-	 * @covers RecentChange::newFromId
-	 * @covers RecentChange::getAttributes
-	 * @covers RecentChange::getPerformerIdentity
-	 * @covers RecentChange::getPerformer
+	 * @covers \RecentChange::notifyNew
+	 * @covers \RecentChange::newFromId
+	 * @covers \RecentChange::getAttributes
+	 * @covers \RecentChange::getPerformerIdentity
 	 */
 	public function testNotifyNew() {
-		$this->hideDeprecated( 'RecentChange::getPerformer' );
 		$now = MWTimestamp::now();
 		$rc = RecentChange::notifyNew(
 			$now,
@@ -228,7 +236,6 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 
 		$this->assertEquals( $expected, $actual );
 		$this->assertTrue( $this->user->equals( $rc->getPerformerIdentity() ) );
-		$this->assertTrue( $this->user->equals( $rc->getPerformer() ) );
 
 		$rc = RecentChange::newFromId( $rc->getAttribute( 'rc_id' ) );
 
@@ -236,18 +243,15 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 
 		$this->assertEquals( $expected, $actual );
 		$this->assertTrue( $this->user->equals( $rc->getPerformerIdentity() ) );
-		$this->assertTrue( $this->user->equals( $rc->getPerformer() ) );
 	}
 
 	/**
-	 * @covers RecentChange::notifyNew
-	 * @covers RecentChange::newFromId
-	 * @covers RecentChange::getAttributes
-	 * @covers RecentChange::getPerformerIdentity
-	 * @covers RecentChange::getPerformer
+	 * @covers \RecentChange::notifyNew
+	 * @covers \RecentChange::newFromId
+	 * @covers \RecentChange::getAttributes
+	 * @covers \RecentChange::getPerformerIdentity
 	 */
 	public function testNotifyEdit() {
-		$this->hideDeprecated( 'RecentChange::getPerformer' );
 		$now = MWTimestamp::now();
 		$rc = RecentChange::notifyEdit(
 			$now,
@@ -272,7 +276,6 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 
 		$this->assertEquals( $expected, $actual );
 		$this->assertTrue( $this->user->equals( $rc->getPerformerIdentity() ) );
-		$this->assertTrue( $this->user->equals( $rc->getPerformer() ) );
 
 		$rc = RecentChange::newFromId( $rc->getAttribute( 'rc_id' ) );
 
@@ -280,18 +283,15 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 
 		$this->assertEquals( $expected, $actual );
 		$this->assertTrue( $this->user->equals( $rc->getPerformerIdentity() ) );
-		$this->assertTrue( $this->user->equals( $rc->getPerformer() ) );
 	}
 
 	/**
-	 * @covers RecentChange::notifyNew
-	 * @covers RecentChange::newFromId
-	 * @covers RecentChange::getAttributes
-	 * @covers RecentChange::getPerformerIdentity
-	 * @covers RecentChange::getPerformer
+	 * @covers \RecentChange::notifyNew
+	 * @covers \RecentChange::newFromId
+	 * @covers \RecentChange::getAttributes
+	 * @covers \RecentChange::getPerformerIdentity
 	 */
 	public function testNewLogEntry() {
-		$this->hideDeprecated( 'RecentChange::getPerformer' );
 		$now = MWTimestamp::now();
 		$logPage = new PageReferenceValue( NS_SPECIAL, 'Log/test', PageReference::LOCAL );
 
@@ -331,12 +331,11 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 
 		$this->assertEquals( $expected, $actual );
 		$this->assertTrue( $this->user->equals( $rc->getPerformerIdentity() ) );
-		$this->assertTrue( $this->user->equals( $rc->getPerformer() ) );
 		$this->assertTrue( $this->title->isSamePageAs( $rc->getPage() ) );
 		$this->assertTrue( $this->title->isSamePageAs( $rc->getTitle() ) );
 	}
 
-	public function provideParseParams() {
+	public static function provideParseParams() {
 		// $expected, $raw
 		yield 'extracting an array' => [
 			[
@@ -354,7 +353,7 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
-	 * @covers RecentChange::parseParams
+	 * @covers \RecentChange::parseParams
 	 * @dataProvider provideParseParams
 	 * @param array $expectedParseParams
 	 * @param string|null $rawRcParams
@@ -369,9 +368,87 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
+	 * @covers \RecentChange::getNotifyUrl
+	 */
+	public function testGetNotifyUrlForEdit() {
+		$rc = new RecentChange;
+		$rc->mAttribs = [
+			'rc_id' => 60,
+			'rc_timestamp' => '20110401090000',
+			'rc_namespace' => NS_MAIN,
+			'rc_title' => 'Example',
+			'rc_type' => RC_EDIT,
+			'rc_cur_id' => 42,
+			'rc_this_oldid' => 50,
+			'rc_last_oldid' => 30,
+			'rc_patrolled' => 0,
+		];
+		$this->assertSame(
+			'https://example.org/w/index.php?diff=50&oldid=30',
+			$rc->getNotifyUrl(), 'Notify url'
+		);
+
+		$this->overrideConfigValue( MainConfigNames::UseRCPatrol, true );
+		$this->assertSame(
+			'https://example.org/w/index.php?diff=50&oldid=30&rcid=60',
+			$rc->getNotifyUrl(), 'Notify url (RC Patrol)'
+		);
+	}
+
+	/**
+	 * @covers \RecentChange::getNotifyUrl
+	 */
+	public function testGetNotifyUrlForCreate() {
+		$rc = new RecentChange;
+		$rc->mAttribs = [
+			'rc_id' => 60,
+			'rc_timestamp' => '20110401090000',
+			'rc_namespace' => NS_MAIN,
+			'rc_title' => 'Example',
+			'rc_type' => RC_NEW,
+			'rc_cur_id' => 42,
+			'rc_this_oldid' => 50,
+			'rc_last_oldid' => 0,
+			'rc_patrolled' => 0,
+		];
+		$this->assertSame(
+			'https://example.org/w/index.php?oldid=50',
+			$rc->getNotifyUrl(), 'Notify url'
+		);
+
+		$this->overrideConfigValue( MainConfigNames::UseNPPatrol, true );
+		$this->assertSame(
+			'https://example.org/w/index.php?oldid=50&rcid=60',
+			$rc->getNotifyUrl(), 'Notify url (NP Patrol)'
+		);
+	}
+
+	/**
+	 * @covers \RecentChange::getNotifyUrl
+	 */
+	public function testGetNotifyUrlForLog() {
+		$rc = new RecentChange;
+		$rc->mAttribs = [
+			'rc_id' => 60,
+			'rc_timestamp' => '20110401090000',
+			'rc_namespace' => NS_MAIN,
+			'rc_title' => 'Example',
+			'rc_type' => RC_LOG,
+			'rc_cur_id' => 42,
+			'rc_this_oldid' => 50,
+			'rc_last_oldid' => 0,
+			'rc_patrolled' => 2,
+			'rc_logid' => 160,
+			'rc_log_type' => 'delete',
+			'rc_log_action' => 'delete',
+		];
+		$this->assertSame( null, $rc->getNotifyUrl(), 'Notify url' );
+	}
+
+	/**
 	 * @return array
 	 */
-	public function provideIsInRCLifespan() {
+	public static function provideIsInRCLifespan() {
 		return [
 			[ 6000, -3000, 0, true ],
 			[ 3000, -6000, 0, false ],
@@ -381,7 +458,7 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
-	 * @covers RecentChange::isInRCLifespan
+	 * @covers \RecentChange::isInRCLifespan
 	 * @dataProvider provideIsInRCLifespan
 	 */
 	public function testIsInRCLifespan( $maxAge, $offset, $tolerance, $expected ) {
@@ -393,7 +470,7 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 		$this->assertEquals( $expected, RecentChange::isInRCLifespan( $timestamp, $tolerance ) );
 	}
 
-	public function provideRCTypes() {
+	public static function provideRCTypes() {
 		return [
 			[ RC_EDIT, 'edit' ],
 			[ RC_NEW, 'new' ],
@@ -405,7 +482,7 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 
 	/**
 	 * @dataProvider provideRCTypes
-	 * @covers RecentChange::parseFromRCType
+	 * @covers \RecentChange::parseFromRCType
 	 */
 	public function testParseFromRCType( $rcType, $type ) {
 		$this->assertEquals( $type, RecentChange::parseFromRCType( $rcType ) );
@@ -413,13 +490,13 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 
 	/**
 	 * @dataProvider provideRCTypes
-	 * @covers RecentChange::parseToRCType
+	 * @covers \RecentChange::parseToRCType
 	 */
 	public function testParseToRCType( $rcType, $type ) {
 		$this->assertEquals( $rcType, RecentChange::parseToRCType( $type ) );
 	}
 
-	public function provideCategoryContent() {
+	public static function provideCategoryContent() {
 		return [
 			[ true ],
 			[ false ],
@@ -428,7 +505,7 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 
 	/**
 	 * @dataProvider provideCategoryContent
-	 * @covers RecentChange::newForCategorization
+	 * @covers \RecentChange::newForCategorization
 	 */
 	public function testHiddenCategoryChange( $isHidden ) {
 		$categoryTitle = Title::makeTitle( NS_CATEGORY, 'CategoryPage' );
@@ -470,7 +547,7 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
-	 * @covers RecentChange::doMarkPatrolled
+	 * @covers \RecentChange::doMarkPatrolled
 	 */
 	public function testDoMarkPatrolledPermissions() {
 		$rc = $this->getDummyEditRecentChange();
@@ -493,7 +570,7 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
-	 * @covers RecentChange::doMarkPatrolled
+	 * @covers \RecentChange::doMarkPatrolled
 	 */
 	public function testDoMarkPatrolledPermissions_Hook() {
 		$rc = $this->getDummyEditRecentChange();
@@ -505,7 +582,7 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
-	 * @covers RecentChange::doMarkPatrolled
+	 * @covers \RecentChange::doMarkPatrolled
 	 */
 	public function testDoMarkPatrolledPermissions_Self() {
 		$rc = $this->getDummyEditRecentChange();
@@ -516,19 +593,19 @@ class RecentChangeTest extends MediaWikiIntegrationTestCase {
 	}
 
 	/**
-	 * @covers RecentChange::doMarkPatrolled
+	 * @covers \RecentChange::doMarkPatrolled
 	 */
 	public function testDoMarkPatrolledPermissions_NoRcPatrol() {
-		$this->overrideConfigValue( MainConfigNames::UseRCPatrol, false );
 		$rc = $this->getDummyEditRecentChange();
 		$errors = $rc->doMarkPatrolled( $this->mockRegisteredUltimateAuthority() );
 		$this->assertContains( [ 'rcpatroldisabled' ], $errors );
 	}
 
 	/**
-	 * @covers RecentChange::doMarkPatrolled
+	 * @covers \RecentChange::doMarkPatrolled
 	 */
 	public function testDoMarkPatrolled() {
+		$this->overrideConfigValue( MainConfigNames::UseRCPatrol, true );
 		$rc = $this->getDummyEditRecentChange();
 		$errors = $rc->doMarkPatrolled(
 			$this->mockUserAuthorityWithPermissions( $this->user, [ 'patrol', 'autopatrol' ] )

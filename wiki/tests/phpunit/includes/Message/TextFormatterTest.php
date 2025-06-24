@@ -3,11 +3,11 @@
 namespace MediaWiki\Tests\Message;
 
 use MediaWiki\Message\Converter;
+use MediaWiki\Message\Message;
 use MediaWiki\Message\TextFormatter;
 use MediaWiki\Message\UserGroupMembershipParam;
 use MediaWiki\User\UserIdentityValue;
 use MediaWikiIntegrationTestCase;
-use Message;
 use Wikimedia\Message\MessageValue;
 use Wikimedia\Message\ParamType;
 use Wikimedia\Message\ScalarParam;
@@ -79,7 +79,7 @@ class TextFormatterTest extends MediaWikiIntegrationTestCase {
 		$this->assertSame( 'test a, 100 bps $2', $result );
 	}
 
-	public function provideTestFormatMessage() {
+	public static function provideTestFormatMessage() {
 		yield [ ( new MessageValue( 'test' ) )
 			->params( new MessageValue( 'test2', [ 'a', 'b' ] ) )
 			->commaListParams( [

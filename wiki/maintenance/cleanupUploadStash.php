@@ -26,7 +26,7 @@
  */
 
 use MediaWiki\MainConfigNames;
-use MediaWiki\MediaWikiServices;
+use MediaWiki\Status\Status;
 
 require_once __DIR__ . '/Maintenance.php';
 
@@ -45,7 +45,7 @@ class CleanupUploadStash extends Maintenance {
 	}
 
 	public function execute() {
-		$repo = MediaWikiServices::getInstance()->getRepoGroup()->getLocalRepo();
+		$repo = $this->getServiceContainer()->getRepoGroup()->getLocalRepo();
 		$tempRepo = $repo->getTempRepo();
 
 		$dbr = $repo->getReplicaDB();
@@ -57,7 +57,7 @@ class CleanupUploadStash extends Maintenance {
 		$res = $dbr->newSelectQueryBuilder()
 			->select( 'us_key' )
 			->from( 'uploadstash' )
-			->where( 'us_timestamp < ' . $dbr->addQuotes( $dbr->timestamp( $cutoff ) ) )
+			->where( $dbr->expr( 'us_timestamp', '<', $dbr->timestamp( $cutoff ) ) )
 			->caller( __METHOD__ )
 			->fetchResultSet();
 
@@ -68,7 +68,7 @@ class CleanupUploadStash extends Maintenance {
 			// finish the read before starting writes.
 			$keys = [];
 			foreach ( $res as $row ) {
-				array_push( $keys, $row->us_key );
+				$keys[] = $row->us_key;
 			}
 
 			$this->output( 'Removing ' . count( $keys ) . " file(s)...\n" );
@@ -129,7 +129,7 @@ class CleanupUploadStash extends Maintenance {
 		}
 		$this->output( "Deleting orphaned temp files...\n" );
 		if ( strpos( $dir, '/local-temp' ) === false ) {
-			$this->fatalError( "Temp repo is not using the temp container." );
+			$this->output( "Temp repo might be misconfigured. It points to directory: '$dir' \n" );
 		}
 
 		$i = 0;

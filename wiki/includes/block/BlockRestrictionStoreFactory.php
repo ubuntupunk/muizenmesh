@@ -35,11 +35,19 @@ class BlockRestrictionStoreFactory {
 	/** @var BlockRestrictionStore[] */
 	private $storeCache = [];
 
+	/** @var int */
+	private $blockTargetMigrationStage;
+
 	/**
 	 * @param LBFactory $loadBalancerFactory
+	 * @param int $blockTargetMigrationStage
 	 */
-	public function __construct( LBFactory $loadBalancerFactory ) {
+	public function __construct(
+		LBFactory $loadBalancerFactory,
+		$blockTargetMigrationStage
+	) {
 		$this->loadBalancerFactory = $loadBalancerFactory;
+		$this->blockTargetMigrationStage = $blockTargetMigrationStage;
 	}
 
 	/**
@@ -54,7 +62,8 @@ class BlockRestrictionStoreFactory {
 		$storeCacheKey = $wikiId === WikiAwareEntity::LOCAL ? 'LOCAL' : 'crosswikistore-' . $wikiId;
 		if ( !isset( $this->storeCache[$storeCacheKey] ) ) {
 			$this->storeCache[$storeCacheKey] = new BlockRestrictionStore(
-				$this->loadBalancerFactory->getMainLB( $wikiId ),
+				$this->loadBalancerFactory,
+				$this->blockTargetMigrationStage,
 				$wikiId
 			);
 		}

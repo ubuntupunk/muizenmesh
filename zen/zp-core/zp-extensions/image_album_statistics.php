@@ -8,8 +8,7 @@
  * <b>CAUTION:</b> The way to get a specific album has changed. You now have to pass the foldername of an album instead the album title.
  *
  * @author Malte Müller (acrylian), Stephen Billard (sbillard), gjr
- * @package plugins
- * @subpackage image-album-statistiscs
+ * @package zpcore\plugins\imagealbumstatistiscs
  */
 $plugin_description = gettext("Functions that provide various statistics about images and albums in the gallery.");
 $plugin_author = "Malte Müller (acrylian), Stephen Billard (sbillard), gjr";
@@ -279,7 +278,7 @@ function printAlbumStatisticItem($album, $option, $showtitle = false, $showdate 
 	if ($showdate) {
 		if ($option === "latestupdated") {
 			$filechangedate = strtotime($tempalbum->getUpdatedDate());
-			echo "<p>" . sprintf(gettext("Last update: %s"), zpFormattedDate(DATE_FORMAT, $filechangedate)) . "</p>";
+			echo "<p>" . sprintf(gettext("Last update: %s"), zpFormattedDate(DATETIME_DISPLAYFORMAT, $filechangedate)) . "</p>";
 			$latestimage = $_zp_db->querySingleRow("SELECT mtime FROM " . $_zp_db->prefix('images') . " WHERE albumid = " . $tempalbum->getID() . " AND `show` = 1 ORDER BY id DESC");
 			if ($latestimage) {
 				$count = $_zp_db->count('images', "WHERE albumid = " . $tempalbum->getID() . " AND mtime = " . $latestimage['mtime']);
@@ -291,7 +290,7 @@ function printAlbumStatisticItem($album, $option, $showtitle = false, $showdate 
 				echo "<span>" . sprintf(gettext('%1$u new %2$s'), $count, $image) . "</span>";
 			}
 		} else {
-			echo "<p>" . zpFormattedDate(DATE_FORMAT, strtotime($tempalbum->getDateTime())) . "</p>";
+			echo "<p>" . zpFormattedDate(DATETIME_DISPLAYFORMAT, strtotime($tempalbum->getDateTime())) . "</p>";
 		}
 	}
 	if ($showstatistic === "rating" OR $showstatistic === "rating+hitcounter") {
@@ -527,7 +526,7 @@ function printImageStatistic($number, $option, $albumfolder = '', $showtitle = f
 			echo $image->getTitle() . "</a></h3>\n";
 		}
 		if ($showdate) {
-			echo "<p>" . zpFormattedDate(DATE_FORMAT, strtotime($image->getDateTime())) . "</p>";
+			echo "<p>" . zpFormattedDate(DATETIME_DISPLAYFORMAT, strtotime($image->getDateTime())) . "</p>";
 		}
 		if ($showstatistic === "rating" OR $showstatistic === "rating+hitcounter") {
 			$votes = $image->get("total_votes");
@@ -603,7 +602,7 @@ function getNumAllSubalbums($albumobj, $pre = '') {
  * Returns an randomly selected image objecet from the gallery per day.
  * Returns null on failure
  * 
- * @since Zenphoto 1.5.8
+ * @since 1.5.8
  * 
  * @param string $albumfolder foldername of an specific album. If not set from all images in the gallery
  * @param bool $collection only if $albumfolder is set: true if you want to get statistics from this album and all of its subalbums

@@ -3,17 +3,22 @@
 use Liuggio\StatsdClient\Factory\StatsdDataFactoryInterface;
 use MediaWiki\Cache\LinkBatchFactory;
 use MediaWiki\Config\ServiceOptions;
+use MediaWiki\Deferred\DeferredUpdates;
 use MediaWiki\Linker\LinkTarget;
 use MediaWiki\MainConfigNames;
 use MediaWiki\Page\PageIdentity;
 use MediaWiki\Revision\RevisionLookup;
+use MediaWiki\Title\NamespaceInfo;
+use MediaWiki\Title\TitleValue;
 use MediaWiki\User\UserIdentity;
+use MediaWiki\Utils\MWTimestamp;
 use Wikimedia\Assert\Assert;
 use Wikimedia\ParamValidator\TypeDef\ExpiryDef;
 use Wikimedia\Rdbms\IDatabase;
 use Wikimedia\Rdbms\ILBFactory;
+use Wikimedia\Rdbms\IReadableDatabase;
 use Wikimedia\Rdbms\IResultWrapper;
-use Wikimedia\Rdbms\LoadBalancer;
+use Wikimedia\Rdbms\ReadOnlyMode;
 use Wikimedia\Rdbms\SelectQueryBuilder;
 use Wikimedia\ScopedCallback;
 
@@ -41,11 +46,6 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 	 * @var ILBFactory
 	 */
 	private $lbFactory;
-
-	/**
-	 * @var LoadBalancer
-	 */
-	private $loadBalancer;
 
 	/**
 	 * @var JobQueueGroup
@@ -153,7 +153,6 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 		$this->watchlistPurgeRate = $options->get( MainConfigNames::WatchlistPurgeRate );
 
 		$this->lbFactory = $lbFactory;
-		$this->loadBalancer = $lbFactory->getMainLB();
 		$this->queueGroup = $queueGroup;
 		$this->stash = $stash;
 		$this->cache = $cache;
@@ -184,11 +183,10 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 	 * @see DeferredUpdates::addCallableUpdate for callback signiture
 	 *
 	 * @return ScopedCallback to reset the overridden value
-	 * @throws MWException
 	 */
 	public function overrideDeferredUpdatesAddCallableUpdateCallback( callable $callback ) {
 		if ( !defined( 'MW_PHPUNIT_TEST' ) ) {
-			throw new MWException(
+			throw new LogicException(
 				'Cannot override DeferredUpdates::addCallableUpdate callback in operation.'
 			);
 		}
@@ -278,24 +276,15 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 	}
 
 	/**
-	 * @param int $dbIndex DB_PRIMARY or DB_REPLICA
-	 *
-	 * @return IDatabase
-	 */
-	private function getConnectionRef( $dbIndex ): IDatabase {
-		return $this->loadBalancer->getConnectionRef( $dbIndex );
-	}
-
-	/**
 	 * Helper method to deduplicate logic around queries that need to be modified
 	 * if watchlist expiration is enabled
 	 *
 	 * @param SelectQueryBuilder $queryBuilder
-	 * @param IDatabase $db
+	 * @param IReadableDatabase $db
 	 */
 	private function modifyQueryBuilderForExpiry(
 		SelectQueryBuilder $queryBuilder,
-		IDatabase $db
+		IReadableDatabase $db
 	) {
 		if ( $this->expiryEnabled ) {
 			$queryBuilder->where( 'we_expiry IS NULL OR we_expiry > ' . $db->addQuotes( $db->timestamp() ) );
@@ -318,7 +307,7 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 			return false;
 		}
 
-		$dbw = $this->loadBalancer->getConnectionRef( DB_PRIMARY );
+		$dbw = $this->lbFactory->getPrimaryDatabase();
 
 		if ( $this->expiryEnabled ) {
 			$ticket = $this->lbFactory->getEmptyTransactionTicket( __METHOD__ );
@@ -331,25 +320,22 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 				->fetchFieldValues();
 			if ( $wlIds ) {
 				// Delete rows from both the watchlist and watchlist_expiry tables.
-				$dbw->delete(
-					'watchlist',
-					[ 'wl_id' => $wlIds ],
-					__METHOD__
-				);
+				$dbw->newDeleteQueryBuilder()
+					->deleteFrom( 'watchlist' )
+					->where( [ 'wl_id' => $wlIds ] )
+					->caller( __METHOD__ )->execute();
 
-				$dbw->delete(
-					'watchlist_expiry',
-					[ 'we_item' => $wlIds ],
-					__METHOD__
-				);
+				$dbw->newDeleteQueryBuilder()
+					->deleteFrom( 'watchlist_expiry' )
+					->where( [ 'we_item' => $wlIds ] )
+					->caller( __METHOD__ )->execute();
 			}
 			$this->lbFactory->commitAndWaitForReplication( __METHOD__, $ticket );
 		} else {
-			$dbw->delete(
-				'watchlist',
-				[ 'wl_user' => $user->getId() ],
-				__METHOD__
-			);
+			$dbw->newDeleteQueryBuilder()
+				->deleteFrom( 'watchlist' )
+				->where( [ 'wl_user' => $user->getId() ] )
+				->caller( __METHOD__ )->execute();
 		}
 
 		$this->uncacheAllItemsForUser( $user );
@@ -425,7 +411,7 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 	 * @return int The maximum current wl_id
 	 */
 	public function getMaxId(): int {
-		return (int)$this->getConnectionRef( DB_REPLICA )->newSelectQueryBuilder()
+		return (int)$this->lbFactory->getReplicaDatabase()->newSelectQueryBuilder()
 			->select( 'MAX(wl_id)' )
 			->from( 'watchlist' )
 			->caller( __METHOD__ )
@@ -438,8 +424,8 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 	 * @return int
 	 */
 	public function countWatchedItems( UserIdentity $user ): int {
-		$dbr = $this->getConnectionRef( DB_REPLICA );
-		$queryBuilder = $this->getConnectionRef( DB_REPLICA )->newSelectQueryBuilder()
+		$dbr = $this->lbFactory->getReplicaDatabase();
+		$queryBuilder = $dbr->newSelectQueryBuilder()
 			->select( 'COUNT(*)' )
 			->from( 'watchlist' )
 			->where( [ 'wl_user' => $user->getId() ] )
@@ -456,7 +442,7 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 	 * @return int
 	 */
 	public function countWatchers( $target ): int {
-		$dbr = $this->getConnectionRef( DB_REPLICA );
+		$dbr = $this->lbFactory->getReplicaDatabase();
 		$queryBuilder = $dbr->newSelectQueryBuilder()
 			->select( 'COUNT(*)' )
 			->from( 'watchlist' )
@@ -478,7 +464,7 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 	 * @return int
 	 */
 	public function countVisitingWatchers( $target, $threshold ): int {
-		$dbr = $this->getConnectionRef( DB_REPLICA );
+		$dbr = $this->lbFactory->getReplicaDatabase();
 		$queryBuilder = $dbr->newSelectQueryBuilder()
 			->select( 'COUNT(*)' )
 			->from( 'watchlist' )
@@ -502,10 +488,7 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 	 * @return bool
 	 */
 	public function removeWatchBatchForUser( UserIdentity $user, array $titles ): bool {
-		if ( $this->readOnlyMode->isReadOnly() ) {
-			return false;
-		}
-		if ( !$user->isRegistered() ) {
+		if ( !$user->isRegistered() || $this->readOnlyMode->isReadOnly() ) {
 			return false;
 		}
 		if ( !$titles ) {
@@ -515,7 +498,7 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 		$rows = $this->getTitleDbKeysGroupedByNamespace( $titles );
 		$this->uncacheTitlesForUser( $user, $titles );
 
-		$dbw = $this->getConnectionRef( DB_PRIMARY );
+		$dbw = $this->lbFactory->getPrimaryDatabase();
 		$ticket = count( $titles ) > $this->updateRowsPerQuery ?
 			$this->lbFactory->getEmptyTransactionTicket( __METHOD__ ) : null;
 		$affectedRows = 0;
@@ -540,19 +523,17 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 
 				if ( $wlIds ) {
 					// Delete rows from both the watchlist and watchlist_expiry tables.
-					$dbw->delete(
-						'watchlist',
-						[ 'wl_id' => $wlIds ],
-						__METHOD__
-					);
+					$dbw->newDeleteQueryBuilder()
+						->deleteFrom( 'watchlist' )
+						->where( [ 'wl_id' => $wlIds ] )
+						->caller( __METHOD__ )->execute();
 					$affectedRows += $dbw->affectedRows();
 
 					if ( $this->expiryEnabled ) {
-						$dbw->delete(
-							'watchlist_expiry',
-							[ 'we_item' => $wlIds ],
-							__METHOD__
-						);
+						$dbw->newDeleteQueryBuilder()
+							->deleteFrom( 'watchlist_expiry' )
+							->where( [ 'we_item' => $wlIds ] )
+							->caller( __METHOD__ )->execute();
 						$affectedRows += $dbw->affectedRows();
 					}
 				}
@@ -581,7 +562,7 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 			return $target;
 		}, $targets );
 		$lb = $this->linkBatchFactory->newLinkBatch( $linkTargets );
-		$dbr = $this->getConnectionRef( DB_REPLICA );
+		$dbr = $this->lbFactory->getReplicaDatabase();
 		$queryBuilder = $dbr->newSelectQueryBuilder();
 		$queryBuilder
 			->select( [ 'wl_title', 'wl_namespace', 'watchers' => 'COUNT(*)' ] )
@@ -627,7 +608,7 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 			return [];
 		}
 
-		$dbr = $this->getConnectionRef( DB_REPLICA );
+		$dbr = $this->lbFactory->getReplicaDatabase();
 		$queryBuilder = $dbr->newSelectQueryBuilder()
 			->select( [ 'wl_namespace', 'wl_title', 'watchers' => 'COUNT(*)' ] )
 			->from( 'watchlist' )
@@ -657,13 +638,13 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 	/**
 	 * Generates condition for the query used in a batch count visiting watchers.
 	 *
-	 * @param IDatabase $db
+	 * @param IReadableDatabase $db
 	 * @param array $targetsWithVisitThresholds array of pairs (LinkTarget|PageIdentity,
 	 *              last visit threshold) - deprecated passing LinkTarget since 1.36
 	 * @return string
 	 */
 	private function getVisitingWatchersCondition(
-		IDatabase $db,
+		IReadableDatabase $db,
 		array $targetsWithVisitThresholds
 	): string {
 		$missingTargets = [];
@@ -742,7 +723,7 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 			return false;
 		}
 
-		$dbr = $this->getConnectionRef( DB_REPLICA );
+		$dbr = $this->lbFactory->getReplicaDatabase();
 
 		$rows = $this->fetchWatchedItems(
 			$dbr,
@@ -782,7 +763,11 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 		$options += [ 'forWrite' => false ];
 		$vars = [ 'wl_namespace', 'wl_title', 'wl_notificationtimestamp' ];
 		$orderBy = [];
-		$db = $this->getConnectionRef( $options['forWrite'] ? DB_PRIMARY : DB_REPLICA );
+		if ( $options['forWrite'] ) {
+			$db = $this->lbFactory->getPrimaryDatabase();
+		} else {
+			$db = $this->lbFactory->getReplicaDatabase();
+		}
 		if ( array_key_exists( 'sort', $options ) ) {
 			Assert::parameter(
 				( in_array( $options['sort'], [ self::SORT_ASC, self::SORT_DESC ] ) ),
@@ -849,7 +834,7 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 	 * If a $target is given, IDatabase::selectRow() is called, otherwise select().
 	 * If $wgWatchlistExpiry is enabled, expired items are not returned.
 	 *
-	 * @param IDatabase $db
+	 * @param IReadableDatabase $db
 	 * @param UserIdentity $user
 	 * @param array $vars we_expiry is added when $wgWatchlistExpiry is enabled.
 	 * @param array $orderBy array of columns
@@ -858,7 +843,7 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 	 * @return IResultWrapper|stdClass|false
 	 */
 	private function fetchWatchedItems(
-		IDatabase $db,
+		IReadableDatabase $db,
 		UserIdentity $user,
 		array $vars,
 		array $orderBy = [],
@@ -960,7 +945,7 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 			return $timestamps;
 		}
 
-		$dbr = $this->getConnectionRef( DB_REPLICA );
+		$dbr = $this->lbFactory->getReplicaDatabase();
 
 		$lb = $this->linkBatchFactory->newLinkBatch( $targetsToLoad );
 		$res = $dbr->newSelectQueryBuilder()
@@ -1033,11 +1018,8 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 		array $targets,
 		?string $expiry = null
 	): bool {
-		if ( $this->readOnlyMode->isReadOnly() ) {
-			return false;
-		}
 		// Only registered user can have a watchlist
-		if ( !$user->isRegistered() ) {
+		if ( !$user->isRegistered() || $this->readOnlyMode->isReadOnly() ) {
 			return false;
 		}
 
@@ -1056,7 +1038,7 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 			$this->uncache( $user, $target );
 		}
 
-		$dbw = $this->getConnectionRef( DB_PRIMARY );
+		$dbw = $this->lbFactory->getPrimaryDatabase();
 		$ticket = count( $targets ) > $this->updateRowsPerQuery ?
 			$this->lbFactory->getEmptyTransactionTicket( __METHOD__ ) : null;
 		$affectedRows = 0;
@@ -1064,7 +1046,11 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 		foreach ( $rowBatches as $toInsert ) {
 			// Use INSERT IGNORE to avoid overwriting the notification timestamp
 			// if there's already an entry for this page
-			$dbw->insert( 'watchlist', $toInsert, __METHOD__, [ 'IGNORE' ] );
+			$dbw->newInsertQueryBuilder()
+				->insertInto( 'watchlist' )
+				->ignore()
+				->rows( $toInsert )
+				->caller( __METHOD__ )->execute();
 			$affectedRows += $dbw->affectedRows();
 
 			if ( $this->expiryEnabled ) {
@@ -1147,23 +1133,28 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 			->where( $cond )
 			->caller( __METHOD__ )
 			->fetchFieldValues();
-		$expiry = $dbw->timestamp( $expiry );
 
-		$weRows = array_map( static function ( $wlId ) use ( $expiry ) {
-			return [
+		if ( !$wlIds ) {
+			return 0;
+		}
+
+		$expiry = $dbw->timestamp( $expiry );
+		$weRows = [];
+		foreach ( $wlIds as $wlId ) {
+			$weRows[] = [
 				'we_item' => $wlId,
 				'we_expiry' => $expiry
 			];
-		}, $wlIds );
+		}
 
 		// Insert into watchlist_expiry, updating the expiry for duplicate rows.
-		$dbw->upsert(
-			'watchlist_expiry',
-			$weRows,
-			'we_item',
-			[ 'we_expiry' => $expiry ],
-			__METHOD__
-		);
+		$dbw->newInsertQueryBuilder()
+			->insertInto( 'watchlist_expiry' )
+			->rows( $weRows )
+			->onDuplicateKeyUpdate()
+			->uniqueIndexFields( [ 'we_item' ] )
+			->set( [ 'we_expiry' => $expiry ] )
+			->caller( __METHOD__ )->execute();
 
 		return $dbw->affectedRows();
 	}
@@ -1213,7 +1204,7 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 
 		$rows = $this->getTitleDbKeysGroupedByNamespace( $targets );
 
-		$dbw = $this->getConnectionRef( DB_PRIMARY );
+		$dbw = $this->lbFactory->getPrimaryDatabase();
 		if ( $timestamp !== null ) {
 			$timestamp = $dbw->timestamp( $timestamp );
 		}
@@ -1237,12 +1228,12 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 					->fetchFieldValues();
 				if ( $wlIds ) {
 					$wlIds = array_map( 'intval', $wlIds );
-					$dbw->update(
-						'watchlist',
-						[ 'wl_notificationtimestamp' => $timestamp ],
-						[ 'wl_id' => $wlIds ],
-						__METHOD__
-					);
+					$dbw->newUpdateQueryBuilder()
+						->update( 'watchlist' )
+						->set( [ 'wl_notificationtimestamp' => $timestamp ] )
+						->where( [ 'wl_id' => $wlIds ] )
+						->caller( __METHOD__ )->execute();
+
 					$affectedSinceWait += $dbw->affectedRows();
 					// Wait for replication every time we've touched updateRowsPerQuery rows
 					if ( $affectedSinceWait >= $this->updateRowsPerQuery ) {
@@ -1326,7 +1317,7 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 		$target,
 		$timestamp
 	): array {
-		$dbw = $this->getConnectionRef( DB_PRIMARY );
+		$dbw = $this->lbFactory->getPrimaryDatabase();
 		$queryBuilder = $dbw->newSelectQueryBuilder()
 			->select( [ 'wl_id', 'wl_user' ] )
 			->from( 'watchlist' )
@@ -1357,21 +1348,19 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 			call_user_func(
 				$this->deferredUpdatesAddCallableUpdateCallback,
 				function () use ( $timestamp, $wlIds, $target, $fname ) {
-					$dbw = $this->getConnectionRef( DB_PRIMARY );
+					$dbw = $this->lbFactory->getPrimaryDatabase();
 					$ticket = $this->lbFactory->getEmptyTransactionTicket( $fname );
 
 					$wlIdsChunks = array_chunk( $wlIds, $this->updateRowsPerQuery );
 					foreach ( $wlIdsChunks as $wlIdsChunk ) {
-						$dbw->update(
-							'watchlist',
-							[ 'wl_notificationtimestamp' => $dbw->timestamp( $timestamp ) ],
-							[ 'wl_id' => $wlIdsChunk ],
-							$fname
-						);
+						$dbw->newUpdateQueryBuilder()
+							->update( 'watchlist' )
+							->set( [ 'wl_notificationtimestamp' => $dbw->timestamp( $timestamp ) ] )
+							->where( [ 'wl_id' => $wlIdsChunk ] )
+							->caller( $fname )->execute();
+
 						if ( count( $wlIdsChunks ) > 1 ) {
-							$this->lbFactory->commitAndWaitForReplication(
-								$fname, $ticket, [ 'domain' => $dbw->getDomainID() ]
-							);
+							$this->lbFactory->commitAndWaitForReplication( $fname, $ticket );
 						}
 					}
 					$this->uncacheLinkTarget( $target );
@@ -1401,7 +1390,7 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 		$time = time();
 
 		// Only registered user can have a watchlist
-		if ( $this->readOnlyMode->isReadOnly() || !$user->isRegistered() ) {
+		if ( !$user->isRegistered() || $this->readOnlyMode->isReadOnly() ) {
 			return false;
 		}
 
@@ -1595,7 +1584,7 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 	 * @return int|bool
 	 */
 	public function countUnreadNotifications( UserIdentity $user, $unreadLimit = null ) {
-		$queryBuilder = $this->getConnectionRef( DB_REPLICA )->newSelectQueryBuilder()
+		$queryBuilder = $this->lbFactory->getReplicaDatabase()->newSelectQueryBuilder()
 			->select( '1' )
 			->from( 'watchlist' )
 			->where( [
@@ -1645,7 +1634,7 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 	 * @param LinkTarget|PageIdentity $newTarget deprecated passing LinkTarget since 1.36
 	 */
 	public function duplicateEntry( $oldTarget, $newTarget ) {
-		$dbw = $this->getConnectionRef( DB_PRIMARY );
+		$dbw = $this->lbFactory->getPrimaryDatabase();
 		$result = $this->fetchWatchedItemsForPage( $dbw, $oldTarget );
 		$newNamespace = $newTarget->getNamespace();
 		$newDBkey = $newTarget->getDBkey();
@@ -1666,19 +1655,18 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 			}
 		}
 
-		if ( empty( $values ) ) {
+		if ( !$values ) {
 			return;
 		}
 
 		// Perform a replace on the watchlist table rows.
 		// Note that multi-row replace is very efficient for MySQL but may be inefficient for
 		// some other DBMSes, mostly due to poor simulation by us.
-		$dbw->replace(
-			'watchlist',
-			[ [ 'wl_user', 'wl_namespace', 'wl_title' ] ],
-			$values,
-			__METHOD__
-		);
+		$dbw->newReplaceQueryBuilder()
+			->replaceInto( 'watchlist' )
+			->uniqueIndexFields( [ 'wl_user', 'wl_namespace', 'wl_title' ] )
+			->rows( $values )
+			->caller( __METHOD__ )->execute();
 
 		if ( $this->expiryEnabled ) {
 			$this->updateExpiriesAfterMove( $dbw, $expiries, $newNamespace, $newDBkey );
@@ -1686,15 +1674,15 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 	}
 
 	/**
-	 * @param IDatabase $dbw
+	 * @param IReadableDatabase $dbr
 	 * @param LinkTarget|PageIdentity $target
 	 * @return IResultWrapper
 	 */
 	private function fetchWatchedItemsForPage(
-		IDatabase $dbw,
+		IReadableDatabase $dbr,
 		$target
 	): IResultWrapper {
-		$queryBuilder = $dbw->newSelectQueryBuilder()
+		$queryBuilder = $dbr->newSelectQueryBuilder()
 			->select( [ 'wl_user', 'wl_notificationtimestamp' ] )
 			->from( 'watchlist' )
 			->where( [
@@ -1752,12 +1740,11 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 				// Batch the insertions.
 				$batches = array_chunk( $expiryData, $this->updateRowsPerQuery );
 				foreach ( $batches as $toInsert ) {
-					$dbw->replace(
-						'watchlist_expiry',
-						'we_item',
-						$toInsert,
-						$method
-					);
+					$dbw->newReplaceQueryBuilder()
+						->replaceInto( 'watchlist_expiry' )
+						->uniqueIndexFields( [ 'we_item' ] )
+						->rows( $toInsert )
+						->caller( $method )->execute();
 				}
 			},
 			DeferredUpdates::POSTSEND,
@@ -1792,7 +1779,7 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 	 * @inheritDoc
 	 */
 	public function countExpired(): int {
-		$dbr = $this->getConnectionRef( DB_REPLICA );
+		$dbr = $this->lbFactory->getReplicaDatabase();
 		return $dbr->newSelectQueryBuilder()
 			->select( '*' )
 			->from( 'watchlist_expiry' )
@@ -1805,8 +1792,8 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 	 * @inheritDoc
 	 */
 	public function removeExpired( int $limit, bool $deleteOrphans = false ): void {
-		$dbr = $this->getConnectionRef( DB_REPLICA );
-		$dbw = $this->getConnectionRef( DB_PRIMARY );
+		$dbr = $this->lbFactory->getReplicaDatabase();
+		$dbw = $this->lbFactory->getPrimaryDatabase();
 		$ticket = $this->lbFactory->getEmptyTransactionTicket( __METHOD__ );
 
 		// Get a batch of watchlist IDs to delete.
@@ -1820,16 +1807,14 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 
 		if ( count( $toDelete ) > 0 ) {
 			// Delete them from the watchlist and watchlist_expiry table.
-			$dbw->delete(
-				'watchlist',
-				[ 'wl_id' => $toDelete ],
-				__METHOD__
-			);
-			$dbw->delete(
-				'watchlist_expiry',
-				[ 'we_item' => $toDelete ],
-				__METHOD__
-			);
+			$dbw->newDeleteQueryBuilder()
+				->deleteFrom( 'watchlist' )
+				->where( [ 'wl_id' => $toDelete ] )
+				->caller( __METHOD__ )->execute();
+			$dbw->newDeleteQueryBuilder()
+				->deleteFrom( 'watchlist_expiry' )
+				->where( [ 'we_item' => $toDelete ] )
+				->caller( __METHOD__ )->execute();
 		}
 
 		// Also delete any orphaned or null-expiry watchlist_expiry rows
@@ -1846,11 +1831,10 @@ class WatchedItemStore implements WatchedItemStoreInterface, StatsdAwareInterfac
 				->caller( __METHOD__ )
 				->fetchFieldValues();
 			if ( count( $expiryToDelete ) > 0 ) {
-				$dbw->delete(
-					'watchlist_expiry',
-					[ 'we_item' => $expiryToDelete ],
-					__METHOD__
-				);
+				$dbw->newDeleteQueryBuilder()
+					->deleteFrom( 'watchlist_expiry' )
+					->where( [ 'we_item' => $expiryToDelete ] )
+					->caller( __METHOD__ )->execute();
 			}
 		}
 

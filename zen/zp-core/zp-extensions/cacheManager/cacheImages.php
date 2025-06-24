@@ -3,8 +3,7 @@
  * This template is used to generate cache images. Running it will process the entire gallery,
  * supplying an album name (ex: loadAlbums.php?album=newalbum) will only process the album named.
  * Passing clear=on will purge the designated cache before generating cache images
- * @package plugins
- * @subpackage cachemanager
+ * @package zpcore\plugins\cachemanager
  */
 // force UTF-8 Ø
 define('OFFSET_PATH', 3);
@@ -79,7 +78,7 @@ printAdminHeader('overview', 'images'); ?>
 	$clear = sprintf(gettext('Refreshing cache for %s'), $object);
 
 	if ($alb) {
-		$returnpage = '/admin-edit.php?page = edit&album = ' . $alb;
+		$returnpage = '/admin-edit.php?page=edit&album=' . $alb;
 		echo "\n<h2>" . $clear . "</h2>";
 	} else {
 		$returnpage = '/admin.php';

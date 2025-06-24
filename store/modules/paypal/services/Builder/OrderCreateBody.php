@@ -1,6 +1,6 @@
 <?php
-/**
- * 2007-2023 PayPal
+/*
+ * Since 2007 PayPal
  *
  * NOTICE OF LICENSE
  *
@@ -18,10 +18,11 @@
  *  versions in the future. If you wish to customize PrestaShop for your
  *  needs please refer to http://www.prestashop.com for more information.
  *
- *  @author 2007-2023 PayPal
+ *  @author Since 2007 PayPal
  *  @author 202 ecommerce <tech@202-ecommerce.com>
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
+ *
  */
 
 namespace PaypalAddons\services\Builder;
@@ -30,6 +31,7 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+use Address;
 use Configuration;
 use Context;
 use Customer;
@@ -485,7 +487,7 @@ class OrderCreateBody implements BuilderInterface
     {
         $discountTotal = $this->context->cart->getOrderTotal($this->isUseTax(), \Cart::ONLY_DISCOUNTS);
 
-        if (version_compare(_PS_VERSION_, '1.7.5', '>=') && version_compare(_PS_VERSION_, '1.7.6', '<')) {
+        if ($this->module->isConsiderGiftProductAsDiscount()) {
             $summaryDetails = $this->context->cart->getSummaryDetails();
             $gifts = isset($summaryDetails['gift_products']) ? $summaryDetails['gift_products'] : [];
 
@@ -513,33 +515,48 @@ class OrderCreateBody implements BuilderInterface
 
     protected function getPaymentSource()
     {
-        if (false === PaypalContext::getContext()->get('savePaypalAccount', false)) {
-            return [];
-        }
+        if (PaypalContext::getContext()->get('scaVerification', false)) {
+            $method = PaypalContext::getContext()->get('scaVerification');
 
-        if (false === $this->vaultingFunctionality->isAvailable()) {
-            return [];
-        }
-
-        if (false === $this->vaultingFunctionality->isEnabled()) {
-            return [];
-        }
-
-        if (false === $this->vaultingFunctionality->isCapabilityAvailable(false)) {
-            return [];
-        }
-
-        return [
-            'paypal' => [
-                'attributes' => [
-                    'vault' => [
-                        'permit_multiple_payment_tokens' => false,
-                        'store_in_vault' => Vaulting::STORE_IN_VAULT_ON_SUCCESS,
-                        'usage_type' => Vaulting::USAGE_TYPE_MERCHANT,
-                        'customer_type' => Vaulting::CUSTOMER_TYPE_CONSUMER,
+            if (in_array($method, [PayPal::SCA_WHEN_REQUIRED, PayPal::SCA_ALWAYS])) {
+                return [
+                    'card' => [
+                        'attributes' => [
+                            'verification' => [
+                                'method' => $method,
+                            ],
+                        ],
+                        'billing_address' => $this->getAddress(
+                            new Address($this->context->cart->id_address_invoice)
+                        ),
                     ],
-                ],
-            ],
-        ];
+                ];
+            }
+        }
+
+        if (PaypalContext::getContext()->get('savePaypalAccount', false)) {
+            if ($this->vaultingFunctionality->isAvailable()) {
+                if ($this->vaultingFunctionality->isEnabled()) {
+                    if ($this->vaultingFunctionality->isCapabilityAvailable(false)) {
+                        return [
+                            'paypal' => [
+                                'attributes' => [
+                                    'vault' => [
+                                        'permit_multiple_payment_tokens' => false,
+                                        'store_in_vault' => Vaulting::STORE_IN_VAULT_ON_SUCCESS,
+                                        'usage_type' => Vaulting::USAGE_TYPE_MERCHANT,
+                                        'customer_type' => Vaulting::CUSTOMER_TYPE_CONSUMER,
+                                    ],
+                                ],
+                            ],
+                        ];
+                    }
+                }
+            }
+
+            return [];
+        }
+
+        return [];
     }
 }

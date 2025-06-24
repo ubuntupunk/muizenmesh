@@ -1,11 +1,32 @@
 <?php
 
+namespace MediaWiki\Tests\Api;
+
+use ApiBase;
+use ApiErrorFormatter;
+use ApiMain;
+use ApiMessage;
+use ApiQueryTokens;
+use ApiResult;
+use ApiUsageException;
+use ArrayAccess;
+use LogicException;
+use MediaWiki\Context\RequestContext;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Message\Message;
 use MediaWiki\Permissions\Authority;
 use MediaWiki\Request\FauxRequest;
+use MediaWiki\Session\Session;
 use MediaWiki\Session\SessionManager;
+use MediaWiki\Tests\Unit\Permissions\MockAuthorityTrait;
+use MediaWikiLangTestCase;
+use PHPUnit\Framework\AssertionFailedError;
+use PHPUnit\Framework\Constraint\Constraint;
+use ReturnTypeWillChange;
 
 abstract class ApiTestCase extends MediaWikiLangTestCase {
+	use MockAuthorityTrait;
+
 	protected static $apiUrl;
 
 	protected static $errorFormatter = null;
@@ -21,10 +42,45 @@ abstract class ApiTestCase extends MediaWikiLangTestCase {
 		parent::setUp();
 		self::$apiUrl = $wgServer . wfScript( 'api' );
 
-		self::$users = [
-			'sysop' => static::getTestSysop(),
-			'uploader' => static::getTestUser(),
+		// HACK: Avoid creating test users in the DB if the test may not need them.
+		$getters = [
+			'sysop' => fn () => $this->getTestSysop(),
+			'uploader' => fn () => $this->getTestUser(),
 		];
+		$fakeUserArray = new class ( $getters ) implements ArrayAccess {
+			private array $getters;
+			private array $extraUsers = [];
+
+			public function __construct( array $getters ) {
+				$this->getters = $getters;
+			}
+
+			public function offsetExists( $offset ): bool {
+				return isset( $this->getters[$offset] ) || isset( $this->extraUsers[$offset] );
+			}
+
+			#[ReturnTypeWillChange]
+			public function offsetGet( $offset ) {
+				if ( isset( $this->getters[$offset] ) ) {
+					return ( $this->getters[$offset] )();
+				}
+				if ( isset( $this->extraUsers[$offset] ) ) {
+					return $this->extraUsers[$offset];
+				}
+				throw new LogicException( "Requested unknown user $offset" );
+			}
+
+			public function offsetSet( $offset, $value ): void {
+				$this->extraUsers[$offset] = $value;
+			}
+
+			public function offsetUnset( $offset ): void {
+				unset( $this->getters[$offset] );
+				unset( $this->extraUsers[$offset] );
+			}
+		};
+
+		self::$users = $fakeUserArray;
 
 		$this->setRequest( new FauxRequest( [] ) );
 
@@ -33,7 +89,7 @@ abstract class ApiTestCase extends MediaWikiLangTestCase {
 
 	protected function tearDown(): void {
 		// Avoid leaking session over tests
-		MediaWiki\Session\SessionManager::getGlobalSession()->clear();
+		SessionManager::getGlobalSession()->clear();
 
 		ApiBase::clearCacheForTest();
 
@@ -63,10 +119,8 @@ abstract class ApiTestCase extends MediaWikiLangTestCase {
 	) {
 		global $wgRequest;
 
-		if ( $session === null ) {
-			// re-use existing global session by default
-			$session = $wgRequest->getSessionArray();
-		}
+		// re-use existing global session by default
+		$session ??= $wgRequest->getSessionArray();
 
 		$sessionObj = SessionManager::singleton()->getEmptySession();
 
@@ -77,15 +131,22 @@ abstract class ApiTestCase extends MediaWikiLangTestCase {
 		}
 
 		// set up global environment
+		if ( !$performer && !$this->needsDB() ) {
+			$performer = $this->mockRegisteredUltimateAuthority();
+		}
 		if ( $performer ) {
 			$legacyUser = $this->getServiceContainer()->getUserFactory()->newFromAuthority( $performer );
 			$contextUser = $legacyUser;
+			// Clone the user object, because something in Session code will replace its user with "Unknown user"
+			// if it doesn't exist. But that'll also change $contextUser, and the token won't match (T341953).
+			$sessionUser = clone $contextUser;
 		} else {
-			$contextUser = self::$users['sysop']->getUser();
+			$contextUser = $this->getTestSysop()->getUser();
 			$performer = $contextUser;
+			$sessionUser = $contextUser;
 		}
 
-		$sessionObj->setUser( $contextUser );
+		$sessionObj->setUser( $sessionUser );
 		if ( $tokenType !== null ) {
 			if ( $tokenType === 'auto' ) {
 				$tokenType = ( new ApiMain() )->getModuleManager()
@@ -101,13 +162,13 @@ abstract class ApiTestCase extends MediaWikiLangTestCase {
 		}
 
 		// prepend parameters with prefix
-		foreach ( array_keys( $params ) as $key ) {
-			$newKeys[] = $paramPrefix . $key;
+		if ( $paramPrefix !== null && $paramPrefix !== '' ) {
+			$prefixedParams = [];
+			foreach ( $params as $key => $value ) {
+				$prefixedParams[$paramPrefix . $key] = $value;
+			}
+			$params = $prefixedParams;
 		}
-		$params = array_combine(
-			$newKeys,
-			array_values( $params )
-		);
 
 		$wgRequest = $this->buildFauxRequest( $params, $sessionObj );
 		RequestContext::getMain()->setRequest( $wgRequest );
@@ -138,7 +199,7 @@ abstract class ApiTestCase extends MediaWikiLangTestCase {
 	/**
 	 * @since 1.37
 	 * @param array $params
-	 * @param MediaWiki\Session\Session|array|null $session
+	 * @param Session|array|null $session
 	 * @return FauxRequest
 	 */
 	protected function buildFauxRequest( $params, $session ) {
@@ -163,13 +224,11 @@ abstract class ApiTestCase extends MediaWikiLangTestCase {
 	}
 
 	protected static function getErrorFormatter() {
-		if ( self::$errorFormatter === null ) {
-			self::$errorFormatter = new ApiErrorFormatter(
-				new ApiResult( false ),
-				MediaWikiServices::getInstance()->getLanguageFactory()->getLanguage( 'en' ),
-				'none'
-			);
-		}
+		self::$errorFormatter ??= new ApiErrorFormatter(
+			new ApiResult( false ),
+			MediaWikiServices::getInstance()->getLanguageFactory()->getLanguage( 'en' ),
+			'none'
+		);
 		return self::$errorFormatter;
 	}
 
@@ -187,6 +246,7 @@ abstract class ApiTestCase extends MediaWikiLangTestCase {
 	 * ApiUsageException::newWithMessage()'s parameters.  This allows checking for an exception
 	 * whose text is given by a message key instead of text, so as not to hard-code the message's
 	 * text into test code.
+	 * @deprecated Use expectApiErrorCode() instead, it's better to test error codes than messages
 	 * @param string|array|Message $msg
 	 * @param string|null $code
 	 * @param array|null $data
@@ -199,4 +259,101 @@ abstract class ApiTestCase extends MediaWikiLangTestCase {
 		$this->expectException( ApiUsageException::class );
 		$this->expectExceptionMessage( $expected->getMessage() );
 	}
+
+	private ?string $expectedApiErrorCode;
+
+	/**
+	 * Expect an ApiUsageException that results in the given API error code to be thrown.
+	 *
+	 * Note that you can't mix this method with standard PHPUnit expectException() methods,
+	 * as PHPUnit will catch the exception and prevent us from testing it.
+	 *
+	 * @since 1.41
+	 * @param string $expectedCode
+	 */
+	protected function expectApiErrorCode( string $expectedCode ) {
+		$this->expectedApiErrorCode = $expectedCode;
+	}
+
+	/**
+	 * Assert that an ApiUsageException will result in the given API error code being outputted.
+	 *
+	 * @since 1.41
+	 * @param string $expectedCode
+	 * @param ApiUsageException $exception
+	 * @param string $message
+	 */
+	protected function assertApiErrorCode( string $expectedCode, ApiUsageException $exception, string $message = '' ) {
+		$constraint = new class( $expectedCode ) extends Constraint {
+			private string $expectedApiErrorCode;
+
+			public function __construct( string $expected ) {
+				$this->expectedApiErrorCode = $expected;
+			}
+
+			public function toString(): string {
+				return 'API error code is ';
+			}
+
+			private function getApiErrorCode( $other ) {
+				if ( !$other instanceof ApiUsageException ) {
+					return null;
+				}
+				$errors = $other->getStatusValue()->getErrors();
+				if ( count( $errors ) === 0 ) {
+					return '(no error)';
+				} elseif ( count( $errors ) > 1 ) {
+					return '(multiple errors)';
+				}
+				return ApiMessage::create( $errors[0] )->getApiCode();
+			}
+
+			protected function matches( $other ): bool {
+				return $this->getApiErrorCode( $other ) === $this->expectedApiErrorCode;
+			}
+
+			protected function failureDescription( $other ): string {
+				return sprintf(
+					'%s is equal to expected API error code %s',
+					$this->exporter()->export( $this->getApiErrorCode( $other ) ),
+					$this->exporter()->export( $this->expectedApiErrorCode )
+				);
+			}
+		};
+
+		$this->assertThat( $exception, $constraint, $message );
+	}
+
+	/**
+	 * @inheritDoc
+	 *
+	 * Adds support for expectApiErrorCode().
+	 */
+	protected function runTest() {
+		try {
+			$testResult = parent::runTest();
+
+		} catch ( ApiUsageException $exception ) {
+			if ( !isset( $this->expectedApiErrorCode ) ) {
+				throw $exception;
+			}
+
+			$this->assertApiErrorCode( $this->expectedApiErrorCode, $exception );
+
+			return null;
+		}
+
+		if ( !isset( $this->expectedApiErrorCode ) ) {
+			return $testResult;
+		}
+
+		throw new AssertionFailedError(
+			sprintf(
+				'Failed asserting that exception with API error code "%s" is thrown',
+				$this->expectedApiErrorCode
+			)
+		);
+	}
 }
+
+class_alias( ApiTestCase::class, 'ApiTestCase' );

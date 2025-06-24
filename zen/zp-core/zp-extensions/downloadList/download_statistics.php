@@ -6,8 +6,7 @@
  *
  * This plugin is dependent on the css of the gallery_statistics utility plugin!
  *
- * @package plugins
- * @subpackage downloadlist
+ * @package zpcore\plugins\downloadlist
  */
 define('OFFSET_PATH', 3);
 require_once(dirname(dirname(dirname(__FILE__))) . '/admin-globals.php');
@@ -23,7 +22,7 @@ $webpath = WEBPATH . '/' . ZENFOLDER . '/';
 $_zp_admin_menu['overview']['subtabs'] = array(gettext('Download') => FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER . '/downloadList/download_statistics.php');
 printAdminHeader('overview', 'download');
 ?>
-<link rel="stylesheet" href="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/admin-statistics.css" type="text/css" media="screen" />
+<link rel="stylesheet" href="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/css/admin-statistics.css" type="text/css" media="screen" />
 <?php
 
 /**
@@ -47,7 +46,7 @@ function printBarGraph() {
 	echo "<table class='bordered'>";
 	echo "<tr><th colspan='4'><strong>" . gettext("Most downloaded files") . "</strong>";
 	echo "</th></tr>";
-	$count = '';
+	$count = 0;
 	echo $no_statistic_message;
 	foreach ($items as $item) {
 		if ($item['data'] != 0) {

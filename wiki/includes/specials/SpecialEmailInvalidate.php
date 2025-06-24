@@ -21,7 +21,12 @@
  * @ingroup SpecialPage
  */
 
+namespace MediaWiki\Specials;
+
+use IDBAccessObject;
+use MediaWiki\SpecialPage\UnlistedSpecialPage;
 use MediaWiki\User\UserFactory;
+use Profiler;
 use Wikimedia\ScopedCallback;
 
 /**
@@ -32,8 +37,7 @@ use Wikimedia\ScopedCallback;
  */
 class SpecialEmailInvalidate extends UnlistedSpecialPage {
 
-	/** @var UserFactory */
-	private $userFactory;
+	private UserFactory $userFactory;
 
 	/**
 	 * @param UserFactory $userFactory
@@ -71,7 +75,7 @@ class SpecialEmailInvalidate extends UnlistedSpecialPage {
 	private function attemptInvalidate( $code ) {
 		$user = $this->userFactory->newFromConfirmationCode(
 			(string)$code,
-			UserFactory::READ_LATEST
+			IDBAccessObject::READ_LATEST
 		);
 
 		if ( !is_object( $user ) ) {
@@ -89,3 +93,6 @@ class SpecialEmailInvalidate extends UnlistedSpecialPage {
 		}
 	}
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( SpecialEmailInvalidate::class, 'SpecialEmailInvalidate' );

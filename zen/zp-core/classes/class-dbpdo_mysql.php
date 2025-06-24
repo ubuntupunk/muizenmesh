@@ -3,10 +3,9 @@
 /**
  * Database core class for the PDO::MySQL library
  *
- * @package core
- * @subpackage classes\database
+ * @package zpcore\classes\database
  * 
- * @since ZenphotoCMS 1.6 - reworked as class
+ * @since 1.6 - reworked as class
  */
 class dbPDO_MySQL extends dbBase {
 	

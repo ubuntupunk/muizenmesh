@@ -3,8 +3,7 @@
  * zenpage admin-categories.php
  *
  * @author Malte Müller (acrylian)
- * @package plugins
- * @subpackage zenpage
+ * @package zpcore\plugins\zenpage
  */
 define("OFFSET_PATH", 4);
 require_once(dirname(dirname(dirname(__FILE__))) . '/admin-globals.php');
@@ -67,8 +66,7 @@ zp_apply_filter('texteditor_config', 'zenpage');
 printSortableHead();
 zenpageJSCSS();
 ?>
-<script type="text/javascript">
-	//<!-- <![CDATA[
+<script>
 	var deleteCategory = "<?php echo gettext("Are you sure you want to delete this category? THIS CANNOT BE UNDONE!"); ?>";
 	function confirmAction() {
 		if ($('#checkallaction').val() == 'deleteall') {
@@ -93,7 +91,6 @@ zenpageJSCSS();
 			}
 		});
 	});
-	// ]]> -->
 </script>
 </head>
 <body>

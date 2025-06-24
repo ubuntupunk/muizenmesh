@@ -3,22 +3,22 @@ var ChangesLimitPopupWidget = require( './ChangesLimitPopupWidget.js' ),
 	ChangesLimitAndDateButtonWidget;
 
 /**
- * Widget defining the button controlling the popup for the number of results
+ * Widget defining the button controlling the popup for the number of results.
  *
  * @class mw.rcfilters.ui.ChangesLimitAndDateButtonWidget
+ * @ignore
  * @extends OO.ui.Widget
  *
- * @constructor
  * @param {mw.rcfilters.Controller} controller Controller
  * @param {mw.rcfilters.dm.FiltersViewModel} model View model
  * @param {Object} [config] Configuration object
- * @cfg {jQuery} [$overlay] A jQuery object serving as overlay for popups
+ * @param {jQuery} [config.$overlay] A jQuery object serving as overlay for popups
  */
 ChangesLimitAndDateButtonWidget = function MwRcfiltersUiChangesLimitWidget( controller, model, config ) {
 	config = config || {};
 
 	// Parent
-	ChangesLimitAndDateButtonWidget.parent.call( this, config );
+	ChangesLimitAndDateButtonWidget.super.call( this, config );
 
 	this.controller = controller;
 	this.model = model;
@@ -106,7 +106,8 @@ ChangesLimitAndDateButtonWidget.prototype.onModelInitialize = function () {
 		this.daysGroupModel.connect( this, { update: 'updateButtonLabel' } );
 		this.changesLimitPopupWidget.connect( this, {
 			limit: 'onPopupLimit',
-			groupByPage: 'onPopupGroupByPage'
+			groupByPage: 'onPopupGroupByPage',
+			groupByPageUserClick: 'onPopupGroupByPageUserClick'
 		} );
 		datePopupWidget.connect( this, { days: 'onPopupDays' } );
 
@@ -150,8 +151,16 @@ ChangesLimitAndDateButtonWidget.prototype.onPopupLimit = function ( filterName )
  */
 ChangesLimitAndDateButtonWidget.prototype.onPopupGroupByPage = function ( isGrouped ) {
 	this.controller.toggleFilterSelect( this.groupByPageItemModel.getName(), isGrouped );
-	this.controller.updateGroupByPageDefault( isGrouped );
 	this.button.popup.toggle( false );
+};
+
+/**
+ * Respond to popup request to save the group by page setting in preferences
+ *
+ * @param {boolean} isSelected The state of the group by page checkbox
+ */
+ChangesLimitAndDateButtonWidget.prototype.onPopupGroupByPageUserClick = function ( isSelected ) {
+	this.controller.updateGroupByPageDefault( isSelected );
 };
 
 /**

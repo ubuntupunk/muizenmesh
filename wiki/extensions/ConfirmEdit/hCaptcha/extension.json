@@ -9,7 +9,7 @@
 	"license-name": "GPL-2.0-or-later",
 	"type": "antispam",
 	"MessagesDirs": {
-		"HCaptcha": [
+		"hCaptcha": [
 			"i18n"
 		]
 	},
@@ -52,10 +52,6 @@
 					"name": "ve-confirmedit-hCaptcha/config.json",
 					"callback": "MediaWiki\\Extension\\ConfirmEdit\\hCaptcha\\Hooks\\ResourceLoaderHooks::getHCaptchaResourceLoaderConfig"
 				}
-			],
-			"targets": [
-				"desktop",
-				"mobile"
 			]
 		}
 	},

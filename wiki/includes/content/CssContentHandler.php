@@ -26,6 +26,8 @@ use MediaWiki\Content\Transform\PreSaveTransformParams;
 use MediaWiki\Html\Html;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Parser\ParserOutput;
+use MediaWiki\Parser\ParserOutputFlags;
 use MediaWiki\Title\Title;
 use Wikimedia\Minify\CSSMin;
 
@@ -44,6 +46,9 @@ class CssContentHandler extends CodeContentHandler {
 		parent::__construct( $modelId, [ CONTENT_FORMAT_CSS ] );
 	}
 
+	/**
+	 * @return class-string<CssContent>
+	 */
 	protected function getContentClass() {
 		return CssContent::class;
 	}
@@ -70,18 +75,6 @@ class CssContentHandler extends CodeContentHandler {
 		Content $content,
 		PreSaveTransformParams $pstParams
 	): Content {
-		$shouldCallDeprecatedMethod = $this->shouldCallDeprecatedContentTransformMethod(
-			$content,
-			$pstParams
-		);
-
-		if ( $shouldCallDeprecatedMethod ) {
-			return $this->callDeprecatedContentPST(
-				$content,
-				$pstParams
-			);
-		}
-
 		'@phan-var CssContent $content';
 
 		// @todo Make pre-save transformation optional for script pages (T34858)
@@ -144,6 +137,9 @@ class CssContentHandler extends CodeContentHandler {
 		}
 
 		$output->clearWrapperDivClass();
-		$output->setText( $html );
+		$output->setRawText( $html );
+		// Suppress the TOC (T307691)
+		$output->setOutputFlag( ParserOutputFlags::NO_TOC );
+		$output->setSections( [] );
 	}
 }

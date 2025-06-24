@@ -3,10 +3,10 @@
 /**
  * Maintenance mode utility class based on the former site_upgrade plugin 
  * 
- * @since ZenphotoCMS 1.6
+ * @since 1.6
  * 
  * @author Stephen Billard (sbillard), adapted by Malte Müller (acrylian)
- * @package admin
+ * @package zpcore\classes\admin
  */
 class maintenanceMode {
 

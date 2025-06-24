@@ -7,6 +7,7 @@
 .wikiEditor-ui-toolbar {
 	position: relative;
 	display: block;
+	z-index: 7;
 
 	.empty {
 		display: none;
@@ -53,7 +54,7 @@
 				padding-left: 18px;
 				padding-right: 12px;
 
-				&:before {
+				&::before {
 					content: '';
 					background: url( images/toolbar/arrow-down.svg ) center no-repeat;
 					display: block;
@@ -86,7 +87,7 @@
 					text-decoration: none;
 				}
 
-				&:before {
+				&::before {
 					body.ltr &,
 					body.rtl & {
 						transform: rotate( 0 );
@@ -111,7 +112,7 @@
 
 		.group {
 			padding-right: 0;
-			padding-left: 6px;
+			margin-left: 6px;
 			border-left: 1px solid #c8ccd1;
 		}
 	}
@@ -119,6 +120,7 @@
 	/* Groups */
 	.group {
 		float: left;
+		display: flex;
 		min-height: 26px;
 		padding-right: 6px;
 		border-right: 1px solid #c8ccd1;
@@ -162,7 +164,7 @@
 				text-decoration: none;
 				color: #222;
 
-				&:after {
+				&::after {
 					content: '';
 					background: url( images/toolbar/arrow-down.svg ) center no-repeat;
 					display: block;
@@ -174,7 +176,7 @@
 				}
 			}
 
-			&.options-shown .label:after {
+			&.options-shown .label::after {
 				transform: rotate( 180deg );
 			}
 
@@ -240,7 +242,6 @@
 			width: 20%;
 			height: 125px;
 			overflow: auto;
-			/* stylelint-disable-next-line plugin/no-unsupported-browser-features */
 			resize: horizontal;
 
 			> div {
@@ -309,7 +310,8 @@
 
 			/* T33649 */
 			.table-link {
-				td.cell-syntax {
+				td.cell-syntax,
+				span.pre-wrap {
 					white-space: pre;
 				}
 			}
@@ -358,7 +360,6 @@
 .tool-button {
 	background-position: 50% 50%;
 	background-repeat: no-repeat;
-	display: inline-block;
 	vertical-align: middle;
 	width: 24px;
 	height: 24px;

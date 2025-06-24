@@ -21,13 +21,17 @@
  * @ingroup Parser
  */
 
+use MediaWiki\Context\IContextSource;
+use MediaWiki\HookContainer\HookRunner;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Parser\Parser;
 use MediaWiki\Revision\MutableRevisionRecord;
 use MediaWiki\Revision\SlotRecord;
 use MediaWiki\StubObject\StubObject;
 use MediaWiki\Title\Title;
 use MediaWiki\User\UserIdentity;
+use MediaWiki\Utils\MWTimestamp;
 use Wikimedia\ScopedCallback;
 
 /**
@@ -85,6 +89,7 @@ class ParserOptions {
 		'thumbsize' => true,
 		'printable' => true,
 		'userlang' => true,
+		'useParsoid' => true,
 	];
 
 	/**
@@ -667,6 +672,27 @@ class ParserOptions {
 	}
 
 	/**
+	 * Parsoid-format HTML output, or legacy wikitext parser HTML?
+	 * @see T300191
+	 * @unstable
+	 * @since 1.41
+	 * @return bool
+	 */
+	public function getUseParsoid(): bool {
+		return $this->getOption( 'useParsoid' );
+	}
+
+	/**
+	 * Request Parsoid-format HTML output.
+	 * @see T300191
+	 * @unstable
+	 * @since 1.41
+	 */
+	public function setUseParsoid() {
+		$this->setOption( 'useParsoid', true );
+	}
+
+	/**
 	 * Date format index
 	 * @return string
 	 */
@@ -790,9 +816,33 @@ class ParserOptions {
 	 * other metadata generated (like the table of contents).
 	 * @see T307691
 	 * @since 1.39
+	 * @deprecated since 1.42; just clear the metadata in the final
+	 *  parser output
 	 */
 	public function setSuppressTOC() {
+		wfDeprecated( __METHOD__, '1.42' );
 		$this->setOption( 'suppressTOC', true );
+	}
+
+	/**
+	 * Should section edit links be suppressed?
+	 * Used when parsing wikitext which will be presented in a
+	 * non-interactive context: previews, UX text, etc.
+	 * @since 1.42
+	 * @return bool
+	 */
+	public function getSuppressSectionEditLinks() {
+		return $this->getOption( 'suppressSectionEditLinks' );
+	}
+
+	/**
+	 * Suppress section edit links in the output.
+	 * Used when parsing wikitext which will be presented in a
+	 * non-interactive context: previews, UX text, etc.
+	 * @since 1.42
+	 */
+	public function setSuppressSectionEditLinks() {
+		$this->setOption( 'suppressSectionEditLinks', true );
 	}
 
 	/**
@@ -1047,7 +1097,7 @@ class ParserOptions {
 	 * @return ParserOptions
 	 */
 	public static function newFromAnon() {
-		return new ParserOptions( new User,
+		return new ParserOptions( MediaWikiServices::getInstance()->getUserFactory()->newAnonymous(),
 			MediaWikiServices::getInstance()->getContentLanguage() );
 	}
 
@@ -1124,7 +1174,7 @@ class ParserOptions {
 	 */
 	public static function clearStaticCache() {
 		if ( !defined( 'MW_PHPUNIT_TEST' ) && !defined( 'MW_PARSER_TEST' ) ) {
-			throw new RuntimeException( __METHOD__ . ' is just for testing' );
+			throw new LogicException( __METHOD__ . ' is just for testing' );
 		}
 		self::$defaults = null;
 		self::$lazyOptions = null;
@@ -1167,6 +1217,7 @@ class ParserOptions {
 				'targetLanguage' => null,
 				'removeComments' => true,
 				'suppressTOC' => false,
+				'suppressSectionEditLinks' => false,
 				'enableLimitReport' => false,
 				'preSaveTransform' => true,
 				'isPreview' => false,
@@ -1180,12 +1231,13 @@ class ParserOptions {
 				'speculativeRevId' => null,
 				'speculativePageIdCallback' => null,
 				'speculativePageId' => null,
+				'useParsoid' => false,
 			];
 
 			self::$cacheVaryingOptionsHash = self::$initialCacheVaryingOptionsHash;
 			self::$lazyOptions = self::$initialLazyOptions;
 
-			Hooks::runner()->onParserOptionsRegister(
+			( new HookRunner( $services->getHookContainer() ) )->onParserOptionsRegister(
 				self::$defaults,
 				self::$cacheVaryingOptionsHash,
 				self::$lazyOptions
@@ -1328,7 +1380,7 @@ class ParserOptions {
 	 * Record that an option was internally accessed.
 	 *
 	 * This calls the watcher set by ParserOptions::registerWatcher().
-	 * Typically, the watcher callback is ParserOutput::registerOption().
+	 * Typically, the watcher callback is ParserOutput::recordOption().
 	 * The information registered this way is consumed by ParserCache::save().
 	 *
 	 * @param string $optionName Name of the option
@@ -1428,7 +1480,7 @@ class ParserOptions {
 		$user = $services->getUserFactory()->newFromUserIdentity( $this->getUserIdentity() );
 		// Give a chance for extensions to modify the hash, if they have
 		// extra options or other effects on the parser cache.
-		Hooks::runner()->onPageRenderingHash(
+		( new HookRunner( $services->getHookContainer() ) )->onPageRenderingHash(
 			$confstr,
 			$user,
 			$forOptions

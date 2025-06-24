@@ -25,7 +25,7 @@
  * - If more than one of s, h, or w are specified, s takes priority, then w+h:
  * - If none of s, h, or w are specified, the original image is returned.
  * ******************************************************************************
- * @package core
+ * @package zpcore
  */
 // force UTF-8 Ø
 
@@ -57,7 +57,7 @@ $album = sanitize_path($ralbum);
 $image = sanitize_path($rimage);
 $theme = themeSetup(filesystemToInternal($album)); // loads the theme based image options.
 if (getOption('secure_image_processor')) {
-	require_once(dirname(__FILE__) . '/functions.php');
+	require_once(dirname(__FILE__) . '/functions/functions.php');
 	$albumobj = AlbumBase::newAlbum(filesystemToInternal($album));
 	if (!$albumobj->checkAccess()) {
 		imageError('403 Forbidden', gettext("Forbidden(1)"), 'err-imagegeneral.png', $image, $album);

@@ -24,8 +24,6 @@
 
 require_once __DIR__ . '/Maintenance.php';
 
-use MediaWiki\MediaWikiServices;
-
 /**
  * Maintenance script that fills the rev_sha1 and ar_sha1 columns of revision
  * and archive tables for revisions created before MW 1.19.
@@ -55,16 +53,18 @@ class PopulateRevisionSha1 extends LoggedUpdateMaintenance {
 			return false;
 		}
 
-		$revStore = MediaWikiServices::getInstance()->getRevisionStore();
+		$revStore = $this->getServiceContainer()->getRevisionStore();
 
 		$this->output( "Populating rev_sha1 column\n" );
 		$rc = $this->doSha1Updates( $revStore, 'revision', 'rev_id',
-			$revStore->getQueryInfo(), 'rev'
+			$revStore->newSelectQueryBuilder( $this->getPrimaryDB() )->joinComment(),
+			'rev'
 		);
 
 		$this->output( "Populating ar_sha1 column\n" );
 		$ac = $this->doSha1Updates( $revStore, 'archive', 'ar_rev_id',
-			$revStore->getArchiveQueryInfo(), 'ar'
+			$revStore->newArchiveSelectQueryBuilder( $this->getPrimaryDB() )->joinComment(),
+			'ar'
 		);
 
 		$this->output( "rev_sha1 and ar_sha1 population complete "
@@ -77,15 +77,21 @@ class PopulateRevisionSha1 extends LoggedUpdateMaintenance {
 	 * @param MediaWiki\Revision\RevisionStore $revStore
 	 * @param string $table
 	 * @param string $idCol
-	 * @param array $queryInfo
+	 * @param \Wikimedia\Rdbms\SelectQueryBuilder $queryBuilder should use a primary db
 	 * @param string $prefix
 	 * @return int Rows changed
 	 */
-	protected function doSha1Updates( $revStore, $table, $idCol, $queryInfo, $prefix ) {
-		$db = $this->getDB( DB_PRIMARY );
+	protected function doSha1Updates( $revStore, $table, $idCol, $queryBuilder, $prefix ) {
+		$db = $this->getPrimaryDB();
 		$batchSize = $this->getBatchSize();
-		$start = $db->selectField( $table, "MIN($idCol)", '', __METHOD__ );
-		$end = $db->selectField( $table, "MAX($idCol)", '', __METHOD__ );
+		$start = $db->newSelectQueryBuilder()
+			->select( "MIN($idCol)" )
+			->from( $table )
+			->caller( __METHOD__ )->fetchField();
+		$end = $db->newSelectQueryBuilder()
+			->select( "MAX($idCol)" )
+			->from( $table )
+			->caller( __METHOD__ )->fetchField();
 		if ( !$start || !$end ) {
 			$this->output( "...$table table seems to be empty.\n" );
 
@@ -102,9 +108,9 @@ class PopulateRevisionSha1 extends LoggedUpdateMaintenance {
 
 			$cond = "$idCol BETWEEN " . (int)$blockStart . " AND " . (int)$blockEnd .
 				" AND $idCol IS NOT NULL AND {$prefix}_sha1 = ''";
-			$res = $db->select(
-				$queryInfo['tables'], $queryInfo['fields'], $cond, __METHOD__, [], $queryInfo['joins']
-			);
+
+			$res = $queryBuilder->where( $cond )
+				->caller( __METHOD__ )->fetchResultSet();
 
 			$this->beginTransaction( $db, __METHOD__ );
 			foreach ( $res as $row ) {
@@ -130,7 +136,7 @@ class PopulateRevisionSha1 extends LoggedUpdateMaintenance {
 	 * @return bool
 	 */
 	protected function upgradeRow( $revStore, $row, $table, $idCol, $prefix ) {
-		$db = $this->getDB( DB_PRIMARY );
+		$db = $this->getPrimaryDB();
 
 		// Create a revision and use it to get the sha1 from the content table, if possible.
 		try {
@@ -143,11 +149,11 @@ class PopulateRevisionSha1 extends LoggedUpdateMaintenance {
 			return false; // T24624? T22757?
 		}
 
-		$db->update( $table,
-			[ "{$prefix}_sha1" => $sha1 ],
-			[ $idCol => $row->$idCol ],
-			__METHOD__
-		);
+		$db->newUpdateQueryBuilder()
+			->update( $table )
+			->set( [ "{$prefix}_sha1" => $sha1 ] )
+			->where( [ $idCol => $row->$idCol ] )
+			->caller( __METHOD__ )->execute();
 
 		return true;
 	}

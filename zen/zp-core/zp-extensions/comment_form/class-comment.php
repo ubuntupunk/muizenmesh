@@ -1,16 +1,16 @@
 <?php
 /**
- *Comment Class
- * @package plugins
- * @subpackage comment-form
+ * Comment Class
+ * @package zpcore\plugins\commentform
  */
-
 // force UTF-8 Ø
 
 class Comment extends PersistentObject {
 
-	var $comment_error_text = NULL;
-	var $dataconfirmation = null;
+	public $comment_error_text = NULL;
+	public $dataconfirmation = null;
+	public $mathquiz = null;
+	public $textquiz = null;
 
 	/**
 	 * This is a simple class so that we have a convienient "handle" for manipulating comments.
@@ -206,4 +206,4 @@ class Comment extends PersistentObject {
 	 */
 	function setCustomData($value) { $this->set('custom_data', $value); }
 }
-?>
+

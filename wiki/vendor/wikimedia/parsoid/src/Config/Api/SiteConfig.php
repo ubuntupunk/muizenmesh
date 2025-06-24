@@ -13,6 +13,7 @@ use Wikimedia\Parsoid\DOM\Document;
 use Wikimedia\Parsoid\Mocks\MockMetrics;
 use Wikimedia\Parsoid\Utils\ConfigUtils;
 use Wikimedia\Parsoid\Utils\PHPUtils;
+use Wikimedia\Parsoid\Utils\Title;
 use Wikimedia\Parsoid\Utils\UrlUtils;
 use Wikimedia\Parsoid\Utils\Utils;
 
@@ -47,25 +48,25 @@ class SiteConfig extends ISiteConfig {
 	/** @var string */
 	private $savedBswRegexp;
 
-	/** @phan-var array<int,string> */
+	/** @var array<int,string> */
 	protected $nsNames = [];
 
-	/** @phan-var array<int,string> */
+	/** @var array<int,string> */
 	protected $nsCase = [];
 
-	/** @phan-var array<string,int> */
+	/** @var array<string,int> */
 	protected $nsIds = [];
 
-	/** @phan-var array<string,int> */
+	/** @var array<string,int> */
 	protected $nsCanon = [];
 
-	/** @phan-var array<int,bool> */
+	/** @var array<int,bool> */
 	protected $nsWithSubpages = [];
 
-	/** @phan-var array<string,string> */
+	/** @var array<string,string> */
 	private $specialPageNames = [];
 
-	/** @phan-var array */
+	/** @var array */
 	private $specialPageAliases = [];
 
 	/** @var array|null */
@@ -113,32 +114,19 @@ class SiteConfig extends ISiteConfig {
 			. 'functionhooks|variables',
 	];
 
-	/**
-	 * @param ApiHelper $api
-	 * @param array $opts
-	 */
 	public function __construct( ApiHelper $api, array $opts ) {
 		parent::__construct();
 
 		$this->api = $api;
 
-		if ( isset( $opts['linting'] ) ) {
-			$this->linterEnabled = !empty( $opts['linting'] );
-		}
-
-		if ( isset( $opts['addHTMLTemplateParameters'] ) ) {
-			$this->addHTMLTemplateParameters = !empty( $opts['addHTMLTemplateParameters'] );
-		}
+		$this->linterEnabled = (bool)( $opts['linting'] ?? false );
+		$this->addHTMLTemplateParameters = (bool)( $opts['addHTMLTemplateParameters'] ?? false );
 
 		if ( isset( $opts['maxDepth'] ) ) {
-			$this->maxDepth = $opts['maxDepth'];
+			$this->maxDepth = (int)$opts['maxDepth'];
 		}
 
-		if ( isset( $opts['logger'] ) ) {
-			$this->setLogger( $opts['logger'] );
-		} else {
-			$this->setLogger( self::createLogger() );
-		}
+		$this->setLogger( $opts['logger'] ?? self::createLogger() );
 
 		if ( isset( $opts['wt2htmlLimits'] ) ) {
 			$this->wt2htmlLimits = array_merge(
@@ -158,7 +146,7 @@ class SiteConfig extends ISiteConfig {
 		$this->relativeLinkPrefix = null;
 		// Superclass value reset since parsertests reuse SiteConfig objects
 		$this->linkTrailRegex = false;
-		$this->magicWordMap = null;
+		$this->mwAliases = null;
 		$this->interwikiMapNoNamespaces = null;
 	}
 
@@ -426,11 +414,8 @@ class SiteConfig extends ISiteConfig {
 	/** @inheritDoc */
 	public function namespaceId( string $name ): ?int {
 		$this->loadSiteData();
-		$ns = $this->canonicalNamespaceId( $name );
-		if ( $ns !== null ) {
-			return $ns;
-		}
-		return $this->nsIds[Utils::normalizeNamespaceName( $name )] ?? null;
+		$name = Utils::normalizeNamespaceName( $name );
+		return $this->nsCanon[$name] ?? $this->nsIds[$name] ?? null;
 	}
 
 	/** @inheritDoc */
@@ -495,14 +480,19 @@ class SiteConfig extends ISiteConfig {
 		return $this->siteData['linktrail'];
 	}
 
-	public function lang(): string {
+	public function langBcp47(): Bcp47Code {
 		$this->loadSiteData();
-		return $this->siteData['lang'];
+		return Utils::mwCodeToBcp47( $this->siteData['lang'] );
 	}
 
 	public function mainpage(): string {
 		$this->loadSiteData();
 		return $this->siteData['mainpage'];
+	}
+
+	public function mainPageLinkTarget(): Title {
+		$this->loadSiteData();
+		return Title::newFromText( $this->siteData['mainpage'], $this );
 	}
 
 	/** @inheritDoc */
@@ -599,22 +589,9 @@ class SiteConfig extends ISiteConfig {
 	}
 
 	/** @inheritDoc */
-	public function variants(): array {
+	public function variantsFor( Bcp47Code $lang ): ?array {
 		$this->loadSiteData();
-		$result = [];
-		foreach ( $this->variants as $variantKey => $tuple ) {
-			$result[Utils::bcp47ToMwCode( $variantKey )] = [
-				'base' => Utils::bcp47ToMwCode( $tuple['base'] ),
-				'fallbacks' => array_map( [ Utils::class, 'bcp47ToMwCode' ], $tuple['fallbacks'] ),
-			];
-		}
-		return $result;
-	}
-
-	/** @inheritDoc */
-	public function variantsFor( Bcp47Code $lang ): array {
-		$this->loadSiteData();
-		return $this->variants[strtolower( $lang->toBcp47Code() )];
+		return $this->variants[strtolower( $lang->toBcp47Code() )] ?? null;
 	}
 
 	public function widthOption(): int {
@@ -775,32 +752,15 @@ class SiteConfig extends ISiteConfig {
 		return $this->protocols;
 	}
 
-	/**
-	 * @param array $parsoidSettings
-	 * @return SiteConfig
-	 */
-	public static function fromSettings( array $parsoidSettings ): SiteConfig {
-		$opts = [];
-		if ( isset( $parsoidSettings['linting'] ) ) {
-			$opts['linting'] = !empty( $parsoidSettings['linting'] );
-		}
-		if ( isset( $parsoidSettings['wt2htmlLimits'] ) ) {
-			$opts['wt2htmlLimits'] = $parsoidSettings['wt2htmlLimits'];
-		}
-		if ( isset( $parsoidSettings['html2wtLimits'] ) ) {
-			$opts['html2wtLimits'] = $parsoidSettings['html2wtLimits'];
-		}
-		$api = ApiHelper::fromSettings( $parsoidSettings );
-		return new SiteConfig( $api, $opts );
-	}
+	/** @var ?MockMetrics */
+	private $metrics;
 
 	/** @inheritDoc */
 	public function metrics(): ?StatsdDataFactoryInterface {
-		static $metrics = null;
-		if ( $metrics === null ) {
-			$metrics = new MockMetrics();
+		if ( $this->metrics === null ) {
+			$this->metrics = new MockMetrics();
 		}
-		return $metrics;
+		return $this->metrics;
 	}
 
 	/** @inheritDoc */

@@ -21,14 +21,14 @@
 
 namespace MediaWiki\Tests\Unit;
 
-use CommentStore;
-use ConfiguredReadOnlyMode;
-use GenderCache;
 use Interwiki;
 use InvalidArgumentException;
 use Language;
-use MalformedTitleException;
 use MediaWiki\Cache\CacheKeyHelper;
+use MediaWiki\Cache\GenderCache;
+use MediaWiki\CommentFormatter\CommentParser;
+use MediaWiki\CommentFormatter\CommentParserFactory;
+use MediaWiki\CommentStore\CommentStore;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Content\IContentHandlerFactory;
 use MediaWiki\Interwiki\InterwikiLookup;
@@ -36,23 +36,29 @@ use MediaWiki\Languages\LanguageNameUtils;
 use MediaWiki\Linker\LinkTarget;
 use MediaWiki\MainConfigSchema;
 use MediaWiki\Page\PageReference;
+use MediaWiki\Tests\MockDatabase;
+use MediaWiki\Title\MalformedTitleException;
+use MediaWiki\Title\MediaWikiTitleCodec;
+use MediaWiki\Title\NamespaceInfo;
+use MediaWiki\Title\TitleFormatter;
+use MediaWiki\Title\TitleParser;
 use MediaWiki\User\TempUser\RealTempUserConfig;
 use MediaWiki\User\UserIdentity;
 use MediaWiki\User\UserNameUtils;
-use MediaWikiTitleCodec;
-use NamespaceInfo;
 use PHPUnit\Framework\MockObject\MockObject;
 use Psr\Container\ContainerInterface;
 use Psr\Log\NullLogger;
-use ReadOnlyMode;
-use TitleFormatter;
-use TitleParser;
 use WatchedItem;
 use WatchedItemStore;
 use Wikimedia\Message\ITextFormatter;
 use Wikimedia\Message\MessageValue;
 use Wikimedia\ObjectFactory\ObjectFactory;
+use Wikimedia\Rdbms\ConfiguredReadOnlyMode;
+use Wikimedia\Rdbms\ILBFactory;
 use Wikimedia\Rdbms\ILoadBalancer;
+use Wikimedia\Rdbms\LBFactory;
+use Wikimedia\Rdbms\LBFactorySingle;
+use Wikimedia\Rdbms\ReadOnlyMode;
 use Wikimedia\Services\NoSuchServiceException;
 
 /**
@@ -91,6 +97,26 @@ trait DummyServicesTrait {
 	}
 
 	/**
+	 * @param CommentParser $parser to always return
+	 * @return CommentParserFactory
+	 */
+	private function getDummyCommentParserFactory(
+		CommentParser $parser
+	): CommentParserFactory {
+		return new class( $parser ) extends CommentParserFactory {
+			private $parser;
+
+			public function __construct( $parser ) {
+				$this->parser = $parser;
+			}
+
+			public function create() {
+				return $this->parser;
+			}
+		};
+	}
+
+	/**
 	 * @param array $contentHandlers map of content model to a ContentHandler object to
 	 *   return (or to `true` for a content model to be defined but not actually have any
 	 *   content handlers).
@@ -123,6 +149,14 @@ trait DummyServicesTrait {
 				}
 			);
 		return $contentHandlerFactory;
+	}
+
+	/**
+	 * @param array $dbOptions Options for the Database constructor
+	 * @return LBFactory
+	 */
+	private function getDummyDBLoadBalancerFactory( $dbOptions = [] ): LBFactory {
+		return LBFactorySingle::newFromConnection( new MockDatabase( $dbOptions ) );
 	}
 
 	/**
@@ -366,18 +400,6 @@ trait DummyServicesTrait {
 	 * @return NamespaceInfo
 	 */
 	private function getDummyNamespaceInfo( array $options = [] ): NamespaceInfo {
-		// Rather than trying to use a complicated mock, it turns out that almost
-		// all of the NamespaceInfo service works fine in unit tests. The only issues:
-		//   - in two places, NamespaceInfo tries to read extension attributes through
-		//     ExtensionRegistry::getInstance()->getAttribute() - this should work fine
-		//     in unit tests, it just won't include any extension info since those are
-		//     not loaded
-		//   - ::getRestrictionLevels() is a deprecated wrapper that calls
-		//     PermissionManager::getNamespaceRestrictionLevels() - the PermissionManager
-		//     is retrieved from MediaWikiServices, which doesn't work in unit tests.
-		//     This shouldn't be an issue though, since it should only be called in
-		//     the dedicated tests for that deprecation method, which use the real service
-
 		// configuration is based on the defaults in MainConfigSchema
 		$serviceOptions = new ServiceOptions(
 			NamespaceInfo::CONSTRUCTOR_OPTIONS,
@@ -386,7 +408,9 @@ trait DummyServicesTrait {
 		);
 		return new NamespaceInfo(
 			$serviceOptions,
-			$options['hookContainer'] ?? $this->createHookContainer()
+			$options['hookContainer'] ?? $this->createHookContainer(),
+			[],
+			[]
 		);
 	}
 
@@ -425,10 +449,38 @@ trait DummyServicesTrait {
 		}
 		$loadBalancer = $this->createMock( ILoadBalancer::class );
 		$loadBalancer->method( 'getReadOnlyReason' )->willReturn( false );
+		$lbFactory = $this->createMock( ILBFactory::class );
+		$lbFactory->method( 'getMainLB' )->willReturn( $loadBalancer );
 		return new ReadOnlyMode(
 			new ConfiguredReadOnlyMode( $startingReason, null ),
-			$loadBalancer
+			$lbFactory
 		);
+	}
+
+	/**
+	 * @param bool $dumpMessages Whether MessageValue objects should be formatted by dumping
+	 *   them rather than just returning the key
+	 * @return ITextFormatter
+	 */
+	private function getDummyTextFormatter( bool $dumpMessages = false ): ITextFormatter {
+		return new class( $dumpMessages ) implements ITextFormatter {
+			private bool $dumpMessages;
+
+			public function __construct( bool $dumpMessages ) {
+				$this->dumpMessages = $dumpMessages;
+			}
+
+			public function getLangCode() {
+				return 'qqx';
+			}
+
+			public function format( MessageValue $message ) {
+				if ( $this->dumpMessages ) {
+					return $message->dump();
+				}
+				return $message->getKey();
+			}
+		};
 	}
 
 	/**
@@ -464,15 +516,7 @@ trait DummyServicesTrait {
 
 		$logger = $options['logger'] ?? new NullLogger();
 
-		$textFormatter = $options['textFormatter'] ?? new class implements ITextFormatter {
-			public function getLangCode() {
-				return 'qqx';
-			}
-
-			public function format( MessageValue $message ) {
-				return $message->getKey();
-			}
-		};
+		$textFormatter = $options['textFormatter'] ?? $this->getDummyTextFormatter();
 
 		$titleParser = $options['titleParser'] ?? false;
 		if ( !$titleParser ) {
@@ -499,9 +543,11 @@ trait DummyServicesTrait {
 			$options['hookContainer'] ?? $this->createHookContainer(),
 			new RealTempUserConfig( [
 				'enabled' => true,
+				'expireAfterDays' => null,
 				'actions' => [ 'edit' ],
 				'serialProvider' => [ 'type' => 'local' ],
 				'serialMapping' => [ 'type' => 'plain-numeric' ],
+				'reservedPattern' => '!$1',
 				'matchPattern' => '*$1',
 				'genPattern' => '*Unregistered $1'
 			] )
@@ -590,6 +636,6 @@ trait DummyServicesTrait {
 					return $text;
 				}
 			);
-		return new CommentStore( $mockLang, MIGRATION_NEW, [] );
+		return new CommentStore( $mockLang );
 	}
 }

@@ -16,10 +16,9 @@
  * If you select <i>custom (within theme)</i> on the plugin option for Colorbox you need to place a folder
  * <i>colorbox</i> containing a <i>colorbox.css</i> file and a folder <i>images</i> within the current theme
  * to use a custom Colorbox theme.
- *
+  * @deprecated 2.0
  * @author Stephen Billard (sbillard)
- * @package plugins
- * @subpackage colorbox-js
+ * @package zpcore\plugins\colorboxjs
  */
 $plugin_is_filter = 800 | THEME_PLUGIN;
 $plugin_description = gettext('Loads Colorbox JS and CSS scripts for selected theme page scripts.');
@@ -37,8 +36,14 @@ if (OFFSET_PATH) {
 	zp_register_filter('theme_head', 'colorbox::css');
 }
 
+/**
+ * @deprecated 2.0
+ */
 class colorbox {
 
+	/**
+	 * @deprecated 2.0
+	 */
 	function __construct() {
 		//	These are best set by the theme itself!
 		foreach (getThemeFiles(array('404.php', 'themeoptions.php', 'theme_description.php', 'slideshow.php', 'functions.php', 'password.php', 'sidebar.php', 'register.php', 'contact.php')) as $theme => $scripts) {
@@ -48,7 +53,10 @@ class colorbox {
 		}
 		setOptionDefault('colorbox_theme', 'example1');
 	}
-
+	
+	/**
+	 * @deprecated 2.0
+	 */
 	function getOptionsSupported() {
 		global $_zp_gallery;
 		$themes = getPluginFiles('colorbox_js/themes/*.*');
@@ -67,10 +75,16 @@ class colorbox {
 		return $opts;
 	}
 
+		/**
+	 * @deprecated 2.0
+	 */
 	function handleOption($option, $currentValue) {
 		
 	}
 
+	/**
+	 * @deprecated 2.0
+	 */
 	static function css() {
 		global $_zp_gallery;
 		$inTheme = false;
@@ -92,7 +106,7 @@ class colorbox {
 		$css = getPlugin($themepath, $inTheme, true);
 		?>
 		<link rel="stylesheet" href="<?php echo $css; ?>" type="text/css" />
-		<script type="text/javascript" src="<?php echo FULLWEBPATH . "/" . ZENFOLDER . '/' . PLUGIN_FOLDER; ?>/colorbox_js/jquery.colorbox-min.js"></script>
+		<script src="<?php echo FULLWEBPATH . "/" . ZENFOLDER . '/' . PLUGIN_FOLDER; ?>/colorbox_js/jquery.colorbox-min.js"></script>
 		<script>
 			/* Colorbox resize function for images*/
 			var resizeTimer;

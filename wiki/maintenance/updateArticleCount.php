@@ -23,6 +23,8 @@
  * @author Rob Church <robchur@gmail.com>
  */
 
+use MediaWiki\SiteStats\SiteStatsInit;
+
 require_once __DIR__ . '/Maintenance.php';
 
 /**
@@ -44,7 +46,7 @@ class UpdateArticleCount extends Maintenance {
 		$this->output( "Counting articles..." );
 
 		if ( $this->hasOption( 'use-master' ) ) {
-			$dbr = $this->getDB( DB_PRIMARY );
+			$dbr = $this->getPrimaryDB();
 		} else {
 			$dbr = $this->getDB( DB_REPLICA, 'vslow' );
 		}
@@ -54,7 +56,7 @@ class UpdateArticleCount extends Maintenance {
 		$this->output( "found {$result}.\n" );
 		if ( $this->hasOption( 'update' ) ) {
 			$this->output( "Updating site statistics table..." );
-			$dbw = $this->getDB( DB_PRIMARY );
+			$dbw = $this->getPrimaryDB();
 			$dbw->update(
 				'site_stats',
 				[ 'ss_good_articles' => $result ],

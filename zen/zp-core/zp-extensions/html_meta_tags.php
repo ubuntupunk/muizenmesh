@@ -6,6 +6,7 @@
  * <li><meta> tags using general existing Zenphoto info like <i>gallery description</i>, <i>tags</i> or Zenpage <i>news categories</i>.</li>
  * <li>Support for <var><link rel="canonical" href="..." /></var></li>
  * <li>Open Graph tags for social sharing</li>
+ * <li>Twitter cards</li>
  * <li>Pinterest sharing tag</li>
  * </ul>
  *
@@ -13,8 +14,7 @@
  * Use the plugin's options to choose which tags you want printed.
  *
  * @author Malte Müller (acrylian)
- * @package plugins
- * @subpackage html-meta-tags
+ * @package zpcore\plugins\htmlmetatags
  */
 $plugin_is_filter = 5 | THEME_PLUGIN;
 $plugin_description = gettext("A plugin to print the most common HTML meta tags to the head of your site’s pages.");
@@ -36,7 +36,7 @@ class htmlmetatags {
 
 	function __construct() {
 		renameOption('google-site-verification','htmlmeta_google-site-verification');
-		purgeOption('htmlmeta_pragma');
+		
 		setOptionDefault('htmlmeta_cache_control', 'no-cache');
 		setOptionDefault('htmlmeta_robots', 'index');
 		setOptionDefault('htmlmeta_revisit_after', '10 Days');
@@ -44,17 +44,27 @@ class htmlmetatags {
 		setOptionDefault('htmlmeta_tags', '');
 
 		setOptionDefault('htmlmeta_google-site-verification', '');
+		setOptionDefault('htmlmeta_baidu-site-verification', '');
+		setOptionDefault('htmlmeta_bing-site-verification', '');
+		setOptionDefault('htmlmeta_pinterest-site-verification', '');
+		setOptionDefault('htmlmeta_yandex-site-verification', '');
 	
 		if(getOption('htmlmeta_og-title')) { // assume this will be set
 			setOptionDefault('htmlmeta_opengraph', 1);
 		}
+		
 		//remove obsolete old options
 		purgeOption('htmlmeta_og-title');
 		purgeOption('htmlmeta_og-image');
 		purgeOption('htmlmeta_og-description');
 		purgeOption('htmlmeta_og-url');
 		purgeOption('htmlmeta_og-type');
-
+		purgeOption('htmlmeta_pragma');
+		purgeOption('htmlmeta_indexpagination_gallery');
+		purgeOption('htmlmeta_indexpagination_album');
+		purgeOption('htmlmeta_indexpagination_news');
+		purgeOption('htmlmeta_indexpagination_category');
+		
 		// the html meta tag selector prechecked ones
 		setOptionDefault('htmlmeta_htmlmeta_tags', '1');
 		setOptionDefault('htmlmeta_http-equiv-cache-control', '1');
@@ -71,13 +81,19 @@ class htmlmetatags {
 		setOptionDefault('htmlmeta_name-expires', '1');
 		setOptionDefault('htmlmeta_name-generator', '1');
 		setOptionDefault('htmlmeta_name-date', '1');
-		setOptionDefault('htmlmeta_canonical-url', '0');
+		setOptionDefault('htmlmeta_canonical-url', '1');
 		setOptionDefault('htmlmeta_sitelogo', '');
 		setOptionDefault('htmlmeta_fb-app_id', '');
 		setOptionDefault('htmlmeta_twittercard', '');
 		setOptionDefault('htmlmeta_twittername', '');
 		setOptionDefault('htmlmeta_ogimage_width', 1280);
 		setOptionDefault('htmlmeta_ogimage_height', 900);
+		setOptionDefault('htmlmeta_prevnext-gallery', 1);
+		setOptionDefault('htmlmeta_prevnext-image', 1);
+		setOptionDefault('htmlmeta_prevnext-news', 1);
+		
+		setOptionDefault('htmlmeta_canonical-url_dynalbum', 1);
+		
 		if (class_exists('cacheManager')) {
 			cacheManager::deleteCacheSizes('html_meta_tags');
 			cacheManager::addCacheSize('html_meta_tags', NULL, getOption('htmlmeta_ogimage_width'), getOption('htmlmeta_ogimage_height'), NULL, NULL, NULL, NULL, NULL, NULL, NULL, true);
@@ -94,7 +110,6 @@ class htmlmetatags {
 		$options = array(
 				gettext('Cache control') => array(
 						'key' => 'htmlmeta_cache_control', 'type' => OPTION_TYPE_SELECTOR,
-						'order' => 0,
 						'selections' => array(
 								'no-cache' => "no-cache",
 								'public' => "public",
@@ -107,11 +122,18 @@ class htmlmetatags {
 						'selections' => array(
 								'noindex' => "noindex",
 								'index' => "index",
+								'index,noai,noimageai' => "index,noai,noimageai",
 								'nofollow' => "nofollow",
+								'nofollow,oai,noimageai' => "nofollow,noai,noimageai",
 								'noindex,nofollow' => "noindex,nofollow",
 								'noindex,follow' => "noindex,follow",
+								'noindex,follow,noai,noimageai' => "noindex,follow,noai,noimageai",
+								'noindex,nofollow,noai,noimageai' => "noindex,nofollow,noai,noimageai",
 								'index,nofollow' => "index,nofollow",
-								'none' => "none"),
+								'index,nofollow,noai,noimageai' => "index,nofollow,noai,noimageai",
+								'noai,noimageai' => 'noai,noimageai',
+								'none' => "none"
+						),
 						'desc' => gettext("If and how robots are allowed to visit the site. Default is “index”. Note that you also should use a robot.txt file.")),
 				gettext('Revisit after') => array(
 						'key' => 'htmlmeta_revisit_after',
@@ -124,12 +146,31 @@ class htmlmetatags {
 				gettext('Canonical URL link') => array(
 						'key' => 'htmlmeta_canonical-url',
 						'type' => OPTION_TYPE_CHECKBOX,
-						'order' => 11,
 						'desc' => gettext('This adds a link element to the head of each page with a <em>canonical url</em>. If the <code>seo_locale</code> plugin is enabled or <code>use subdomains</code> is checked it also generates alternate links for other languages (<code>&lt;link&nbsp;rel="alternate" hreflang="</code>...<code>" href="</code>...<code>" /&gt;</code>).')),
+				gettext('Canonical URL link: Dynamic album images') => array(
+						'key' => 'htmlmeta_canonical-url_dynalbum',
+						'type' => OPTION_TYPE_CHECKBOX,
+						'desc' => gettext('If you are using dynamic (virtual) albums side by side with physical albums images within a dynamic album duplicate the physical content as they have the url of the dynamic album. This makes the canonical url lead to their real physical image page. Applies only if the canonical url option is enabled.')),
 				gettext('Google site verification') => array(
 						'key' => 'htmlmeta_google-site-verification',
 						'type' => OPTION_TYPE_TEXTBOX,
 						'desc' => gettext('Insert the <em>content</em> portion of the meta tag supplied by Google.')),
+				gettext('Baidu site verification') => array(
+						'key' => 'htmlmeta_baidu-site-verification',
+						'type' => OPTION_TYPE_TEXTBOX,
+						'desc' => gettext('Insert the <em>content</em> portion of the meta tag supplied by Baidu.')),				
+				gettext('Bing site verification') => array(
+						'key' => 'htmlmeta_bing-site-verification',
+						'type' => OPTION_TYPE_TEXTBOX,
+						'desc' => gettext('Insert the <em>content</em> portion of the meta tag supplied by Bing.')),
+				gettext('Pinterest site verification') => array(
+						'key' => 'htmlmeta_pinterest-site-verification',
+						'type' => OPTION_TYPE_TEXTBOX,
+						'desc' => gettext('Insert the <em>content</em> portion of the meta tag supplied by Pinterest.')),
+				gettext('Yandex site verification') => array(
+						'key' => 'htmlmeta_yandex-site-verification',
+						'type' => OPTION_TYPE_TEXTBOX,
+						'desc' => gettext('Insert the <em>content</em> portion of the meta tag supplied by Yandex.')),				
 				gettext('Site logo') => array(
 						'key' => 'htmlmeta_sitelogo',
 						'type' => OPTION_TYPE_TEXTBOX,
@@ -172,28 +213,43 @@ class htmlmetatags {
 								"name='date'" => "htmlmeta_name-date",
 								"OpenGraph (og:)" => "htmlmeta_opengraph",
 								"name='pinterest' content='nopin'" => "htmlmeta_name-pinterest",
-								"twitter:card" => "htmlmeta_twittercard"
+								"twitter:card" => "htmlmeta_twittercard",
+								gettext('rel="next"/rel="prev": Gallery/album pagination') => "htmlmeta_prevnext-gallery",
+								gettext('rel="next"/rel="prev": Single image next/previous') => "htmlmeta_prevnext-image",
+								gettext('rel="next"/rel="prev": Zenpage news/category pagination') => "htmlmeta_prevnext-news"
 						),
 						"desc" => gettext("Which of the HTML meta tags should be used. For info about these in detail please refer to the net.")),
 				gettext('Use subdomains') . '*' => array(
 						'key' => 'dynamic_locale_subdomain',
 						'type' => OPTION_TYPE_CHECKBOX,
-						'order' => 12,
 						'disabled' => $_zp_common_locale_type,
-						'desc' => $localdesc)
+						'desc' => $localdesc),
+				gettext('Disable indexing') => array(
+						'key' => 'htmlmeta_noindexpagination',
+						'type' => OPTION_TYPE_CHECKBOX_UL,
+						"checkboxes" => array (
+								gettext('Gallery pagination') => 'htmlmeta_noindex_pagination_gallery',
+								gettext('Album pagination') => 'htmlmeta_noindex_pagination_album',
+								gettext('News article pagination') => 'htmlmeta_noindex_pagination_news',
+								gettext('News category pagination') => 'htmlmeta_noindex_pagination_category',
+								gettext('Search and search results') => 'htmlmeta_noindex_search',
+								gettext('Date archive') => 'htmlmeta_noindex_custompage_archive',
+								gettext('Contact custom page') => 'htmlmeta_noindex_custompage_contact',
+								gettext('Password custom page') => 'htmlmeta_noindex_custompage_password',
+								gettext('Register custom page') => 'htmlmeta_noindex_custompage_register'
+						),
+						"desc" => gettext("You can choose to disallow index of certain paginated pages and common (static) custom pages themes may provide. Following links will still be allowed."))
 		);
 		if ($_zp_common_locale_type) {
 			$options['note'] = array(
 					'key' => 'html_meta_tags_locale_type',
 					'type' => OPTION_TYPE_NOTE,
-					'order' => 13,
 					'desc' => '<p class="notebox">' . $_zp_common_locale_type . '</p>');
 		} else {
 			$_zp_common_locale_type = gettext('* This option may be set via the <a href="javascript:gotoName(\'html_meta_tags\');"><em>html_meta_tags</em></a> plugin options.');
 			$options['note'] = array(
 					'key' => 'html_meta_tags_locale_type',
 					'type' => OPTION_TYPE_NOTE,
-					'order' => 13,
 					'desc' => gettext('<p class="notebox">*<strong>Note:</strong> The setting of this option is shared with other plugins.</p>'));
 		}
 		return $options;
@@ -225,9 +281,11 @@ class htmlmetatags {
 		$canonicalurl = '';
 		// generate page title, get date
 		$pagetitle = ""; // for gallery index setup below switch
-		$date = getFormattedLocaleDate(DATE_FORMAT, ''); // if we don't have a item date use current date
+		$date = zpFormattedDate(DATETIME_DISPLAYFORMAT); // if we don't have a item date use current date
 		$desc = getBareGalleryDesc();
 		$thumb = '';
+		$prev = $next = '';
+		
 		if (getOption('htmlmeta_sitelogo')) {
 			$thumb = getOption('htmlmeta_sitelogo');
 		}
@@ -246,6 +304,8 @@ class htmlmetatags {
 		$copyright_notice = $_zp_gallery->getCopyrightNotice();
 		$copyright_url = $_zp_gallery->getCopyrightURL();
 		$type = 'article';
+		$public = true;
+		$indexing_allowed = true;
 		switch ($_zp_gallery_page) {
 			case 'index.php':
 			case getCustomGalleryIndexPage():
@@ -254,10 +314,29 @@ class htmlmetatags {
 				switch ($_zp_gallery_page) {
 					case 'index.php':
 						$canonicalurl = $host . getPageNumURL($_zp_page);
+						if (getOption('htmlmeta_prevnext-gallery')) {
+							if (hasPrevPage()) {
+								$prev = $host . getPageNumURL($_zp_page - 1);
+							}
+							if (hasNextPage()) {
+								$next = $host . getPageNumURL($_zp_page + 1);
+							}
+						}
 						break;
 					case getCustomGalleryIndexPage():
 						$canonicalurl = $host . getCustomGalleryIndexURL($_zp_page);
+						if (getOption('htmlmeta_prevnext-gallery')) {
+							if (hasPrevPage()) {
+								$prev = $host . getCustomGalleryIndexURL($_zp_page - 1);
+							}
+							if (hasNextPage()) {
+								$next = $host . getCustomGalleryIndexURL($_zp_page + 1);
+							}
+						}
 						break;
+				}
+				if (getOption('htmlmeta_noindex_pagination_gallery') && $_zp_page > 1) {
+					$indexing_allowed = false;
 				}
 				break;
 			case 'album.php':
@@ -267,24 +346,58 @@ class htmlmetatags {
 				$canonicalurl = $host . getPageNumURL($_zp_page);
 				if (getOption('htmlmeta_opengraph') || getOption('htmlmeta_twittercard')) {
 					$thumbimg = $_zp_current_album->getAlbumThumbImage();
-					getMaxSpaceContainer($ogimage_width, $ogimage_height, $thumbimg, false);
-					$thumb = $host . html_encode(pathurlencode($thumbimg->getCustomImage(NULL, $ogimage_width, $ogimage_height, NULL, NULL, NULL, NULL, false, NULL)));
+					$use_thumb = false;
+					if (!$thumbimg->isPhoto()) {
+						$use_thumb = true;
+					} 
+					$thumb = $host . html_encode(pathurlencode($thumbimg->getCustomSizedImageMaxSpace($ogimage_width, $ogimage_height, $use_thumb)));
 					$twittercard_type = 'summary_large_image';
 				}
+				if (getOption('htmlmeta_prevnext-gallery')) {
+					if (getPrevAlbum()) {
+						$prev = $host . getPrevAlbumURL();
+					}
+					if (getNextAlbum()) {
+						$next = $host . getNextAlbumURL();
+					}
+				}
 				$author = $_zp_current_album->getOwner(true);
+				$public = $_zp_current_album->isPublic();
+				if (getOption('htmlmeta_noindex_pagination_album') && $_zp_page > 1) {
+					$indexing_allowed = false;
+				}
 				break;
 			case 'image.php':
 				$pagetitle = getBareImageTitle() . " (" . getBareAlbumTitle() . ") - ";
 				$date = getImageDate();
 				$desc = getBareImageDesc();
-				$canonicalurl = $host . getImageURL();
+				if(getOption('htmlmeta_canonical-url_dynalbum')) {
+					$imagereal_rewrite = html_encode($_zp_current_image->album->name) . '/' . html_encode($_zp_current_image->filename) . IM_SUFFIX;
+					$imagereal_nonrewrite = 'index.php?album=' . html_encode($_zp_current_image->album->name) . '&amp;image=' . html_encode($_zp_current_image->filename);
+					$canonicalurl = rewrite_path($imagereal_rewrite, $imagereal_nonrewrite, FULLWEBPATH);
+				} else {
+					$canonicalurl = $host . getImageURL();
+				}
 				if (getOption('htmlmeta_opengraph') || getOption('htmlmeta_twittercard')) {
-					$thumb = $host . html_encode(pathurlencode(getCustomSizedImageThumbMaxSpace($ogimage_width, $ogimage_height)));
+					$use_thumb = false;
+					if (!$_zp_current_image->isPhoto()) {
+						$use_thumb = true;
+					}
+					$thumb = $host . html_encode(pathurlencode($_zp_current_image->getCustomSizedImageMaxSpace($ogimage_width, $ogimage_height, $use_thumb)));
 					$twittercard_type = 'summary_large_image';
+				}
+				if (getOption('htmlmeta_prevnext-image')) {
+					if(hasPrevImage()) {
+						$prev = $host .getPrevImageURL();
+					}
+					if(hasNextImage()) {
+						$next = $host .getNextImageURL();
+					}
 				}
 				$author = $_zp_current_image->getCopyrightRightsholder();
 				$copyright_notice = trim(getBare($_zp_current_image->getCopyrightNotice()));
 				$copyright_url = trim(strval($_zp_current_image->getCopyrightURL()));
+				$public = $_zp_current_image->isPublic();
 				break;
 			case 'news.php':
 				if (function_exists("is_NewsArticle")) {
@@ -294,20 +407,43 @@ class htmlmetatags {
 						$desc = trim(getBare(getNewsContent()));
 						$canonicalurl = $host . $_zp_current_zenpage_news->getLink();
 						$author = $_zp_current_zenpage_news->getAuthor(true);
+						$public = $_zp_current_zenpage_news->isPublic();
 					} else if (is_NewsCategory()) {
 						$pagetitle = $_zp_current_category->getName() . " - ";
-						$date = getFormattedLocaleDate(DATE_FORMAT, '');
+						$date = zpFormattedDate(DATETIME_DISPLAYFORMAT);
 						$desc = trim(getBare($_zp_current_category->getDesc()));
 						$canonicalurl = $host . $_zp_current_category->getLink();
-						$type = 'category';
+						$public = $_zp_current_category->isPublic();
+						$type = 'category';	
+						if (getOption('htmlmeta_noindex_pagination_category') && $_zp_page > 1) {
+							$indexing_allowed = false;
+						}
 					} else {
 						$pagetitle = gettext('News') . " - ";
 						$desc = '';
 						$canonicalurl = $host . getNewsIndexURL();
 						$type = 'website';
+						if (!is_NewsArticle() && getOption('htmlmeta_prevnext-news')) {
+							if (getPrevNewsPageURL()) {
+								$prev = $host . getPrevNewsPageURL();
+							}
+							if (getNextNewsPageURL()) {
+								$next = $host . getNextNewsPageURL();
+							}
+						}
+						if (!getOption('htmlmeta_indexpagination_news') && $_zp_page > 1) {
+							$indexing_allowed = false;
+						}
 					}
 					if ($_zp_page != 1) {
 						$canonicalurl .= $_zp_page . '/';
+					}
+					if (function_exists('getSizedFeaturedImage') && (is_NewsArticle() || is_NewsCategory()) && (getOption('htmlmeta_opengraph') || getOption('htmlmeta_twittercard'))) {
+						$featuredimage = getSizedFeaturedImage(null, null, $ogimage_width, $ogimage_height, null, null, null, null, false, null, true);
+						if($featuredimage) {
+							$thumb =  $host . html_pathurlencode($featuredimage);
+							$twittercard_type = 'summary_large_image';
+						}
 					}
 				}
 				break;
@@ -315,12 +451,25 @@ class htmlmetatags {
 				$pagetitle = getBarePageTitle() . " - ";
 				$date = getPageDate();
 				$desc = trim(getBare(getPageContent()));
+				if (function_exists('getSizedFeaturedImage') && (getOption('htmlmeta_opengraph') || getOption('htmlmeta_twittercard'))) {
+					$featuredimage = getSizedFeaturedImage(null, null, $ogimage_width, $ogimage_height, null, null, null, null, false, null, true);
+					if ($featuredimage) {
+						$thumb =  $host . html_pathurlencode($featuredimage);
+						$twittercard_type = 'summary_large_image';
+					}
+				}
 				$canonicalurl = $host . $_zp_current_zenpage_page->getLink();
 				$author = $_zp_current_zenpage_page->getAuthor(true);
+				$public = $_zp_current_zenpage_page->isPublic();
 				break;
 			default: // for all other possible static custom pages
 				$custompage = stripSuffix($_zp_gallery_page);
-				$standard = array('contact' => gettext('Contact'), 'register' => gettext('Register'), 'search' => gettext('Search'), 'archive' => gettext('Archive view'), 'password' => gettext('Password required'));
+				$standard = array(
+						'contact' => gettext('Contact'),
+						'register' => gettext('Register'),
+						'search' => gettext('Search'),
+						'archive' => gettext('Archive view'),
+						'password' => gettext('Password required'));
 				if (is_object($_zp_myfavorites)) {
 					$standard['favorites'] = gettext('My favorites');
 				}
@@ -329,13 +478,39 @@ class htmlmetatags {
 				} else {
 					$pagetitle = $custompage . " - ";
 				}
+				switch ($custompage) {
+					case 'search':
+						if (getOption('htmlmeta_noindex_search')) {
+							$indexing_allowed = false;
+						}
+						break;
+					case 'archive':
+						if (getOption('htmlmeta_noindex_custompage_archive')) {
+							$indexing_allowed = false;
+						}
+						break;
+					case 'register':
+						if (getOption('htmlmeta_noindex_custompage_registter')) {
+							$indexing_allowed = false;
+						}
+						break;
+					case 'contact':
+						if (getOption('htmlmeta_noindex_custompage_contact')) {
+							$indexing_allowed = false;
+						}
+						break;
+					case 'password':
+						if (getOption('htmlmeta_noindex_custompage_password')) {
+							$indexing_allowed = false;
+						}
+						break;
+				}
 				$desc = '';
 				$canonicalurl = $host . getCustomPageURL($custompage);
 				if ($_zp_page != 1) {
 					$canonicalurl .= $_zp_page . '/';
 				}
 				break;
-
 		}
 		// shorten desc to the allowed 200 characters if necesssary.
 		$desc = html_encode(trim(substr(getBare($desc), 0, 160)));
@@ -363,7 +538,15 @@ class htmlmetatags {
 			$meta .= '<meta name="page-topic" content="' . $desc . '">' . "\n";
 		}
 		if (getOption('htmlmeta_name-robots')) {
-			$meta .= '<meta name="robots" content="' . getOption("htmlmeta_robots") . '">' . "\n";
+			if ($public) {
+				if ($indexing_allowed) {
+					$meta .= '<meta name="robots" content="' . getOption("htmlmeta_robots") . '">' . "\n";
+				} else {
+					$meta .= '<meta name="robots" content="noindex,follow">' . "\n";
+				}
+			} else {
+				$meta .= '<meta name="robots" content="noindex,nofollow">' . "\n";
+			}
 		}
 		if (getOption('htmlmeta_name-publisher')) {
 			$meta .= '<meta name="publisher" content="' .  html_encode($copyright_url) . '">' . "\n";
@@ -392,8 +575,22 @@ class htmlmetatags {
 				$expires = preg_replace('|\s\-\d+|', '', date('r', time() + $expires)) . ' GMT';
 			$meta .= '<meta name="expires" content="' . $expires . '">' . "\n";
 		}
+		
+		// site verifications
 		if(getOption('htmlmeta_google-site-verification')) {
 			$meta .= '<meta name="google-site-verification" content="' . getOption('htmlmeta_google-site-verification') . '">' . "\n";
+		}
+		if(getOption('htmlmeta_baidu-site-verification')) {
+				$meta .= '<meta name="baidu-site-verification" content="' . getOption('htmlmeta_baidu-site-verification') . '">' . "\n";
+		}
+		if(getOption('htmlmeta_bing-site-verification')) {
+				$meta .= '<meta name="msvalidate.01" content="' . getOption('htmlmeta_bing-site-verification') . '">' . "\n";
+		}
+		if(getOption('htmlmeta_pinterest-site-verification')) {
+				$meta .= '<meta name="p:domain_verify" content="' . getOption('htmlmeta_pinterest-site-verification') . '">' . "\n";
+		}
+		if(getOption('htmlmeta_yandex-site-verification')) {
+				$meta .= '<meta name="yandex-verification" content="' . getOption('htmlmeta_yandex-site-verification') . '">' . "\n";
 		}
 
 		// OpenGraph meta
@@ -430,6 +627,13 @@ class htmlmetatags {
 			if (!empty($thumb)) {
 				$meta .= '<meta name="twitter:image" content="' . $thumb . '">' . "\n";
 			}
+		}
+		
+		if($prev) {
+			$meta .= '<link rel="prev" href="' . html_encode($prev) . '">' . "\n";
+		}
+		if($next) {
+			$meta .= '<link rel="next" href="' . html_encode($next) . '">' . "\n";
 		}
 
 		// Canonical url
@@ -515,7 +719,7 @@ class htmlmetatags {
 
 		} // if canonical
 		if (!empty($_zp_htmlmetatags_need_cache)) {
-  			$meta .= '<script type="text/javascript">' . "\n";
+  			$meta .= '<script>' . "\n";
   			$meta .= '
     				window.onload = function() {
       				var caches = ["' . implode(",", $_zp_htmlmetatags_need_cache) . '"];
@@ -542,7 +746,7 @@ class htmlmetatags {
 	 * 
 	 * Note keywords do not have an SEO meaning anymore
 	 * 
-	 * @deprecated ZenphotoCMS 2.0
+	 * @deprecated 2.0
 	 *
 	 * @param array $array the array of the tags or categories to list
 	 */
@@ -585,7 +789,7 @@ class htmlmetatags {
 	private static function getMetaAlbumAndImageTags($tags, $mode = "") {
 		if (is_array($tags)) {
 			$alltags = '';
-			$count = "";
+			$count = 0;
 			$separator = ", ";
 			foreach ($tags as $keyword) {
 				$count++;

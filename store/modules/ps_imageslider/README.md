@@ -4,10 +4,25 @@
 
 Add sliding images to your homepage to welcome your visitors in a visual and friendly way.
 
+## Compatibility
+
+PrestaShop: `1.7.4.0` or later
+
 ## Multistore compatibility
 
 This module is not compatible with the multistore :x: <br/>
 It means that its configuration applies for all stores.
+
+## How to test
+
+Link to specs : https://docs.prestashop-project.org/functional-documentation/functional-documentation/ux-ui/back-office/improve/modules/image-slider-ps_imageslider
+
+Settings
+- Configure Settings and check the results on FO
+Slides list
+- CRUD
+- Enable/disable
+- Reposition
 
 ## Reporting issues
 

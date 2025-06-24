@@ -19,6 +19,7 @@
  */
 
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Status\Status;
 use MediaWiki\Title\Title;
 use MediaWiki\User\UserIdentity;
 use Wikimedia\Rdbms\DBUnexpectedError;
@@ -42,7 +43,6 @@ class ForeignDBFile extends LocalFile {
 	 * @param int $flags
 	 * @param array $options
 	 * @return Status
-	 * @throws MWException
 	 */
 	public function publish( $srcPath, $flags = 0, array $options = [] ) {
 		$this->readOnlyError();
@@ -52,7 +52,6 @@ class ForeignDBFile extends LocalFile {
 	 * @param int[] $versions
 	 * @param bool $unsuppress
 	 * @return Status
-	 * @throws MWException
 	 */
 	public function restore( $versions = [], $unsuppress = false ) {
 		$this->readOnlyError();
@@ -63,7 +62,6 @@ class ForeignDBFile extends LocalFile {
 	 * @param UserIdentity $user
 	 * @param bool $suppress
 	 * @return Status
-	 * @throws MWException
 	 */
 	public function deleteFile( $reason, UserIdentity $user, $suppress = false ) {
 		$this->readOnlyError();
@@ -72,7 +70,6 @@ class ForeignDBFile extends LocalFile {
 	/**
 	 * @param Title $target
 	 * @return Status
-	 * @throws MWException
 	 */
 	public function move( $target ) {
 		$this->readOnlyError();
@@ -103,15 +100,11 @@ class ForeignDBFile extends LocalFile {
 			return false;
 		}
 
-		$touched = $this->repo->getReplicaDB()->selectField(
-			'page',
-			'page_touched',
-			[
-				'page_namespace' => NS_FILE,
-				'page_title' => $this->title->getDBkey()
-			],
-			__METHOD__
-		);
+		$touched = $this->repo->getReplicaDB()->newSelectQueryBuilder()
+			->select( 'page_touched' )
+			->from( 'page' )
+			->where( [ 'page_namespace' => NS_FILE, 'page_title' => $this->title->getDBkey() ] )
+			->caller( __METHOD__ )->fetchField();
 		if ( $touched === false ) {
 			return false; // no description page
 		}
@@ -149,15 +142,11 @@ class ForeignDBFile extends LocalFile {
 	 */
 	public function getDescriptionShortUrl() {
 		$dbr = $this->repo->getReplicaDB();
-		$pageId = $dbr->selectField(
-			'page',
-			'page_id',
-			[
-				'page_namespace' => NS_FILE,
-				'page_title' => $this->title->getDBkey()
-			],
-			__METHOD__
-		);
+		$pageId = $dbr->newSelectQueryBuilder()
+			->select( 'page_id' )
+			->from( 'page' )
+			->where( [ 'page_namespace' => NS_FILE, 'page_title' => $this->title->getDBkey() ] )
+			->caller( __METHOD__ )->fetchField();
 
 		if ( $pageId !== false ) {
 			$url = $this->repo->makeUrl( [ 'curid' => $pageId ] );

@@ -9,10 +9,10 @@ use MediaWiki\Extension\AbuseFilter\Consequences\ConsequenceNotPrecheckedExcepti
 use MediaWiki\Extension\AbuseFilter\Consequences\Parameters;
 use MediaWiki\Extension\AbuseFilter\Filter\ExistingFilter;
 use MediaWiki\Session\Session;
+use MediaWiki\Title\TitleValue;
 use MediaWiki\User\UserIdentityValue;
 use MediaWikiUnitTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
-use TitleValue;
 use Wikimedia\TestingAccessWrapper;
 
 /**
@@ -44,6 +44,7 @@ class WarnTest extends MediaWikiUnitTestCase {
 				null
 			)
 		);
+		/** @var Warn $warnWrap */
 		$warnWrap = TestingAccessWrapper::newFromObject( $this->getWarn( $params ) );
 		return [ $params, $warnWrap->getWarnKey() ];
 	}

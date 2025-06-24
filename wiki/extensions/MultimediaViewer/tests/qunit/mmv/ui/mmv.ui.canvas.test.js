@@ -15,12 +15,14 @@
  * along with MediaViewer.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+const { Canvas, LightboxImage } = require( 'mmv' );
+
 ( function () {
 	QUnit.module( 'mmv.ui.Canvas', QUnit.newMwEnvironment() );
 
 	QUnit.test( 'Constructor sense check', function ( assert ) {
-		var $qf = $( '#qunit-fixture' ),
-			canvas = new mw.mmv.ui.Canvas( $qf, $qf, $qf );
+		const $qf = $( '#qunit-fixture' );
+		const canvas = new Canvas( $qf, $qf, $qf );
 
 		assert.strictEqual( canvas.$imageDiv.length, 1, 'Image container is created.' );
 		assert.strictEqual( canvas.$imageWrapper, $qf, '$imageWrapper is set correctly.' );
@@ -28,11 +30,11 @@
 	} );
 
 	QUnit.test( 'empty() and set()', function ( assert ) {
-		var $qf = $( '#qunit-fixture' ),
-			canvas = new mw.mmv.ui.Canvas( $qf ),
-			image = new Image(),
-			$imageElem = $( image ),
-			imageRawMetadata = new mw.mmv.LightboxImage( 'foo.png' );
+		const $qf = $( '#qunit-fixture' );
+		const canvas = new Canvas( $qf );
+		const image = new Image();
+		const $imageElem = $( image );
+		const imageRawMetadata = new LightboxImage( 'foo.png' );
 
 		canvas.empty();
 
@@ -53,23 +55,21 @@
 	} );
 
 	QUnit.test( 'setImageAndMaxDimensions()', function ( assert ) {
-		var $qf = $( '#qunit-fixture' ),
-			$mainWrapper = $( '<div>' ).appendTo( $qf ),
-			$innerWrapper = $( '<div>' ).appendTo( $mainWrapper ),
-			$imageWrapper = $( '<div>' ).appendTo( $innerWrapper ),
-			canvas = new mw.mmv.ui.Canvas( $innerWrapper, $imageWrapper, $mainWrapper ),
-			imageRawMetadata = new mw.mmv.LightboxImage( 'foo.png' ),
-			image = new Image(),
-			$imageElem = $( image ),
-			image2 = new Image(),
-			thumbnailWidth = 10,
-			screenWidth = 100,
-			$currentImage,
-			originalWidth;
+		const $qf = $( '#qunit-fixture' );
+		const $mainWrapper = $( '<div>' ).appendTo( $qf );
+		const $innerWrapper = $( '<div>' ).appendTo( $mainWrapper );
+		const $imageWrapper = $( '<div>' ).appendTo( $innerWrapper );
+		const canvas = new Canvas( $innerWrapper, $imageWrapper, $mainWrapper );
+		const imageRawMetadata = new LightboxImage( 'foo.png' );
+		const image = new Image();
+		const $imageElem = $( image );
+		const image2 = new Image();
+		let thumbnailWidth = 10;
+		const screenWidth = 100;
 
 		// Need to call set() before using setImageAndMaxDimensions()
 		canvas.set( imageRawMetadata, $imageElem );
-		originalWidth = image.width;
+		const originalWidth = image.width;
 
 		// Call with the same image
 		canvas.setImageAndMaxDimensions(
@@ -81,7 +81,7 @@
 		assert.strictEqual( image.width, originalWidth, 'Image width was not modified.' );
 		assert.strictEqual( canvas.$image, $imageElem, 'Image element still set correctly.' );
 
-		$currentImage = canvas.$image;
+		const $currentImage = canvas.$image;
 
 		// Call with a new image bigger than screen size
 		thumbnailWidth = 150;
@@ -96,14 +96,14 @@
 	} );
 
 	QUnit.test( 'maybeDisplayPlaceholder: Constrained area for SVG files', function ( assert ) {
-		var $image,
-			blurredThumbnailShown,
-			$qf = $( '#qunit-fixture' ),
-			imageRawMetadata = new mw.mmv.LightboxImage( 'foo.svg' ),
-			canvas = new mw.mmv.ui.Canvas( $qf );
+		const $qf = $( '#qunit-fixture' );
+		const imageRawMetadata = new LightboxImage( 'foo.svg' );
+		const canvas = new Canvas( $qf );
 
 		imageRawMetadata.filePageTitle = {
-			getExtension: function () { return 'svg'; }
+			getExtension: function () {
+				return 'svg';
+			}
 		};
 		canvas.imageRawMetadata = imageRawMetadata;
 
@@ -111,9 +111,9 @@
 			assert.true( false, 'Placeholder is not shown' );
 		};
 
-		$image = $( '<img>' ).width( 10 ).height( 5 );
+		const $image = $( '<img>' ).width( 10 ).height( 5 );
 
-		blurredThumbnailShown = canvas.maybeDisplayPlaceholder(
+		const blurredThumbnailShown = canvas.maybeDisplayPlaceholder(
 			{ width: 200, height: 100 },
 			$image,
 			{ cssWidth: 300, cssHeight: 150 }
@@ -126,14 +126,14 @@
 	} );
 
 	QUnit.test( 'maybeDisplayPlaceholder: placeholder big enough that it doesn\'t need blurring, actual image bigger than the lightbox', function ( assert ) {
-		var $image,
-			blurredThumbnailShown,
-			$qf = $( '#qunit-fixture' ),
-			imageRawMetadata = new mw.mmv.LightboxImage( 'foo.png' ),
-			canvas = new mw.mmv.ui.Canvas( $qf );
+		const $qf = $( '#qunit-fixture' );
+		const imageRawMetadata = new LightboxImage( 'foo.png' );
+		const canvas = new Canvas( $qf );
 
 		imageRawMetadata.filePageTitle = {
-			getExtension: function () { return 'png'; }
+			getExtension: function () {
+				return 'png';
+			}
 		};
 		canvas.imageRawMetadata = imageRawMetadata;
 
@@ -141,9 +141,9 @@
 			assert.true( true, 'Placeholder shown' );
 		};
 
-		$image = $( '<img>' ).width( 200 ).height( 100 );
+		const $image = $( '<img>' ).width( 200 ).height( 100 );
 
-		blurredThumbnailShown = canvas.maybeDisplayPlaceholder(
+		const blurredThumbnailShown = canvas.maybeDisplayPlaceholder(
 			{ width: 1000, height: 500 },
 			$image,
 			{ cssWidth: 300, cssHeight: 150 }
@@ -156,14 +156,14 @@
 	} );
 
 	QUnit.test( 'maybeDisplayPlaceholder: big-enough placeholder that needs blurring, actual image bigger than the lightbox', function ( assert ) {
-		var $image,
-			blurredThumbnailShown,
-			$qf = $( '#qunit-fixture' ),
-			imageRawMetadata = new mw.mmv.LightboxImage( 'foo.png' ),
-			canvas = new mw.mmv.ui.Canvas( $qf );
+		const $qf = $( '#qunit-fixture' );
+		const imageRawMetadata = new LightboxImage( 'foo.png' );
+		const canvas = new Canvas( $qf );
 
 		imageRawMetadata.filePageTitle = {
-			getExtension: function () { return 'png'; }
+			getExtension: function () {
+				return 'png';
+			}
 		};
 		canvas.imageRawMetadata = imageRawMetadata;
 
@@ -171,9 +171,9 @@
 			assert.true( true, 'Placeholder shown' );
 		};
 
-		$image = $( '<img>' ).width( 100 ).height( 50 );
+		const $image = $( '<img>' ).width( 100 ).height( 50 );
 
-		blurredThumbnailShown = canvas.maybeDisplayPlaceholder(
+		const blurredThumbnailShown = canvas.maybeDisplayPlaceholder(
 			{ width: 1000, height: 500 },
 			$image,
 			{ cssWidth: 300, cssHeight: 150 }
@@ -186,14 +186,14 @@
 	} );
 
 	QUnit.test( 'maybeDisplayPlaceholder: big-enough placeholder that needs blurring, actual image smaller than the lightbox', function ( assert ) {
-		var $image,
-			blurredThumbnailShown,
-			$qf = $( '#qunit-fixture' ),
-			imageRawMetadata = new mw.mmv.LightboxImage( 'foo.png' ),
-			canvas = new mw.mmv.ui.Canvas( $qf );
+		const $qf = $( '#qunit-fixture' );
+		const imageRawMetadata = new LightboxImage( 'foo.png' );
+		const canvas = new Canvas( $qf );
 
 		imageRawMetadata.filePageTitle = {
-			getExtension: function () { return 'png'; }
+			getExtension: function () {
+				return 'png';
+			}
 		};
 		canvas.imageRawMetadata = imageRawMetadata;
 
@@ -201,9 +201,9 @@
 			assert.true( true, 'Placeholder shown' );
 		};
 
-		$image = $( '<img>' ).width( 100 ).height( 50 );
+		const $image = $( '<img>' ).width( 100 ).height( 50 );
 
-		blurredThumbnailShown = canvas.maybeDisplayPlaceholder(
+		const blurredThumbnailShown = canvas.maybeDisplayPlaceholder(
 			{ width: 1000, height: 500 },
 			$image,
 			{ cssWidth: 1200, cssHeight: 600 }
@@ -216,14 +216,14 @@
 	} );
 
 	QUnit.test( 'maybeDisplayPlaceholder: placeholder too small to be displayed, actual image bigger than the lightbox', function ( assert ) {
-		var $image,
-			blurredThumbnailShown,
-			$qf = $( '#qunit-fixture' ),
-			imageRawMetadata = new mw.mmv.LightboxImage( 'foo.png' ),
-			canvas = new mw.mmv.ui.Canvas( $qf );
+		const $qf = $( '#qunit-fixture' );
+		const imageRawMetadata = new LightboxImage( 'foo.png' );
+		const canvas = new Canvas( $qf );
 
 		imageRawMetadata.filePageTitle = {
-			getExtension: function () { return 'png'; }
+			getExtension: function () {
+				return 'png';
+			}
 		};
 		canvas.imageRawMetadata = imageRawMetadata;
 
@@ -231,9 +231,9 @@
 			assert.true( false, 'Placeholder shown when it should not' );
 		};
 
-		$image = $( '<img>' ).width( 10 ).height( 5 );
+		const $image = $( '<img>' ).width( 10 ).height( 5 );
 
-		blurredThumbnailShown = canvas.maybeDisplayPlaceholder(
+		const blurredThumbnailShown = canvas.maybeDisplayPlaceholder(
 			{ width: 1000, height: 500 },
 			$image,
 			{ cssWidth: 300, cssHeight: 150 }
@@ -246,16 +246,14 @@
 	} );
 
 	QUnit.test( 'unblurWithAnimation', function ( assert ) {
-		var $qf = $( '#qunit-fixture' ),
-			canvas = new mw.mmv.ui.Canvas( $qf ),
-			oldAnimate = $.fn.animate;
+		const $qf = $( '#qunit-fixture' );
+		const canvas = new Canvas( $qf );
+		const oldAnimate = $.fn.animate;
 
 		$.fn.animate = function ( target, options ) {
-			var key;
-
 			if ( options ) {
 				if ( options.step ) {
-					for ( key in target ) {
+					for ( const key in target ) {
 						options.step.call( this, target[ key ] /* , tween object */ );
 					}
 				}

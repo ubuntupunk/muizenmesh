@@ -15,27 +15,28 @@
  * along with MediaViewer.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+const { StripeButtons } = require( 'mmv' );
+
 ( function () {
 	QUnit.module( 'mmv.ui.StripeButtons', QUnit.newMwEnvironment() );
 
 	function createStripeButtons() {
-		var $fixture = $( '#qunit-fixture' );
-		return new mw.mmv.ui.StripeButtons( $fixture );
+		const $fixture = $( '#qunit-fixture' );
+		return new StripeButtons( $fixture );
 	}
 
 	QUnit.test( 'Sense test, object creation and UI construction', function ( assert ) {
-		var buttons,
-			oldMwUserIsAnon = mw.user.isAnon;
+		const oldMwUserIsAnon = mw.user.isAnon;
 
 		// first pretend we are anonymous
-		mw.user.isAnon = function () { return true; };
-		buttons = createStripeButtons();
+		mw.user.isAnon = () => true;
+		let buttons = createStripeButtons();
 
-		assert.true( buttons instanceof mw.mmv.ui.StripeButtons, 'UI element is created.' );
+		assert.true( buttons instanceof StripeButtons, 'UI element is created.' );
 		assert.strictEqual( buttons.buttons.$descriptionPage.length, 1, 'File page button created for anon.' );
 
 		// now pretend we are logged in
-		mw.user.isAnon = function () { return false; };
+		mw.user.isAnon = () => false;
 		buttons = createStripeButtons();
 
 		assert.strictEqual( buttons.buttons.$descriptionPage.length, 1, 'File page button created for logged in.' );
@@ -44,9 +45,14 @@
 	} );
 
 	QUnit.test( 'set()/empty() sense test:', function ( assert ) {
-		var buttons = createStripeButtons(),
-			fakeImageInfo = { descriptionUrl: '//commons.wikimedia.org/wiki/File:Foo.jpg' },
-			fakeRepoInfo = { displayName: 'Wikimedia Commons', isCommons: function () { return true; } };
+		const buttons = createStripeButtons();
+		const fakeImageInfo = { descriptionUrl: '//commons.wikimedia.org/wiki/File:Foo.jpg' };
+		const fakeRepoInfo = {
+			displayName: 'Wikimedia Commons',
+			isCommons: function () {
+				return true;
+			}
+		};
 
 		buttons.set( fakeImageInfo, fakeRepoInfo );
 		buttons.empty();
@@ -55,26 +61,30 @@
 	} );
 
 	QUnit.test( 'Description page button', function ( assert ) {
-		var $qf = $( '#qunit-fixture' ),
-			buttons = new mw.mmv.ui.StripeButtons( $qf ),
-			$button = buttons.buttons.$descriptionPage,
-			descriptionUrl = 'http://example.com/desc',
-			descriptionUrl2 = 'http://example.com/different-desc',
-			imageInfo = { descriptionUrl: descriptionUrl },
-			repoInfo = { isCommons: function () { return false; } };
+		const $qf = $( '#qunit-fixture' );
+		const buttons = new StripeButtons( $qf );
+		const $button = buttons.buttons.$descriptionPage;
+		const descriptionUrl = 'http://example.com/desc';
+		const descriptionUrl2 = 'http://example.com/different-desc';
+		const imageInfo = { descriptionUrl: descriptionUrl };
+		const repoInfo = {
+			isCommons: function () {
+				return false;
+			}
+		};
 
 		buttons.setDescriptionPageButton( imageInfo, repoInfo );
 
 		assert.strictEqual( $button.hasClass( 'mw-mmv-repo-button-commons' ), false, 'Button does not have commons class non-Commons files' );
 		assert.strictEqual( $button.find( 'a' ).addBack().filter( 'a' ).attr( 'href' ), descriptionUrl, 'Description page link is correct' );
 
-		repoInfo.isCommons = function () { return true; };
+		repoInfo.isCommons = () => true;
 		buttons.setDescriptionPageButton( imageInfo, repoInfo );
 
 		assert.strictEqual( $button.hasClass( 'mw-mmv-repo-button-commons' ), true, 'Button commons class for Commons files' );
 
 		imageInfo.pageID = 1;
-		imageInfo.title = { getUrl: function () { return descriptionUrl2; } };
+		imageInfo.title = { getUrl: () => descriptionUrl2 };
 		repoInfo.isLocal = false;
 		buttons.setDescriptionPageButton( imageInfo, repoInfo );
 

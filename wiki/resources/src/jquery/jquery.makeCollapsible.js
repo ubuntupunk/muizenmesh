@@ -7,8 +7,6 @@
  * Dual licensed:
  * - CC BY 3.0 <https://creativecommons.org/licenses/by/3.0>
  * - GPL2 <http://www.gnu.org/licenses/old-licenses/gpl-2.0.html>
- *
- * @class jQuery.plugin.makeCollapsible
  */
 ( function () {
 	/**
@@ -16,21 +14,17 @@
 	 *
 	 * @private
 	 * @param {jQuery} $collapsible
-	 * @param {string} action The action this function will take ('expand' or 'collapse').
+	 * @param {boolean} expand Expand the element, otherwise collapse
 	 * @param {jQuery|null} [$defaultToggle]
 	 * @param {Object|undefined} [options]
 	 */
-	function toggleElement( $collapsible, action, $defaultToggle, options ) {
+	function toggleElement( $collapsible, expand, $defaultToggle, options ) {
 		options = options || {};
 
 		// Validate parameters
 
 		// $collapsible must be an instance of jQuery
 		if ( !$collapsible.jquery ) {
-			return;
-		}
-		if ( action !== 'expand' && action !== 'collapse' ) {
-			// action must be string with 'expand' or 'collapse'
 			return;
 		}
 		if ( $defaultToggle === undefined ) {
@@ -40,9 +34,9 @@
 		// Trigger a custom event to allow callers to hook to the collapsing/expanding,
 		// allowing the module to be testable, and making it possible to
 		// e.g. implement persistence via cookies
-		$collapsible.trigger( action === 'expand' ? 'beforeExpand.mw-collapsible' : 'beforeCollapse.mw-collapsible' );
+		$collapsible.trigger( expand ? 'beforeExpand.mw-collapsible' : 'beforeCollapse.mw-collapsible' );
 		var hookCallback = function () {
-			$collapsible.trigger( action === 'expand' ? 'afterExpand.mw-collapsible' : 'afterCollapse.mw-collapsible' );
+			$collapsible.trigger( expand ? 'afterExpand.mw-collapsible' : 'afterCollapse.mw-collapsible' );
 		};
 
 		// Handle different kinds of elements
@@ -82,7 +76,7 @@
 			}
 		}
 
-		$containers.toggle( action === 'expand' );
+		$containers.toggle( expand );
 		hookCallback();
 	}
 
@@ -108,8 +102,8 @@
 			) {
 				// Don't fire if a link was clicked (for premade togglers)
 				return;
-			} else if ( e.type === 'keypress' && e.which !== 13 && e.which !== 32 ) {
-				// Only handle keypresses on the "Enter" or "Space" keys
+			} else if ( e.type === 'keydown' && e.which !== 13 && e.which !== 32 ) {
+				// Only handle the "Enter" or "Space" keys
 				return;
 			} else {
 				e.preventDefault();
@@ -153,7 +147,7 @@
 		}
 
 		// And finally toggle the element state itself
-		toggleElement( $collapsible, wasCollapsed ? 'expand' : 'collapse', $toggle, options );
+		toggleElement( $collapsible, !!wasCollapsed, $toggle, options );
 	}
 
 	/**
@@ -193,6 +187,7 @@
 
 	/**
 	 * Enable collapsible-functionality on all elements in the collection.
+	 * Provided by the jquery.makeCollapsible ResourceLoader module.
 	 *
 	 * - Will prevent binding twice to the same element.
 	 * - Initial state is expanded by default, this can be overridden by adding class
@@ -200,6 +195,10 @@
 	 * - Elements made collapsible have jQuery data "mw-made-collapsible" set to true.
 	 * - The inner content is wrapped in a "div.mw-collapsible-content" (except for tables and lists).
 	 *
+	 * @example
+	 * mw.loader.using( 'jquery.makeCollapsible' ).then( () => {
+	 *       $( 'table' ).makeCollapsible();
+	 * } );
 	 * @param {Object} [options]
 	 * @param {string} [options.collapseText] Text used for the toggler, when clicking it would
 	 *   collapse the element. Default: the 'data-collapsetext' attribute of the
@@ -219,7 +218,8 @@
 	 *   item separately for lists) and don't wrap other elements in
 	 *   div.mw-collapsible-content. May only be used with custom togglers.
 	 * @return {jQuery}
-	 * @chainable
+	 * @memberof jQueryPlugins
+	 * @method makeCollapsible
 	 */
 	$.fn.makeCollapsible = function ( options ) {
 		options = options || {};
@@ -244,7 +244,7 @@
 			var collapseText = options.collapseText || $collapsible.attr( 'data-collapsetext' ) || mw.msg( 'collapsible-collapse' );
 			var expandText = options.expandText || $collapsible.attr( 'data-expandtext' ) || mw.msg( 'collapsible-expand' );
 
-			// Default click/keypress handler and toggle link to use when none is present
+			// Default click/keydown handler and toggle link to use when none is present
 			var actionHandler = function ( e, opts ) {
 				var defaultOpts = {
 					toggleClasses: true,
@@ -257,15 +257,11 @@
 
 			// Default toggle link. Only build it when needed to avoid jQuery memory leaks (event data).
 			var buildDefaultToggleLink = function () {
-				return $( '<a>' )
+				return $( '<span>' )
 					.addClass( 'mw-collapsible-text' )
 					.text( collapseText )
-					.wrap( '<span class="mw-collapsible-toggle mw-collapsible-toggle-default"></span>' )
-					.parent()
-					.attr( {
-						role: 'button',
-						tabindex: 0
-					} );
+					.wrap( '<button type="button" class="mw-collapsible-toggle mw-collapsible-toggle-default"></button>' )
+					.parent();
 			};
 
 			// Check if this element has a custom position for the toggle link
@@ -305,7 +301,7 @@
 					// as opposed to the first row
 					var $caption = $collapsible.find( '> caption' );
 					if ( $caption.length ) {
-						$toggle = $caption.find( '> .mw-collapsible-toggle' );
+						$toggle = $caption.find( '> .mw-collapsible-toggle, .mw-collapsible-toggle-placeholder' ).first();
 
 						// If there is no toggle link, add it to the end of the caption
 						if ( !$toggle.length ) {
@@ -314,7 +310,7 @@
 					} else {
 						// The toggle-link will be in one of the cells (td or th) of the first row
 						$firstItem = $collapsible.find( 'tr' ).first().find( 'th, td' );
-						$toggle = $firstItem.find( '> .mw-collapsible-toggle' );
+						$toggle = $firstItem.find( '> .mw-collapsible-toggle, .mw-collapsible-toggle-placeholder' ).first();
 
 						// If theres no toggle link, add it to the last cell
 						if ( !$toggle.length ) {
@@ -324,7 +320,7 @@
 
 				} else if ( $collapsible.parent().is( 'li' ) &&
 					$collapsible.parent().children( '.mw-collapsible' ).length === 1 &&
-					$collapsible.find( '> .mw-collapsible-toggle' ).length === 0
+					$collapsible.find( '> .mw-collapsible-toggle, .mw-collapsible-toggle-placeholder' ).length === 0
 				) {
 					// special case of one collapsible in <li> tag
 					$toggle = buildDefaultToggleLink();
@@ -332,7 +328,7 @@
 				} else if ( $collapsible.is( 'ul' ) || $collapsible.is( 'ol' ) ) {
 					// The toggle-link will be in the first list-item
 					$firstItem = $collapsible.find( 'li' ).first();
-					$toggle = $firstItem.find( '> .mw-collapsible-toggle' );
+					$toggle = $firstItem.find( '> .mw-collapsible-toggle, .mw-collapsible-toggle-placeholder' ).first();
 
 					// If theres no toggle link, add it
 					if ( !$toggle.length ) {
@@ -350,7 +346,7 @@
 				} else { // <div>, <p> etc.
 
 					// The toggle-link will be the first child of the element
-					$toggle = $collapsible.find( '> .mw-collapsible-toggle' );
+					$toggle = $collapsible.find( '> .mw-collapsible-toggle, .mw-collapsible-toggle-placeholder' ).first();
 
 					// If a direct child .content-wrapper does not exists, create it
 					if ( !$collapsible.find( '> .mw-collapsible-content' ).length ) {
@@ -364,8 +360,16 @@
 				}
 			}
 
+			// If the toggle is just a placeholder, replace it with a real one
+			// eslint-disable-next-line no-jquery/no-class-state
+			if ( $toggle.hasClass( 'mw-collapsible-toggle-placeholder' ) ) {
+				var $realToggle = buildDefaultToggleLink();
+				$toggle.replaceWith( $realToggle );
+				$toggle = $realToggle;
+			}
+
 			// Attach event handlers to togglelink
-			$toggle.on( 'click.mw-collapsible keypress.mw-collapsible', actionHandler )
+			$toggle.on( 'click.mw-collapsible keydown.mw-collapsible', actionHandler )
 				.attr( 'aria-expanded', 'true' )
 				.prop( 'tabIndex', 0 );
 
@@ -395,13 +399,13 @@
 		window.addEventListener( 'hashchange', hashHandler );
 
 		/**
-		 * Fired after collapsible content has been initialized
+		 * Fired after collapsible content has been initialized.
 		 *
 		 * This gives an option to modify the collapsible behavior.
 		 *
-		 * @event wikipage_collapsibleContent
-		 * @member mw.hook
-		 * @param {jQuery} $content All the elements that have been made collapsible
+		 * @event ~'wikipage.collapsibleContent'
+		 * @memberof Hooks
+		 * @param {jQuery} $collapsible An element that has been made collapsible
 		 */
 		mw.hook( 'wikipage.collapsibleContent' ).fire( this );
 
@@ -413,7 +417,7 @@
 
 	/**
 	 * @class jQuery
-	 * @mixins jQuery.plugin.makeCollapsible
+	 * @mixes jQuery.plugin.makeCollapsible
 	 */
 
 }() );

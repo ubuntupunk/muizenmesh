@@ -1,7 +1,7 @@
 /*!
  * VisualEditor ContentEditable MWInlineImageNode class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see AUTHORS.txt
+ * @copyright See AUTHORS.txt
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
@@ -23,15 +23,20 @@ ve.ce.MWInlineImageNode = function VeCeMWInlineImageNode( model, config ) {
 	if ( model.getAttribute( 'isError' ) ) {
 		this.$element = $( '<a>' )
 			.addClass( 'new' )
-			.text( model.getAttribute( 'errorText' ) );
+			.append(
+				$( '<span>' )
+					.addClass( 'mw-file-element mw-broken-media' )
+					.text( model.getAttribute( 'errorText' ) )
+			);
 		$image = $( [] );
 	} else {
+		$image = $( '<img>' ).addClass( 'mw-file-element' );
 		if ( model.getAttribute( 'href' ) ) {
 			hasHref = true;
-			this.$element = $( '<a>' );
-			$image = $( '<img>' ).appendTo( this.$element );
+			this.$element = $( '<a>' ).addClass( 'mw-file-description' );
+			$image.appendTo( this.$element );
 		} else {
-			this.$element = $image = $( '<img>' );
+			this.$element = $image;
 		}
 	}
 

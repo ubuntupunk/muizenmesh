@@ -1,7 +1,7 @@
 /*!
  * VisualEditor MediaWiki Initialization MobileCollabTarget class.
  *
- * @copyright 2011-2016 VisualEditor Team and others; see AUTHORS.txt
+ * @copyright See AUTHORS.txt
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
@@ -88,8 +88,6 @@ ve.init.mw.MobileCollabTarget.static.toolbarGroups = [
 		include: [ 'export' ]
 	}
 ];
-
-ve.init.mw.MobileCollabTarget.static.actionGroups = [];
 
 /* Methods */
 

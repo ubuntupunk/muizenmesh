@@ -21,6 +21,8 @@
  * @author Daniel Kinzler
  */
 
+namespace MediaWiki\Title;
+
 /**
  * A title parser service for %MediaWiki.
  *
@@ -56,3 +58,6 @@ interface TitleParser {
 	 */
 	public function makeTitleValueSafe( $namespace, $text, $fragment = '', $interwiki = '' );
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( TitleParser::class, 'TitleParser' );

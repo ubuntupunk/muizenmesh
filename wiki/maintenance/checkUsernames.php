@@ -23,8 +23,6 @@
 
 require_once __DIR__ . '/Maintenance.php';
 
-use MediaWiki\MediaWikiServices;
-
 /**
  * Maintenance script to check that database usernames are actually valid.
  *
@@ -42,8 +40,8 @@ class CheckUsernames extends Maintenance {
 	}
 
 	public function execute() {
-		$dbr = $this->getDB( DB_REPLICA );
-		$userNameUtils = MediaWikiServices::getInstance()->getUserNameUtils();
+		$dbr = $this->getReplicaDB();
+		$userNameUtils = $this->getServiceContainer()->getUserNameUtils();
 
 		$maxUserId = 0;
 		do {

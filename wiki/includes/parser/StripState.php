@@ -21,6 +21,8 @@
  * @ingroup Parser
  */
 
+use MediaWiki\Parser\Parser;
+
 /**
  * @todo document, briefly.
  * @newable
@@ -38,7 +40,7 @@ class StripState {
 	protected $expandSize = 0;
 
 	protected $depthLimit = 20;
-	protected $sizeLimit = 5000000;
+	protected $sizeLimit = 5_000_000;
 
 	/**
 	 * @stable to call
@@ -81,14 +83,16 @@ class StripState {
 	}
 
 	/**
-	 * @throws MWException
 	 * @param string $type
+	 * @param-taint $type none
 	 * @param string $marker
+	 * @param-taint $marker none
 	 * @param string|Closure $value
+	 * @param-taint $value exec_html
 	 */
 	protected function addItem( $type, $marker, $value ) {
 		if ( !preg_match( $this->regex, $marker, $m ) ) {
-			throw new MWException( "Invalid marker: $marker" );
+			throw new InvalidArgumentException( "Invalid marker: $marker" );
 		}
 
 		$this->data[$type][$m[1]] = $value;

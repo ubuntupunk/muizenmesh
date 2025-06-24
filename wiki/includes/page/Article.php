@@ -19,30 +19,41 @@
  */
 
 use MediaWiki\Block\DatabaseBlock;
+use MediaWiki\Block\DatabaseBlockStore;
 use MediaWiki\CommentFormatter\CommentFormatter;
+use MediaWiki\Context\IContextSource;
+use MediaWiki\Context\RequestContext;
 use MediaWiki\EditPage\EditPage;
+use MediaWiki\HookContainer\HookRunner;
 use MediaWiki\HookContainer\ProtectedHookAccessorTrait;
 use MediaWiki\Html\Html;
 use MediaWiki\Linker\Linker;
 use MediaWiki\Linker\LinkRenderer;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Output\OutputPage;
 use MediaWiki\Page\ParserOutputAccess;
 use MediaWiki\Page\ProtectionForm;
 use MediaWiki\Page\WikiPageFactory;
+use MediaWiki\Parser\Parser;
+use MediaWiki\Parser\ParserOutput;
 use MediaWiki\Permissions\Authority;
 use MediaWiki\Permissions\PermissionStatus;
+use MediaWiki\Revision\ArchivedRevisionLookup;
 use MediaWiki\Revision\BadRevisionException;
 use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\Revision\RevisionStore;
 use MediaWiki\Revision\SlotRecord;
+use MediaWiki\Status\Status;
 use MediaWiki\Title\Title;
+use MediaWiki\User\Options\UserOptionsLookup;
+use MediaWiki\User\User;
 use MediaWiki\User\UserIdentity;
 use MediaWiki\User\UserNameUtils;
-use MediaWiki\User\UserOptionsLookup;
-use MediaWiki\Watchlist\WatchlistManager;
 use Wikimedia\IPUtils;
+use Wikimedia\LightweightObjectStore\ExpirationAwareness;
 use Wikimedia\NonSerializable\NonSerializableTrait;
+use Wikimedia\Rdbms\IConnectionProvider;
 
 /**
  * Legacy class representing an editable page and handling UI for some page actions.
@@ -110,11 +121,6 @@ class Article implements Page {
 	private $revisionStore;
 
 	/**
-	 * @var WatchlistManager
-	 */
-	private $watchlistManager;
-
-	/**
 	 * @var UserNameUtils
 	 */
 	private $userNameUtils;
@@ -132,6 +138,14 @@ class Article implements Page {
 
 	/** @var JobQueueGroup */
 	private $jobQueueGroup;
+
+	/** @var ArchivedRevisionLookup */
+	private $archivedRevisionLookup;
+
+	protected IConnectionProvider $dbProvider;
+
+	/** @var DatabaseBlockStore */
+	protected $blockStore;
 
 	/**
 	 * @var RevisionRecord|null Revision to be shown
@@ -152,12 +166,14 @@ class Article implements Page {
 		$services = MediaWikiServices::getInstance();
 		$this->linkRenderer = $services->getLinkRenderer();
 		$this->revisionStore = $services->getRevisionStore();
-		$this->watchlistManager = $services->getWatchlistManager();
 		$this->userNameUtils = $services->getUserNameUtils();
 		$this->userOptionsLookup = $services->getUserOptionsLookup();
 		$this->commentFormatter = $services->getCommentFormatter();
 		$this->wikiPageFactory = $services->getWikiPageFactory();
 		$this->jobQueueGroup = $services->getJobQueueGroup();
+		$this->archivedRevisionLookup = $services->getArchivedRevisionLookup();
+		$this->dbProvider = $services->getConnectionProvider();
+		$this->blockStore = $services->getDatabaseBlockStore();
 	}
 
 	/**
@@ -175,7 +191,7 @@ class Article implements Page {
 	 */
 	public static function newFromID( $id ) {
 		$t = Title::newFromID( $id );
-		return $t == null ? null : new static( $t );
+		return $t === null ? null : new static( $t );
 	}
 
 	/**
@@ -185,15 +201,16 @@ class Article implements Page {
 	 * @param IContextSource $context
 	 * @return Article
 	 */
-	public static function newFromTitle( $title, IContextSource $context ) {
+	public static function newFromTitle( $title, IContextSource $context ): self {
 		if ( $title->getNamespace() === NS_MEDIA ) {
 			// XXX: This should not be here, but where should it go?
 			$title = Title::makeTitle( NS_FILE, $title->getDBkey() );
 		}
 
 		$page = null;
-		// @phan-suppress-next-line PhanTypeMismatchArgument Type mismatch on pass-by-ref args
-		Hooks::runner()->onArticleFromTitle( $title, $page, $context );
+		( new HookRunner( MediaWikiServices::getInstance()->getHookContainer() ) )
+			// @phan-suppress-next-line PhanTypeMismatchArgument Type mismatch on pass-by-ref args
+			->onArticleFromTitle( $title, $page, $context );
 		if ( !$page ) {
 			switch ( $title->getNamespace() ) {
 				case NS_FILE:
@@ -312,7 +329,7 @@ class Article implements Page {
 				if ( $this->mRevisionRecord !== null ) {
 					$revPageId = $this->mRevisionRecord->getPageId();
 					// Revision title doesn't match the page title given?
-					if ( $this->mPage->getId() != $revPageId ) {
+					if ( $this->mPage->getId() !== $revPageId ) {
 						$this->mPage = $this->wikiPageFactory->newFromID( $revPageId );
 					}
 				}
@@ -386,7 +403,7 @@ class Article implements Page {
 				if ( !$this->mRevisionRecord ) {
 					wfDebug( __METHOD__ . " failed to load revision, rev_id $oldid" );
 
-					$this->fetchResult = Status::newFatal( 'missing-revision', $oldid );
+					$this->fetchResult = Status::newFatal( $this->getMissingRevisionMsg( $oldid ) );
 					return null;
 				}
 			}
@@ -503,7 +520,8 @@ class Article implements Page {
 
 		$poOptions = [];
 		# Allow extensions to vary parser options used for article rendering
-		Hooks::runner()->onArticleParserOptions( $this, $parserOptions );
+		( new HookRunner( MediaWikiServices::getInstance()->getHookContainer() ) )
+			->onArticleParserOptions( $this, $parserOptions );
 		# Render printable version, use printable version cache
 		if ( $outputPage->isPrintable() ) {
 			$parserOptions->setIsPrintable( true );
@@ -565,7 +583,7 @@ class Article implements Page {
 
 		# Use adaptive TTLs for CDN so delayed/failed purges are noticed less often.
 		# This could use getTouched(), but that could be scary for major template edits.
-		$outputPage->adaptCdnTTL( $this->mPage->getTimestamp(), IExpiringStore::TTL_DAY );
+		$outputPage->adaptCdnTTL( $this->mPage->getTimestamp(), ExpirationAwareness::TTL_DAY );
 
 		$this->showViewFooter();
 		$this->mPage->doViewUpdates( $authority, $oldid, $this->fetchRevisionRecord() );
@@ -580,6 +598,11 @@ class Article implements Page {
 			$request->response()->clearCookie( $cookieKey );
 			$outputPage->addJsConfigVars( 'wgPostEdit', $postEdit );
 			$outputPage->addModules( 'mediawiki.action.view.postEdit' ); // FIXME: test this
+			if ( $this->getContext()->getConfig()->get( 'EnableEditRecovery' )
+				&& $this->userOptionsLookup->getOption( $this->getContext()->getUser(), 'editrecovery' )
+			) {
+				$outputPage->addModules( 'mediawiki.editRecovery.postEdit' );
+			}
 		}
 	}
 
@@ -682,7 +705,7 @@ class Article implements Page {
 		}
 
 		# Ensure that UI elements requiring revision ID have
-		# the correct version information.
+		# the correct version information. (This may be overwritten after creation of ParserOutput)
 		$outputPage->setRevisionId( $this->getRevIdFetched() );
 		$outputPage->setRevisionIsCurrent( $rev->isCurrent() );
 		# Preload timestamp to avoid a DB hit
@@ -713,11 +736,6 @@ class Article implements Page {
 		# Run the parse, protected by a pool counter
 		wfDebug( __METHOD__ . ": doing uncached parse" );
 
-		if ( !$rev ) {
-			// No revision, abort! Shouldn't happen.
-			return false;
-		}
-
 		$opt = 0;
 
 		// we already checked the cache in case 2, don't check again.
@@ -725,6 +743,14 @@ class Article implements Page {
 
 		// we already checked in fetchRevisionRecord()
 		$opt |= ParserOutputAccess::OPT_NO_AUDIENCE_CHECK;
+
+		// enable stampede protection and allow stale content
+		$opt |= ParserOutputAccess::OPT_FOR_ARTICLE_VIEW;
+
+		// Attempt to trigger WikiPage::triggerOpportunisticLinksUpdate
+		// Ideally this should not be the responsibility of the ParserCache to control this.
+		// See https://phabricator.wikimedia.org/T329842#8816557 for more context.
+		$opt |= ParserOutputAccess::OPT_LINKS_UPDATE;
 
 		if ( !$rev->getId() || !$useParserCache ) {
 			// fake revision or uncacheable options
@@ -760,7 +786,7 @@ class Article implements Page {
 			if ( $parsoidCacheWarmingEnabled ) {
 				$parsoidJobSpec = ParsoidCachePrewarmJob::newSpec(
 					$rev->getId(),
-					$rev->getPageId(),
+					$this->getPage()->toPageRecord(),
 					[ 'causeAction' => 'view' ]
 				);
 				$this->jobQueueGroup->lazyPush( $parsoidJobSpec );
@@ -791,6 +817,15 @@ class Article implements Page {
 		# Adjust title for main page & pages with displaytitle
 		if ( $pOutput ) {
 			$this->adjustDisplayTitle( $pOutput );
+
+			// It would be nice to automatically set this during the first call
+			// to OutputPage::addParserOutputMetadata, but we can't because doing
+			// so would break non-pageview actions where OutputPage::getContLangForJS
+			// has different requirements.
+			$pageLang = $pOutput->getLanguage();
+			if ( $pageLang ) {
+				$outputPage->setContentLangForJS( $pageLang );
+			}
 		}
 
 		# Check for any __NOINDEX__ tags on the page using $pOutput
@@ -818,7 +853,7 @@ class Article implements Page {
 		$outputPage->setRevisionIsCurrent( $oldid === $this->mPage->getLatest() );
 		$outputPage->addParserOutput( $pOutput, $textOptions );
 		# Preload timestamp to avoid a DB hit
-		$cachedTimestamp = $pOutput->getTimestamp();
+		$cachedTimestamp = $pOutput->getRevisionTimestamp();
 		if ( $cachedTimestamp !== null ) {
 			$outputPage->setRevisionTimestamp( $cachedTimestamp );
 			$this->mPage->setTimestamp( $cachedTimestamp );
@@ -826,34 +861,18 @@ class Article implements Page {
 	}
 
 	/**
-	 * @param RevisionRecord|null $rev
+	 * @param RevisionRecord $rev
 	 * @param Status $renderStatus
 	 * @param OutputPage $outputPage
 	 * @param array $textOptions
 	 */
 	private function doOutputFromRenderStatus(
-		?RevisionRecord $rev,
+		RevisionRecord $rev,
 		Status $renderStatus,
 		OutputPage $outputPage,
 		array $textOptions
 	) {
 		$context = $this->getContext();
-		$cdnMaxageStale = $context->getConfig()->get( MainConfigNames::CdnMaxageStale );
-		$ok = $renderStatus->isOK();
-
-		$pOutput = $ok ? $renderStatus->getValue() : null;
-
-		// Cache stale ParserOutput object with a short expiry
-		if ( $ok && $renderStatus->hasMessage( 'view-pool-dirty-output' ) ) {
-			$outputPage->setCdnMaxage( $cdnMaxageStale );
-			$outputPage->setLastModified( $pOutput->getCacheTime() );
-			$staleReason = $renderStatus->hasMessage( 'view-pool-contention' )
-				? $context->msg( 'view-pool-contention' )
-				: $context->msg( 'view-pool-timeout' );
-			$outputPage->addHTML( "<!-- parser cache is expired, " .
-				"sending anyway due to $staleReason-->\n" );
-		}
-
 		if ( !$renderStatus->isOK() ) {
 			$this->showViewError( $renderStatus->getWikiText(
 				false, 'view-pool-error', $context->getLanguage()
@@ -861,9 +880,27 @@ class Article implements Page {
 			return;
 		}
 
-		if ( $pOutput ) {
-			$outputPage->addParserOutput( $pOutput, $textOptions );
+		$pOutput = $renderStatus->getValue();
+
+		// Cache stale ParserOutput object with a short expiry
+		if ( $renderStatus->hasMessage( 'view-pool-dirty-output' ) ) {
+			$outputPage->lowerCdnMaxage( $context->getConfig()->get( MainConfigNames::CdnMaxageStale ) );
+			$outputPage->setLastModified( $pOutput->getCacheTime() );
+			$staleReason = $renderStatus->hasMessage( 'view-pool-contention' )
+				? $context->msg( 'view-pool-contention' )->escaped()
+				: $context->msg( 'view-pool-timeout' )->escaped();
+			$outputPage->addHTML( "<!-- parser cache is expired, " .
+				"sending anyway due to $staleReason-->\n" );
+
+			// Ensure OutputPage knowns the id from the dirty cache, but keep the current flag (T341013)
+			$cachedId = $pOutput->getCacheRevisionId();
+			if ( $cachedId !== null ) {
+				$outputPage->setRevisionId( $cachedId );
+				$outputPage->setRevisionTimestamp( $pOutput->getTimestamp() );
+			}
 		}
+
+		$outputPage->addParserOutput( $pOutput, $textOptions );
 
 		if ( $this->getRevisionRedirectTarget( $rev ) ) {
 			$outputPage->addSubtitle( "<span id=\"redirectsub\">" .
@@ -904,11 +941,13 @@ class Article implements Page {
 	 */
 	protected function showDiffPage() {
 		$context = $this->getContext();
+		$outputPage = $context->getOutput();
+		$outputPage->addBodyClasses( 'mw-article-diff' );
 		$request = $context->getRequest();
 		$diff = $request->getVal( 'diff' );
 		$rcid = $request->getInt( 'rcid' );
 		$purge = $request->getRawVal( 'action' ) === 'purge';
-		$unhide = $request->getInt( 'unhide' ) == 1;
+		$unhide = $request->getInt( 'unhide' ) === 1;
 		$oldid = $this->getOldID();
 
 		$rev = $this->fetchRevisionRecord();
@@ -922,17 +961,19 @@ class Article implements Page {
 				// Do nothing here.
 				// The $rev will later be used to create standard diff elements however.
 			} else {
-				$context->getOutput()->setPageTitle( $context->msg( 'errorpagetitle' ) );
+				$outputPage->setPageTitleMsg( $context->msg( 'errorpagetitle' ) );
 				$msg = $context->msg( 'difference-missing-revision' )
 					->params( $oldid )
 					->numParams( 1 )
 					->parseAsBlock();
-				$context->getOutput()->addHTML( $msg );
+				$outputPage->addHTML( $msg );
 				return;
 			}
 		}
 
-		$contentHandler = MediaWikiServices::getInstance()
+		$services = MediaWikiServices::getInstance();
+
+		$contentHandler = $services
 			->getContentHandlerFactory()
 			->getContentHandler(
 				$rev->getSlot( SlotRecord::MAIN, RevisionRecord::RAW )->getModel()
@@ -945,9 +986,20 @@ class Article implements Page {
 			$purge,
 			$unhide
 		);
+
+		$diffType = $request->getVal( 'diff-type' );
+
+		if ( $diffType === null ) {
+			$diffType = $this->userOptionsLookup
+				->getOption( $context->getUser(), 'diff-type' );
+		} else {
+			$de->setExtraQueryParams( [ 'diff-type' => $diffType ] );
+		}
+
 		$de->setSlotDiffOptions( [
-			'diff-type' => $request->getVal( 'diff-type' ),
-			'expand-url' => $this->viewIsRenderAction
+			'diff-type' => $diffType,
+			'expand-url' => $this->viewIsRenderAction,
+			'inline-toggle' => true,
 		] );
 		$de->showDiffPage( $this->isDiffOnlyView() );
 
@@ -985,16 +1037,16 @@ class Article implements Page {
 		$ns = $title->getNamespace();
 
 		# Don't index user and user talk pages for blocked users (T13443)
-		if ( ( $ns === NS_USER || $ns === NS_USER_TALK ) && !$title->isSubpage() ) {
+		if ( $ns === NS_USER || $ns === NS_USER_TALK ) {
 			$specificTarget = null;
 			$vagueTarget = null;
 			$titleText = $title->getText();
 			if ( IPUtils::isValid( $titleText ) ) {
 				$vagueTarget = $titleText;
 			} else {
-				$specificTarget = $titleText;
+				$specificTarget = $title->getRootText();
 			}
-			if ( DatabaseBlock::newFromTarget( $specificTarget, $vagueTarget ) instanceof DatabaseBlock ) {
+			if ( $this->blockStore->newFromTarget( $specificTarget, $vagueTarget ) instanceof DatabaseBlock ) {
 				return [
 					'index' => 'noindex',
 					'follow' => 'nofollow'
@@ -1032,7 +1084,7 @@ class Article implements Page {
 				self::formatRobotPolicy( $namespaceRobotPolicies[$ns] )
 			);
 		}
-		if ( $title->canUseNoindex() && is_object( $pOutput ) && $pOutput->getIndexPolicy() ) {
+		if ( $title->canUseNoindex() && $pOutput && $pOutput->getIndexPolicy() ) {
 			# __INDEX__ and __NOINDEX__ magic words, if allowed. Incorporates
 			# a final check that we have really got the parser output.
 			$policy = array_merge(
@@ -1234,14 +1286,13 @@ class Article implements Page {
 			return false;
 		}
 
-		$dbr = wfGetDB( DB_REPLICA );
-		$oldestRevisionRow = $dbr->selectRow(
-			'revision',
-			[ 'rev_id', 'rev_timestamp' ],
-			[ 'rev_page' => $title->getArticleID() ],
-			__METHOD__,
-			[ 'ORDER BY' => [ 'rev_timestamp', 'rev_id' ] ]
-		);
+		$dbr = $this->dbProvider->getReplicaDatabase();
+		$oldestRevisionRow = $dbr->newSelectQueryBuilder()
+			->select( [ 'rev_id', 'rev_timestamp' ] )
+			->from( 'revision' )
+			->where( [ 'rev_page' => $title->getArticleID() ] )
+			->orderBy( [ 'rev_timestamp', 'rev_id' ] )
+			->caller( __METHOD__ )->fetchRow();
 		$oldestRevisionTimestamp = $oldestRevisionRow ? $oldestRevisionRow->rev_timestamp : false;
 
 		// New page patrol: Get the timestamp of the oldest revision which
@@ -1276,12 +1327,11 @@ class Article implements Page {
 		if ( ( !$rc || $rc->getAttribute( 'rc_patrolled' ) ) && $useFilePatrol
 			&& $title->getNamespace() === NS_FILE ) {
 			// Retrieve timestamp from the current file (lastest upload)
-			$newestUploadTimestamp = $dbr->selectField(
-				'image',
-				'img_timestamp',
-				[ 'img_name' => $title->getDBkey() ],
-				__METHOD__
-			);
+			$newestUploadTimestamp = $dbr->newSelectQueryBuilder()
+				->select( 'img_timestamp' )
+				->from( 'image' )
+				->where( [ 'img_name' => $title->getDBkey() ] )
+				->caller( __METHOD__ )->fetchField();
 			if ( $newestUploadTimestamp
 				&& RecentChange::isInRCLifespan( $newestUploadTimestamp, 21600 )
 			) {
@@ -1396,10 +1446,10 @@ class Article implements Page {
 		if ( $title->getNamespace() === NS_USER
 			|| $title->getNamespace() === NS_USER_TALK
 		) {
-			$rootPart = explode( '/', $title->getText() )[0];
+			$rootPart = $title->getRootText();
 			$user = User::newFromName( $rootPart, false /* allow IP users */ );
 			$ip = $this->userNameUtils->isIP( $rootPart );
-			$block = DatabaseBlock::newFromTarget( $user, $user );
+			$block = $this->blockStore->newFromTarget( $user, $user );
 
 			if ( $user && $user->isRegistered() && $user->isHidden() &&
 				!$context->getAuthority()->isAllowed( 'hideuser' )
@@ -1472,9 +1522,9 @@ class Article implements Page {
 		if ( $isRegistered || $dbCache->get( $key ) || $sessionExists ) {
 			$logTypes = [ 'delete', 'move', 'protect' ];
 
-			$dbr = wfGetDB( DB_REPLICA );
+			$dbr = $this->dbProvider->getReplicaDatabase();
 
-			$conds = [ 'log_action != ' . $dbr->addQuotes( 'revision' ) ];
+			$conds = [ $dbr->expr( 'log_action', '!=', 'revision' ) ];
 			// Give extensions a chance to hide their (unrelated) log entries
 			$this->getHookRunner()->onArticle__MissingArticleConditions( $conds, $logTypes );
 			LogEventsList::showLogExtract(
@@ -1518,23 +1568,7 @@ class Article implements Page {
 			$outputPage->addWikiTextAsContent( $text );
 		} else {
 			if ( $oldid ) {
-				// T251066: Try loading the revision from the archive table.
-				// Show link to view it if it exists and the user has permission to view it.
-				$pa = new PageArchive( $title );
-				$revRecord = $pa->getArchivedRevisionRecord( $oldid );
-				if ( $revRecord && $revRecord->userCan(
-					RevisionRecord::DELETED_TEXT,
-					$context->getAuthority()
-				) && $context->getAuthority()->isAllowedAny( 'deletedtext', 'undelete' ) ) {
-					$text = $context->msg(
-						'missing-revision-permission', $oldid,
-						$revRecord->getTimestamp(),
-						$title->getPrefixedDBkey()
-					)->plain();
-				} else {
-					$text = $context->msg( 'missing-revision', $oldid )->plain();
-				}
-
+				$text = $this->getMissingRevisionMsg( $oldid )->plain();
 			} elseif ( $context->getAuthority()->probablyCan( 'edit', $title ) ) {
 				$message = $isRegistered ? 'noarticletext' : 'noarticletextanon';
 				$text = $context->msg( $message )->plain();
@@ -1558,7 +1592,7 @@ class Article implements Page {
 	 */
 	private function showViewError( string $errortext ) {
 		$outputPage = $this->getContext()->getOutput();
-		$outputPage->setPageTitle( $this->getContext()->msg( 'errorpagetitle' ) );
+		$outputPage->setPageTitleMsg( $this->getContext()->msg( 'errorpagetitle' ) );
 		$outputPage->disableClientCache();
 		$outputPage->setRobotPolicy( 'noindex,nofollow' );
 		$outputPage->clearHTML();
@@ -1593,7 +1627,7 @@ class Article implements Page {
 
 			return false;
 		// If the user needs to confirm that they want to see it...
-		} elseif ( $this->getContext()->getRequest()->getInt( 'unhide' ) != 1 ) {
+		} elseif ( $this->getContext()->getRequest()->getInt( 'unhide' ) !== 1 ) {
 			# Give explanation and add a link to view the revision...
 			$oldid = intval( $this->getOldID() );
 			$link = $this->getTitle()->getFullURL( "oldid={$oldid}&unhide=1" );
@@ -1637,7 +1671,7 @@ class Article implements Page {
 		}
 
 		$context = $this->getContext();
-		$unhide = $context->getRequest()->getInt( 'unhide' ) == 1;
+		$unhide = $context->getRequest()->getInt( 'unhide' ) === 1;
 
 		# Cascade unhide param in links for easy deletion browsing
 		$extraParams = [];
@@ -1649,6 +1683,9 @@ class Article implements Page {
 			$revisionRecord = $this->mRevisionRecord;
 		} else {
 			$revisionRecord = $this->revisionStore->getRevisionById( $oldid );
+		}
+		if ( !$revisionRecord ) {
+			throw new LogicException( 'There should be a revision record at this point.' );
 		}
 
 		$timestamp = $revisionRecord->getTimestamp();
@@ -1662,7 +1699,6 @@ class Article implements Page {
 		$tdtime = $language->userTime( $timestamp, $user );
 
 		# Show user links if allowed to see them. If hidden, then show them only if requested...
-		// @phan-suppress-next-line PhanTypeMismatchArgumentNullable revisionRecord known to exists
 		$userlinks = Linker::revUserTools( $revisionRecord, !$unhide );
 
 		$infomsg = $current && !$context->msg( 'revision-info-current' )->isDisabled()
@@ -1686,7 +1722,6 @@ class Article implements Page {
 					$revisionUser ? $revisionUser->getName() : ''
 				)
 				->rawParams( $this->commentFormatter->formatRevision(
-					// @phan-suppress-next-line PhanTypeMismatchArgumentNullable revisionRecord known to exists
 					$revisionRecord,
 					$user,
 					true,
@@ -1714,7 +1749,6 @@ class Article implements Page {
 					'oldid' => $oldid
 				] + $extraParams
 			);
-		// @phan-suppress-next-line PhanTypeMismatchArgumentNullable revisionRecord known to exists
 		$prevExist = (bool)$this->revisionStore->getPreviousRevision( $revisionRecord );
 		$prevlink = $prevExist
 			? $this->linkRenderer->makeKnownLink(
@@ -1763,7 +1797,6 @@ class Article implements Page {
 
 		$cdel = Linker::getRevDeleteLink(
 			$context->getAuthority(),
-			// @phan-suppress-next-line PhanTypeMismatchArgumentNullable revisionRecord known to exists
 			$revisionRecord,
 			$this->getTitle()
 		);
@@ -1795,43 +1828,12 @@ class Article implements Page {
 	 * @param Title $target Destination to redirect
 	 * @param bool $forceKnown Should the image be shown as a bluelink regardless of existence?
 	 * @return string Containing HTML with redirect link
+	 * @deprecated since 1.41, use LinkRenderer::makeRedirectHeader() instead
 	 */
-	public static function getRedirectHeaderHtml( Language $lang, $target, $forceKnown = false ) {
-		if ( is_array( $target ) ) {
-			// Up until 1.39, $target was allowed to be an array.
-			wfDeprecatedMsg( 'The $target parameter can no longer be an array', '1.39' );
-			$target = reset( $target ); // There really can only be one element (T296430)
-		}
-
+	public static function getRedirectHeaderHtml( Language $lang, Title $target, $forceKnown = false ) {
+		wfDeprecated( __METHOD__, '1.41' );
 		$linkRenderer = MediaWikiServices::getInstance()->getLinkRenderer();
-
-		$html = '<ul class="redirectText">';
-		if ( $forceKnown ) {
-			$link = $linkRenderer->makeKnownLink(
-				$target,
-				$target->getFullText(),
-				[],
-				// Make sure wiki page redirects are not followed
-				$target->isRedirect() ? [ 'redirect' => 'no' ] : []
-			);
-		} else {
-			$link = $linkRenderer->makeLink(
-				$target,
-				$target->getFullText(),
-				[],
-				// Make sure wiki page redirects are not followed
-				$target->isRedirect() ? [ 'redirect' => 'no' ] : []
-			);
-		}
-		$html .= '<li>' . $link . '</li>';
-		$html .= '</ul>';
-
-		$redirectToText = wfMessage( 'redirectto' )->inLanguage( $lang )->escaped();
-
-		return '<div class="redirectMsg">' .
-			'<p>' . $redirectToText . '</p>' .
-			$html .
-			'</div>';
+		return $linkRenderer->makeRedirectHeader( $lang, $target, $forceKnown );
 	}
 
 	/**
@@ -1880,70 +1882,6 @@ class Article implements Page {
 	 */
 	public function unprotect() {
 		$this->protect();
-	}
-
-	/**
-	 * Perform a deletion and output success or failure messages.
-	 *
-	 * @deprecated since 1.37, hard deprecated since 1.38. Use WikiPage::doDeleteArticleReal if you only need to
-	 * delete the article. If you also need things to happen with OutputPage, you may want to check the hooks in
-	 * DeleteAction instead.
-	 *
-	 * @param string $reason
-	 * @param bool $suppress
-	 * @param bool $immediate false allows deleting over time via the job queue
-	 * @throws FatalError
-	 * @throws MWException
-	 */
-	public function doDelete( $reason, $suppress = false, $immediate = false ) {
-		wfDeprecated( __METHOD__, '1.37' );
-		$error = '';
-		$context = $this->getContext();
-		$outputPage = $context->getOutput();
-		$user = $context->getUser();
-		$status = $this->mPage->doDeleteArticleReal(
-			$reason, $user, $suppress, null, $error,
-			null, [], 'delete', $immediate
-		);
-
-		if ( $status->isOK() ) {
-			$deleted = $this->getTitle()->getPrefixedText();
-
-			$outputPage->setPageTitle( $context->msg( 'actioncomplete' ) );
-			$outputPage->setRobotPolicy( 'noindex,nofollow' );
-
-			if ( $status->isGood() ) {
-				$loglink = '[[Special:Log/delete|' . $context->msg( 'deletionlog' )->text() . ']]';
-				$outputPage->addWikiMsg( 'deletedtext', wfEscapeWikiText( $deleted ), $loglink );
-				$this->getHookRunner()->onArticleDeleteAfterSuccess( $this->getTitle(), $outputPage );
-			} else {
-				$outputPage->addWikiMsg( 'delete-scheduled', wfEscapeWikiText( $deleted ) );
-			}
-
-			$outputPage->returnToMain( false );
-		} else {
-			$outputPage->setPageTitle(
-				$context->msg( 'cannotdelete-title',
-					$this->getTitle()->getPrefixedText() )
-			);
-
-			if ( $error == '' ) {
-				$outputPage->wrapWikiTextAsInterface(
-					'error mw-error-cannotdelete',
-					$status->getWikiText( false, false, $context->getLanguage() )
-				);
-				$deleteLogPage = new LogPage( 'delete' );
-				$outputPage->addHTML( Xml::element( 'h2', null, $deleteLogPage->getName()->text() ) );
-
-				LogEventsList::showLogExtract(
-					$outputPage,
-					'delete',
-					$this->getTitle()
-				);
-			} else {
-				$outputPage->addHTML( $error );
-			}
-		}
 	}
 
 	/* Caching functions */
@@ -2001,8 +1939,6 @@ class Article implements Page {
 		return $cacheable;
 	}
 
-	/** #@- */
-
 	/**
 	 * Lightweight method to get the parser output for a page, checking the parser cache
 	 * and so on. Doesn't consider most of the stuff that Article::view() is forced to
@@ -2051,55 +1987,13 @@ class Article implements Page {
 	 * @return IContextSource
 	 * @since 1.18
 	 */
-	public function getContext() {
+	public function getContext(): IContextSource {
 		if ( $this->mContext instanceof IContextSource ) {
 			return $this->mContext;
 		} else {
 			wfDebug( __METHOD__ . " called and \$mContext is null. " .
 				"Return RequestContext::getMain()" );
 			return RequestContext::getMain();
-		}
-	}
-
-	/**
-	 * @deprecated since 1.35, use Article::getPage() instead
-	 *
-	 * Use PHP's magic __get handler to handle accessing of
-	 * raw WikiPage fields for backwards compatibility
-	 *
-	 * @param string $fname Field name
-	 * @return mixed
-	 */
-	public function __get( $fname ) {
-		wfDeprecatedMsg( "Accessing Article::\$$fname is deprecated since MediaWiki 1.35",
-			'1.35' );
-
-		if ( property_exists( $this->mPage, $fname ) ) {
-			return $this->mPage->$fname;
-		}
-		trigger_error( 'Inaccessible property via __get(): ' . $fname, E_USER_NOTICE );
-	}
-
-	/**
-	 * @deprecated since 1.35, use Article::getPage() instead
-	 *
-	 * Use PHP's magic __set handler to handle setting of
-	 * raw WikiPage fields for backwards compatibility
-	 *
-	 * @param string $fname Field name
-	 * @param mixed $fvalue New value
-	 */
-	public function __set( $fname, $fvalue ) {
-		wfDeprecatedMsg( "Setting Article::\$$fname is deprecated since MediaWiki 1.35",
-			'1.35' );
-
-		if ( property_exists( $this->mPage, $fname ) ) {
-			$this->mPage->$fname = $fvalue;
-		// Note: extensions may want to toss on new fields
-		} elseif ( !in_array( $fname, [ 'mContext', 'mPage' ] ) ) {
-			$this->mPage->$fname = $fvalue;
-		} else {
-			trigger_error( 'Inaccessible property via __set(): ' . $fname, E_USER_NOTICE );
 		}
 	}
 
@@ -2112,13 +2006,27 @@ class Article implements Page {
 		return $this->mPage->getActionOverrides();
 	}
 
-	/**
-	 * @deprecated since 1.35, use WikiPage::getTimestamp instead
-	 * @see WikiPage::getTimestamp
-	 * @return string
-	 */
-	public function getTimestamp() {
-		wfDeprecated( __METHOD__, '1.35' );
-		return $this->mPage->getTimestamp();
+	private function getMissingRevisionMsg( int $oldid ): Message {
+		// T251066: Try loading the revision from the archive table.
+		// Show link to view it if it exists and the user has permission to view it.
+		// (Ignore the given title, if any; look it up from the revision instead.)
+		$context = $this->getContext();
+		$revRecord = $this->archivedRevisionLookup->getArchivedRevisionRecord( null, $oldid );
+		if (
+			$revRecord &&
+			$revRecord->userCan(
+				RevisionRecord::DELETED_TEXT,
+				$context->getAuthority()
+			) &&
+			$context->getAuthority()->isAllowedAny( 'deletedtext', 'undelete' )
+		) {
+			return $context->msg(
+				'missing-revision-permission',
+				$oldid,
+				$revRecord->getTimestamp(),
+				Title::newFromPageIdentity( $revRecord->getPage() )->getPrefixedDBkey()
+			);
+		}
+		return $context->msg( 'missing-revision', $oldid );
 	}
 }

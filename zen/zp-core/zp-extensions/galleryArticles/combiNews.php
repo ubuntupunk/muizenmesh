@@ -1,9 +1,7 @@
 <?php
 /**
- * @package plugins
- * @subpackage galleryarticles
+ * @package zpcore\plugins\galleryarticles
  */
-
 class Combi extends Zenpage {
 
 	function getOldCombiNews() {

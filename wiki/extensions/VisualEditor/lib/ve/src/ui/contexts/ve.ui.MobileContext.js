@@ -1,7 +1,7 @@
 /*!
  * VisualEditor UserInterface MobileContext class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
 
 /**
@@ -182,6 +182,13 @@ ve.ui.MobileContext.prototype.isVisible = function () {
 ve.ui.MobileContext.prototype.isInspectable = function () {
 	// Parent method
 	return ve.ui.MobileContext.super.prototype.isInspectable.call( this ) &&
-		// Suppress context when surface is active (virtual keyboard)
-		this.surface.getView().isDeactivated();
+		// Suppress context when virtual keyboard is visible
+		!this.surface.getView().hasNativeCursorSelection();
+};
+
+/**
+ * @inheritdoc
+ */
+ve.ui.MobileContext.prototype.getSurfacePadding = function () {
+	return { bottom: this.$element[ 0 ].clientHeight };
 };

@@ -1,8 +1,8 @@
 <?php
 
-namespace MediaWiki\Session;
+namespace MediaWiki\Tests\Session;
 
-use User;
+use MediaWiki\User\User;
 
 /**
  * Dummy session backend

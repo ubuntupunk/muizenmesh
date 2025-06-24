@@ -1,7 +1,7 @@
 /*!
  * VisualEditor DataModel Document class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
 
 /**
@@ -47,6 +47,7 @@ ve.dm.Document = function VeDmDocument( data, htmlDocument, parentDocument, inte
 	this.documentNode.setDocument( doc );
 	this.internalList = internalList ? internalList.clone( this ) : new ve.dm.InternalList( this );
 	this.innerWhitespace = innerWhitespace ? ve.copy( innerWhitespace ) : new Array( 2 );
+	this.metaList = new ve.dm.MetaList( this );
 
 	// Properties
 	this.parentDocument = parentDocument || null;
@@ -324,6 +325,17 @@ ve.dm.Document.prototype.getLength = function () {
 };
 
 /**
+ * Get the meta list.
+ *
+ * @return {ve.dm.MetaList} Meta list of the surface
+ */
+ve.dm.Document.prototype.getMetaList = function () {
+	// Ensure the DM tree has been built
+	this.getDocumentNode();
+	return this.metaList;
+};
+
+/**
  * Set the read-only state of the document
  *
  * Actual locking of the model is done by the surface, but
@@ -592,7 +604,7 @@ ve.dm.Document.prototype.shallowCloneFromRange = function ( range ) {
 			);
 		}
 
-		// eslint-disable-next-line no-inner-declarations, es-x/no-block-scoped-functions
+		// eslint-disable-next-line no-inner-declarations
 		function nodeNeedsContext( node ) {
 			return node.getParentNodeTypes() !== null || node.isContent();
 		}
@@ -688,7 +700,7 @@ ve.dm.Document.prototype.cloneWithData = function ( data, copyInternalList, deta
 	var newDoc;
 
 	if ( Array.isArray( data ) ) {
-		data = new ve.dm.ElementLinearData( this.getStore().clone(), data );
+		data = new ve.dm.ElementLinearData( this.getStore().slice(), data );
 	}
 
 	newDoc = new this.constructor(
@@ -940,14 +952,15 @@ ve.dm.Document.prototype.getRelativeRange = function ( range, direction, unit, e
 };
 
 /**
- * Get the nearest focusable node.
+ * Get the nearest node matching a test.
  *
+ * @param {Function} test Function to test whether a node matches, called with the nodeType
  * @param {number} offset Offset to start looking at
  * @param {number} direction Direction to look in, +1 or -1
  * @param {number} limit Stop looking after reaching certain offset
- * @return {ve.dm.Node|null} Nearest focusable node, or null if not found
+ * @return {ve.dm.Node|null} Nearest matching node, or null if not found
  */
-ve.dm.Document.prototype.getNearestFocusableNode = function ( offset, direction, limit ) {
+ve.dm.Document.prototype.getNearestNodeMatching = function ( test, offset, direction, limit ) {
 	// It is never an offset of the node, but just an offset for which getNodeFromOffset should
 	// return that node. Usually it would be node offset + 1 or offset of node closing tag.
 	var coveredOffset;
@@ -961,14 +974,14 @@ ve.dm.Document.prototype.getNearestFocusableNode = function ( offset, direction,
 			}
 			if (
 				this.isOpenElementData( index ) &&
-				ve.dm.nodeFactory.isNodeFocusable( this.getType( index ) )
+				test( this.getType( index ) )
 			) {
 				coveredOffset = index + 1;
 				return true;
 			}
 			if (
 				this.isCloseElementData( index ) &&
-				ve.dm.nodeFactory.isNodeFocusable( this.getType( index ) )
+				test( this.getType( index ) )
 			) {
 				coveredOffset = index;
 				return true;
@@ -981,6 +994,20 @@ ve.dm.Document.prototype.getNearestFocusableNode = function ( offset, direction,
 	} else {
 		return null;
 	}
+};
+
+/**
+ * Get the nearest focusable node.
+ *
+ * @param {number} offset Offset to start looking at
+ * @param {number} direction Direction to look in, +1 or -1
+ * @param {number} limit Stop looking after reaching certain offset
+ * @return {ve.dm.Node|null} Nearest focusable node, or null if not found
+ */
+ve.dm.Document.prototype.getNearestFocusableNode = function ( offset, direction, limit ) {
+	return this.getNearestNodeMatching( function ( nodeType ) {
+		return ve.dm.nodeFactory.isNodeFocusable( nodeType );
+	}, offset, direction, limit );
 };
 
 /**
@@ -1647,26 +1674,14 @@ ve.dm.Document.prototype.findText = function ( query, options ) {
 		} );
 	} else {
 		var qLen = query.length;
-		var compare;
-		if ( ve.supportsIntl ) {
-			var sensitivity;
-			if ( options.diacriticInsensitiveString ) {
-				sensitivity = options.caseSensitiveString ? 'case' : 'base';
-			} else {
-				sensitivity = options.caseSensitiveString ? 'variant' : 'accent';
-			}
-			// Intl is only used browser clients
-			compare = new Intl.Collator( this.lang, { sensitivity: sensitivity } ).compare;
+		var sensitivity;
+		if ( options.diacriticInsensitiveString ) {
+			sensitivity = options.caseSensitiveString ? 'case' : 'base';
 		} else {
-			// Support: Firefox<29, Chrome<24, Safari<10
-			compare = options.caseSensitiveString ?
-				function ( a, b ) {
-					return a === b ? 0 : 1;
-				} :
-				function ( a, b ) {
-					return a.toLowerCase() === b.toLowerCase() ? 0 : 1;
-				};
+			sensitivity = options.caseSensitiveString ? 'variant' : 'accent';
 		}
+		// Intl is only used browser clients
+		var compare = new Intl.Collator( this.lang, { sensitivity: sensitivity } ).compare;
 		// Iterate up to (and including) offset textLength - queryLength. Beyond that point
 		// there is not enough room for the query to exist
 		for ( var offset = 0, l = documentRange.getLength() - qLen; offset <= l; offset++ ) {

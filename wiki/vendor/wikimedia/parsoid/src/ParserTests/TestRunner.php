@@ -6,6 +6,7 @@ namespace Wikimedia\Parsoid\ParserTests;
 use Closure;
 use Psr\Log\LoggerInterface;
 use Wikimedia\Assert\Assert;
+use Wikimedia\Bcp47Code\Bcp47CodeValue;
 use Wikimedia\Parsoid\Config\Api\DataAccess;
 use Wikimedia\Parsoid\Config\Api\PageConfig;
 use Wikimedia\Parsoid\Config\Env;
@@ -20,6 +21,7 @@ use Wikimedia\Parsoid\Utils\ContentUtils;
 use Wikimedia\Parsoid\Utils\DOMCompat;
 use Wikimedia\Parsoid\Utils\DOMDataUtils;
 use Wikimedia\Parsoid\Utils\ScriptUtils;
+use Wikimedia\Parsoid\Utils\Utils;
 use Wikimedia\Parsoid\Wt2Html\PageConfigFrame;
 
 /**
@@ -147,7 +149,7 @@ class TestRunner {
 	/** @var string */
 	private $testFilePath;
 
-	/** @var string */
+	/** @var ?string */
 	private $knownFailuresInfix;
 
 	/** @var string */
@@ -164,7 +166,7 @@ class TestRunner {
 	 * - $testFilter['raw'] is the value of the filter
 	 * - if $testFilter['regex'] is true, $testFilter['raw'] is used as a regex filter.
 	 * - If $testFilter['string'] is true, $testFilter['raw'] is used as a plain string filter.
-	 * @var array
+	 * @var ?array
 	 */
 	private $testFilter;
 
@@ -228,11 +230,11 @@ class TestRunner {
 		$this->dummyEnv = new Env(
 			$this->siteConfig,
 			// Unused; needed to satisfy Env signature requirements
-			new MockPageConfig( [], new MockPageContent( [ 'main' => '' ] ) ),
+			new MockPageConfig( $this->siteConfig, [], new MockPageContent( [ 'main' => '' ] ) ),
 			// Unused; needed to satisfy Env signature requirements
 			$this->dataAccess,
 			// Unused; needed to satisfy Env signature requirements
-			new StubMetadataCollector( $this->siteConfig->getLogger() )
+			new StubMetadataCollector( $this->siteConfig )
 		);
 
 		// Init interwiki map to parser tests info.
@@ -240,31 +242,25 @@ class TestRunner {
 		$this->siteConfig->setupInterwikiMap( self::PARSER_TESTS_IWPS );
 	}
 
-	/**
-	 * @param Test $test
-	 * @param string $wikitext
-	 * @return Env
-	 */
 	private function newEnv( Test $test, string $wikitext ): Env {
-		$pageNs = $this->dummyEnv->makeTitleFromURLDecodedStr(
+		$title = $this->dummyEnv->makeTitleFromURLDecodedStr(
 			$test->pageName()
-		)->getNameSpaceId();
+		);
 
 		$opts = [
-			'title' => $test->pageName(),
-			'pagens' => $pageNs,
+			'title' => $title,
 			'pageContent' => $wikitext,
 			'pageLanguage' => $this->siteConfig->langBcp47(),
 			'pageLanguagedir' => $this->siteConfig->rtl() ? 'rtl' : 'ltr'
 		];
 
-		$pageConfig = new PageConfig( null, $opts );
+		$pageConfig = new PageConfig( null, $this->siteConfig, $opts );
 
 		$env = new Env(
 			$this->siteConfig,
 			$pageConfig,
 			$this->dataAccess,
-			new StubMetadataCollector( $this->siteConfig->getLogger() ),
+			new StubMetadataCollector( $this->siteConfig ),
 			$this->envOptions
 		);
 
@@ -371,16 +367,33 @@ class TestRunner {
 
 		// These changes are for environment options that change between runs of
 		// different modes. See `processTest` for changes per test.
-		if ( $testOpts ) {
-			// Page language matches "wiki language" (which is set by
-			// the item 'language' option).
-			if ( isset( $testOpts['langconv'] ) ) {
-				$this->envOptions['wtVariantLanguage'] = $testOpts['sourceVariant'] ?? null;
-				$this->envOptions['htmlVariantLanguage'] = $testOpts['variant'] ?? null;
-			} else {
-				// variant conversion is disabled by default
-				$this->envOptions['wtVariantLanguage'] = null;
-				$this->envOptions['htmlVariantLanguage'] = null;
+
+		// Page language matches "wiki language" (which is set by
+		// the item 'language' option).
+
+		// Variant conversion is disabled by default
+		$this->envOptions['wtVariantLanguage'] = null;
+		$this->envOptions['htmlVariantLanguage'] = null;
+		// The test can explicitly opt-in to variant conversion with the
+		// 'langconv' option.
+		if ( $testOpts['langconv'] ?? null ) {
+			// These test option names are deprecated:
+			// (Note that test options names are lowercased by the reader.)
+			if ( $testOpts['sourcevariant'] ?? false ) {
+				$this->envOptions['wtVariantLanguage'] = Utils::mwCodeToBcp47( $testOpts['sourcevariant'] );
+			}
+			if ( $testOpts['variant'] ?? false ) {
+				$this->envOptions['htmlVariantLanguage'] = Utils::mwCodeToBcp47( $testOpts['variant'] );
+			}
+			// Preferred option names, which are also specified in bcp-47 codes
+			// (Note that test options names are lowercased by the reader.)
+			if ( $testOpts['wtvariantlanguage'] ?? false ) {
+				$this->envOptions['wtVariantLanguage'] =
+					new Bcp47CodeValue( $testOpts['wtvariantlanguage'] );
+			}
+			if ( $testOpts['htmlvariantlanguage'] ?? false ) {
+				$this->envOptions['htmlVariantLanguage'] =
+					new Bcp47CodeValue( $testOpts['htmlvariantlanguage'] );
 			}
 		}
 
@@ -512,16 +525,20 @@ class TestRunner {
 		$after = [];
 
 		// 'showtitle' not yet supported
-		// 'showindicators' not yet supported.
 		// 'ill' not yet supported
 
 		if ( isset( $opts['cat'] ) ) {
-			foreach ( $output->getCategories() as $name => $sortkey ) {
+			foreach ( $output->getCategoryNames() as $name ) {
+				$sortkey = $output->getCategorySortKey( $name );
 				$after[] = "cat=$name sort=$sortkey";
 			}
 		}
 		if ( isset( $opts['extension'] ) ) {
-			foreach ( explode( ',', $opts['extension'] ) as $ext ) {
+			$extList = $opts['extension'];
+			if ( !is_array( $extList ) ) {
+				$extList = [ $extList ];
+			}
+			foreach ( $extList as $ext ) {
 				$after[] = "extension[$ext]=" .
 					// XXX should use JsonCodec
 					json_encode(
@@ -531,7 +548,11 @@ class TestRunner {
 			}
 		}
 		if ( isset( $opts['property'] ) ) {
-			foreach ( explode( ',', $opts['property'] ) as $prop ) {
+			$propList = $opts['property'];
+			if ( !is_array( $propList ) ) {
+				$propList = [ $propList ];
+			}
+			foreach ( $propList as $prop ) {
 				$after[] = "property[$prop]=" .
 					( $output->getPageProperty( $prop ) ?? '' );
 			}
@@ -546,6 +567,14 @@ class TestRunner {
 			if ( $tocData !== null ) {
 				$after[] = $tocData->prettyPrint();
 			}
+		}
+		if ( isset( $opts['showindicators'] ) ) {
+			foreach ( $output->getIndicators() as $name => $content ) {
+				$after[] = "$name=$content";
+			}
+		}
+		if ( isset( $opts['showmedia'] ) ) {
+			$after[] = 'images=' . implode( ', ', $output->getImages() );
 		}
 		if ( $metadataExpected === null ) {
 			// legacy format, add $before and $after to $doc
@@ -608,7 +637,7 @@ class TestRunner {
 			$env, $test, $options, $mode, $doc,
 			$metadataExpected, $metadataActual
 		);
-		if ( $test->parsoidHtml ) {
+		if ( $test->parsoidHtml !== null ) {
 			$checkPassed = $this->checkHTML( $test, DOMCompat::getBody( $doc ), $options, $mode );
 		} else {
 			// Running the test for metadata, presumably.
@@ -660,17 +689,10 @@ class TestRunner {
 		}
 	}
 
-	/**
-	 * @param Test $test
-	 * @param Element $out
-	 * @param array $options
-	 * @param string $mode
-	 * @return bool
-	 */
 	private function checkHTML(
 		Test $test, Element $out, array $options, string $mode
 	): bool {
-		list( $normOut, $normExpected ) = $test->normalizeHTML( $out, $test->cachedNormalizedHTML );
+		[ $normOut, $normExpected ] = $test->normalizeHTML( $out, $test->cachedNormalizedHTML );
 		$expected = [ 'normal' => $normExpected, 'raw' => $test->parsoidHtml ];
 		$actual = [
 			'normal' => $normOut,
@@ -683,13 +705,6 @@ class TestRunner {
 		);
 	}
 
-	/**
-	 * @param Test $test
-	 * @param string $metadataExpected
-	 * @param string $metadataActual
-	 * @param array $options
-	 * @return bool
-	 */
 	private function checkMetadata(
 		Test $test, string $metadataExpected, string $metadataActual, array $options
 	): bool {
@@ -727,8 +742,6 @@ class TestRunner {
 
 	/**
 	 * Removes DSR from data-parsoid for test normalization of an element.
-	 * @param Element $el
-	 * @return void
 	 */
 	private function filterNodeDsr( Element $el ) {
 		$dp = DOMDataUtils::getDataParsoid( $el );
@@ -740,13 +753,6 @@ class TestRunner {
 		}
 	}
 
-	/**
-	 * @param Test $test
-	 * @param string $out
-	 * @param array $options
-	 * @param string $mode
-	 * @return bool
-	 */
 	private function checkWikitext(
 		Test $test, string $out, array $options, string $mode
 	): bool {
@@ -776,7 +782,7 @@ class TestRunner {
 			}
 		}
 
-		list( $normalizedOut, $normalizedExpected ) = $test->normalizeWT( $out, $testWikitext );
+		[ $normalizedOut, $normalizedExpected ] = $test->normalizeWT( $out, $testWikitext );
 
 		$expected = [ 'normal' => $normalizedExpected, 'raw' => $testWikitext ];
 		$actual = [ 'normal' => $normalizedOut, 'raw' => $out, 'input' => $input ];
@@ -785,10 +791,6 @@ class TestRunner {
 			$this->stats, $test, $options, $mode, $expected, $actual );
 	}
 
-	/**
-	 * @param array $options
-	 * @return array
-	 */
 	private function updateKnownFailures( array $options ): array {
 		// Check in case any tests were removed but we didn't update
 		// the knownFailures
@@ -818,9 +820,7 @@ class TestRunner {
 			$kfModes = array_merge( $options['modes'], [ 'metadata' ] );
 			foreach ( $kfModes as $mode ) {
 				foreach ( $this->stats->modes[$mode]->failList as $fail ) {
-					if ( !isset( $testKnownFailures[$fail['testName']] ) ) {
-						$testKnownFailures[$fail['testName']] = [];
-					}
+					$testKnownFailures[$fail['testName']] ??= [];
 					$testKnownFailures[$fail['testName']][$mode . $fail['suffix']] = $fail['raw'];
 				}
 			}
@@ -849,7 +849,7 @@ class TestRunner {
 			}
 
 			$fileContent = file_get_contents( $this->testFilePath );
-			foreach ( [ 'wt2html','metadata' ] as $mode ) {
+			foreach ( [ 'wt2html', 'metadata' ] as $mode ) {
 				foreach ( $this->stats->modes[$mode]->failList as $fail ) {
 					if ( $options['update-tests'] || $fail['unexpected'] ) {
 						$exp = '/(!!\s*test\s*' .
@@ -943,7 +943,7 @@ class TestRunner {
 		// (Most likely there's either a metadata section or a html/php
 		// section but not html/parsoid section.)
 		if ( $test->parsoidHtml === null && !isset( $test->sections['html/parsoid+standalone'] ) ) {
-			$targetModes = array_diff( $targetModes, [ 'html2wt','html2html' ] );
+			$targetModes = array_diff( $targetModes, [ 'html2wt', 'html2html' ] );
 		}
 
 		if ( !count( $targetModes ) ) {
@@ -979,9 +979,37 @@ class TestRunner {
 				$this->siteConfig->responsiveReferences['threshold'],
 		];
 
+		if ( isset( $test->config['wgNoFollowLinks'] ) ) {
+			$this->siteConfig->setNoFollowConfig(
+				'nofollow', $test->config['wgNoFollowLinks']
+			);
+		}
+
+		if ( isset( $test->config['wgNoFollowDomainExceptions'] ) ) {
+			$this->siteConfig->setNoFollowConfig(
+				'domainexceptions',
+				$test->config['wgNoFollowDomainExceptions']
+			);
+		}
+
+		// FIXME: Redundant with $testOpts['externallinktarget'] below
+		if ( isset( $test->config['wgExternalLinkTarget'] ) ) {
+			$this->siteConfig->setExternalLinkTarget(
+				$test->config['wgExternalLinkTarget']
+			);
+		}
+
+		// Process test-specific options
 		if ( $testOpts ) {
 			Assert::invariant( !isset( $testOpts['extensions'] ),
 				'Cannot configure extensions in tests' );
+
+			$availableParsoidTestOpts = [ 'wrapSections' ];
+			foreach ( $availableParsoidTestOpts as $opt ) {
+				if ( isset( $testOpts['parsoid'][$opt] ) ) {
+					$this->envOptions[$opt] = $testOpts['parsoid'][$opt];
+				}
+			}
 
 			$this->siteConfig->disableSubpagesForNS( 0 );
 			if ( isset( $testOpts['subpage'] ) ) {
@@ -995,12 +1023,6 @@ class TestRunner {
 				$allowedPrefixes = [];
 			}
 			$this->siteConfig->allowedExternalImagePrefixes = $allowedPrefixes;
-
-			// Process test-specific options
-			$defaults = [ 'wrapSections' => false ]; // override for parser tests
-			foreach ( $defaults as $opt => $defaultVal ) {
-				$this->envOptions[$opt] = $testOpts['parsoid'][$opt] ?? $defaultVal;
-			}
 
 			// Emulate PHP parser's tag hook to tunnel content past the sanitizer
 			if ( isset( $testOpts['styletag'] ) ) {
@@ -1030,12 +1052,6 @@ class TestRunner {
 
 		$runner = $this;
 		$test->testAllModes( $targetModes, $options, Closure::fromCallable( [ $this, 'runTest' ] ) );
-
-		// clean-up
-		// if/when we remove the "reset()" before every test, this will become necessary
-		if ( isset( $testOpts['externallinktarget'] ) ) {
-			$this->siteConfig->setExternalLinkTarget( false );
-		}
 	}
 
 	/**
@@ -1069,19 +1085,19 @@ class TestRunner {
 			}
 		}
 
-		$this->envOptions = [
+		$defaultOpts = [
 			'wrapSections' => false,
 			'nativeTemplateExpansion' => true,
 			'offsetType' => $this->offsetType,
 		];
-		ScriptUtils::setDebuggingFlags( $this->envOptions, $options );
-		ScriptUtils::setTemplatingAndProcessingFlags( $this->envOptions, $options );
+		ScriptUtils::setDebuggingFlags( $defaultOpts, $options );
+		ScriptUtils::setTemplatingAndProcessingFlags( $defaultOpts, $options );
 
 		if (
 			ScriptUtils::booleanOption( $options['quiet'] ?? null ) ||
 			ScriptUtils::booleanOption( $options['quieter'] ?? null )
 		) {
-			$this->envOptions['logLevels'] = [ 'fatal', 'error' ];
+			$defaultOpts['logLevels'] = [ 'fatal', 'error' ];
 		}
 
 		// Save default logger so we can be reset it after temporarily
@@ -1116,6 +1132,7 @@ class TestRunner {
 		// Run tests
 		foreach ( $this->testCases as $test ) {
 			try {
+				$this->envOptions = $defaultOpts;
 				$this->processTest( $test, $options );
 			} catch ( UnexpectedException $e ) {
 				// Exit unexpected

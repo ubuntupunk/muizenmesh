@@ -19,6 +19,7 @@
  */
 
 use MediaWiki\Html\Html;
+use MediaWiki\Request\WebRequest;
 
 /**
  * MediaWiki exception
@@ -105,12 +106,12 @@ class MWException extends Exception {
 	/**
 	 * Format an HTML message for the current exception object.
 	 *
-	 *
-	 * @stable to override
-	 * @todo Rarely used, remove in favour of generic MWExceptionRenderer
+	 * @deprecated since 1.42 Provide the error message when constructing the Exception instead.
+	 *   If you need a whole custom error page, use ErrorPageError instead.
 	 * @return string HTML to output
 	 */
 	public function getHTML() {
+		wfDeprecated( __METHOD__, '1.42' );
 		if ( MWExceptionRenderer::shouldShowExceptionDetails() ) {
 			return '<p>' . nl2br( htmlspecialchars( MWExceptionHandler::getLogMessage( $this ) ) ) .
 			'</p><p>Backtrace:</p><p>' .
@@ -139,11 +140,12 @@ class MWException extends Exception {
 	/**
 	 * Format plain text message for the current exception object.
 	 *
-	 * @stable to override
-	 * @todo Rarely used, remove in favour of generic MWExceptionRenderer
+	 * @deprecated since 1.42 Provide the error message when constructing the Exception instead.
+	 *   If you need a whole custom error page, use ErrorPageError instead.
 	 * @return string
 	 */
 	public function getText() {
+		wfDeprecated( __METHOD__, '1.42' );
 		if ( MWExceptionRenderer::shouldShowExceptionDetails() ) {
 			return MWExceptionHandler::getLogMessage( $this ) .
 			"\nBacktrace:\n" . MWExceptionHandler::getRedactedTraceAsString( $this ) . "\n";
@@ -156,22 +158,27 @@ class MWException extends Exception {
 	/**
 	 * Return the title of the page when reporting this error in a HTTP response.
 	 *
-	 * @stable to override
-	 *
+	 * @deprecated since 1.42 Provide the error message when constructing the Exception instead.
+	 *   If you need a whole custom error page, use ErrorPageError instead.
 	 * @return string
 	 */
 	public function getPageTitle() {
+		wfDeprecated( __METHOD__, '1.42' );
 		return $this->msg( 'internalerror', 'Internal error' );
 	}
 
 	/**
 	 * Output the exception report using HTML.
-	 * @stable to override
+	 * @deprecated since 1.42 Provide the error message when constructing the Exception instead.
+	 *   If you need a whole custom error page, use ErrorPageError instead.
 	 */
 	public function reportHTML() {
+		wfDeprecated( __METHOD__, '1.42' );
 		global $wgOut;
+
 		if ( $this->useOutputPage() ) {
-			$wgOut->prepareErrorPage( $this->getPageTitle() );
+			$wgOut->prepareErrorPage();
+			$wgOut->setPageTitle( $this->getPageTitle() );
 			// Manually set the html title, since sometimes
 			// {{SITENAME}} does not get replaced for exceptions
 			// happening inside message rendering.
@@ -220,6 +227,27 @@ class MWException extends Exception {
 	}
 
 	/**
+	 * @internal
+	 */
+	final public function hasOverriddenHandler(): bool {
+		// No deprecation warning - report() is not deprecated, only the other methods
+		if ( MWDebug::detectDeprecatedOverride( $this, __CLASS__, 'report' ) ) {
+			return true;
+		}
+
+		// Check them all here to avoid short-circuiting and report all deprecations,
+		// even if the function is not called in this request
+		$detectedOverrides = [
+			'getHTML' => MWDebug::detectDeprecatedOverride( $this, __CLASS__, 'getHTML', '1.42' ),
+			'getText' => MWDebug::detectDeprecatedOverride( $this, __CLASS__, 'getText', '1.42' ),
+			'getPageTitle' => MWDebug::detectDeprecatedOverride( $this, __CLASS__, 'getPageTitle', '1.42' ),
+			'reportHTML' => MWDebug::detectDeprecatedOverride( $this, __CLASS__, 'reportHTML', '1.42' ),
+		];
+
+		return (bool)array_filter( $detectedOverrides );
+	}
+
+	/**
 	 * Write a message to stderr falling back to stdout if stderr unavailable
 	 *
 	 * @param string $message
@@ -241,7 +269,7 @@ class MWException extends Exception {
 	 * @return bool
 	 */
 	public static function isCommandLine() {
-		return !empty( $GLOBALS['wgCommandLineMode'] );
+		return MW_ENTRY_POINT === 'cli';
 	}
 
 	/**

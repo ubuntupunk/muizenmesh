@@ -1,7 +1,7 @@
 /*!
  * VisualEditor annotated text content state class
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
 
 /**
@@ -86,7 +86,7 @@ ve.ce.TextState.static.getChunks = function ( element ) {
 			// otherwise we'll double count this node
 			if ( node === view.$element[ 0 ] ) {
 				// \u2603 is the snowman character: ☃
-				add( ve.repeatString( '\u2603', view.getOuterLength() ) );
+				add( '\u2603'.repeat( view.getOuterLength() ) );
 			}
 		} else if ( node.classList.contains( 've-ce-unicorn' ) ) {
 			add( '', 'unicorn' );

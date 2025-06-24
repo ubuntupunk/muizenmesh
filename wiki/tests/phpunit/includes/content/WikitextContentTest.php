@@ -1,6 +1,7 @@
 <?php
 
 use MediaWiki\Deferred\LinksUpdate\LinksDeletionUpdate;
+use MediaWiki\Parser\Parser;
 use MediaWiki\Title\Title;
 
 /**
@@ -46,7 +47,7 @@ just a test"
 
 	/**
 	 * @dataProvider dataGetSection
-	 * @covers WikitextContent::getSection
+	 * @covers \WikitextContent::getSection
 	 */
 	public function testGetSection( $text, $sectionId, $expectedText ) {
 		$content = $this->newContent( $text );
@@ -67,7 +68,7 @@ just a test"
 				"0",
 				"No more",
 				null,
-				trim( preg_replace( '/^Intro/sm', 'No more', self::$sections ) )
+				trim( preg_replace( '/^Intro/m', 'No more', self::$sections ) )
 			],
 			[ self::$sections,
 				"",
@@ -101,7 +102,7 @@ just a test"
 
 	/**
 	 * @dataProvider dataReplaceSection
-	 * @covers WikitextContent::replaceSection
+	 * @covers \WikitextContent::replaceSection
 	 */
 	public function testReplaceSection( $text, $section, $with, $sectionTitle, $expected ) {
 		$content = $this->newContent( $text );
@@ -112,7 +113,7 @@ just a test"
 	}
 
 	/**
-	 * @covers WikitextContent::addSectionHeader
+	 * @covers \WikitextContent::addSectionHeader
 	 */
 	public function testAddSectionHeader() {
 		$content = $this->newContent( 'hello world' );
@@ -216,7 +217,7 @@ just a test"
 	}
 
 	/**
-	 * @covers WikitextContent::matchMagicWord
+	 * @covers \WikitextContent::matchMagicWord
 	 */
 	public function testMatchMagicWord() {
 		$mw = $this->getServiceContainer()->getMagicWordFactory()->get( "staticredirect" );
@@ -232,10 +233,10 @@ just a test"
 	}
 
 	/**
-	 * @covers WikitextContent::updateRedirect
+	 * @covers \WikitextContent::updateRedirect
 	 */
 	public function testUpdateRedirect() {
-		$target = Title::newFromText( "testUpdateRedirect_target" );
+		$target = Title::makeTitle( NS_MAIN, 'TestUpdateRedirect_target' );
 
 		// test with non-redirect page
 		$content = $this->newContent( "hello world." );
@@ -257,7 +258,7 @@ just a test"
 	}
 
 	/**
-	 * @covers WikitextContent::getModel
+	 * @covers \WikitextContent::getModel
 	 */
 	public function testGetModel() {
 		$content = $this->newContent( "hello world." );
@@ -266,7 +267,7 @@ just a test"
 	}
 
 	/**
-	 * @covers WikitextContent::getContentHandler
+	 * @covers \WikitextContent::getContentHandler
 	 */
 	public function testGetContentHandler() {
 		$content = $this->newContent( "hello world." );
@@ -275,11 +276,11 @@ just a test"
 	}
 
 	/**
-	 * @covers ParserOptions::getRedirectTarget
-	 * @covers ParserOptions::setRedirectTarget
+	 * @covers \ParserOptions::getRedirectTarget
+	 * @covers \ParserOptions::setRedirectTarget
 	 */
 	public function testRedirectParserOption() {
-		$title = Title::newFromText( 'testRedirectParserOption' );
+		$title = Title::makeTitle( NS_MAIN, 'TestRedirectParserOption' );
 		$contentRenderer = $this->getServiceContainer()->getContentRenderer();
 
 		// Set up hook and its reporting variables

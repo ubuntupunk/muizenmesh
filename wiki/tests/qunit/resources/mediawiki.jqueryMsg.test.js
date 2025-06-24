@@ -1,4 +1,6 @@
 ( function () {
+	const jqueryMsg = require( 'mediawiki.jqueryMsg' ).test;
+
 	/* eslint-disable camelcase */
 	var formatText, formatParse, formatnumTests, specialCharactersPageName, expectedListUsers,
 		expectedListUsersSitename, expectedLinkPagenamee, expectedEntrypoints,
@@ -20,8 +22,8 @@
 				testData.initLang( langCode );
 				return mw.language;
 			};
-			this.parserDefaults = mw.jqueryMsg.getParserDefaults();
-			mw.jqueryMsg.setParserDefaults( {
+			this.parserDefaults = jqueryMsg.getParserDefaults();
+			jqueryMsg.setParserDefaults( {
 				magic: {
 					SITENAME: 'Wiki',
 					// Repeat parserDefaults.magic from mediawiki.jqueryMsg.js. The original
@@ -42,17 +44,17 @@
 
 			expectedEntrypoints = '<a href="https://www.mediawiki.org/wiki/Manual:index.php" class="external">index.php</a>';
 
-			formatText = mw.jqueryMsg.getMessageFunction( {
+			formatText = jqueryMsg.getMessageFunction( {
 				format: 'text'
 			} );
 
-			formatParse = mw.jqueryMsg.getMessageFunction( {
+			formatParse = jqueryMsg.getMessageFunction( {
 				format: 'parse'
 			} );
 		},
 		afterEach: function () {
 			mw.language = this.originalMwLanguage;
-			mw.jqueryMsg.setParserDefaults( this.parserDefaults );
+			jqueryMsg.setParserDefaults( this.parserDefaults );
 		},
 		config: {
 			wgPageName: '2 + 2',
@@ -219,7 +221,7 @@
 	QUnit.test( 'Gender', function ( assert ) {
 		var originalGender = mw.user.options.get( 'gender' );
 
-		// TODO: These tests should be for mw.msg once mw.msg integrated with mw.jqueryMsg
+		// TODO: These tests should be for mw.msg once mw.msg integrated with jqueryMsg
 		// TODO: English may not be the best language for these tests. Use a language like Arabic or Russian
 		mw.user.options.set( 'gender', 'male' );
 		assert.strictEqual(
@@ -369,7 +371,7 @@
 			var parser,
 				langClass = self.getMwLanguage( test.lang );
 			mw.config.set( 'wgUserLanguage', test.lang );
-			parser = new mw.jqueryMsg.Parser( { language: langClass } );
+			parser = new jqueryMsg.Parser( { language: langClass } );
 			assert.strictEqual(
 				parser.parse( test.key, test.args ).html(),
 				test.result,
@@ -743,7 +745,7 @@
 	// Tests that getMessageFunction is used for non-plain messages with curly braces or
 	// square brackets, but not otherwise.
 	QUnit.test( 'mw.Message.prototype.parser monkey-patch', function ( assert ) {
-		var oldGMF, outerCalled, innerCalled;
+		var outerCalled, innerCalled;
 
 		mw.messages.set( {
 			'curly-brace': '{{int:message}}',
@@ -752,14 +754,12 @@
 			regular: 'Other message'
 		} );
 
-		oldGMF = mw.jqueryMsg.getMessageFunction;
-
-		mw.jqueryMsg.getMessageFunction = function () {
+		const restore = jqueryMsg.setMessageFunction( function () {
 			outerCalled = true;
 			return function () {
 				innerCalled = true;
 			};
-		};
+		} );
 
 		function verifyGetMessageFunction( key, format, shouldCall ) {
 			var message;
@@ -789,7 +789,7 @@
 		verifyGetMessageFunction( 'jquerymsg-test-categorytree-collapse-bullet', 'plain', false );
 		verifyGetMessageFunction( 'jquerymsg-test-wikieditor-toolbar-help-content-signature-result', 'plain', false );
 
-		mw.jqueryMsg.getMessageFunction = oldGMF;
+		restore();
 	} );
 
 	// Tests that HTML in message parameters is escaped,
@@ -917,7 +917,7 @@
 			var parser,
 				langClass = self.getMwLanguage( test.lang );
 			mw.config.set( 'wgUserLanguage', test.lang );
-			parser = new mw.jqueryMsg.Parser( { language: langClass } );
+			parser = new jqueryMsg.Parser( { language: langClass } );
 			assert.strictEqual(
 				parser.parse( test.integer ? 'formatnum-msg-int' : 'formatnum-msg',
 					[ test.number ] ).html(),
@@ -1145,6 +1145,12 @@
 		logSpy = this.sandbox.spy( mw.log, 'warn' );
 
 		assert.strictEqual(
+			mw.message( 'invalid-wikitext' ).isParseable(),
+			false,
+			'Invalid wikitext: reported as not parseable'
+		);
+
+		assert.strictEqual(
 			formatParse( 'invalid-wikitext' ),
 			'&lt;b&gt;{{FAIL}}&lt;/b&gt;',
 			'Invalid wikitext: \'parse\' format'
@@ -1258,9 +1264,7 @@
 	} );
 
 	QUnit.test( 'Integration', function ( assert ) {
-		var expected, msg, $bar;
-
-		expected = '<b><a title="Bold" href="/wiki/Bold">Bold</a>!</b>';
+		var expected = '<b><a title="Bold" href="/wiki/Bold">Bold</a>!</b>';
 		mw.messages.set( 'integration-test', '<b>[[Bold]]!</b>' );
 		mw.messages.set( 'param-test', 'Hello $1' );
 		mw.messages.set( 'param-test-with-link', 'Hello $1 [[$2|$3]]' );
@@ -1272,9 +1276,21 @@
 		);
 
 		assert.strictEqual(
+			$( '<span>' ).append( mw.message( 'integration-test' ).parseDom() ).html(),
+			expected,
+			'mw.message().parseDom() works correctly'
+		);
+
+		assert.strictEqual(
 			$( '<span>' ).msg( 'integration-test' ).html(),
 			expected,
 			'jQuery plugin $.fn.msg() works correctly'
+		);
+
+		assert.strictEqual(
+			mw.message( 'integration-test' ).isParseable(),
+			true,
+			'mw.message().isParseable() works correctly'
 		);
 
 		assert.strictEqual(
@@ -1283,18 +1299,13 @@
 			'Passing a jQuery object as a parameter to a message without wikitext works correctly'
 		);
 
-		( function () {
-			var $messageArgument,
-				$message;
-
-			mw.messages.set( 'object-double-replace', 'Foo 1: $1 2: $1' );
-			$messageArgument = $( '<div class="bar">&gt;</div>' );
-			$message = $( '<span>' ).msg( 'object-double-replace', $messageArgument );
-			assert.true(
-				$message[ 0 ].contains( $messageArgument[ 0 ] ),
-				'The original jQuery object is actually in the DOM'
-			);
-		}() );
+		mw.messages.set( 'object-double-replace', 'Foo 1: $1 2: $1' );
+		var $messageArgument = $( '<div class="bar">&gt;</div>' );
+		var $message = $( '<span>' ).msg( 'object-double-replace', $messageArgument );
+		assert.true(
+			$message[ 0 ].contains( $messageArgument[ 0 ] ),
+			'The original jQuery object is actually in the DOM'
+		);
 
 		assert.strictEqual(
 			mw.message( 'param-test', $( '<span>' ).text( 'World' ).get( 0 ) ).parse(),
@@ -1320,7 +1331,7 @@
 		);
 
 		mw.messages.set( 'integration-test-extlink', '[$1 Link]' );
-		msg = mw.message(
+		var msg = mw.message(
 			'integration-test-extlink',
 			$( '<a>' ).attr( 'href', 'http://example.com/' )
 		);
@@ -1333,7 +1344,7 @@
 
 		mw.config.set( 'wgUserLanguage', 'qqx' );
 
-		$bar = $( '<b>' ).text( 'bar' );
+		var $bar = $( '<b>' ).text( 'bar' );
 		mw.messages.set( 'qqx-message', '(qqx-message)' );
 		mw.messages.set( 'non-qqx-message', '<b>hello world</b>' );
 
@@ -1345,7 +1356,7 @@
 	} );
 
 	QUnit.test( 'setParserDefaults', function ( assert ) {
-		mw.jqueryMsg.setParserDefaults( {
+		jqueryMsg.setParserDefaults( {
 			magic: {
 				FOO: 'foo',
 				BAR: 'bar'
@@ -1353,7 +1364,7 @@
 		} );
 
 		assert.deepEqual(
-			mw.jqueryMsg.getParserDefaults().magic,
+			jqueryMsg.getParserDefaults().magic,
 			{
 				FOO: 'foo',
 				BAR: 'bar'

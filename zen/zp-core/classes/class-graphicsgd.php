@@ -3,10 +3,9 @@
 /**
  * class for image handling using the GD library
  * 
- * @since ZenphotoCMS 1.6 - reworked as class
+ * @since 1.6 - reworked as class
  * 
- * @package core
- * @subpackage classes\graphics
+ * @package zpcore\classes\graphics
  */
 class graphicsGD extends graphicsBase {
 	
@@ -29,7 +28,12 @@ class graphicsGD extends graphicsBase {
 		$gd_imgtypes['JPEG'] = ($imgtypes & IMG_JPG) ? 'jpg' : false;
 		$gd_imgtypes['PNG'] = ($imgtypes & IMG_PNG) ? 'png' : false;
 		$gd_imgtypes['WBMP'] = ($imgtypes & IMG_WBMP) ? 'jpg' : false;
-		$gd_imgtypes['WEBP'] = ($imgtypes & IMG_WEBP) ? 'webp' : false;
+		if (version_compare(PHP_VERSION, '7.0.10', '>=')) {
+			$gd_imgtypes['WEBP'] = ($imgtypes & IMG_WEBP) ? 'webp' : false;
+		}
+		if (version_compare(PHP_VERSION, '8.1.0', '>=')) {
+			$gd_imgtypes['AVIF'] = ($imgtypes & IMG_AVIF) ? 'avif' : false;
+		}
 
 		//Fix that unsupported types may be listed without suffix and then confuse e.g. the "cache as" option
 		foreach($gd_imgtypes as $key => $value) {
@@ -67,6 +71,8 @@ class graphicsGD extends graphicsBase {
 				return imagecreatefromgif($imgfile);
 			case 'webp':
 				return imagecreatefromwebp($imgfile);
+			case 'avif':
+				return imagecreatefromavif($imgfile);
 		}
 		return false;
 	}
@@ -97,6 +103,8 @@ class graphicsGD extends graphicsBase {
 				return imagegif($im, $filename);
 			case 'webp':
 				return imagewebp($im, $filename, $qual);
+			case 'avif':
+				return imageavif($im, $filename, $qual);
 		}
 		return false;
 	}
@@ -266,9 +274,9 @@ class graphicsGD extends graphicsBase {
 
 				// When the masked pixels differ less from the original
 				// than the threshold specifies, they are set to their original value.
-				$rNew = (abs($rOrig - $rBlur) >= $threshold) ? max(0, min(255, ($amount * ($rOrig - $rBlur)) + $rOrig)) : $rOrig;
-				$gNew = (abs($gOrig - $gBlur) >= $threshold) ? max(0, min(255, ($amount * ($gOrig - $gBlur)) + $gOrig)) : $gOrig;
-				$bNew = (abs($bOrig - $bBlur) >= $threshold) ? max(0, min(255, ($amount * ($bOrig - $bBlur)) + $bOrig)) : $bOrig;
+				$rNew = round((abs($rOrig - $rBlur) >= $threshold) ? max(0, min(255, ($amount * ($rOrig - $rBlur)) + $rOrig)) : $rOrig);
+				$gNew = round((abs($gOrig - $gBlur) >= $threshold) ? max(0, min(255, ($amount * ($gOrig - $gBlur)) + $gOrig)) : $gOrig);
+				$bNew = round((abs($bOrig - $bBlur) >= $threshold) ? max(0, min(255, ($amount * ($bOrig - $bBlur)) + $bOrig)) : $bOrig);
 
 				if (($rOrig != $rNew) || ($gOrig != $gNew) || ($bOrig != $bNew)) {
 					$pixCol = ImageColorAllocate($img, $rNew, $gNew, $bNew);
@@ -306,7 +314,7 @@ class graphicsGD extends graphicsBase {
 	 * 
 	 * Note: You have to apply zp_resampleImage() afterwards as the function does not handle this internally
 	 * 
-	 * @since ZenphotoCMS 1.5.2
+	 * @since 1.5.2
 	 * 
 	 * @param image $src
 	 * @param int $w
@@ -334,21 +342,20 @@ class graphicsGD extends graphicsBase {
 	 * Rotates an image resource according to its Orientation
 	 * NB: requires the imagarotate function to be configured
 	 *
-	 * @param resource $im
-	 * @param int $rotate
+	 * @param object $im GD image object
+	 * @param int $rotate Rotation degree clock wise! GD required counter clockwise calcuation is done internally
 	 * @return resource
 	 */
 	function rotateImage($im, $rotate) {
-		$newim_rot = imagerotate($im, $rotate, 0);
+		$ccw_rotate = graphicsBase::getCounterClockwiseRotation($rotate);
+		$newim_rot = imagerotate($im, $ccw_rotate, 0);
 		imagedestroy($im);
 		return $newim_rot;
 	}
 	
 	/**
 	 * Flips (mirrors) an image
-	 * 
-	 * @since ZenphotoCMS 1.6
-	 * 
+	 * @since 1.6
 	 * @param image $im 
 	 * @param string $mode "horizontal" (default) or "vertical"
 	 * @return object
@@ -357,10 +364,13 @@ class graphicsGD extends graphicsBase {
 		switch ($mode) {
 			default:
 			case 'horizontal':
-				return imageflip($im, IMG_FLIP_HORIZONTAL);
+				imageflip($im, IMG_FLIP_HORIZONTAL);
+				break;
 			case 'vertical';
-				return imageflip($im, IMG_FLIP_VERTICAL);
+				imageflip($im, IMG_FLIP_VERTICAL);
+				break;
 		}
+		return $im;
 	}
 
 	/**
@@ -416,6 +426,7 @@ class graphicsGD extends graphicsBase {
 				imagesetpixel($image, $x, $y, ImageColorAllocate($image, $gray, $gray, $gray));
 			}
 		}
+		return $image;
 	}
 
 	/**

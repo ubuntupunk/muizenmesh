@@ -1,3 +1,5 @@
+'use strict';
+
 /*
  * VisualEditor user interface MWCitationDialog class.
  *
@@ -8,10 +10,8 @@
 /**
  * Dialog for inserting and editing MediaWiki citations.
  *
- * @class
- * @extends ve.ui.MWTemplateDialog
- *
  * @constructor
+ * @extends ve.ui.MWTemplateDialog
  * @param {Object} [config] Configuration options
  */
 ve.ui.MWCitationDialog = function VeUiMWCitationDialog( config ) {
@@ -40,7 +40,7 @@ ve.ui.MWCitationDialog.static.name = 'cite';
  * @return {ve.dm.MWReferenceNode|null} Reference node to be edited, null if none exists
  */
 ve.ui.MWCitationDialog.prototype.getReferenceNode = function () {
-	var selectedNode = this.getFragment().getSelectedNode();
+	const selectedNode = this.getFragment().getSelectedNode();
 
 	if ( selectedNode instanceof ve.dm.MWReferenceNode ) {
 		return selectedNode;
@@ -50,15 +50,15 @@ ve.ui.MWCitationDialog.prototype.getReferenceNode = function () {
 };
 
 /**
- * @inheritdoc
+ * @override
  */
 ve.ui.MWCitationDialog.prototype.getSelectedNode = function () {
-	var referenceNode = this.getReferenceNode();
+	const referenceNode = this.getReferenceNode();
 
-	var transclusionNode;
+	let transclusionNode;
 	if ( referenceNode ) {
-		var branches = referenceNode.getInternalItem().getChildren();
-		var leaves = branches &&
+		const branches = referenceNode.getInternalItem().getChildren();
+		const leaves = branches &&
 			branches.length === 1 &&
 			branches[ 0 ].canContainContent() &&
 			branches[ 0 ].getChildren();
@@ -77,7 +77,7 @@ ve.ui.MWCitationDialog.prototype.getSelectedNode = function () {
 };
 
 /**
- * @inheritdoc
+ * @override
  */
 ve.ui.MWCitationDialog.prototype.initialize = function ( data ) {
 	// Parent method
@@ -90,7 +90,7 @@ ve.ui.MWCitationDialog.prototype.initialize = function ( data ) {
 };
 
 /**
- * @inheritdoc
+ * @override
  */
 ve.ui.MWCitationDialog.prototype.getSetupProcess = function ( data ) {
 	return ve.ui.MWCitationDialog.super.prototype.getSetupProcess.call( this, data )
@@ -116,7 +116,7 @@ ve.ui.MWCitationDialog.prototype.getSetupProcess = function ( data ) {
 };
 
 /**
- * @inheritdoc
+ * @override
  */
 ve.ui.MWCitationDialog.prototype.updateTitle = function () {
 	if ( this.citationTitle ) {
@@ -128,7 +128,7 @@ ve.ui.MWCitationDialog.prototype.updateTitle = function () {
 };
 
 /**
- * @inheritdoc
+ * @override
  */
 ve.ui.MWCitationDialog.prototype.setApplicableStatus = function () {
 	ve.ui.MWCitationDialog.super.prototype.setApplicableStatus.call( this );
@@ -139,30 +139,31 @@ ve.ui.MWCitationDialog.prototype.setApplicableStatus = function () {
 };
 
 /**
- * @inheritdoc
+ * @override
  */
 ve.ui.MWCitationDialog.prototype.getActionProcess = function ( action ) {
-	var dialog = this;
+	const dialog = this;
 	if (
 		this.inDialog !== 'reference' &&
 		( action === 'done' || action === 'insert' )
 	) {
 		return new OO.ui.Process( function () {
-			var deferred = $.Deferred();
+			const deferred = $.Deferred();
 			dialog.checkRequiredParameters().done( function () {
-				var item, refDoc,
-					surfaceModel = dialog.getFragment().getSurface(),
-					doc = surfaceModel.getDocument(),
-					internalList = doc.getInternalList(),
-					obj = dialog.transclusionModel.getPlainObject();
+				const surfaceModel = dialog.getFragment().getSurface();
+				const doc = surfaceModel.getDocument();
+				const internalList = doc.getInternalList();
+				const obj = dialog.transclusionModel.getPlainObject();
 
 				// We had a reference, but no template node (or wrong kind of template node)
 				if ( dialog.referenceModel && !dialog.selectedNode ) {
-					refDoc = dialog.referenceModel.getDocument();
-					// Empty the existing reference, whatever it contained. This allows the dialog to be
-					// used for arbitrary references (to replace their contents with a citation).
+					const refDoc = dialog.referenceModel.getDocument();
+					// Empty the existing reference, whatever it contained. This allows
+					// the dialog to be used for arbitrary references (to replace their
+					// contents with a citation).
 					refDoc.commit(
-						ve.dm.TransactionBuilder.static.newFromRemoval( refDoc, refDoc.getDocumentRange(), true )
+						ve.dm.TransactionBuilder.static
+							.newFromRemoval( refDoc, refDoc.getDocumentRange(), true )
 					);
 				}
 
@@ -174,7 +175,7 @@ ve.ui.MWCitationDialog.prototype.getActionProcess = function ( action ) {
 					dialog.referenceModel.insertReferenceNode( dialog.getFragment() );
 				}
 
-				item = dialog.referenceModel.findInternalItem( surfaceModel );
+				const item = dialog.referenceModel.findInternalItem( surfaceModel );
 				if ( item ) {
 					if ( dialog.selectedNode ) {
 						dialog.transclusionModel.updateTransclusionNode(
@@ -182,13 +183,14 @@ ve.ui.MWCitationDialog.prototype.getActionProcess = function ( action ) {
 						);
 					} else if ( obj !== null ) {
 						dialog.transclusionModel.insertTransclusionNode(
-							// HACK: This is trying to place the cursor inside the first content branch
-							// node but this theoretically not a safe assumption - in practice, the
-							// citation dialog will only reach this code if we are inserting (not
-							// updating) a transclusion, so the referenceModel will have already
-							// initialized the internal node with a paragraph - getting the range of the
-							// item covers the entire paragraph so we have to get the range of it's
-							// first (and empty) child
+							// HACK: This is trying to place the cursor inside the first
+							// content branch node but this theoretically not a safe
+							// assumption - in practice, the citation dialog will only reach
+							// this code if we are inserting (not updating) a transclusion, so
+							// the referenceModel will have already initialized the internal
+							// node with a paragraph - getting the range of the item covers
+							// the entire paragraph so we have to get the range of it's first
+							// (and empty) child
 							dialog.getFragment().clone(
 								new ve.dm.LinearSelection( item.getChildren()[ 0 ].getRange() )
 							),
@@ -197,8 +199,9 @@ ve.ui.MWCitationDialog.prototype.getActionProcess = function ( action ) {
 					}
 				}
 
-				// HACK: Scorch the earth - this is only needed because without it, the references list
-				// won't re-render properly, and can be removed once someone fixes that
+				// HACK: Scorch the earth - this is only needed because without it, the
+				// references list won't re-render properly, and can be removed once
+				// someone fixes that
 				dialog.referenceModel.setDocument(
 					doc.cloneFromRange(
 						internalList.getItemNode( dialog.referenceModel.getListIndex() ).getRange()
@@ -218,7 +221,7 @@ ve.ui.MWCitationDialog.prototype.getActionProcess = function ( action ) {
 };
 
 /**
- * @inheritdoc
+ * @override
  */
 ve.ui.MWCitationDialog.prototype.getTeardownProcess = function ( data ) {
 	return ve.ui.MWCitationDialog.super.prototype.getTeardownProcess.call( this, data )

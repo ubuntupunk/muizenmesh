@@ -79,16 +79,6 @@ class ConnectionManager {
 	}
 
 	/**
-	 * @param int $i
-	 * @param string[]|null $groups
-	 * @return DBConnRef
-	 */
-	private function getConnectionRef( $i, array $groups = null ) {
-		$groups ??= $this->groups;
-		return $this->loadBalancer->getConnectionRef( $i, $groups, $this->domain );
-	}
-
-	/**
 	 * Returns a connection to the primary DB, for updating.
 	 *
 	 * @since 1.29
@@ -107,69 +97,10 @@ class ConnectionManager {
 	 * @since 1.37 Added optional $flags parameter
 	 * @param string[]|null $groups
 	 * @param int $flags
-	 * @return IDatabase
+	 * @return IReadableDatabase
 	 */
 	public function getReadConnection( ?array $groups = null, int $flags = 0 ) {
 		$groups ??= $this->groups;
 		return $this->getConnection( DB_REPLICA, $groups, $flags );
 	}
-
-	/**
-	 * @since 1.29
-	 * @param IDatabase $db
-	 * @deprecated since 1.38
-	 */
-	public function releaseConnection( IDatabase $db ) {
-		$this->loadBalancer->reuseConnection( $db );
-	}
-
-	/**
-	 * Returns a connection ref to the primary DB, for updating.
-	 *
-	 * @since 1.29
-	 *
-	 * @return DBConnRef
-	 * @deprecated since 1.39; Use getWriteConnection()
-	 */
-	public function getWriteConnectionRef() {
-		return $this->getConnectionRef( DB_PRIMARY );
-	}
-
-	/**
-	 * Returns a database connection ref for reading.
-	 *
-	 * @since 1.29
-	 * @param string[]|null $groups
-	 * @return DBConnRef
-	 * @deprecated since 1.38; Use getReadConnection()
-	 */
-	public function getReadConnectionRef( array $groups = null ) {
-		$groups ??= $this->groups;
-		return $this->getConnectionRef( DB_REPLICA, $groups );
-	}
-
-	/**
-	 * Returns a lazy-connecting database connection ref for updating.
-	 *
-	 * @since 1.38
-	 * @return DBConnRef
-	 * @deprecated since 1.39; Use getWriteConnection()
-	 */
-	public function getLazyWriteConnectionRef(): DBConnRef {
-		return $this->getConnectionRef( DB_PRIMARY );
-	}
-
-	/**
-	 * Returns a lazy-connecting database connection ref for reading.
-	 *
-	 * @since 1.37
-	 * @param string[]|null $groups
-	 * @return DBConnRef
-	 * @deprecated since 1.39; Use getReadConnection()
-	 */
-	public function getLazyReadConnectionRef( array $groups = null ) {
-		$groups ??= $this->groups;
-		return $this->getConnectionRef( DB_REPLICA, $groups );
-	}
-
 }

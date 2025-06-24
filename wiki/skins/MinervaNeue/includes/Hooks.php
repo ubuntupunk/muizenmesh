@@ -22,33 +22,31 @@ namespace MediaWiki\Minerva;
 
 use ChangesList;
 use ChangesListFilterGroup;
-use Config;
+use DifferenceEngine;
 use ExtensionRegistry;
-use Hooks as MWHooks;
-use Html;
+use MediaWiki\Config\Config;
+use MediaWiki\Diff\Hook\DifferenceEngineViewHeaderHook;
 use MediaWiki\Hook\FetchChangesListHook;
 use MediaWiki\Hook\OutputPageBodyAttributesHook;
+use MediaWiki\Hook\PreferencesGetLayoutHook;
 use MediaWiki\Hook\UserLogoutCompleteHook;
-use MediaWiki\MediaWikiServices;
+use MediaWiki\Html\Html;
 use MediaWiki\Minerva\Skins\SkinMinerva;
-use MediaWiki\Minerva\Skins\SkinUserPageHelper;
+use MediaWiki\Output\OutputPage;
+use MediaWiki\Preferences\Hook\GetPreferencesHook;
 use MediaWiki\ResourceLoader\Context;
 use MediaWiki\ResourceLoader\Hook\ResourceLoaderGetConfigVarsHook;
 use MediaWiki\ResourceLoader\Hook\ResourceLoaderRegisterModulesHook;
 use MediaWiki\ResourceLoader\ResourceLoader;
 use MediaWiki\Skins\Hook\SkinPageReadyConfigHook;
 use MediaWiki\SpecialPage\Hook\SpecialPageBeforeExecuteHook;
+use MediaWiki\SpecialPage\SpecialPage;
+use MediaWiki\User\Options\UserOptionsLookup;
+use MediaWiki\User\User;
 use MobileContext;
-use MobileFormatter;
-use MobileFrontend\Features\Feature;
-use MobileFrontend\Features\FeaturesManager;
 use OldChangesList;
-use OutputPage;
-use RuntimeException;
 use Skin;
-use SpecialPage;
-use User;
-use Wikimedia\Services\NoSuchServiceException;
+use Wikimedia\Rdbms\ConfiguredReadOnlyMode;
 
 /**
  * Hook handlers for Minerva skin.
@@ -57,15 +55,35 @@ use Wikimedia\Services\NoSuchServiceException;
  *	on<HookName>()
  */
 class Hooks implements
+	DifferenceEngineViewHeaderHook,
 	FetchChangesListHook,
+	GetPreferencesHook,
 	OutputPageBodyAttributesHook,
+	PreferencesGetLayoutHook,
 	ResourceLoaderGetConfigVarsHook,
 	ResourceLoaderRegisterModulesHook,
 	SkinPageReadyConfigHook,
 	SpecialPageBeforeExecuteHook,
 	UserLogoutCompleteHook
 {
-	private const FEATURE_OVERFLOW_PAGE_ACTIONS = 'MinervaOverflowInPageActions';
+	public const FEATURE_OVERFLOW_PAGE_ACTIONS = 'MinervaOverflowInPageActions';
+
+	private ConfiguredReadOnlyMode $configuredReadOnlyMode;
+	private SkinOptions $skinOptions;
+	private UserOptionsLookup $userOptionsLookup;
+	private ?MobileContext $mobileContext;
+
+	public function __construct(
+		ConfiguredReadOnlyMode $configuredReadOnlyMode,
+		SkinOptions $skinOptions,
+		UserOptionsLookup $userOptionsLookup,
+		?MobileContext $mobileContext
+	) {
+		$this->configuredReadOnlyMode = $configuredReadOnlyMode;
+		$this->skinOptions = $skinOptions;
+		$this->userOptionsLookup = $userOptionsLookup;
+		$this->mobileContext = $mobileContext;
+	}
 
 	/**
 	 * ResourceLoaderRegisterModules hook handler.
@@ -94,18 +112,33 @@ class Hooks implements
 	}
 
 	/**
+	 * Adds Minerva-specific user preferences that can only be accessed via API
+	 *
+	 * @param User $user user whose preferences are being modified
+	 * @param array[] &$prefs preferences description array, to be fed to a HTMLForm object
+	 */
+	public function onGetPreferences( $user, &$prefs ): void {
+		$minervaPrefs = [
+			'minerva-theme' => [
+				'type' => 'api'
+			],
+		];
+
+		$prefs += $minervaPrefs;
+	}
+
+	/**
 	 * PreferencesGetLayout hook handler.
 	 *
 	 * Use mobile layout in Special:Preferences
 	 * @see https://www.mediawiki.org/wiki/Manual:Hooks/PreferencesGetLayout
 	 *
 	 * @param bool &$useMobileLayout
-	 * @param Skin|string $skin
+	 * @param string $skinName
+	 * @param array $skinProperties
 	 */
-	public static function onPreferencesGetLayout( &$useMobileLayout, $skin ) {
-		if ( $skin instanceof Skin && $skin->getSkinName() === 'minerva' ) {
-			$useMobileLayout = true;
-		} elseif ( is_string( $skin ) && $skin === 'minerva' ) {
+	public function onPreferencesGetLayout( &$useMobileLayout, $skinName, $skinProperties = [] ) {
+		if ( $skinName === 'minerva' ) {
 			$useMobileLayout = true;
 		}
 	}
@@ -130,81 +163,6 @@ class Hooks implements
 	}
 
 	/**
-	 * Register mobile web beta features
-	 * @see https://www.mediawiki.org/wiki/
-	 *  Extension:MobileFrontend/MobileFrontendFeaturesRegistration
-	 *
-	 * @param FeaturesManager $featureManager
-	 */
-	public static function onMobileFrontendFeaturesRegistration( $featureManager ) {
-		$config = MediaWikiServices::getInstance()->getConfigFactory()
-			->makeConfig( 'minerva' );
-
-		try {
-			$featureManager->registerFeature(
-				new Feature(
-					'MinervaShowCategories',
-					'skin-minerva',
-					$config->get( 'MinervaShowCategories' )
-				)
-			);
-			$featureManager->registerFeature(
-				new Feature(
-					'MinervaPageIssuesNewTreatment',
-					'skin-minerva',
-					$config->get( 'MinervaPageIssuesNewTreatment' )
-				)
-			);
-			$featureManager->registerFeature(
-				new Feature(
-					'MinervaTalkAtTop',
-					'skin-minerva',
-					$config->get( 'MinervaTalkAtTop' )
-				)
-			);
-			$featureManager->registerFeature(
-				new Feature(
-					'MinervaDonateLink',
-					'skin-minerva',
-					$config->get( 'MinervaDonateLink' )
-				)
-			);
-			$featureManager->registerFeature(
-				new Feature(
-					'MinervaHistoryInPageActions',
-					'skin-minerva',
-					$config->get( 'MinervaHistoryInPageActions' )
-				)
-			);
-			$featureManager->registerFeature(
-				new Feature(
-					self::FEATURE_OVERFLOW_PAGE_ACTIONS,
-					'skin-minerva',
-					$config->get( self::FEATURE_OVERFLOW_PAGE_ACTIONS )
-				)
-			);
-			$featureManager->registerFeature(
-				new Feature(
-					'MinervaAdvancedMainMenu',
-					'skin-minerva',
-					$config->get( 'MinervaAdvancedMainMenu' )
-				)
-			);
-			$featureManager->registerFeature(
-				new Feature(
-					'MinervaPersonalMenu',
-					'skin-minerva',
-					$config->get( 'MinervaPersonalMenu' )
-				)
-			);
-		} catch ( RuntimeException $e ) {
-			// features already registered...
-			// due to a bug it's possible for this to run twice
-			// https://phabricator.wikimedia.org/T165068
-		}
-	}
-
-	/**
 	 * Invocation of hook SpecialPageBeforeExecute
 	 *
 	 * We use this hook to ensure that login/account creation pages
@@ -217,133 +175,34 @@ class Hooks implements
 	 */
 	public function onSpecialPageBeforeExecute( $special, $subpage ) {
 		$name = $special->getName();
-		$out = $special->getOutput();
-		$skin = $out->getSkin();
+		if ( !in_array( $name, [ 'Recentchanges', 'Userlogin', 'CreateAccount' ] ) ) {
+			return;
+		}
+		$skin = $special->getSkin();
+		if ( !$skin instanceof SkinMinerva ) {
+			return;
+		}
 		$request = $special->getRequest();
-
-		if ( $skin instanceof SkinMinerva ) {
-			switch ( $name ) {
-				case 'Recentchanges':
-					$isEnhancedDefaultForUser = MediaWikiServices::getInstance()
-						->getUserOptionsLookup()
-						->getBoolOption( $special->getUser(), 'usenewrc' );
-					$enhanced = $request->getBool( 'enhanced', $isEnhancedDefaultForUser );
-					if ( $enhanced ) {
-						$out->addHTML( Html::warningBox(
-							$special->msg( 'skin-minerva-recentchanges-warning-enhanced-not-supported' )->parse()
-						) );
-					}
-					break;
-				case 'Userlogin':
-				case 'CreateAccount':
-					// Add default warning message to Special:UserLogin and Special:UserCreate
-					// if no warning message set.
-					if (
-						!$request->getVal( 'warning' ) &&
-						!$special->getUser()->isRegistered() &&
-						!$request->wasPosted()
-					) {
-						$request->setVal( 'warning', 'mobile-frontend-generic-login-new' );
-					}
-					break;
+		if ( $name === 'Recentchanges' ) {
+			$isEnhancedDefaultForUser = $this->userOptionsLookup
+				->getBoolOption( $special->getUser(), 'usenewrc' );
+			$enhanced = $request->getBool( 'enhanced', $isEnhancedDefaultForUser );
+			if ( $enhanced ) {
+				$special->getOutput()->addHTML( Html::warningBox(
+					$special->msg( 'skin-minerva-recentchanges-warning-enhanced-not-supported' )->parse()
+				) );
+			}
+		} else {
+			// Add default warning message to Special:UserLogin and Special:UserCreate
+			// if no warning message set.
+			if (
+				!$request->getVal( 'warning' ) &&
+				!$special->getUser()->isRegistered() &&
+				!$request->wasPosted()
+			) {
+				$request->setVal( 'warning', 'mobile-frontend-generic-login-new' );
 			}
 		}
-	}
-
-	/**
-	 * Set the skin options for Minerva
-	 *
-	 * @param MobileContext $mobileContext
-	 * @param Skin $skin
-	 */
-	private static function setMinervaSkinOptions(
-		MobileContext $mobileContext, Skin $skin
-	) {
-		// setSkinOptions is not available
-		if ( $skin instanceof SkinMinerva
-		) {
-			$services = MediaWikiServices::getInstance();
-			$featureManager = $services
-				->getService( 'MobileFrontend.FeaturesManager' );
-			$skinOptions = $services->getService( 'Minerva.SkinOptions' );
-			$title = $skin->getTitle();
-
-			// T245162 - this should only apply if the context relates to a page view.
-			// Examples:
-			// - parsing wikitext during an REST response
-			// - a ResourceLoader response
-			if ( $title !== null ) {
-				// T232653: TALK_AT_TOP, HISTORY_IN_PAGE_ACTIONS, TOOLBAR_SUBMENU should
-				// be true on user pages and user talk pages for all users
-				//
-				// For some reason using $services->getService( 'SkinUserPageHelper' )
-				// here results in a circular dependency error which is why
-				// SkinUserPageHelper is being instantiated instead.
-				$relevantUserPageHelper = new SkinUserPageHelper(
-					$services->getUserNameUtils(),
-					$services->getUserFactory(),
-					$title->inNamespace( NS_USER_TALK ) ? $title->getSubjectPage() : $title,
-					$mobileContext
-				);
-
-				$isUserPage = $relevantUserPageHelper->isUserPage();
-				$isUserPageAccessible = $relevantUserPageHelper->isUserPageAccessibleToCurrentUser();
-				$isUserPageOrUserTalkPage = $isUserPage && $isUserPageAccessible;
-			} else {
-				// If no title this must be false
-				$isUserPageOrUserTalkPage = false;
-			}
-
-			$isBeta = $mobileContext->isBetaGroupMember();
-			$skinOptions->setMultiple( [
-				SkinOptions::SHOW_DONATE => $featureManager->isFeatureAvailableForCurrentUser( 'MinervaDonateLink' ),
-				SkinOptions::TALK_AT_TOP => $isUserPageOrUserTalkPage ?
-					true : $featureManager->isFeatureAvailableForCurrentUser( 'MinervaTalkAtTop' ),
-				SkinOptions::BETA_MODE
-					=> $isBeta,
-				SkinOptions::CATEGORIES
-					=> $featureManager->isFeatureAvailableForCurrentUser( 'MinervaShowCategories' ),
-				SkinOptions::PAGE_ISSUES
-					=> $featureManager->isFeatureAvailableForCurrentUser( 'MinervaPageIssuesNewTreatment' ),
-				SkinOptions::MOBILE_OPTIONS => true,
-				SkinOptions::PERSONAL_MENU => $featureManager->isFeatureAvailableForCurrentUser(
-					'MinervaPersonalMenu'
-				),
-				SkinOptions::MAIN_MENU_EXPANDED => $featureManager->isFeatureAvailableForCurrentUser(
-					'MinervaAdvancedMainMenu'
-				),
-				// In mobile, always resort to single icon.
-				SkinOptions::SINGLE_ECHO_BUTTON => true,
-				SkinOptions::HISTORY_IN_PAGE_ACTIONS => $isUserPageOrUserTalkPage ?
-					true : $featureManager->isFeatureAvailableForCurrentUser( 'MinervaHistoryInPageActions' ),
-				SkinOptions::TOOLBAR_SUBMENU => $isUserPageOrUserTalkPage ?
-					true : $featureManager->isFeatureAvailableForCurrentUser(
-						self::FEATURE_OVERFLOW_PAGE_ACTIONS
-					),
-				SkinOptions::TABS_ON_SPECIALS => true,
-			] );
-			MWHooks::run( 'SkinMinervaOptionsInit', [ $skin, $skinOptions ] );
-		}
-	}
-
-	/**
-	 * MobileFrontendBeforeDOM hook handler that runs before the MobileFormatter
-	 * executes. We use it to determine whether or not the talk page is eligible
-	 * to be simplified (we want it only to be simplified when the MobileFormatter
-	 * makes expandable sections).
-	 *
-	 * @param MobileContext $mobileContext
-	 * @param MobileFormatter $formatter
-	 */
-	public static function onMobileFrontendBeforeDOM(
-		MobileContext $mobileContext,
-		MobileFormatter $formatter
-	) {
-		$services = MediaWikiServices::getInstance();
-		$skinOptions = $services->getService( 'Minerva.SkinOptions' );
-		$skinOptions->setMultiple( [
-			SkinOptions::SIMPLIFIED_TALK => true
-		] );
 	}
 
 	/**
@@ -356,24 +215,9 @@ class Hooks implements
 	 * @param string $oldName
 	 */
 	public function onUserLogoutComplete( $user, &$inject_html, $oldName ) {
-		try {
-			$ctx = MediaWikiServices::getInstance()->getService( 'MobileFrontend.Context' );
-			self::setMinervaSkinOptions( $ctx, $ctx->getSkin() );
-		} catch ( NoSuchServiceException $ex ) {
-			// MobileFrontend not installed. Not important.
+		if ( $this->mobileContext ) {
+			$this->skinOptions->setMinervaSkinOptions( $this->mobileContext, $this->mobileContext->getSkin() );
 		}
-	}
-
-	/**
-	 * BeforePageDisplayMobile hook handler.
-	 *
-	 * @param MobileContext $mobileContext
-	 * @param Skin $skin
-	 */
-	public static function onRequestContextCreateSkinMobile(
-		MobileContext $mobileContext, Skin $skin
-	) {
-		self::setMinervaSkinOptions( $mobileContext, $skin );
 	}
 
 	/**
@@ -390,7 +234,7 @@ class Hooks implements
 		if ( $skin === 'minerva' ) {
 			// This is to let the UI adjust itself to a wiki that is always read-only.
 			// Ignore temporary read-only on live wikis, requires heavy DB check (T233458).
-			$roConf = MediaWikiServices::getInstance()->getConfiguredReadOnlyMode();
+			$roConf = $this->configuredReadOnlyMode;
 			$vars += [
 				'wgMinervaABSamplingRate' => $config->get( 'MinervaABSamplingRate' ),
 				'wgMinervaReadOnly' => $roConf->isReadOnly(),
@@ -410,21 +254,14 @@ class Hooks implements
 	 */
 	public function onOutputPageBodyAttributes( $out, $skin, &$bodyAttrs ): void {
 		$classes = $out->getProperty( 'bodyClassName' );
-		$skinOptions = MediaWikiServices::getInstance()->getService( 'Minerva.SkinOptions' );
 		$isMinerva = $skin instanceof SkinMinerva;
 
-		if ( $isMinerva && $skinOptions->get( SkinOptions::HISTORY_IN_PAGE_ACTIONS ) ) {
+		if ( $isMinerva && $this->skinOptions->get( SkinOptions::HISTORY_IN_PAGE_ACTIONS ) ) {
 			// Class is used when page actions is modified to contain more elements
 			$classes .= ' minerva--history-page-action-enabled';
 		}
 
 		if ( $isMinerva ) {
-			// phan doesn't realize that $skin can only be an instance of SkinMinerva without this:
-			'@phan-var SkinMinerva $skin';
-			if ( $skin->isSimplifiedTalkPageEnabled() ) {
-				$classes .= ' skin-minerva--talk-simplified';
-			}
-
 			$bodyAttrs['class'] .= ' ' . $classes;
 		}
 	}
@@ -432,7 +269,7 @@ class Hooks implements
 	/**
 	 * SkinPageReadyConfig hook handler
 	 *
-	 * Disable collapsible and sortable on page load
+	 * Disable collapsible on page load
 	 *
 	 * @param Context $context
 	 * @param mixed[] &$config Associative array of configurable options
@@ -444,8 +281,22 @@ class Hooks implements
 		if ( $context->getSkin() === 'minerva' ) {
 			$config['search'] = false;
 			$config['collapsible'] = false;
-			$config['sortable'] = true;
 			$config['selectorLogoutLink'] = 'a.menu__item--logout[data-mw="interface"]';
 		}
+	}
+
+	/**
+	 * Force inline diffs on mobile site.
+	 *
+	 * @param DifferenceEngine $differenceEngine
+	 */
+	public function onDifferenceEngineViewHeader( $differenceEngine ) {
+		$skin = $differenceEngine->getSkin();
+		if ( $skin->getSkinName() !== 'minerva' ) {
+			return;
+		}
+		$differenceEngine->setSlotDiffOptions( [
+			'diff-type' => 'inline',
+		] );
 	}
 }

@@ -1,7 +1,10 @@
 <?php
 
+namespace Wikimedia\Tests\Rdbms;
+
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
+use MediaWikiUnitTestCase;
 use Wikimedia\Rdbms\DoctrineSchemaChangeBuilder;
 use Wikimedia\Rdbms\MWPostgreSqlPlatform;
 
@@ -27,7 +30,7 @@ class DoctrineSchemaChangeBuilderTest extends MediaWikiUnitTestCase {
 		$this->assertSame( $expected, $actual );
 	}
 
-	public function provideTestGetResultAllTables() {
+	public static function provideTestGetResultAllTables() {
 		yield 'MySQL schema tables' => [
 			new MySQLPlatform,
 			'/data/db/mysql/patch-drop-ct_tag.sql'

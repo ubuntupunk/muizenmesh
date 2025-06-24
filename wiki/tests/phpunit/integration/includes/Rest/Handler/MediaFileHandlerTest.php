@@ -2,11 +2,13 @@
 
 namespace MediaWiki\Tests\Rest\Handler;
 
+use MediaWiki\Context\RequestContext;
+use MediaWiki\MainConfigNames;
 use MediaWiki\Rest\Handler\MediaFileHandler;
 use MediaWiki\Rest\LocalizedHttpException;
 use MediaWiki\Rest\RequestData;
 use MediaWiki\Title\Title;
-use RequestContext;
+use MediaWikiLangTestCase;
 use Wikimedia\Message\MessageValue;
 
 /**
@@ -14,7 +16,7 @@ use Wikimedia\Message\MessageValue;
  *
  * @group Database
  */
-class MediaFileHandlerTest extends \MediaWikiLangTestCase {
+class MediaFileHandlerTest extends MediaWikiLangTestCase {
 
 	use MediaTestTrait;
 
@@ -43,7 +45,7 @@ class MediaFileHandlerTest extends \MediaWikiLangTestCase {
 
 		$user = RequestContext::getMain()->getUser();
 		$userOptionsManager = $this->getServiceContainer()->getUserOptionsManager();
-		$this->setMwGlobals( 'wgImageLimits', [
+		$this->overrideConfigValue( MainConfigNames::ImageLimits, [
 			$userOptionsManager->getIntOption( $user, 'imagesize' ) => [ 100, 100 ],
 			$userOptionsManager->getIntOption( $user, 'thumbsize' ) => [ 20, 20 ],
 		] );
@@ -127,7 +129,7 @@ class MediaFileHandlerTest extends \MediaWikiLangTestCase {
 
 	public function testExecute_wrongNamespace() {
 		$title = Title::newFromText( 'User:' . __CLASS__ . '.jpg' );
-		$this->editPage( $title->getPrefixedDBkey(), 'First' );
+		$this->editPage( $title, 'First' );
 		$request = new RequestData( [ 'pathParams' => [ 'title' => $title->getPrefixedDBkey() ] ] );
 
 		$handler = $this->newHandler();

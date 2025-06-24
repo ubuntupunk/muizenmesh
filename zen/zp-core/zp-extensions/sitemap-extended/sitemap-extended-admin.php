@@ -4,7 +4,7 @@
  *
  * Tool to generate sitemaps
  *
- * @package admin
+ * @package zpcore\plugins\sitemapextended
  */
 define('OFFSET_PATH', 3);
 
@@ -51,9 +51,8 @@ if (isset($_GET['generatesitemaps'])) {
 	}
 } // if(isset($_GET['generatesitemaps']) end
 ?>
-<link rel="stylesheet" href="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/admin-statistics.css" type="text/css" media="screen" />
-<script type="text/javascript">
-	// <!-- <![CDATA[
+<link rel="stylesheet" href="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/css/admin-statistics.css" type="text/css" media="screen" />
+<script>
 	$(document).ready(function() {
 		/*	$(".colorbox").colorbox({
 		 iframe: false,
@@ -64,7 +63,6 @@ if (isset($_GET['generatesitemaps'])) {
 		 close: '<?php echo gettext("close"); ?>'
 		 }); */
 	});
-	// ]]> -->
 </script>
 <?php
 echo '</head>';
@@ -133,12 +131,10 @@ echo '</head>';
 					} else {
 						sitemap::generateIndexCacheFile();
 						?>
-						<script type="text/javascript">
-							// <!-- <![CDATA[
+						<script>
 							$(document).ready(function() {
 								window.location = "<?php echo WEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER; ?>/sitemap-extended/sitemap-extended-admin.php";
 							});
-							// ]]> -->
 						</script>
 						<?php
 					}

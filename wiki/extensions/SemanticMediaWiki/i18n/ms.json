@@ -2,6 +2,8 @@
 	"@metadata": {
 		"authors": [
 			"Anakmalaysia",
+			"Aviator",
+			"Hakimi97",
 			"Pizza1016"
 		]
 	},
@@ -16,7 +18,6 @@
 	"smw_noinvannot": "Nilai tidak dapat diberikan kepada sifat songsang.",
 	"version-semantic": "Sambungan semantik",
 	"smw_baduri": "URI yang berbentuk \"$1\" tidak dibenarkan.",
-	"smw_dsv_link": "DSV",
 	"smw_printername_count": "Hasil pengiraan",
 	"smw_printername_csv": "Eksport CSV",
 	"smw_printername_dsv": "Eksport DSV",
@@ -31,10 +32,12 @@
 	"smw_printername_template": "Templat",
 	"smw_printername_rdf": "Eksport RDF",
 	"smw_printername_category": "Kategori",
+	"validator-type-class-SMWParamSource": "teks",
 	"smw-paramdesc-limit": "Bilangan hasil maksimum untuk diberikan",
 	"smw-paramdesc-offset": "Ofset hasil pertama",
 	"smw-paramdesc-headers": "Paparkan nama pengatas/sifat",
 	"smw-paramdesc-mainlabel": "Label untuk nama laman utama",
+	"smw-categories": "Kategori",
 	"smw_purge": "Muat semula",
 	"types": "Jenis",
 	"smw_ask_defaultformat": "asali",

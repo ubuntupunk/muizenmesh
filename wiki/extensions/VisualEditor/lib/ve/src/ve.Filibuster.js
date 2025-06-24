@@ -1,9 +1,8 @@
 /*!
  * Extremely detailed logging of function calls and state changes
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
-/* global Set */
 
 /**
  * A scrupulous event logger that logs state at every function call, and
@@ -466,7 +465,6 @@ ve.Filibuster.static.clonePlain = function ( val, seen ) {
 	var filibusterStatic = this;
 
 	if ( seen === undefined ) {
-		// eslint-disable-next-line es-x/no-set
 		seen = new Set();
 	}
 	if ( Array.isArray( val ) ) {
@@ -497,7 +495,6 @@ ve.Filibuster.static.clonePlain = function ( val, seen ) {
 		return { 've.dm.Selection': val.getDescription() };
 	} else if ( val.constructor === ve.dm.AnnotationSet ) {
 		return {
-			// eslint-disable-next-line no-restricted-syntax
 			've.dm.AnnotationSet': val.getStore()
 				.values( val.getHashes() )
 				.map( function ( annotation ) {

@@ -3,7 +3,39 @@ different releases and which versions of PHP and MediaWiki they support, see the
 [platform compatibility tables](INSTALL.md#platform-compatibility-and-release-status).
 
 
-## maps 10.0.0
+## Maps 10.2.0
+
+Released on May 13th, 2024.
+
+* Added additional Leaflet layer options by updating the Leaflet Providers library
+* Fixed compatibility with VisualEditor on MediaWiki 1.39 and above
+* Fixed display of GeoJSON pages on MediaWiki 1.39 and above
+
+## Maps 10.1.2
+
+Released on February 21st, 2024.
+
+* Fixed PHP 7.4 compatibility issue in the GeoJSON content model's integration with Semantic MediaWiki
+
+## Maps 10.1.1
+
+Released on December 4th, 2023.
+
+* Fixed errors occurring on GeoJSON pages on MediaWiki 1.39 and above
+
+## Maps 10.1.0
+
+Released on October 16th, 2023.
+
+* Improved support for MW 1.39
+* Fixed GeoJSON issue on MW 1.39+ by replacing usage of the deprecated method `Content::fillParserOutput()`
+* Added config option for GoogleGeocoder API key: `egMapsGoogleGeocodingApiKey`, which defaults to `egMapsGMaps3ApiKey`
+* Updated Basemap.at URLs for Leaflet and Google
+* Fixed some Cargo integration issues
+* Updated Composer support
+* Removed usage of `wgHooks` global
+
+## Maps 10.0.0
 
 Released on October 26th, 2022.
 

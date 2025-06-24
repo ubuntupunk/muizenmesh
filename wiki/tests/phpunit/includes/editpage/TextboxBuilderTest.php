@@ -26,7 +26,7 @@ use MediaWiki\MainConfigNames;
 use MediaWiki\Page\PageIdentityValue;
 use MediaWiki\Permissions\RestrictionStore;
 use MediaWiki\Title\Title;
-use MediaWiki\User\StaticUserOptionsLookup;
+use MediaWiki\User\Options\StaticUserOptionsLookup;
 use MediaWiki\User\UserIdentityValue;
 use MediaWikiIntegrationTestCase;
 
@@ -37,7 +37,7 @@ use MediaWikiIntegrationTestCase;
  */
 class TextboxBuilderTest extends MediaWikiIntegrationTestCase {
 
-	public function provideGetTextboxProtectionCSSClasses() {
+	public static function provideGetTextboxProtectionCSSClasses() {
 		return [
 			[
 				[ '' ],

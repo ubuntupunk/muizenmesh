@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright © 2009 Roan Kattouw "<Firstname>.<Lastname>@gmail.com"
+ * Copyright © 2009 Roan Kattouw <roan.kattouw@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,8 +30,7 @@ use Wikimedia\ParamValidator\ParamValidator;
  */
 class ApiImport extends ApiBase {
 
-	/** @var WikiImporterFactory */
-	private $wikiImporterFactory;
+	private WikiImporterFactory $wikiImporterFactory;
 
 	/**
 	 * @param ApiMain $main
@@ -93,7 +92,7 @@ class ApiImport extends ApiBase {
 			}
 		}
 
-		$importer = $this->wikiImporterFactory->getWikiImporter( $source->value );
+		$importer = $this->wikiImporterFactory->getWikiImporter( $source->value, $this->getAuthority() );
 		if ( isset( $params['namespace'] ) ) {
 			$importer->setTargetNamespace( $params['namespace'] );
 		} elseif ( isset( $params['rootpage'] ) ) {
@@ -107,7 +106,8 @@ class ApiImport extends ApiBase {
 			$importer,
 			$isUpload,
 			$params['interwikisource'],
-			$params['summary']
+			$params['summary'],
+			$this
 		);
 		if ( $params['tags'] ) {
 			$reporter->setChangeTags( $params['tags'] );

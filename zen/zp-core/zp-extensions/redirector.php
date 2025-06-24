@@ -27,8 +27,7 @@
  * You can upload several and enable the one to use on the plugin options.
  * 
  * @author Malte Müller (acrylian)
- * @package plugins
- * @subpackage redirector
+ * @package zpcore\plugins\redirector
  */
 $plugin_is_filter = 5 | CLASS_PLUGIN;
 $plugin_description = gettext('A plugin to redirect internal URLs. Primarily intended for URLs that otherwise would cause 404 not found errors.');
@@ -73,7 +72,7 @@ class redirectorOptions {
 		$files = getPluginFiles('redirector/*.*');
 		foreach ($files as $file) {
 			if (in_array(getSuffix($file), array('csv', 'json'))) {
-				$catalogues[basename($file)] = $file;
+				$catalogues[basename($file)] = basename($file);
 			}
 		}
 		return $catalogues;
@@ -120,6 +119,8 @@ class redirector {
 		$file = getOption('redirector_catalogue');
 		$redirections = array();
 		if (!empty($file)) {
+			// make sure there is no wrong web or server path in case migrated data
+			$file = SERVERPATH. '/'. USER_PLUGIN_FOLDER . '/redirector/' . basename($file); 
 			switch (getSuffix($file)) {
 				case 'csv':
 					if (($handle = fopen($file, "r")) !== FALSE) {

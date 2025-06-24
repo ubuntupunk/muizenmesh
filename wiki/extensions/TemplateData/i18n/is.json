@@ -2,6 +2,7 @@
 	"@metadata": {
 		"authors": [
 			"Snævar",
+			"Stefán Örvar Sigmundsson",
 			"Sveinn í Felli"
 		]
 	},
@@ -42,7 +43,7 @@
 	"templatedata-invalid-length": "Gögnin eru of stór til að vista ({{formatnum:$1}} {{PLURAL:$1|bæti}}, {{PLURAL:$2|hámarkið er}} {{formatnum:$2}})",
 	"templatedata-invalid-missing": "Nauðsynlegur eiginleiki „$1” fannst ekki.",
 	"templatedata-invalid-param": "Ógilt gildi \"$1\" fyrir eiginleikann \"$2\".",
-	"templatedata-invalid-parse": "Villa í málskipan JSON.",
+	"templatedata-invalid-parse": "Málskipanarvilla í JSON.",
 	"templatedata-invalid-type": "Bjóst við að eiginleikinn „$1” væri af gerðinni „$2”, en fékk eitthvað allt annað.",
 	"templatedata-invalid-unknown": "Óvæntur eiginleiki „$1”.",
 	"templatedata-invalid-value": "Ógilt eigindargildi fyrir eiginleikann „$1”.",
@@ -63,12 +64,11 @@
 	"templatedata-modal-format-block": "Blokk",
 	"templatedata-modal-format-custom": "Sérsniðið",
 	"templatedata-modal-format-inline": "Innfellt",
-	"templatedata-modal-format-null": "Óskilgreint",
+	"templatedata-modal-format-null": "Ótilgreint",
 	"templatedata-modal-json-error-replace": "Skipta út",
 	"templatedata-modal-notice-import-numparams": "$1 {{PLURAL:$1|nýtt gildi var|ný gildi voru}} innflutt: $2",
 	"templatedata-modal-placeholder-paramkey": "Nafn gildis",
 	"templatedata-modal-search-input-placeholder": "Leita eftir heiti tungumáls eða kóða",
-	"templatedata-modal-table-param-actions": "Aðgerðir",
 	"templatedata-modal-table-param-aliases": "Samnefni",
 	"templatedata-modal-table-param-autovalue": "Sjálfvirkt gildi",
 	"templatedata-modal-table-param-default": "Sjálfgefið ($1)",
@@ -82,7 +82,6 @@
 	"templatedata-modal-table-param-required": "Nauðsynleg",
 	"templatedata-modal-table-param-suggested": "Mælt með",
 	"templatedata-modal-table-param-type": "Tegund",
-	"templatedata-modal-table-param-uneditablefield": "Óbreytanlegt",
 	"templatedata-modal-title-addparam": "Bæta nýju gildi við",
 	"templatedata-modal-title-choose-language": "Velja tungumál",
 	"templatedata-modal-title-language": "Tungumál",

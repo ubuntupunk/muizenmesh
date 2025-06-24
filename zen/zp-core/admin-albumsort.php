@@ -1,8 +1,7 @@
 <?php
 /**
  * used in sorting the images within and album
- * @package admin
- *
+ * @package zpcore\admin
  */
 // force UTF-8 Ø
 
@@ -76,12 +75,10 @@ setAlbumSubtabs($album);
 printAdminHeader('edit', 'sort');
 
 ?>
-<script type="text/javascript">
-	//<!-- <![CDATA[
+<script>
 	$(function() {
 		$('#images').sortable();
 	});
-	// ]]> -->
 </script>
 <?php
 echo "\n</head>";
@@ -157,13 +154,11 @@ echo "\n</head>";
 					<form class="dirty-check" action="?page=edit&amp;album=<?php echo $album->getName(); ?>&amp;saved&amp;tab=sort" method="post" name="sortableListForm" id="sortableListForm" autocomplete="off">
 						<?php XSRFToken('save_sort'); ?>
 						<?php printBulkActions($checkarray_images, true); ?>
-						<script type="text/javascript">
-							// <!-- <![CDATA[
+						<script>
 							function postSort(form) {
 								$('#sortableList').val($('#images').sortable('serialize'));
 								form.submit();
 							}
-							// ]]> -->
 						</script>
 
 						<p class="buttons">

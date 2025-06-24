@@ -19,7 +19,7 @@ class FormatMetadataTest extends MediaWikiMediaTestCase {
 	}
 
 	/**
-	 * @covers File::formatMetadata
+	 * @covers \File::formatMetadata
 	 */
 	public function testInvalidDate() {
 		$file = $this->dataFile( 'broken_exif_date.jpg', 'image/jpeg' );
@@ -44,7 +44,7 @@ class FormatMetadataTest extends MediaWikiMediaTestCase {
 
 	/**
 	 * @dataProvider provideResolveMultivalueValue
-	 * @covers FormatMetadata::resolveMultivalueValue
+	 * @covers \FormatMetadata::resolveMultivalueValue
 	 */
 	public function testResolveMultivalueValue( $input, $output ) {
 		$formatMetadata = new FormatMetadata();
@@ -55,7 +55,7 @@ class FormatMetadataTest extends MediaWikiMediaTestCase {
 		$this->assertEquals( $output, $actualInput );
 	}
 
-	public function provideResolveMultivalueValue() {
+	public static function provideResolveMultivalueValue() {
 		return [
 			'nonArray' => [
 				'foo',
@@ -102,13 +102,13 @@ class FormatMetadataTest extends MediaWikiMediaTestCase {
 
 	/**
 	 * @dataProvider provideGetFormattedData
-	 * @covers FormatMetadata::getFormattedData
+	 * @covers \FormatMetadata::getFormattedData
 	 */
 	public function testGetFormattedData( $input, $output ) {
 		$this->assertEquals( $output, FormatMetadata::getFormattedData( $input ) );
 	}
 
-	public function provideGetFormattedData() {
+	public static function provideGetFormattedData() {
 		return [
 			[
 				[ 'Software' => 'Adobe Photoshop CS6 (Macintosh)' ],
@@ -145,7 +145,7 @@ class FormatMetadataTest extends MediaWikiMediaTestCase {
 	}
 
 	/**
-	 * @covers FormatMetadata::getPriorityLanguages
+	 * @covers \FormatMetadata::getPriorityLanguages
 	 * @dataProvider provideGetPriorityLanguagesData
 	 * @param string $languageClass
 	 * @param string[] $expected
@@ -162,7 +162,7 @@ class FormatMetadataTest extends MediaWikiMediaTestCase {
 		$this->assertSame( $expected, $x );
 	}
 
-	public function provideGetPriorityLanguagesData() {
+	public static function provideGetPriorityLanguagesData() {
 		return [
 			'LanguageMl' => [
 				LanguageMl::class,

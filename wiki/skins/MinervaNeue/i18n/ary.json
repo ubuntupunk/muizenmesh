@@ -2,10 +2,10 @@
 	"@metadata": {
 		"authors": [
 			"Reda Benkhadra",
-			"SADIQUI"
+			"SADIQUI",
+			"Ideophagous"
 		]
 	},
-	"minerva-talk-add-topic": "زيد موضوع",
 	"mobile-frontend-editor-redlink-create": "صاوب صفحة",
 	"mobile-frontend-editor-redlink-explain": "هاد صفحة مازال ماكايناش.",
 	"mobile-frontend-home-button": "الصفحة اللولا",
@@ -17,5 +17,5 @@
 	"mobile-frontend-random-button": "صفحة كيما كانت",
 	"mobile-frontend-talk-back-to-page": "رجع ل صفحة \"$1\".",
 	"mobile-frontend-user-page-member-since": "{{GENDER:$1|دخل|دخلات}} هادي $1",
-	"minerva-talk-explained-empty": "ماكاينش نيقاشات فهاد صفحة."
+	"skinname-minerva": "مينيرڤانيو"
 }

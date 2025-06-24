@@ -1,7 +1,7 @@
 /*!
  * VisualEditor ContentEditable table arrow key down handler tests.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
 
 QUnit.module( 've.ce.TableArrowKeyDownHandler', {
@@ -168,12 +168,12 @@ QUnit.test( 'special key down: table arrow keys (simple movements)', function ( 
 				tableRange: new ve.Range( 0, 171 )
 			},
 			rtl: {
-				view: ve.test.utils.createSurfaceViewFromHtml(
-					'<table style="direction: rtl;">' +
-						'<tr><td>1</td><td>2</td></tr>' +
-						'<tr><td>3</td><td>4</td></tr>' +
-					'</table>'
-				),
+				view: ve.test.utils.createSurfaceViewFromHtml( ve.dm.example.singleLine`
+					<table style="direction: rtl;">
+						<tr><td>1</td><td>2</td></tr>
+						<tr><td>3</td><td>4</td></tr>
+					</table>
+				` ),
 				tableRange: new ve.Range( 0, 28 )
 			}
 		},

@@ -472,22 +472,22 @@ return [
             [['_route' => 'admin_link_block_create', '_controller' => 'PrestaShop\\Module\\LinkList\\Controller\\Admin\\Improve\\Design\\LinkBlockController::createAction', '_legacy_controller' => 'AdminLinkWidget'], null, ['GET' => 0], null, false, false, null],
             [['_route' => 'admin_link_block_create_process', '_controller' => 'PrestaShop\\Module\\LinkList\\Controller\\Admin\\Improve\\Design\\LinkBlockController::createProcessAction', '_legacy_controller' => 'AdminLinkWidget'], null, ['POST' => 0], null, false, false, null],
         ],
-        '/modules/mbo/modules/catalog' => [[['_route' => 'admin_mbo_catalog_module', '_controller' => 'mbo.controller.modules.catalog:indexAction', '_legacy_controller' => 'AdminPsMboModule', '_legacy_link' => ['AdminPsMboModuleParent', 'AdminPsMboModule']], null, ['GET' => 0], null, true, false, null]],
-        '/modules/mbo/modules/catalog/selection' => [[['_route' => 'admin_mbo_catalog_module_selection', '_controller' => 'mbo.controller.modules.selection:indexAction', '_legacy_controller' => 'AdminPsMboSelection', '_legacy_link' => 'AdminPsMboSelection'], null, ['GET' => 0], null, false, false, null]],
-        '/modules/mbo/modules/catalog/cdc_error' => [[['_route' => 'admin_mbo_module_cdc_error', '_controller' => 'mbo.controller.modules.catalog:cdcErrorAction'], null, ['GET' => 0], null, false, false, null]],
-        '/modules/mbo/modules/recommended' => [[['_route' => 'admin_mbo_recommended_modules', '_controller' => 'mbo.controller.modules.recommended:indexAction', '_legacy_controller' => 'AdminPsMboRecommended', '_legacy_link' => 'AdminPsMboRecommended'], null, ['GET' => 0], null, true, false, null]],
-        '/modules/mbo/themes/catalog' => [[['_route' => 'admin_mbo_catalog_theme', '_controller' => 'mbo.controller.themes.catalog:indexAction', '_legacy_controller' => 'AdminPsMboTheme', '_legacy_link' => 'AdminPsMboTheme'], null, ['GET' => 0], null, true, false, null]],
-        '/modules/mbo/addons/login' => [[['_route' => 'admin_mbo_addons_login', '_controller' => 'mbo.controller.addons:loginAction'], null, ['POST' => 0], null, false, false, null]],
-        '/modules/mbo/addons/logout' => [[['_route' => 'admin_mbo_addons_logout', '_controller' => 'mbo.controller.addons:logoutAction'], null, ['GET' => 0], null, false, false, null]],
-        '/modules/mbo/addons/modules/upgrade' => [[['_route' => 'admin_mbo_addons_module_upgrade', '_controller' => 'mbo.controller.addons:upgradeModuleAction'], null, ['POST' => 0], null, false, false, null]],
         '/modules/blockwishlist/configuration' => [[['_route' => 'blockwishlist_configuration', '_controller' => 'PrestaShop\\Module\\BlockWishList\\Controller\\WishlistConfigurationAdminController::configurationAction', '_legacy_controller' => 'WishlistConfigurationAdminController', '_legacy_link' => 'WishlistConfigurationAdminController'], null, ['GET' => 0, 'POST' => 1], null, false, false, null]],
         '/modules/blockwishlist/statistics' => [[['_route' => 'blockwishlist_statistics', '_controller' => 'PrestaShop\\Module\\BlockWishList\\Controller\\WishlistConfigurationAdminController::statisticsAction', '_legacy_controller' => 'WishlistStatisticsAdminController', '_legacy_link' => 'WishlistStatisticsAdminController'], null, ['GET' => 0], null, false, false, null]],
         '/modules/blockwishlist/statistics/reset' => [[['_route' => 'blockwishlist_statistics_reset', '_controller' => 'PrestaShop\\Module\\BlockWishList\\Controller\\WishlistConfigurationAdminController::resetStatisticsCacheAction'], null, ['POST' => 0], null, false, false, null]],
+        '/modules/qaplapudo/configuration' => [[['_route' => 'qapla.module.qaplapudo.configuration.view', '_controller' => 'Qapla\\Module\\Qaplapudo\\Controller\\AdminConfigurationController::configureAction'], null, ['GET' => 0, 'POST' => 1], null, false, false, null]],
         '/modules/psgdpr/api' => [[['_route' => 'psgdpr_api_index'], null, ['GET' => 0, 'POST' => 1, 'PUT' => 2, 'PATCH' => 3], null, true, false, null]],
         '/modules/psgdpr/api/customer' => [[['_route' => 'psgdpr_api_search_customer', '_controller' => 'PrestaShop\\Module\\Psgdpr\\Controller\\Admin\\CustomerController::searchCustomers'], null, ['POST' => 0], null, false, false, null]],
         '/modules/psgdpr/api/customer/delete' => [[['_route' => 'psgdpr_api_delete_customer', '_controller' => 'PrestaShop\\Module\\Psgdpr\\Controller\\Admin\\CustomerController::deleteCustomerData'], null, ['DELETE' => 0], null, false, false, null]],
         '/modules/psgdpr/api/customer/get' => [[['_route' => 'psgdpr_api_get_customer_data', '_controller' => 'PrestaShop\\Module\\Psgdpr\\Controller\\Admin\\CustomerController::getCustomerData'], null, ['POST' => 0], null, false, false, null]],
         '/modules/psgdpr/download/invoices' => [[['_route' => 'psgdpr_download_invoices', '_controller' => 'PrestaShop\\Module\\Psgdpr\\Controller\\Admin\\DownloadInvoicesController::postProcess'], null, ['GET' => 0], null, false, false, null]],
+        '/modules/mbo/modules/catalog' => [[['_route' => 'admin_mbo_catalog_module', '_controller' => 'mbo.controller.modules.catalog:indexAction', '_legacy_controller' => 'AdminPsMboModule', '_legacy_link' => ['AdminPsMboModuleParent', 'AdminPsMboModule']], null, ['GET' => 0], null, true, false, null]],
+        '/modules/mbo/modules/catalog/selection' => [[['_route' => 'admin_mbo_catalog_module_selection', '_controller' => 'mbo.controller.modules.selection:indexAction', '_legacy_controller' => 'AdminPsMboSelection', '_legacy_link' => 'AdminPsMboSelection'], null, ['GET' => 0], null, false, false, null]],
+        '/modules/mbo/modules/catalog/cdc_error' => [[['_route' => 'admin_mbo_module_cdc_error', '_controller' => 'mbo.controller.modules.catalog:cdcErrorAction'], null, ['GET' => 0], null, false, false, null]],
+        '/modules/mbo/modules/recommended' => [[['_route' => 'admin_mbo_recommended_modules', '_controller' => 'mbo.controller.modules.recommended:indexAction', '_legacy_controller' => 'AdminPsMboRecommended', '_legacy_link' => 'AdminPsMboRecommended'], null, ['GET' => 0], null, true, false, null]],
+        '/modules/mbo/themes/catalog' => [[['_route' => 'admin_mbo_catalog_theme', '_controller' => 'mbo.controller.themes.catalog:indexAction', '_legacy_controller' => 'AdminPsMboTheme', '_legacy_link' => 'AdminPsMboTheme'], null, ['GET' => 0], null, true, false, null]],
+        '/modules/mbo/addons/modules/upgrade' => [[['_route' => 'admin_mbo_addons_module_upgrade', '_controller' => 'mbo.controller.addons:upgradeModuleAction'], null, ['POST' => 0], null, false, false, null]],
+        '/modules/demo' => [[['_route' => 'your_route_name', '_controller' => 'supdropshipping\\Controller\\DemoController::demoAction'], null, ['GET' => 0], null, false, false, null]],
     ],
     [ // $regexpList
         0 => '{^(?'
@@ -1006,10 +1006,9 @@ return [
                         .'|delete/(\\d+)(*:10322)'
                         .'|update\\-positions/(\\d+)(*:10355)'
                     .')'
-                    .'|mbo/modules/catalog/see_more/(\\d+)(*:10400)'
                     .'|psgdpr/(?'
-                        .'|api/customer/(\\d+)/invoices/link(*:10452)'
-                        .'|download/invoices/customer/(\\d+)(*:10494)'
+                        .'|api/customer/(\\d+)/invoices/link(*:10408)'
+                        .'|download/invoices/customer/(\\d+)(*:10450)'
                     .')'
                 .')'
             .')/?$}sD',
@@ -1321,9 +1320,8 @@ return [
         ],
         10322 => [[['_route' => 'admin_link_block_delete', '_controller' => 'PrestaShop\\Module\\LinkList\\Controller\\Admin\\Improve\\Design\\LinkBlockController::deleteAction', '_legacy_controller' => 'AdminLinkWidget'], ['linkBlockId'], ['POST' => 0], null, false, true, null]],
         10355 => [[['_route' => 'admin_link_block_update_positions', '_controller' => 'PrestaShop\\Module\\LinkList\\Controller\\Admin\\Improve\\Design\\LinkBlockController::updatePositionsAction', '_legacy_controller' => 'AdminLinkWidget'], ['hookId'], ['POST' => 0], null, false, true, null]],
-        10400 => [[['_route' => 'admin_mbo_module_see_more', '_controller' => 'mbo.controller.modules.catalog:seeMoreAction'], ['moduleId'], ['GET' => 0], null, false, true, null]],
-        10452 => [[['_route' => 'psgdpr_api_download_invoices_link', '_controller' => 'PrestaShop\\Module\\Psgdpr\\Controller\\Admin\\CustomerController::getDownloadInvoicesLinkByCustomerId'], ['customerId'], ['GET' => 0], null, false, false, null]],
-        10494 => [
+        10408 => [[['_route' => 'psgdpr_api_download_invoices_link', '_controller' => 'PrestaShop\\Module\\Psgdpr\\Controller\\Admin\\CustomerController::getDownloadInvoicesLinkByCustomerId'], ['customerId'], ['GET' => 0], null, false, false, null]],
+        10450 => [
             [['_route' => 'psgdpr_api_download_customer_invoices', '_controller' => 'PrestaShop\\Module\\Psgdpr\\Controller\\Admin\\DownloadCustomerInvoicesController::downloadInvoicesByCustomerId'], ['customerId'], ['GET' => 0], null, false, true, null],
             [null, null, null, null, false, false, 0],
         ],

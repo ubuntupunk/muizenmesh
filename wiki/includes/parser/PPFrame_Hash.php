@@ -19,6 +19,7 @@
  * @ingroup Parser
  */
 
+use MediaWiki\Parser\Parser;
 use MediaWiki\Title\Title;
 
 /**
@@ -102,7 +103,6 @@ class PPFrame_Hash implements PPFrame {
 	 * @param PPNode[]|false|PPNode_Hash_Array $args
 	 * @param Title|false $title
 	 * @param int $indexOffset
-	 * @throws MWException
 	 * @return PPTemplateFrame_Hash
 	 */
 	public function newChild( $args = false, $title = false, $indexOffset = 0 ) {
@@ -115,7 +115,7 @@ class PPFrame_Hash implements PPFrame {
 			if ( $args instanceof PPNode_Hash_Array ) {
 				$args = $args->value;
 			} elseif ( !is_array( $args ) ) {
-				throw new MWException( __METHOD__ . ': $args must be array or PPNode_Hash_Array' );
+				throw new InvalidArgumentException( __METHOD__ . ': $args must be array or PPNode_Hash_Array' );
 			}
 			foreach ( $args as $arg ) {
 				$bits = $arg->splitArg();
@@ -154,7 +154,6 @@ class PPFrame_Hash implements PPFrame {
 	}
 
 	/**
-	 * @throws MWException
 	 * @param string|int $key
 	 * @param string|PPNode $root
 	 * @param int $flags
@@ -166,7 +165,6 @@ class PPFrame_Hash implements PPFrame {
 	}
 
 	/**
-	 * @throws MWException
 	 * @param string|PPNode $root
 	 * @param int $flags
 	 * @return string
@@ -251,12 +249,12 @@ class PPFrame_Hash implements PPFrame {
 			} elseif ( is_array( $contextNode ) ) {
 				// Node descriptor array
 				if ( count( $contextNode ) !== 2 ) {
-					throw new MWException( __METHOD__ .
+					throw new RuntimeException( __METHOD__ .
 						': found an array where a node descriptor should be' );
 				}
 				[ $contextName, $contextChildren ] = $contextNode;
 			} else {
-				throw new MWException( __METHOD__ . ': Invalid parameter type' );
+				throw new RuntimeException( __METHOD__ . ': Invalid parameter type' );
 			}
 
 			// Handle node descriptor array or tree object
@@ -302,13 +300,17 @@ class PPFrame_Hash implements PPFrame {
 				# HTML-style comment
 				# Remove it in HTML, pre+remove and STRIP_COMMENTS modes
 				# Not in RECOVER_COMMENTS mode (msgnw) though.
-				if ( ( $this->parser->ot['html']
-					|| ( $this->parser->ot['pre'] && $this->parser->mOptions->getRemoveComments() )
+				if ( ( $this->parser->getOutputType() === Parser::OT_HTML
+					|| ( $this->parser->getOutputType() === Parser::OT_PREPROCESS &&
+						$this->parser->getOptions()->getRemoveComments() )
 					|| ( $flags & PPFrame::STRIP_COMMENTS )
 					) && !( $flags & PPFrame::RECOVER_COMMENTS )
 				) {
 					$out .= '';
-				} elseif ( $this->parser->ot['wiki'] && !( $flags & PPFrame::RECOVER_COMMENTS ) ) {
+				} elseif (
+					$this->parser->getOutputType() === Parser::OT_WIKI &&
+					!( $flags & PPFrame::RECOVER_COMMENTS )
+				) {
 					# Add a strip marker in PST mode so that pstPass2() can
 					# run some old-fashioned regexes on the result.
 					# Not in RECOVER_COMMENTS mode (extractSections) though.
@@ -322,7 +324,8 @@ class PPFrame_Hash implements PPFrame {
 				# OT_WIKI will only respect <ignore> in substed templates.
 				# The other output types respect it unless NO_IGNORE is set.
 				# extractSections() sets NO_IGNORE and so never respects it.
-				if ( ( !isset( $this->parent ) && $this->parser->ot['wiki'] )
+				if ( ( !isset( $this->parent ) &&
+					   $this->parser->getOutputType() === Parser::OT_WIKI )
 					|| ( $flags & PPFrame::NO_IGNORE )
 				) {
 					$out .= $contextChildren[0];
@@ -356,7 +359,7 @@ class PPFrame_Hash implements PPFrame {
 				}
 			} elseif ( $contextName === 'h' ) {
 				# Heading
-				if ( $this->parser->ot['html'] ) {
+				if ( $this->parser->getOutputType() === Parser::OT_HTML ) {
 					# Expand immediately and insert heading index marker
 					$s = $this->expand( $contextChildren, $flags );
 					$bits = PPNode_Hash_Tree::splitRawHeading( $contextChildren );
@@ -523,7 +526,7 @@ class PPFrame_Hash implements PPFrame {
 
 	/**
 	 * @param string|false $level
-	 * @return array|false|string
+	 * @return false|string
 	 */
 	public function getPDBK( $level = false ) {
 		if ( $level === false ) {

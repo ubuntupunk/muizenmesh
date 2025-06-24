@@ -7,6 +7,7 @@ use Wikimedia\Assert\Assert;
 use Wikimedia\Parsoid\Config\Env;
 use Wikimedia\Parsoid\DOM\Comment;
 use Wikimedia\Parsoid\DOM\Document;
+use Wikimedia\Parsoid\DOM\DocumentFragment;
 use Wikimedia\Parsoid\DOM\Element;
 use Wikimedia\Parsoid\DOM\Node;
 use Wikimedia\Parsoid\DOM\Text;
@@ -121,7 +122,7 @@ class MarkFosteredContent implements Wt2HtmlDOMProcessor {
 		// between so keep track of that, and backtrack when necessary.
 		while ( $sibling ) {
 			if ( !WTUtils::isTplStartMarkerMeta( $sibling ) &&
-				( WTUtils::hasParsoidAboutId( $sibling ) ||
+				( WTUtils::isEncapsulatedDOMForestRoot( $sibling ) ||
 					DOMUtils::isMarkerMeta( $sibling, 'mw:TransclusionShadow' )
 				)
 			) {
@@ -141,10 +142,31 @@ class MarkFosteredContent implements Wt2HtmlDOMProcessor {
 	}
 
 	/**
-	 * @param Document $doc
-	 * @param bool $inPTag
-	 * @return Element
+	 * @param Node $e
+	 * @param Node $firstFosteredNode
+	 * @param Element|DocumentFragment $tableParent
+	 * @param ?Node $tableNextSibling
 	 */
+	private static function moveFosteredAnnotations(
+		Node $e, Node $firstFosteredNode, $tableParent, ?Node $tableNextSibling
+	): void {
+		if ( WTUtils::isAnnotationStartMarkerMeta( $e ) && $e !== $firstFosteredNode ) {
+			'@phan-var Element $e';
+			DOMDataUtils::getDataParsoid( $e )->wasMoved = true;
+			$firstFosteredNode->parentNode->insertBefore( $e, $firstFosteredNode );
+		} elseif ( WTUtils::isAnnotationEndMarkerMeta( $e ) ) {
+			'@phan-var Element $e';
+			DOMDataUtils::getDataParsoid( $e )->wasMoved = true;
+			$tableParent->insertBefore( $e, $tableNextSibling );
+		} elseif ( $e instanceof Element && $e->hasChildNodes() ) {
+			// avoid iterating over a mutated DOMNodeList
+			$childNodeList = iterator_to_array( $e->childNodes );
+			foreach ( $childNodeList as $child ) {
+				self::moveFosteredAnnotations( $child, $firstFosteredNode, $tableParent, $tableNextSibling );
+			}
+		}
+	}
+
 	private static function getFosterContentHolder( Document $doc, bool $inPTag ): Element {
 		$fosterContentHolder = $doc->createElement( $inPTag ? 'span' : 'p' );
 		$dp = new DataParsoid;
@@ -176,24 +198,25 @@ class MarkFosteredContent implements Wt2HtmlDOMProcessor {
 				$inPTag = DOMUtils::hasNameOrHasAncestorOfName( $c->parentNode, 'p' );
 				$fosterContentHolder = self::getFosterContentHolder( $c->ownerDocument, $inPTag );
 
+				$fosteredElements = [];
 				// mark as fostered until we hit the table
 				while ( $sibling &&
 					( !( $sibling instanceof Element ) || DOMCompat::nodeName( $sibling ) !== 'table' )
 				) {
+					$fosteredElements[] = $sibling;
 					$next = $sibling->nextSibling;
 					if ( $sibling instanceof Element ) {
 						// TODO: Note the similarity here with the p-wrapping pass.
 						// This can likely be combined in some more maintainable way.
 						if (
 							DOMUtils::isRemexBlockNode( $sibling ) ||
-							WTUtils::emitsSolTransparentSingleLineWT( $sibling )
+							PWrap::pWrapOptional( $sibling )
 						) {
 							// Block nodes don't need to be wrapped in a p-tag either.
 							// Links, includeonly directives, and other rendering-transparent
 							// nodes dont need wrappers. sol-transparent wikitext generate
 							// rendering-transparent nodes and we use that helper as a proxy here.
 							DOMDataUtils::getDataParsoid( $sibling )->fostered = true;
-
 							// If the foster content holder is not empty,
 							// close it and get a new content holder.
 							if ( $fosterContentHolder->hasChildNodes() ) {
@@ -229,6 +252,33 @@ class MarkFosteredContent implements Wt2HtmlDOMProcessor {
 				// wrap the whole thing in a transclusion
 				if ( $fosteredTransclusions ) {
 					self::insertTransclusionMetas( $env, $c, $table );
+				}
+
+				// We have two possibilities here for the insertion of more than one meta tag after the table.
+				// We can either keep them in the order of traversal (by keeping a reference to the initial
+				// $table->nextSibling), or in reverse order of traversal (by updating $table->nextSibling to
+				// the inserted meta.
+				// This has different consequences depending on whether multiple ranges are nested or not.
+				// If the fosterbox initially contains <ann1><ann2></ann2></ann1>, the end result for the first
+				// possibility becomes <ann1><ann2>TABLE</ann2></ann1>. If the fosterbox initially contains
+				// <ann1></ann1><ann2></ann2>, the end result becomes <ann1><ann2>TABLE</ann1></ann2>. The
+				// consequences are inverted if we insert in reverse order of traversal.
+				// Note that this is only relevant if the annotations are of different types and that, right
+				// now, we only have two types of annotation (namely <translate> and <tvar>), and <tvar> can
+				// only exist nested in <translate>. Hence, we choose to insert in traversal order so that we can
+				// preserve existing nesting order.
+				// (The last option would be to keep a stack of opening metas in the foster table and to re-add
+				// them in inverse order at the end of the table. This would add significant code complexity for
+				// what seems like marginal benefits at best as long as we do not have more annotation types.)
+				$tableNextSibling = $table->nextSibling;
+				$tableParent = $table->parentNode;
+				// this needs to happen after inserting the transclusion meta so that they get
+				// included in the transclusion
+				foreach ( $fosteredElements as $elem ) {
+					'@phan-var Element $elem';
+					self::moveFosteredAnnotations(
+						$elem, $fosteredElements[0], $tableParent, $tableNextSibling
+					);
 				}
 
 				// remove the foster box

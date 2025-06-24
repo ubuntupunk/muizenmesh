@@ -19,7 +19,6 @@
 	"vector-language-button-label": "{{PLURAL:$1|ߞߊ߲ $1|ߞߊ߲ $1 ߠߎ߬}}",
 	"vector-no-language-button-label": "ߞߊ߲ ߠߎ߬ ߟߊߘߏ߲߬",
 	"vector-no-language-button-aria-label": "ߞߎߡߘߊ ߢߌ߲߬ ߦߋ߫ ߞߊ߲ ߣߌ߲߬ ߘߐߙߐ߲߫ ߠߋ߬ ߘߐ߫. ߞߎߡߘߊ ߢߌ߲߬ ߠߊߘߏ߲߬ ߞߊ߲ ߜߘߍ ߟߎ߫ ߘߐ߫.",
-	"vector-language-redirect-to-top": "{{SITENAME}} ߣߌ߲߬ ߞߊ߲߬߸ ߞߊ߲ ߛߘߌ߬ߜߋ߲ ߠߎ߬ ߦߋ߫ ߞߐߜߍ ߣߌ߲߬ ߛߊ߲ߝߍ߬ ߞߎߡߘߊ ߞߎ߲߬ߕߐ߮ ߞߍ߬ߙߍߝߍ߬. [[#p-lang-btn|ߓߊ߯ ߛߊ߲ߝߍ߬]]",
 	"vector-language-variant-switcher-label": "ߞߊ߲߫ ߓߐߣߍ߲ߢߐ߲߯ߡߊ ߟߎ߫ ߡߊߝߊ߬ߘߋ߲߬",
 	"vector-action-addsection": "ߥߟߊ߬ߘߊ߫ ߝߙߊ߬",
 	"vector-action-delete": "ߊ߬ ߖߏ߬ߛߌ߬",
@@ -51,6 +50,8 @@
 	"vector-site-nav-label": "ߞߍߦߙߐ",
 	"vector-main-menu-label": "ߢߣߊߕߊߟߌ ߢߣߊߡߊ",
 	"vector-limited-width-toggle": "ߞߣߐߘߐ ߥߊ߲߬ߥߊ߲ ߘߊ߲߬ߛߌ߰ߟߌ ߓߌ߬ߟߴߊ߬ ߟߊ߫ ߥߟߊ߫ ߞߵߊ߬ ߓߴߊ߬",
+	"vector-limited-width-toggle-on-popup": "ߌ ߓߘߴߌ ߟߊ߫ ߦߌ߬ߘߊ߬ߟߌ ߓߌ߬ߟߊ߬ ߥߊ߲߬ߥߊ߲߬ ߘߝߊߣߍ߲ ߠߊ߫. ߖߐ߲߬ߛߴߌ ߘߌ߫ ߛߴߌ ߞߐߛߊ߬ߦߌ߫ ߟߊ߫ ߥߊ߲߬ߥߊ߲߬ ߡߊߓߍ߲߬ߣߍ߲ ߡߊ߬߸ ߞߎ߬ߘߎ ߣߌ߲߬ ߘߌ߯.",
+	"vector-limited-width-toggle-off-popup": "ߌ ߘߌ߫ ߛߴߌ ߦߟߍ߬ߡߊ߲߬ߦߟߍߡߊ߲߫ ߠߊ߫ ߥߊ߲߬ߥߊ߲߬ ߡߊߓߍ߲߬ߣߍ߲ ߣߌ߫ ߥߊ߲߬ߥߊ߲߬ ߘߝߊߣߍ߲ ߠߎ߬ ߕߍ߫ ߞߎ߬ߘߎ ߣߌ߲߬ ߕߐߘߐ߲ ߠߊ߫.",
 	"vector-page-tools-label": "ߖߐ߯ߙߊ߲ ߠߎ߬",
 	"vector-page-tools-general-label": "ߝߘߏ߬ߓߊ߬ߡߊ",
 	"vector-page-tools-actions-label": "ߞߍߟߌ ߟߎ߬",
@@ -60,5 +61,8 @@
 	"tooltip-vector-anon-user-menu-title": "ߢߣߊߕߊߟߌ߫ ߜߘߍ߫ ߟߎ߬",
 	"vector-prefs-limited-width": "ߥߊ߲߬ߥߊ߲߬ ߡߊߓߍ߲߬ߣߍ߲ ߞߍߗߏ߮ ߓߌ߬ߟߴߊ߬ ߟߊ߫",
 	"vector-prefs-limited-width-help": "ߥߊ߲߬ߥߊ߲߬ ߡߊߓߍ߲߬ߣߍ߲ ߞߍߗߏ߮ ߓߌ߬ߟߴߊ߬ ߟߊ߫ ߘߐ߬ߞߊ߬ߙߊ߲߬ߠߌ߲߫ ߝߊ߰ߡߎ߲߬ߠߌ߲߫ ߞߏ ߘߐ߫.",
-	"empty-language-selector-body": "ߞߐߜߍ ߞߣߐߘߐ ߟߊߘߤߊ߬ߣߍ߲߫ ߕߍ߫ ߞߊ߲߫ ߜߘߍ ߟߎ߬ ߘߐ߫."
+	"empty-language-selector-body": "ߞߐߜߍ ߞߣߐߘߐ ߟߊߘߤߊ߬ߣߍ߲߫ ߕߍ߫ ߞߊ߲߫ ߜߘߍ ߟߎ߬ ߘߐ߫.",
+	"vector-toc-unpinned-popup": "ߞߣߐߘߐ ߥߟߊ߬ߟߋ߲ ߓߘߊ߫ ߓߐ߫ ߦߊ߲߬.",
+	"vector-page-tools-unpinned-popup": "ߖߐ߯ߙߊ߲ ߢߣߊߕߊߟߌ ߓߘߊ߫ ߓߐ߫ ߦߊ߲߬.",
+	"vector-main-menu-unpinned-popup": "ߢߣߊߕߊߟߌ߫ ߢߣߊߡߊ ߓߘߊ߫ ߓߐ߫ ߦߊ߲߬."
 }

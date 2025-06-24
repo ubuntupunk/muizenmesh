@@ -10,8 +10,8 @@ function jqm_loadScripts() {
 	global $_zp_themeroot;
 	?>
 	<link rel="stylesheet" href="<?php echo $_zp_themeroot; ?>/jquerymobile/jquery.mobile-1.4.5.min.css" />
-	<script type="text/javascript" src="<?php echo $_zp_themeroot; ?>/jquerymobile/jquery.mobile-1.4.5.min.js"></script>
-	<script type="text/javascript">
+	<script src="<?php echo $_zp_themeroot; ?>/jquerymobile/jquery.mobile-1.4.5.min.js"></script>
+	<script>
 		$(document).ready(function() {
 			$("#zp__admin_data a, a.downloadlist_link").attr('data-ajax','false');
 		});
@@ -100,10 +100,10 @@ function jqm_printFooterNav() {
 		<?php
 		$adminlink = '';
 		$favoriteslink = '';
-		if (!zp_loggedin() && function_exists('printRegisterURL')) {
+		if (!zp_loggedin() && method_exists('registerUser', 'getLink')) {
 			if ($_zp_gallery_page != 'register.php') {
 				$_linktext = get_language_string(getOption('register_user_page_link'));
-				$adminlink = '<li><a rel="external" href="' . html_encode(register_user::getLink()) . '">' . $_linktext . '</a></li>';
+				$adminlink = '<li><a rel="external" href="' . html_encode(registerUser::getLink()) . '">' . $_linktext . '</a></li>';
 			}
 		}
 		if (function_exists('printFavoritesURL')) {
@@ -219,8 +219,7 @@ function jqm_printImageAlbumCount() {
  */
 function printZDSearchToggleJS() {
 	?>
-	<script type="text/javascript">
-		// <!-- <![CDATA[
+	<script>
 		function toggleExtraElements(category, show) {
 			if (show) {
 				jQuery('.' + category + '_showless').show();
@@ -232,7 +231,6 @@ function printZDSearchToggleJS() {
 				jQuery('.' + category + '_extrashow').hide();
 			}
 		}
-		// ]]> -->
 	</script>
 	<?php
 }

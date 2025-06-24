@@ -20,7 +20,6 @@
  * @file
  */
 
-use MediaWiki\ExtensionInfo;
 use MediaWiki\Interwiki\InterwikiLookup;
 use MediaWiki\Languages\LanguageConverterFactory;
 use MediaWiki\Languages\LanguageFactory;
@@ -29,13 +28,22 @@ use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Parser\MagicWordFactory;
 use MediaWiki\ResourceLoader\SkinModule;
+use MediaWiki\SiteStats\SiteStats;
+use MediaWiki\SpecialPage\SpecialPage;
 use MediaWiki\SpecialPage\SpecialPageFactory;
+use MediaWiki\Specials\SpecialVersion;
+use MediaWiki\Title\NamespaceInfo;
 use MediaWiki\Title\Title;
+use MediaWiki\User\Options\UserOptionsLookup;
 use MediaWiki\User\UserGroupManager;
-use MediaWiki\User\UserOptionsLookup;
+use MediaWiki\Utils\ExtensionInfo;
+use MediaWiki\Utils\GitInfo;
+use MediaWiki\Utils\UrlUtils;
 use MediaWiki\WikiMap\WikiMap;
+use Wikimedia\Composer\ComposerInstalled;
 use Wikimedia\ParamValidator\ParamValidator;
 use Wikimedia\Rdbms\ILoadBalancer;
+use Wikimedia\Rdbms\ReadOnlyMode;
 
 /**
  * A query action to return meta information about the wiki site.
@@ -44,47 +52,21 @@ use Wikimedia\Rdbms\ILoadBalancer;
  */
 class ApiQuerySiteinfo extends ApiQueryBase {
 
-	/** @var UserOptionsLookup */
-	private $userOptionsLookup;
-
-	/** @var UserGroupManager */
-	private $userGroupManager;
-
-	/** @var LanguageConverterFactory */
-	private $languageConverterFactory;
-
-	/** @var LanguageFactory */
-	private $languageFactory;
-
-	/** @var LanguageNameUtils */
-	private $languageNameUtils;
-
-	/** @var Language */
-	private $contentLanguage;
-
-	/** @var NamespaceInfo */
-	private $namespaceInfo;
-
-	/** @var InterwikiLookup */
-	private $interwikiLookup;
-
-	/** @var Parser */
-	private $parser;
-
-	/** @var MagicWordFactory */
-	private $magicWordFactory;
-
-	/** @var SpecialPageFactory */
-	private $specialPageFactory;
-
-	/** @var SkinFactory */
-	private $skinFactory;
-
-	/** @var ILoadBalancer */
-	private $loadBalancer;
-
-	/** @var ReadOnlyMode */
-	private $readOnlyMode;
+	private UserOptionsLookup $userOptionsLookup;
+	private UserGroupManager $userGroupManager;
+	private LanguageConverterFactory $languageConverterFactory;
+	private LanguageFactory $languageFactory;
+	private LanguageNameUtils $languageNameUtils;
+	private Language $contentLanguage;
+	private NamespaceInfo $namespaceInfo;
+	private InterwikiLookup $interwikiLookup;
+	private ParserFactory $parserFactory;
+	private MagicWordFactory $magicWordFactory;
+	private SpecialPageFactory $specialPageFactory;
+	private SkinFactory $skinFactory;
+	private ILoadBalancer $loadBalancer;
+	private ReadOnlyMode $readOnlyMode;
+	private UrlUtils $urlUtils;
 
 	/**
 	 * @param ApiQuery $query
@@ -97,12 +79,13 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 	 * @param Language $contentLanguage
 	 * @param NamespaceInfo $namespaceInfo
 	 * @param InterwikiLookup $interwikiLookup
-	 * @param Parser $parser
+	 * @param ParserFactory $parserFactory
 	 * @param MagicWordFactory $magicWordFactory
 	 * @param SpecialPageFactory $specialPageFactory
 	 * @param SkinFactory $skinFactory
 	 * @param ILoadBalancer $loadBalancer
 	 * @param ReadOnlyMode $readOnlyMode
+	 * @param UrlUtils $urlUtils
 	 */
 	public function __construct(
 		ApiQuery $query,
@@ -115,12 +98,13 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 		Language $contentLanguage,
 		NamespaceInfo $namespaceInfo,
 		InterwikiLookup $interwikiLookup,
-		Parser $parser,
+		ParserFactory $parserFactory,
 		MagicWordFactory $magicWordFactory,
 		SpecialPageFactory $specialPageFactory,
 		SkinFactory $skinFactory,
 		ILoadBalancer $loadBalancer,
-		ReadOnlyMode $readOnlyMode
+		ReadOnlyMode $readOnlyMode,
+		UrlUtils $urlUtils
 	) {
 		parent::__construct( $query, $moduleName, 'si' );
 		$this->userOptionsLookup = $userOptionsLookup;
@@ -131,12 +115,13 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 		$this->contentLanguage = $contentLanguage;
 		$this->namespaceInfo = $namespaceInfo;
 		$this->interwikiLookup = $interwikiLookup;
-		$this->parser = $parser;
+		$this->parserFactory = $parserFactory;
 		$this->magicWordFactory = $magicWordFactory;
 		$this->specialPageFactory = $specialPageFactory;
 		$this->skinFactory = $skinFactory;
 		$this->loadBalancer = $loadBalancer;
 		$this->readOnlyMode = $readOnlyMode;
+		$this->urlUtils = $urlUtils;
 	}
 
 	public function execute() {
@@ -170,6 +155,12 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 					break;
 				case 'usergroups':
 					$fit = $this->appendUserGroups( $p, $params['numberingroup'] );
+					break;
+				case 'autocreatetempuser':
+					$fit = $this->appendAutoCreateTempUser( $p );
+					break;
+				case 'clientlibraries':
+					$fit = $this->appendInstalledClientLibraries( $p );
 					break;
 				case 'libraries':
 					$fit = $this->appendInstalledLibraries( $p );
@@ -216,6 +207,12 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 				case 'uploaddialog':
 					$fit = $this->appendUploadDialog( $p );
 					break;
+				case 'autopromote':
+					$fit = $this->appendAutoPromote( $p );
+					break;
+				case 'autopromoteonce':
+					$fit = $this->appendAutoPromoteOnce( $p );
+					break;
 				default:
 					ApiBase::dieDebug( __METHOD__, "Unknown prop=$p" ); // @codeCoverageIgnore
 			}
@@ -232,25 +229,26 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 
 	protected function appendGeneralInfo( $property ) {
 		$config = $this->getConfig();
-
-		$data = [];
 		$mainPage = Title::newMainPage();
-		$data['mainpage'] = $mainPage->getPrefixedText();
-		$data['base'] = wfExpandUrl( $mainPage->getFullURL(), PROTO_CURRENT );
-		$data['sitename'] = $config->get( MainConfigNames::Sitename );
-		$data['mainpageisdomainroot'] = (bool)$config->get( MainConfigNames::MainPageIsDomainRoot );
-
-		// A logo can either be a relative or an absolute path
-		// make sure we always return an absolute path
 		$logo = SkinModule::getAvailableLogos( $config );
-		$data['logo'] = wfExpandUrl( $logo['1x'], PROTO_RELATIVE );
 
-		$data['generator'] = 'MediaWiki ' . MW_VERSION;
+		$data = [
+			'mainpage' => $mainPage->getPrefixedText(),
+			'base' => (string)$this->urlUtils->expand( $mainPage->getFullURL(), PROTO_CURRENT ),
+			'sitename' => $config->get( MainConfigNames::Sitename ),
+			'mainpageisdomainroot' => (bool)$config->get( MainConfigNames::MainPageIsDomainRoot ),
 
-		$data['phpversion'] = PHP_VERSION;
-		$data['phpsapi'] = PHP_SAPI;
-		$data['dbtype'] = $config->get( MainConfigNames::DBtype );
-		$data['dbversion'] = $this->getDB()->getServerVersion();
+			// A logo can either be a relative or an absolute path
+			// make sure we always return an absolute path
+			'logo' => (string)$this->urlUtils->expand( $logo['1x'], PROTO_RELATIVE ),
+
+			'generator' => 'MediaWiki ' . MW_VERSION,
+
+			'phpversion' => PHP_VERSION,
+			'phpsapi' => PHP_SAPI,
+			'dbtype' => $config->get( MainConfigNames::DBtype ),
+			'dbversion' => $this->getDB()->getServerVersion(),
+		];
 
 		$allowFrom = [ '' ];
 		$allowException = true;
@@ -258,7 +256,7 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 			$data['imagewhitelistenabled'] =
 				(bool)$config->get( MainConfigNames::EnableImageWhitelist );
 			$allowFrom = $config->get( MainConfigNames::AllowExternalImagesFrom );
-			$allowException = !empty( $allowFrom );
+			$allowException = (bool)$allowFrom;
 		}
 		if ( $allowException ) {
 			$data['externalimages'] = (array)$allowFrom;
@@ -281,8 +279,7 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 			$data['linkprefix'] = '';
 		}
 
-		$linktrail = $this->contentLanguage->linkTrail();
-		$data['linktrail'] = $linktrail ?: '';
+		$data['linktrail'] = $this->contentLanguage->linkTrail() ?: '';
 
 		$data['legaltitlechars'] = Title::legalChars();
 		$data['invalidusernamechars'] = $config->get( MainConfigNames::InvalidUsernameCharacters );
@@ -291,12 +288,10 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 		$data['fixarabicunicode'] = true; // Config removed in 1.35, always true
 		$data['fixmalayalamunicode'] = true; // Config removed in 1.35, always true
 
-		$baseDir = $this->getConfig()->get( MainConfigNames::BaseDirectory );
-		$git = SpecialVersion::getGitHeadSha1( $baseDir );
+		$git = GitInfo::repo()->getHeadSHA1();
 		if ( $git ) {
 			$data['git-hash'] = $git;
-			$data['git-branch'] =
-				SpecialVersion::getGitCurrentBranch( $baseDir );
+			$data['git-branch'] = GitInfo::repo()->getCurrentBranch();
 		}
 
 		// 'case-insensitive' option is reserved for future
@@ -334,10 +329,8 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 
 		$data['maxarticlesize'] = $config->get( MainConfigNames::MaxArticleSize ) * 1024;
 
-		$tz = $config->get( MainConfigNames::Localtimezone );
-		$offset = $config->get( MainConfigNames::LocalTZoffset );
-		$data['timezone'] = $tz;
-		$data['timeoffset'] = (int)$offset;
+		$data['timezone'] = $config->get( MainConfigNames::Localtimezone );
+		$data['timeoffset'] = (int)( $config->get( MainConfigNames::LocalTZoffset ) );
 		$data['articlepath'] = $config->get( MainConfigNames::ArticlePath );
 		$data['scriptpath'] = $config->get( MainConfigNames::ScriptPath );
 		$data['script'] = $config->get( MainConfigNames::Script );
@@ -369,11 +362,10 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 		$favicon = $config->get( MainConfigNames::Favicon );
 		if ( $favicon ) {
 			// Expand any local path to full URL to improve API usability (T77093).
-			$data['favicon'] = wfExpandUrl( $favicon );
+			$data['favicon'] = (string)$this->urlUtils->expand( $favicon );
 		}
 
-		$data['centralidlookupprovider'] =
-			$config->get( MainConfigNames::CentralIdLookupProvider );
+		$data['centralidlookupprovider'] = $config->get( MainConfigNames::CentralIdLookupProvider );
 		$providerIds = array_keys( $config->get( MainConfigNames::CentralIdLookupProviders ) );
 		$data['allcentralidlookupproviders'] = $providerIds;
 
@@ -395,13 +387,8 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 	protected function appendNamespaces( $property ) {
 		$nsProtection = $this->getConfig()->get( MainConfigNames::NamespaceProtection );
 
-		$data = [
-			ApiResult::META_TYPE => 'assoc',
-		];
-		foreach (
-			$this->contentLanguage->getFormattedNamespaces()
-			as $ns => $title
-		) {
+		$data = [ ApiResult::META_TYPE => 'assoc' ];
+		foreach ( $this->contentLanguage->getFormattedNamespaces() as $ns => $title ) {
 			$data[$ns] = [
 				'id' => (int)$ns,
 				'case' => $this->namespaceInfo->isCapitalized( $ns ) ? 'first-letter' : 'case-sensitive',
@@ -418,15 +405,12 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 			$data[$ns]['content'] = $this->namespaceInfo->isContent( $ns );
 			$data[$ns]['nonincludable'] = $this->namespaceInfo->isNonincludable( $ns );
 
-			if ( isset( $nsProtection[$ns] ) ) {
-				if ( is_array( $nsProtection[$ns] ) ) {
-					$specificNs = implode( "|", array_filter( $nsProtection[$ns] ) );
-				} elseif ( $nsProtection[$ns] !== '' ) {
-					$specificNs = $nsProtection[$ns];
-				}
-				if ( isset( $specificNs ) && $specificNs !== '' ) {
-					$data[$ns]['namespaceprotection'] = $specificNs;
-				}
+			$specificNs = $nsProtection[$ns] ?? '';
+			if ( is_array( $specificNs ) ) {
+				$specificNs = implode( "|", array_filter( $specificNs ) );
+			}
+			if ( $specificNs !== '' ) {
+				$data[$ns]['namespaceprotection'] = $specificNs;
 			}
 
 			$contentmodel = $this->namespaceInfo->getNamespaceContentModel( $ns );
@@ -450,9 +434,7 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 				// Don't list duplicates
 				continue;
 			}
-			$item = [
-				'id' => (int)$ns
-			];
+			$item = [ 'id' => (int)$ns ];
 			ApiResult::setContentValue( $item, 'alias', strtr( $title, '_', ' ' ) );
 			$data[] = $item;
 		}
@@ -481,13 +463,13 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 
 	protected function appendMagicWords( $property ) {
 		$data = [];
-		foreach (
-			$this->contentLanguage->getMagicWords()
-			as $magicword => $aliases
-		) {
-			$caseSensitive = array_shift( $aliases );
-			$arr = [ 'name' => $magicword, 'aliases' => $aliases ];
-			$arr['case-sensitive'] = (bool)$caseSensitive;
+		foreach ( $this->contentLanguage->getMagicWords() as $name => $aliases ) {
+			$caseSensitive = (bool)array_shift( $aliases );
+			$arr = [
+				'name' => $name,
+				'aliases' => $aliases,
+				'case-sensitive' => $caseSensitive,
+			];
 			ApiResult::setIndexedTagName( $arr['aliases'], 'alias' );
 			$data[] = $arr;
 		}
@@ -497,14 +479,7 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 	}
 
 	protected function appendInterwikiMap( $property, $filter ) {
-		if ( $filter === 'local' ) {
-			$local = true;
-		} elseif ( $filter === '!local' ) {
-			$local = false;
-		} else {
-			// $filter === null
-			$local = null;
-		}
+		$local = $filter ? $filter === 'local' : null;
 
 		$params = $this->extractRequestParams();
 		$langCode = $params['inlanguagecode'] ?? '';
@@ -514,20 +489,19 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 			$langNames = $this->languageNameUtils->getLanguageNames( $langCode );
 		}
 
-		$getPrefixes = $this->interwikiLookup->getAllPrefixes( $local );
 		$extraLangPrefixes = $this->getConfig()->get( MainConfigNames::ExtraInterlanguageLinkPrefixes );
 		$extraLangCodeMap = $this->getConfig()->get( MainConfigNames::InterlanguageLinkCodeMap );
 		$localInterwikis = $this->getConfig()->get( MainConfigNames::LocalInterwikis );
 		$data = [];
 
-		foreach ( $getPrefixes as $row ) {
+		foreach ( $this->interwikiLookup->getAllPrefixes( $local ) as $row ) {
 			$prefix = $row['iw_prefix'];
 			$val = [];
 			$val['prefix'] = $prefix;
-			if ( isset( $row['iw_local'] ) && $row['iw_local'] == '1' ) {
+			if ( $row['iw_local'] ?? false ) {
 				$val['local'] = true;
 			}
-			if ( isset( $row['iw_trans'] ) && $row['iw_trans'] == '1' ) {
+			if ( $row['iw_trans'] ?? false ) {
 				$val['trans'] = true;
 			}
 
@@ -560,12 +534,12 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 				}
 			}
 
-			$val['url'] = wfExpandUrl( $row['iw_url'], PROTO_CURRENT );
+			$val['url'] = (string)$this->urlUtils->expand( $row['iw_url'], PROTO_CURRENT );
 			$val['protorel'] = str_starts_with( $row['iw_url'], '//' );
-			if ( isset( $row['iw_wikiid'] ) && $row['iw_wikiid'] !== '' ) {
+			if ( ( $row['iw_wikiid'] ?? '' ) !== '' ) {
 				$val['wikiid'] = $row['iw_wikiid'];
 			}
-			if ( isset( $row['iw_api'] ) && $row['iw_api'] !== '' ) {
+			if ( ( $row['iw_api'] ?? '' ) !== '' ) {
 				$val['api'] = $row['iw_api'];
 			}
 
@@ -585,8 +559,7 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 				$this->dieWithError( 'apierror-siteinfo-includealldenied', 'includeAllDenied' );
 			}
 
-			$lags = $this->loadBalancer->getLagTimes();
-			foreach ( $lags as $i => $lag ) {
+			foreach ( $this->loadBalancer->getLagTimes() as $i => $lag ) {
 				$data[] = [
 					'host' => $this->loadBalancer->getServerName( $i ),
 					'lag' => $lag
@@ -595,9 +568,7 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 		} else {
 			[ , $lag, $index ] = $this->loadBalancer->getMaxLag();
 			$data[] = [
-				'host' => $showHostnames
-						? $this->loadBalancer->getServerName( $index )
-						: '',
+				'host' => $showHostnames ? $this->loadBalancer->getServerName( $index ) : '',
 				'lag' => $lag
 			];
 		}
@@ -608,15 +579,16 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 	}
 
 	protected function appendStatistics( $property ) {
-		$data = [];
-		$data['pages'] = (int)SiteStats::pages();
-		$data['articles'] = (int)SiteStats::articles();
-		$data['edits'] = (int)SiteStats::edits();
-		$data['images'] = (int)SiteStats::images();
-		$data['users'] = (int)SiteStats::users();
-		$data['activeusers'] = (int)SiteStats::activeUsers();
-		$data['admins'] = (int)SiteStats::numberingroup( 'sysop' );
-		$data['jobs'] = (int)SiteStats::jobs();
+		$data = [
+			'pages' => SiteStats::pages(),
+			'articles' => SiteStats::articles(),
+			'edits' => SiteStats::edits(),
+			'images' => SiteStats::images(),
+			'users' => SiteStats::users(),
+			'activeusers' => SiteStats::activeUsers(),
+			'admins' => SiteStats::numberingroup( 'sysop' ),
+			'jobs' => SiteStats::jobs(),
+		];
 
 		$this->getHookRunner()->onAPIQuerySiteInfoStatisticsInfo( $data );
 
@@ -677,6 +649,25 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 		return $result->addValue( 'query', $property, $data );
 	}
 
+	protected function appendAutoCreateTempUser( $property ) {
+		$config = $this->getConfig()->get( MainConfigNames::AutoCreateTempUser );
+
+		$data = [ 'enabled' => false ];
+		if ( $config['enabled'] ?? false ) {
+			$data['enabled'] = true;
+			$data['actions'] = $config['actions'];
+			$data['genPattern'] = $config['genPattern'];
+			$data['matchPattern'] = $config['matchPattern'] ?? $data['genPattern'];
+			$data['serialProvider'] = $config['serialProvider'];
+			$data['serialMapping'] = $config['serialMapping'];
+		}
+		if ( isset( $config['reservedPattern'] ) ) {
+			$data['reservedPattern'] = $config['reservedPattern'];
+		}
+
+		return $this->getResult()->addValue( 'query', $property, $data );
+	}
+
 	protected function appendFileExtensions( $property ) {
 		$data = [];
 		foreach (
@@ -689,9 +680,22 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 		return $this->getResult()->addValue( 'query', $property, $data );
 	}
 
+	protected function appendInstalledClientLibraries( $property ) {
+		$data = [];
+		foreach ( SpecialVersion::parseForeignResources() as $name => $info ) {
+			$data[] = [
+				// Can't use $name as it is version suffixed (as multiple versions
+				// of a library may exist, provided by different skins/extensions)
+				'name' => $info['name'],
+				'version' => $info['version'],
+			];
+		}
+		ApiResult::setIndexedTagName( $data, 'library' );
+		return $this->getResult()->addValue( 'query', $property, $data );
+	}
+
 	protected function appendInstalledLibraries( $property ) {
-		$baseDir = $this->getConfig()->get( MainConfigNames::BaseDirectory );
-		$path = "$baseDir/vendor/composer/installed.json";
+		$path = MW_INSTALL_PATH . '/vendor/composer/installed.json';
 		if ( !file_exists( $path ) ) {
 			return true;
 		}
@@ -722,8 +726,7 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 		);
 		foreach ( $credits as $type => $extensions ) {
 			foreach ( $extensions as $ext ) {
-				$ret = [];
-				$ret['type'] = $type;
+				$ret = [ 'type' => $type ];
 				if ( isset( $ext['name'] ) ) {
 					$ret['name'] = $ext['name'];
 				}
@@ -793,17 +796,14 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 
 	protected function appendRightsInfo( $property ) {
 		$config = $this->getConfig();
-		$rightsPage = $config->get( MainConfigNames::RightsPage );
-		// The default value is null, but the installer sets it to empty string
-		if ( strlen( (string)$rightsPage ) ) {
-			$title = Title::newFromText( $rightsPage );
-			$url = wfExpandUrl( $title->getLinkURL(), PROTO_CURRENT );
+		$title = Title::newFromText( $config->get( MainConfigNames::RightsPage ) );
+		if ( $title ) {
+			$url = $this->urlUtils->expand( $title->getLinkURL(), PROTO_CURRENT );
 		} else {
-			$title = false;
 			$url = $config->get( MainConfigNames::RightsUrl );
 		}
-		$text = $config->get( MainConfigNames::RightsText );
-		if ( $title && !strlen( (string)$text ) ) {
+		$text = $config->get( MainConfigNames::RightsText ) ?? '';
+		if ( $text === '' && $title ) {
 			$text = $title->getPrefixedText();
 		}
 
@@ -860,11 +860,8 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 	// Export information about which page languages will trigger
 	// language conversion. (T153341)
 	public function appendLanguageVariants( $property ) {
-		$langNames = LanguageConverter::$languagesWithVariants;
-		if ( $this->languageConverterFactory->isConversionDisabled() ) {
-			// Ensure result is empty if language conversion is disabled.
-			$langNames = [];
-		}
+		$langNames = $this->languageConverterFactory->isConversionDisabled() ? [] :
+			LanguageConverter::$languagesWithVariants;
 		sort( $langNames );
 
 		$data = [];
@@ -882,12 +879,8 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 			$variants = $langConverter->getVariants();
 			sort( $variants );
 			foreach ( $variants as $v ) {
-				$fallbacks = $langConverter->getVariantFallbacks( $v );
-				if ( !is_array( $fallbacks ) ) {
-					$fallbacks = [ $fallbacks ];
-				}
 				$data[$langCode][$v] = [
-					'fallbacks' => $fallbacks,
+					'fallbacks' => (array)$langConverter->getVariantFallbacks( $v ),
 				];
 				ApiResult::setIndexedTagName(
 					$data[$langCode][$v]['fallbacks'], 'variant'
@@ -904,9 +897,8 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 		$data = [];
 		$allowed = $this->skinFactory->getAllowedSkins();
 		$default = Skin::normalizeKey( 'default' );
-		$skinNames = $this->skinFactory->getInstalledSkins();
 
-		foreach ( $skinNames as $name => $displayName ) {
+		foreach ( $this->skinFactory->getInstalledSkins() as $name => $displayName ) {
 			$msg = $this->msg( "skinname-{$name}" );
 			$code = $this->getParameter( 'inlanguagecode' );
 			if ( $code && $this->languageNameUtils->isValidCode( $code ) ) {
@@ -937,7 +929,7 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 			static function ( $item ) {
 				return "<$item>";
 			},
-			$this->parser->getTags()
+			$this->parserFactory->getMainInstance()->getTags()
 		);
 		ApiResult::setArrayType( $tags, 'BCarray' );
 		ApiResult::setIndexedTagName( $tags, 't' );
@@ -946,7 +938,7 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 	}
 
 	public function appendFunctionHooks( $property ) {
-		$hooks = $this->parser->getFunctionHooks();
+		$hooks = $this->parserFactory->getMainInstance()->getFunctionHooks();
 		ApiResult::setArrayType( $hooks, 'BCarray' );
 		ApiResult::setIndexedTagName( $hooks, 'h' );
 
@@ -971,7 +963,7 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 	}
 
 	public function appendDefaultOptions( $property ) {
-		$options = $this->userOptionsLookup->getDefaultOptions();
+		$options = $this->userOptionsLookup->getDefaultOptions( null );
 		$options[ApiResult::META_BC_BOOLS] = array_keys( $options );
 		return $this->getResult()->addValue( 'query', $property, $options );
 	}
@@ -981,6 +973,99 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 		return $this->getResult()->addValue( 'query', $property, $config );
 	}
 
+	private function getAutoPromoteConds() {
+		$allowedConditions = [];
+		foreach ( get_defined_constants() as $constantName => $constantValue ) {
+			if ( strpos( $constantName, 'APCOND_' ) !== false ) {
+				$allowedConditions[$constantName] = $constantValue;
+			}
+		}
+		return $allowedConditions;
+	}
+
+	private function processAutoPromote( $input, $allowedConditions ) {
+		$data = [];
+		foreach ( $input as $groupName => $conditions ) {
+			$row = $this->recAutopromote( $conditions, $allowedConditions );
+			if ( !isset( $row[0] ) || is_string( $row ) ) {
+				$row = [ $row ];
+			}
+			$data[$groupName] = $row;
+		}
+		return $data;
+	}
+
+	private function appendAutoPromote( $property ) {
+		return $this->getResult()->addValue(
+			'query',
+			$property,
+			$this->processAutoPromote(
+				$this->getConfig()->get( 'Autopromote' ),
+				$this->getAutoPromoteConds()
+			)
+		);
+	}
+
+	private function appendAutoPromoteOnce( $property ) {
+		$allowedConditions = $this->getAutoPromoteConds();
+		$data = [];
+		foreach ( $this->getConfig()->get( 'AutopromoteOnce' ) as $key => $value ) {
+			$data[$key] = $this->processAutoPromote( $value, $allowedConditions );
+		}
+		return $this->getResult()->addValue( 'query', $property, $data );
+	}
+
+	/**
+	 * @param array|int|string $cond
+	 * @param array $allowedConditions
+	 * @return array|string
+	 */
+	private function recAutopromote( $cond, $allowedConditions ) {
+		$config = [];
+		// First, checks if $cond is an array
+		if ( is_array( $cond ) ) {
+			// Checks if $cond[0] is a valid operand
+			if ( in_array( $cond[0], UserGroupManager::VALID_OPS, true ) ) {
+				$config['operand'] = $cond[0];
+				// Traversal checks conditions
+				foreach ( array_slice( $cond, 1 ) as $value ) {
+					$config[] = $this->recAutopromote( $value, $allowedConditions );
+				}
+			} elseif ( is_string( $cond[0] ) ) {
+				// Returns $cond directly, if $cond[0] is a string
+				 $config = $cond;
+			} else {
+				// When $cond is equal to an APCOND_ constant value
+				$params = array_slice( $cond, 1 );
+				if ( $params === [ null ] ) {
+					// Special casing for these conditions and their default of null,
+					// to replace their values with $wgAutoConfirmCount/$wgAutoConfirmAge as appropriate
+					if ( $cond[0] === APCOND_EDITCOUNT ) {
+						$params = [ $this->getConfig()->get( MainConfigNames::AutoConfirmCount ) ];
+					} elseif ( $cond[0] === APCOND_AGE ) {
+						$params = [ $this->getConfig()->get( MainConfigNames::AutoConfirmAge ) ];
+					}
+				}
+				$config = [
+					'condname' => array_search( $cond[0], $allowedConditions ),
+					'params' => $params
+				];
+				ApiResult::setIndexedTagName( $config, 'params' );
+			}
+		} elseif ( is_string( $cond ) ) {
+			$config = $cond;
+		} else {
+			// When $cond is equal to an APCOND_ constant value
+			$config = [
+				'condname' => array_search( $cond, $allowedConditions ),
+				'params' => []
+			];
+			ApiResult::setIndexedTagName( $config, 'params' );
+		}
+
+		return $config;
+	}
+
 	public function appendSubscribedHooks( $property ) {
 		$hookContainer = MediaWikiServices::getInstance()->getHookContainer();
 		$hookNames = $hookContainer->getHookNames();
@@ -988,11 +1073,9 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 
 		$data = [];
 		foreach ( $hookNames as $name ) {
-			$subscribers = $hookContainer->getLegacyHandlers( $name );
-
 			$arr = [
 				'name' => $name,
-				'subscribers' => array_map( [ SpecialVersion::class, 'arrayToString' ], $subscribers ),
+				'subscribers' => $hookContainer->getHandlerDescriptions( $name ),
 			];
 
 			ApiResult::setArrayType( $arr['subscribers'], 'array' );
@@ -1007,10 +1090,8 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 
 	public function getCacheMode( $params ) {
 		// Messages for $wgExtraInterlanguageLinkPrefixes depend on user language
-		if (
-			count( $this->getConfig()->get( MainConfigNames::ExtraInterlanguageLinkPrefixes ) ) &&
-			$params['prop'] !== null &&
-			in_array( 'interwikimap', $params['prop'] )
+		if ( $this->getConfig()->get( MainConfigNames::ExtraInterlanguageLinkPrefixes ) &&
+			in_array( 'interwikimap', $params['prop'] ?? [] )
 		) {
 			return 'anon-public-user-private';
 		}
@@ -1033,6 +1114,8 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 					'dbrepllag',
 					'statistics',
 					'usergroups',
+					'autocreatetempuser',
+					'clientlibraries',
 					'libraries',
 					'extensions',
 					'fileextensions',
@@ -1048,6 +1131,8 @@ class ApiQuerySiteinfo extends ApiQueryBase {
 					'protocols',
 					'defaultoptions',
 					'uploaddialog',
+					'autopromote',
+					'autopromoteonce',
 				],
 				ApiBase::PARAM_HELP_MSG_PER_VALUE => [],
 			],

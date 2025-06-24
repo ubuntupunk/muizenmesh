@@ -1,8 +1,7 @@
 <?php
 /**
  * Gallery Class
- * @package core
- * @subpackage classes\objects
+ * @package zpcore\classes\objects
  */
 class Gallery {
 
@@ -78,7 +77,7 @@ class Gallery {
 	/**
 	 * Sets the gallery description
 	 * 
-	 * @since ZenphotoCMS 1.5.8
+	 * @since 1.5.8
 	 * 
 	 * @param string $desc
 	 */
@@ -89,7 +88,7 @@ class Gallery {
 	
 	/**
 	 * Gets the copyright notice
-	 * @since ZenphotoCMS 1.5.8
+	 * @since 1.5.8
 	 * 
 	 * @param type $locale
 	 * @return type
@@ -105,7 +104,7 @@ class Gallery {
 
 	/**
 	 * Sets the copyright notice
-	 * @since ZenphotoCMS 1.5.8
+	 * @since 1.5.8
 	 * @param type $notice
 	 */
 	function setCopyrightNotice($notice) {
@@ -125,7 +124,7 @@ class Gallery {
 	 * @see getRightsholderCopyrightCustom()
 	 * @see getRightsholderCopyright()
 	 * 
-	 * @since ZenphotoCMS 1.5.8
+	 * @since 1.5.8
 	 */
 	function getCopyrightRightsholder() {
 		$rightsholder = $this->get('copyright_site_rightsholder');
@@ -148,7 +147,7 @@ class Gallery {
 	 * 
 	 * Gets the copyright site url
 	 * 
-	 * @since ZenphotoCMS 1.5.8 
+	 * @since 1.5.8 
 	 * @return type
 	 */
 	function getCopyrightURL() {
@@ -172,7 +171,7 @@ class Gallery {
 	/**
 	 * Sets the copyright site url
 	 * 
-	 * @since ZenphotoCMS 1.5.8
+	 * @since 1.5.8
 	 * @param type $url
 	 */
 	function setCopyrightURL($url) {
@@ -345,14 +344,15 @@ class Gallery {
 	 * 
 	 * Note unless the §rights parameter is set to ALL_ALBUMS_RIGHTS or higher or the user is full admin dynamic albums are excluded.
 	 * 
-	 * @since Zenphoto 1.5.8 - general functionality moved from the old admin function genAlbumList()
+	 * @since 1.5.8 - general functionality moved from the old admin function genAlbumList()
 	 * 
 	 * @param obj $albumobj Default null for all albums, optional albumobject to get all sublevels of
 	 * @param int $rights Rights constant to check the album access by, default UPLOAD_RIGHTS. Set to null to disable rights check
 	 * @param bool $includetitles If set to true (default) returns an array with the album names as keys and the titles as values, otherwise just an array with the names
+	 * @param bool $direct_sublevel Set to true to get only the direct sublevel, default false 
 	 * @return array
 	 */
-	function getAllAlbums($albumobj = NULL, $rights = UPLOAD_RIGHTS, $includetitles = true) {
+	function getAllAlbums($albumobj = NULL, $rights = UPLOAD_RIGHTS, $includetitles = true, $direct_sublevel = false) {
 		$allalbums = array();
 		$is_fulladmin = zp_loggedin(ADMIN_RIGHTS | MANAGE_ALL_ALBUM_RIGHTS); // can see all albums
 		if (AlbumBase::isAlbumClass($albumobj)) {
@@ -363,7 +363,7 @@ class Gallery {
 		if (is_array($albums)) {
 			foreach ($albums as $folder) {
 				$album = AlbumBase::newAlbum($folder);
-				if ($is_fulladmin || $album->isMyItem($rights)) {
+				if ($is_fulladmin || $album->isVisible($rights)) {
 					if ($album->isDynamic()) {
 						if ($is_fulladmin || $rights == ALL_ALBUMS_RIGHTS) {
 							if ($includetitles) {
@@ -378,11 +378,14 @@ class Gallery {
 						} else {
 							$allalbums[] = $album->getName();
 						}
-						$allalbums = array_merge($allalbums, $this->getAllAlbums($album, $rights));
+						if (!$direct_sublevel) {
+							$allalbums = array_merge($allalbums, $this->getAllAlbums($album, $rights, $includetitles));
+						}
 					}
 				}
 			}
 		}
+
 		return $allalbums;
 	}
 
@@ -399,15 +402,16 @@ class Gallery {
 	 * 
 	 * Note unless the §rights parameter is set to ALL_ALBUMS_RIGHTS or higher or the user is full admin dynamic albums are excluded.
 	 * 
-	 * @since Zenphoto 1.5.8
+	 * @since 1.5.8
 	 * 
 	 * @param bool $keeplevel_sortorder Default false, set to true if the sublevels should sorted by their individual settings (slower)
 	 * @param obj $albumobj Default null for all albums, optional albumobject to get all sublevels of
 	 * @param int $rights Rights constant to check the album access by, default UPLOAD_RIGHTS
 	 * @param bool $includetitles If set to true (default) returns an array with the album names as keys and the titles as values, otherwise just an array with the names
+	 * @param bool $direct_sublevel Set to true to get only the direct sublevel, default false
 	 * @return array
 	 */
-	function getAllAlbumsFromDB($keeplevel_sortorder = false, $albumobj = NULL, $rights = UPLOAD_RIGHTS, $includetitles = true) {
+	function getAllAlbumsFromDB($keeplevel_sortorder = false, $albumobj = NULL, $rights = UPLOAD_RIGHTS, $includetitles = true, $direct_sublevel = false) {
 		global $_zp_db;
 		$allalbums = array();
 		$is_fulladmin = zp_loggedin(ADMIN_RIGHTS | MANAGE_ALL_ALBUM_RIGHTS);
@@ -416,7 +420,7 @@ class Gallery {
 		$sql = 'SELECT `folder` FROM ' . $_zp_db->prefix('albums');
 		if (AlbumBase::isAlbumClass($albumobj)) {
 			// subalbums of an album
-			$sql .= " WHERE `folder` like '" . $albumobj->name . "/%'";
+			$sql .= " WHERE `parentid` = '" . $albumobj->getID() . "'";
 			if ($keeplevel_sortorder) {
 				$sorttype = $albumobj->getSortType('album');
 				if ($albumobj->getSortDirection('album')) {
@@ -426,8 +430,8 @@ class Gallery {
 				}
 			}
 		} else {
+			$sql .= " WHERE `parentid` IS NULL";
 			if ($keeplevel_sortorder) {
-				$sql .= " WHERE `parentid` IS NULL";
 				$sorttype = $this->getSortType();
 				if ($this->getSortDirection()) {
 					$sortdirection = ' DESC';
@@ -444,7 +448,7 @@ class Gallery {
 		if ($result) {
 			while ($row = $_zp_db->fetchAssoc($result)) {
 				$album = AlbumBase::newAlbum($row['folder']);
-				if ($album->exists && ($is_fulladmin || $album->isMyItem($rights))) {
+				if ($album->exists && ($is_fulladmin || $album->isVisible($rights))) {
 					if ($album->isDynamic()) {
 						if ($is_fulladmin || $rights == ALL_ALBUMS_RIGHTS) {
 							if ($includetitles) {
@@ -459,7 +463,7 @@ class Gallery {
 						} else {
 							$allalbums[] = $album->getName();
 						}
-						if ($keeplevel_sortorder) {
+						if (!$direct_sublevel) {
 							$allalbums = array_merge($allalbums, $this->getAllAlbumsFromDB($keeplevel_sortorder, $album, $rights, $includetitles));
 						}
 					}
@@ -819,7 +823,7 @@ class Gallery {
 										$data = substr($data, $i + 1);
 									}
 									if (strpos($data1, 'WORDS=') !== false) {
-										$words = "searchs=" . urlencode(substr($data1, 6));
+										$words = "s=" . urlencode(substr($data1, 6));
 									}
 									if (strpos($data1, 'THUMB=') !== false) {
 										$thumb = trim(substr($data1, 6));
@@ -1056,15 +1060,18 @@ class Gallery {
 		foreach ($results as $row) { // check for visible
 			$folder = $row['folder'];
 			$album = AlbumBase::newAlbum($folder);
-			switch (themeObject::checkScheduledPublishing($row)) {
+			switch(themeObject::checkScheduledPublishing($row)) {
 				case 1:
+					// permanent as expired
 					$album->setPublished(0);
 					$album->save();
+					break;
 				case 2:
-					$row['show'] = 0;
+					// temporary as future published
+					$album->setPublished(0);
+					break;
 			}
-
-			if ($mine || $row['show'] || (($list = $album->isMyItem(LIST_RIGHTS)) && is_null($album->getParent())) || (is_null($mine) && $list && $viewUnpublished)) {
+			if ($mine || $viewUnpublished || (!$this->isProtectedGalleryIndex() && $album->isPublic()) || $album->isVisible()) {
 				$albums_ordered[] = $folder;
 			}
 		}
@@ -1108,7 +1115,7 @@ class Gallery {
 	/**
 	 * Title to be used for a parent website if Zenphoto is used as a part of it
 	 * 
-	 * @deprecated ZenphotoCMS 2.0: Use the method getParentSiteTitle() instead
+	 * @deprecated 2.0: Use the method getParentSiteTitle() instead
 	 * 
 	 * @param string $locale
 	 * @return string
@@ -1130,7 +1137,7 @@ class Gallery {
 
 	/**
 	 * Set the title to be used for a parent website if Zenphoto is used as a part of it
-	 * @deprecated ZenphotoCMS 2.0: Use the method setParentSiteTitle() instead
+	 * @deprecated 2.0: Use the method setParentSiteTitle() instead
 	 * @param type $value
 	 */
 	function setWebsiteTitle($value) {
@@ -1151,7 +1158,7 @@ class Gallery {
 
 	/**
 	 * The URL of the home (not Zenphoto gallery) WEBsite
-	 * @deprecated ZenphotoCMS 2.0: Use the method getParentSiteURL() instead
+	 * @deprecated 2.0: Use the method getParentSiteURL() instead
 	 * 
 	 * @return string
 	 */
@@ -1173,7 +1180,7 @@ class Gallery {
 
 	/**
 	 * Set URL of the home (not Zenphoto gallery) WEBsite
-	 * @deprecated ZenphotoCMS 2.0: Use the method setParentSiteURL() instead
+	 * @deprecated 2.0: Use the method setParentSiteURL() instead
 	 * 
 	 * @return string
 	 */
@@ -1247,15 +1254,44 @@ class Gallery {
 	function setGallerySession($value) {
 		$this->set('album_session', $value);
 	}
+	
+	/**
+	 * Checks if the site is protected and if the gallery index is one of the unprotected pages
+	 * 
+	 * @since 1.6.1
+	 * 
+	 * @global string $_zp_gallery_page
+	 * @return bool
+	 */
+	function isProtectedGalleryIndex() {
+		global $_zp_gallery_page;
+		$validindexes = array(
+				'gallery',
+				'index'
+		);
+		$current = stripSuffix($_zp_gallery_page);
+		if (GALLERY_SECURITY != 'public' && !zp_loggedin()) {
+			if (in_array($current, $validindexes) && in_array($current, $this->unprotected_pages)) {
+				return false;
+			} else {
+				return true;
+			}
+		} else {
+			return false;
+		}
+	}
 
 	/**
 	 *
-	 * Tests if a page is excluded from password protection
+	 * Tests if a custom page is excluded from password protection
 	 * @param $page
+	 * @return boolean
 	 */
 	function isUnprotectedPage($page) {
 		return (in_array($page, $this->unprotected_pages));
 	}
+	
+
 
 	function setUnprotectedPage($page, $on) {
 		if ($on) {
@@ -1399,7 +1435,7 @@ class Gallery {
 	/**
 	 * Gets the albums per page setting
 	 * 
-	 * @since ZemphotoCMS 1.6
+	 * @since 1.6
 	 * 
 	 * @return int
 	 */
@@ -1410,7 +1446,7 @@ class Gallery {
 	/**
 	 * Gets the total album pages 
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * 
 	 * @return int
 	 */
@@ -1421,7 +1457,7 @@ class Gallery {
 	/**
 	 * Gets the number of images if the thumb transintion page for sharing thumbs on the last album and the first image page
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * @param obj $obj Album object (or child class object) or searchengine object
 	 * @param bool $one_image_page 
 	 * @return int

@@ -21,6 +21,8 @@
  * @ingroup Maintenance
  */
 
+use MediaWiki\User\User;
+
 require_once __DIR__ . '/Maintenance.php';
 
 /**
@@ -41,12 +43,18 @@ class MigrateUserGroup extends Maintenance {
 		$count = 0;
 		$oldGroup = $this->getArg( 0 );
 		$newGroup = $this->getArg( 1 );
-		$dbw = $this->getDB( DB_PRIMARY );
+		$dbw = $this->getPrimaryDB();
 		$batchSize = $this->getBatchSize();
-		$start = $dbw->selectField( 'user_groups', 'MIN(ug_user)',
-			[ 'ug_group' => $oldGroup ], __FUNCTION__ );
-		$end = $dbw->selectField( 'user_groups', 'MAX(ug_user)',
-			[ 'ug_group' => $oldGroup ], __FUNCTION__ );
+		$start = $dbw->newSelectQueryBuilder()
+			->select( 'MIN(ug_user)' )
+			->from( 'user_groups' )
+			->where( [ 'ug_group' => $oldGroup ] )
+			->caller( __FUNCTION__ )->fetchField();
+		$end = $dbw->newSelectQueryBuilder()
+			->select( 'MAX(ug_user)' )
+			->from( 'user_groups' )
+			->where( [ 'ug_group' => $oldGroup ] )
+			->caller( __FUNCTION__ )->fetchField();
 		if ( $start === null ) {
 			$this->fatalError( "Nothing to do - no users in the '$oldGroup' group" );
 		}
@@ -60,23 +68,27 @@ class MigrateUserGroup extends Maintenance {
 			$this->output( "Doing users $blockStart to $blockEnd\n" );
 
 			$this->beginTransaction( $dbw, __METHOD__ );
-			$dbw->update( 'user_groups',
-				[ 'ug_group' => $newGroup ],
-				[ 'ug_group' => $oldGroup,
-					"ug_user BETWEEN " . (int)$blockStart . " AND " . (int)$blockEnd ],
-				__METHOD__,
-				[ 'IGNORE' ]
-			);
+			$dbw->newUpdateQueryBuilder()
+				->update( 'user_groups' )
+				->ignore()
+				->set( [ 'ug_group' => $newGroup ] )
+				->where( [
+					'ug_group' => $oldGroup,
+					"ug_user BETWEEN " . (int)$blockStart . " AND " . (int)$blockEnd
+				] )
+				->caller( __METHOD__ )->execute();
 			$affected += $dbw->affectedRows();
 			// Delete rows that the UPDATE operation above had to ignore.
 			// This happens when a user is in both the old and new group.
 			// Updating the row for the old group membership failed since
 			// user/group is UNIQUE.
-			$dbw->delete( 'user_groups',
-				[ 'ug_group' => $oldGroup,
-					"ug_user BETWEEN " . (int)$blockStart . " AND " . (int)$blockEnd ],
-				__METHOD__
-			);
+			$dbw->newDeleteQueryBuilder()
+				->deleteFrom( 'user_groups' )
+				->where( [
+					'ug_group' => $oldGroup,
+					"ug_user BETWEEN " . (int)$blockStart . " AND " . (int)$blockEnd
+				] )
+				->caller( __METHOD__ )->execute();
 			$affected += $dbw->affectedRows();
 			$this->commitTransaction( $dbw, __METHOD__ );
 
@@ -84,11 +96,14 @@ class MigrateUserGroup extends Maintenance {
 			if ( $affected > 0 ) {
 				// XXX: This also invalidates cache of unaffected users that
 				// were in the new group and not in the group.
-				$res = $dbw->select( 'user_groups', 'ug_user',
-					[ 'ug_group' => $newGroup,
-						"ug_user BETWEEN " . (int)$blockStart . " AND " . (int)$blockEnd ],
-					__METHOD__
-				);
+				$res = $dbw->newSelectQueryBuilder()
+					->select( 'ug_user' )
+					->from( 'user_groups' )
+					->where( [
+						'ug_group' => $newGroup,
+						"ug_user BETWEEN " . (int)$blockStart . " AND " . (int)$blockEnd
+					] )
+					->caller( __METHOD__ )->fetchResultSet();
 				if ( $res !== false ) {
 					foreach ( $res as $row ) {
 						$user = User::newFromId( $row->ug_user );

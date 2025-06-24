@@ -1,7 +1,7 @@
 /*!
  * VisualEditor UserInterface FormatTool classes.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
 
 /**
@@ -38,6 +38,8 @@ ve.ui.FormatTool.static.deactivateOnSelect = false;
  * @inheritable
  */
 ve.ui.FormatTool.static.format = null;
+
+ve.ui.FormatTool.static.fallbackIcon = 'textStyle';
 
 /* Methods */
 

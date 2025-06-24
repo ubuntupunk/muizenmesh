@@ -16,10 +16,12 @@
  * http://www.gnu.org/copyleft/gpl.html
  *
  * @file
- * @ingroup Media
  */
 
+use MediaWiki\HookContainer\HookRunner;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Parser\Parser;
+use MediaWiki\Status\Status;
 
 /**
  * @defgroup Media Media
@@ -32,7 +34,6 @@ use MediaWiki\MediaWikiServices;
  * Base media handler class
  *
  * @stable to extend
- *
  * @ingroup Media
  */
 abstract class MediaHandler {
@@ -293,7 +294,7 @@ abstract class MediaHandler {
 	 */
 	public static function getMetadataVersion() {
 		$version = [ '2' ]; // core metadata version
-		Hooks::runner()->onGetMetadataVersion( $version );
+		( new HookRunner( MediaWikiServices::getInstance()->getHookContainer() ) )->onGetMetadataVersion( $version );
 
 		return implode( ';', $version );
 	}

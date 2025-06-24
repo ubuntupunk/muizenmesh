@@ -5,10 +5,9 @@
  *
  * Requires Imagick 3.0.0+ and ImageMagick 6.3.8+
  * 
- * @since ZenphotoCMS 1.6 - reworked as class
+ * @since 1.6 - reworked as class
  * 
- * @package core
- * @subpackage classes\graphics
+ * @package zpcore\classes\graphics
  */
 class graphicsImagick extends graphicsBase {
 
@@ -32,7 +31,8 @@ class graphicsImagick extends graphicsBase {
 				'PNG32' => 'png',
 				'TIFF' => 'jpg',
 				'TIFF64' => 'jpg',
-				'WEBP' => 'webp'
+				'WEBP' => 'webp',
+				'AVIF' => 'avif'
 		);
 
 		$imagick = new Imagick();
@@ -107,7 +107,8 @@ class graphicsImagick extends graphicsBase {
 				}
 				break;
 			case 'png':
-			case 'webp': // apparently there are no interlace and compression constants for webp so we just use the png setting
+			case 'webp': // apparently there are no interlace and compression constants for webp/avif so we just use the png setting
+			case 'avif': 
 				$im->setImageCompression(Imagick::COMPRESSION_ZIP);
 				$im->setImageCompressionQuality($qual);
 				if ($interlace) {
@@ -280,19 +281,19 @@ class graphicsImagick extends graphicsBase {
 	/**
 	 * Rotates an image resource according to its Orientation setting
 	 *
-	 * @param Imagick $im
-	 * @param int $rotate
+	 * @param Imagick $im Imagick object
+	 * @param int $rotate Rotation degree clock wise
 	 * @return Imagick
 	 */
 	function rotateImage($im, $rotate) {
-		$im->rotateImage('none', 360 - $rotate);
+		$im->rotateImage('none', $rotate);
 		return $im;
 	}
 	
 	/**
 	 * Flips (mirrors) an image
 	 * 
-	 * @since ZenphotoCMS 1.6
+	 * @since 1.6
 	 * 
 	 * @param image $im 
 	 * @param string $mode "horizontal" (default) or "vertical" 
@@ -302,10 +303,13 @@ class graphicsImagick extends graphicsBase {
 		switch ($mode) {
 			default:
 			case 'horizontal':
-				return $im->flopImage();
+				$im->flopImage();
+				break;
 			case 'vertical';
-				return $im->flipImage();
+				$im->flipImage();
+				break;
 		}
+		return $im;
 	}
 
 	/**
@@ -356,7 +360,7 @@ class graphicsImagick extends graphicsBase {
 	 */
 	function imageGray($image) {
 		$image->setType(Imagick::IMGTYPE_GRAYSCALE);
-		$image->setImageColorspace(Imagick::COLORSPACE_GRAY);
+		$image->transformImageColorspace(Imagick::COLORSPACE_GRAY);
 		$image->setImageProperty('exif:ColorSpace', Imagick::IMGTYPE_GRAYSCALE);
 		return $image;
 	}

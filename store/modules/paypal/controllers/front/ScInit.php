@@ -1,6 +1,6 @@
 <?php
-/**
- * 2007-2023 PayPal
+/*
+ * Since 2007 PayPal
  *
  * NOTICE OF LICENSE
  *
@@ -18,10 +18,11 @@
  *  versions in the future. If you wish to customize PrestaShop for your
  *  needs please refer to http://www.prestashop.com for more information.
  *
- *  @author 2007-2023 PayPal
+ *  @author Since 2007 PayPal
  *  @author 202 ecommerce <tech@202-ecommerce.com>
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
+ *
  */
 
 use PaypalAddons\classes\AbstractMethodPaypal;
@@ -52,12 +53,7 @@ class PaypalScInitModuleFrontController extends PaypalAbstarctModuleFrontControl
         $this->values['getToken'] = Tools::getvalue('getToken');
         $this->values['credit_card'] = 0;
         $this->values['short_cut'] = 1;
-        if ($this->module->paypal_method == 'MB') {
-            $methodType = 'EC';
-        } else {
-            $methodType = $this->module->paypal_method;
-        }
-        $this->setMethod(AbstractMethodPaypal::load($methodType));
+        $this->setMethod(AbstractMethodPaypal::load());
     }
 
     public function displayAjaxCheckAvailability()
@@ -160,6 +156,10 @@ class PaypalScInitModuleFrontController extends PaypalAbstarctModuleFrontControl
 
         if (isset($request->savePaypalAccount) && $request->savePaypalAccount) {
             PaypalContext::getContext()->set('savePaypalAccount', true);
+        }
+
+        if (isset($request->sca_verification)) {
+            PaypalContext::getContext()->set('scaVerification', $request->sca_verification);
         }
 
         if (empty($request->apmMethod)) {

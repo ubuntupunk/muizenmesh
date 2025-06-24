@@ -54,7 +54,10 @@ class UpdateRestrictions extends Maintenance {
 
 		$encodedExpiry = $dbw->getInfinity();
 
-		$maxPageId = $dbw->selectField( 'page', 'MAX(page_id)', '', __METHOD__ );
+		$maxPageId = $dbw->newSelectQueryBuilder()
+			->select( 'MAX(page_id)' )
+			->from( 'page' )
+			->caller( __METHOD__ )->fetchField();
 		$escapedEmptyBlobValue = $dbw->addQuotes( '' );
 
 		$batchMinPageId = 0;
@@ -64,16 +67,15 @@ class UpdateRestrictions extends Maintenance {
 
 			$this->output( "...processing page IDs from $batchMinPageId to $batchMaxPageId.\n" );
 
-			$res = $dbw->select(
-				'page',
-				[ 'page_id', 'page_restrictions' ],
-				[
+			$res = $dbw->newSelectQueryBuilder()
+				->select( [ 'page_id', 'page_restrictions' ] )
+				->from( 'page' )
+				->where( [
 					"page_restrictions != $escapedEmptyBlobValue",
-					'page_id > ' . $dbw->addQuotes( $batchMinPageId ),
-					'page_id <= ' . $dbw->addQuotes( $batchMaxPageId ),
-				],
-				__METHOD__
-			);
+					$dbw->expr( 'page_id', '>', $batchMinPageId ),
+					$dbw->expr( 'page_id', '<=', $batchMaxPageId ),
+				] )
+				->caller( __METHOD__ )->fetchResultSet();
 
 			// No pages have legacy protection settings in the current batch
 			if ( !$res->numRows() ) {
@@ -105,12 +107,11 @@ class UpdateRestrictions extends Maintenance {
 
 			// Insert new format protection settings for the pages in the current batch.
 			// Use INSERT IGNORE to ignore conflicts with new format settings that might exist for the page
-			$dbw->insert(
-				'page_restrictions',
-				$batch,
-				__METHOD__,
-				[ 'IGNORE' ]
-			);
+			$dbw->newInsertQueryBuilder()
+				->insertInto( 'page_restrictions' )
+				->ignore()
+				->rows( $batch )
+				->caller( __METHOD__ )->execute();
 
 			// Clear out the legacy page.page_restrictions blob for this batch
 			$dbw->update( 'page', [ 'page_restrictions' => '' ], [ 'page_id' => $pageIds ], __METHOD__ );

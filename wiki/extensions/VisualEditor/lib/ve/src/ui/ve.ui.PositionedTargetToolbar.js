@@ -1,7 +1,7 @@
 /*!
  * VisualEditor UserInterface PositionedTargetToolbar class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
 
 /**
@@ -63,7 +63,7 @@ ve.ui.PositionedTargetToolbar.prototype.setup = function ( groups, surface ) {
 		closing: 'onToolbarDialogsOpeningOrClosing'
 	} );
 	if ( this.isFloatable() ) {
-		ve.addPassiveEventListener( this.target.$scrollListener[ 0 ], 'scroll', this.onWindowScrollThrottled );
+		this.target.$scrollListener[ 0 ].addEventListener( 'scroll', this.onWindowScrollThrottled, { passive: true } );
 	}
 };
 
@@ -76,7 +76,7 @@ ve.ui.PositionedTargetToolbar.prototype.detach = function () {
 		this.getSurface().getToolbarDialogs().disconnect( this );
 		this.getSurface().getToolbarDialogs().clearWindows();
 	}
-	ve.removePassiveEventListener( this.target.$scrollListener[ 0 ], 'scroll', this.onWindowScrollThrottled );
+	this.target.$scrollListener[ 0 ].removeEventListener( 'scroll', this.onWindowScrollThrottled );
 
 	// Parent method
 	ve.ui.PositionedTargetToolbar.super.prototype.detach.apply( this, arguments );
@@ -233,6 +233,11 @@ ve.ui.PositionedTargetToolbar.prototype.onToolbarDialogsOpeningOrClosing = funct
 				toolbar.getSurface().getView().emit( 'position' );
 			}, transitionDuration );
 			toolbar.getSurface().getView().emit( 'position' );
+		} else if ( win.constructor.static.position === 'below' ) {
+			setTimeout( function () {
+				toolbar.onViewportResize();
+				toolbar.getSurface().getView().emit( 'position' );
+			}, transitionDuration );
 		}
 		// Wait for window transition
 		setTimeout( function () {

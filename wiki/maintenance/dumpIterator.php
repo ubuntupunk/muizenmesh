@@ -27,7 +27,7 @@
  */
 
 use MediaWiki\MainConfigNames;
-use MediaWiki\MediaWikiServices;
+use MediaWiki\Permissions\UltimateAuthority;
 use MediaWiki\Revision\SlotRecord;
 use MediaWiki\Settings\SettingsBuilder;
 use MediaWiki\Title\Title;
@@ -86,9 +86,11 @@ abstract class DumpIterator extends Maintenance {
 				. "Use - and provide it on stdin on the meantime." );
 		}
 
-		$importer = MediaWikiServices::getInstance()
+		$user = User::newSystemUser( User::MAINTENANCE_SCRIPT_USER, [ 'steal' => true ] );
+
+		$importer = $this->getServiceContainer()
 			->getWikiImporterFactory()
-			->getWikiImporter( $source );
+			->getWikiImporter( $source, new UltimateAuthority( $user ) );
 
 		$importer->setRevisionCallback(
 			[ $this, 'handleRevision' ] );
@@ -114,12 +116,13 @@ abstract class DumpIterator extends Maintenance {
 		$this->error( "Memory peak usage of " . memory_get_peak_usage() . " bytes\n" );
 	}
 
-	public function finalSetup( SettingsBuilder $settingsBuilder = null ) {
+	public function finalSetup( SettingsBuilder $settingsBuilder ) {
 		parent::finalSetup( $settingsBuilder );
 
 		if ( $this->getDbType() == Maintenance::DB_NONE ) {
 			// TODO: Allow hooks to be registered via SettingsBuilder as well!
 			//       This matches the idea of unifying SettingsBuilder with ExtensionRegistry.
+			// phpcs:disable MediaWiki.Usage.DeprecatedGlobalVariables.Deprecated$wgHooks
 			global $wgHooks;
 			$wgHooks['InterwikiLoadPrefix'][] = 'DumpIterator::disableInterwikis';
 

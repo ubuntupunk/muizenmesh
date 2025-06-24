@@ -23,7 +23,6 @@
 
 require_once __DIR__ . '/Maintenance.php';
 
-use MediaWiki\MediaWikiServices;
 use Wikimedia\IPUtils;
 
 /**
@@ -39,7 +38,7 @@ class GetLagTimes extends Maintenance {
 	}
 
 	public function execute() {
-		$services = MediaWikiServices::getInstance();
+		$services = $this->getServiceContainer();
 		$lbFactory = $services->getDBLoadBalancerFactory();
 		$stats = $services->getStatsdDataFactory();
 		$lbsByType = [
@@ -62,13 +61,17 @@ class GetLagTimes extends Maintenance {
 						$ip = gethostbyname( $host );
 					}
 
-					$starLen = min( intval( $lag ), 40 );
-					$stars = str_repeat( '*', $starLen );
+					if ( $lag === false ) {
+						$stars = 'replication stopped or errored';
+					} else {
+						$starLen = min( intval( $lag ), 40 );
+						$stars = str_repeat( '*', $starLen );
+					}
 					$this->output( sprintf( "%10s %20s %3d %s\n", $ip, $host, $lag, $stars ) );
 
 					if ( $this->hasOption( 'report' ) ) {
 						$group = ( $type === 'external' ) ? 'external' : $cluster;
-						$stats->gauge( "loadbalancer.lag.$group.$host", intval( $lag * 1e3 ) );
+						$stats->gauge( "loadbalancer.lag.$group.$host", (int)( $lag * 1e3 ) );
 					}
 				}
 			}

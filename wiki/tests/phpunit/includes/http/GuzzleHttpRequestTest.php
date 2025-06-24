@@ -11,8 +11,8 @@ use GuzzleHttp\Psr7\Response;
  *
  * No actual requests are made herein - all external communications are mocked
  *
- * @covers GuzzleHttpRequest
- * @covers MWHttpRequest
+ * @covers \GuzzleHttpRequest
+ * @covers \MWHttpRequest
  */
 class GuzzleHttpRequestTest extends MediaWikiIntegrationTestCase {
 	/** @var int[] */
@@ -189,7 +189,6 @@ class GuzzleHttpRequestTest extends MediaWikiIntegrationTestCase {
 		$history = Middleware::history( $container );
 		$stack = HandlerStack::create( new MockHandler( [ new Response() ] ) );
 		$stack->push( $history );
-		$boundary = 'boundary';
 		$client = new GuzzleHttpRequest( $this->exampleUrl, [
 				'method' => 'POST',
 				'handler' => $stack,

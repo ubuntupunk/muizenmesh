@@ -20,10 +20,17 @@
  * @file
  */
 
+namespace MediaWiki\User\CentralId;
+
+use IDBAccessObject;
+use InvalidArgumentException;
+use LogicException;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Permissions\Authority;
+use MediaWiki\User\UserFactory;
 use MediaWiki\User\UserIdentity;
 use MediaWiki\User\UserIdentityLookup;
+use Throwable;
 
 /**
  * The CentralIdLookup service allows for connecting local users with
@@ -32,7 +39,7 @@ use MediaWiki\User\UserIdentityLookup;
  * @since 1.27
  * @stable to extend
  */
-abstract class CentralIdLookup implements IDBAccessObject {
+abstract class CentralIdLookup {
 	// Audience options for accessors
 	public const AUDIENCE_PUBLIC = 1;
 	public const AUDIENCE_RAW = 2;
@@ -42,6 +49,7 @@ abstract class CentralIdLookup implements IDBAccessObject {
 
 	/** @var UserIdentityLookup */
 	private $userIdentityLookup;
+	private UserFactory $userFactory;
 
 	/**
 	 * Fetch a CentralIdLookup
@@ -90,13 +98,15 @@ abstract class CentralIdLookup implements IDBAccessObject {
 	 */
 	public function init(
 		string $providerId,
-		UserIdentityLookup $userIdentityLookup
+		UserIdentityLookup $userIdentityLookup,
+		UserFactory $userFactory
 	) {
 		if ( $this->providerId !== null ) {
 			throw new LogicException( "CentralIdProvider $providerId already initialized" );
 		}
 		$this->providerId = $providerId;
 		$this->userIdentityLookup = $userIdentityLookup;
+		$this->userFactory = $userFactory;
 	}
 
 	/**
@@ -121,7 +131,7 @@ abstract class CentralIdLookup implements IDBAccessObject {
 		if ( $audience === self::AUDIENCE_PUBLIC ) {
 			// TODO: when available, inject AuthorityFactory
 			// via init and use it to create anon authority
-			return new User;
+			return $this->userFactory->newAnonymous();
 		}
 		if ( $audience === self::AUDIENCE_RAW ) {
 			return null;
@@ -154,7 +164,7 @@ abstract class CentralIdLookup implements IDBAccessObject {
 	 *  to see it). IDs not corresponding to a user are unchanged.
 	 */
 	abstract public function lookupCentralIds(
-		array $idToName, $audience = self::AUDIENCE_PUBLIC, $flags = self::READ_NORMAL
+		array $idToName, $audience = self::AUDIENCE_PUBLIC, $flags = IDBAccessObject::READ_NORMAL
 	): array;
 
 	/**
@@ -169,7 +179,7 @@ abstract class CentralIdLookup implements IDBAccessObject {
 	 *  to see it) are unchanged.
 	 */
 	abstract public function lookupUserNames(
-		array $nameToId, $audience = self::AUDIENCE_PUBLIC, $flags = self::READ_NORMAL
+		array $nameToId, $audience = self::AUDIENCE_PUBLIC, $flags = IDBAccessObject::READ_NORMAL
 	): array;
 
 	/**
@@ -183,7 +193,7 @@ abstract class CentralIdLookup implements IDBAccessObject {
 	 *  rights needed to see it, or null if $id doesn't correspond to a user
 	 */
 	public function nameFromCentralId(
-		$id, $audience = self::AUDIENCE_PUBLIC, $flags = self::READ_NORMAL
+		$id, $audience = self::AUDIENCE_PUBLIC, $flags = IDBAccessObject::READ_NORMAL
 	): ?string {
 		$idToName = $this->lookupCentralIds( [ $id => null ], $audience, $flags );
 		return $idToName[$id];
@@ -198,7 +208,7 @@ abstract class CentralIdLookup implements IDBAccessObject {
 	 * @since 1.30
 	 */
 	public function namesFromCentralIds(
-		array $ids, $audience = self::AUDIENCE_PUBLIC, $flags = self::READ_NORMAL
+		array $ids, $audience = self::AUDIENCE_PUBLIC, $flags = IDBAccessObject::READ_NORMAL
 	): array {
 		$idToName = array_fill_keys( $ids, false );
 		$names = $this->lookupCentralIds( $idToName, $audience, $flags );
@@ -221,7 +231,7 @@ abstract class CentralIdLookup implements IDBAccessObject {
 	 *  $audience lacks the rights needed to see it.
 	 */
 	public function centralIdFromName(
-		$name, $audience = self::AUDIENCE_PUBLIC, $flags = self::READ_NORMAL
+		$name, $audience = self::AUDIENCE_PUBLIC, $flags = IDBAccessObject::READ_NORMAL
 	): int {
 		$nameToId = $this->lookupUserNames( [ $name => 0 ], $audience, $flags );
 		return $nameToId[$name];
@@ -236,7 +246,7 @@ abstract class CentralIdLookup implements IDBAccessObject {
 	 * @since 1.30
 	 */
 	public function centralIdsFromNames(
-		array $names, $audience = self::AUDIENCE_PUBLIC, $flags = self::READ_NORMAL
+		array $names, $audience = self::AUDIENCE_PUBLIC, $flags = IDBAccessObject::READ_NORMAL
 	): array {
 		$nameToId = array_fill_keys( $names, false );
 		$ids = $this->lookupUserNames( $nameToId, $audience, $flags );
@@ -261,7 +271,7 @@ abstract class CentralIdLookup implements IDBAccessObject {
 	 *  doesn't exist locally, or the user isn't locally attached.
 	 */
 	public function localUserFromCentralId(
-		$id, $audience = self::AUDIENCE_PUBLIC, $flags = self::READ_NORMAL
+		$id, $audience = self::AUDIENCE_PUBLIC, $flags = IDBAccessObject::READ_NORMAL
 	): ?UserIdentity {
 		$name = $this->nameFromCentralId( $id, $audience, $flags );
 		if ( !$name ) {
@@ -287,7 +297,7 @@ abstract class CentralIdLookup implements IDBAccessObject {
 	 *  central user isn't locally attached.
 	 */
 	public function centralIdFromLocalUser(
-		UserIdentity $user, $audience = self::AUDIENCE_PUBLIC, $flags = self::READ_NORMAL
+		UserIdentity $user, $audience = self::AUDIENCE_PUBLIC, $flags = IDBAccessObject::READ_NORMAL
 	): int {
 		return $this->isAttached( $user )
 			? $this->centralIdFromName( $user->getName(), $audience, $flags )
@@ -295,3 +305,6 @@ abstract class CentralIdLookup implements IDBAccessObject {
 	}
 
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( CentralIdLookup::class, 'CentralIdLookup' );

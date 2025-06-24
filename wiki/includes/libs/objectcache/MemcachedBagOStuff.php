@@ -40,7 +40,7 @@ abstract class MemcachedBagOStuff extends MediumSpecificBagOStuff {
 	 *      unprefixed access. This can be used with mcrouter. [optional]
 	 */
 	public function __construct( array $params ) {
-		$params['segmentationSize'] ??= 917504; // < 1MiB
+		$params['segmentationSize'] ??= 917_504; // < 1MiB
 		parent::__construct( $params );
 
 		$this->routingPrefix = $params['routingPrefix'] ?? '';
@@ -50,11 +50,12 @@ abstract class MemcachedBagOStuff extends MediumSpecificBagOStuff {
 	}
 
 	/**
-	 * Construct a cache key.
+	 * Format a cache key.
 	 *
 	 * @since 1.27
+	 * @see BagOStuff::makeKeyInternal
 	 * @param string $keyspace
-	 * @param array $components
+	 * @param string[]|int[] $components
 	 * @return string
 	 */
 	protected function makeKeyInternal( $keyspace, $components ) {
@@ -91,6 +92,10 @@ abstract class MemcachedBagOStuff extends MediumSpecificBagOStuff {
 		return $keyspace . ':' . implode( ':', $components );
 	}
 
+	protected function requireConvertGenericKey(): bool {
+		return true;
+	}
+
 	/**
 	 * Ensure that a key is safe to use (contains no control characters and no
 	 * characters above the ASCII range.)
@@ -101,7 +106,7 @@ abstract class MemcachedBagOStuff extends MediumSpecificBagOStuff {
 	 */
 	public function validateKeyEncoding( $key ) {
 		if ( preg_match( '/[^\x21-\x7e]+/', $key ) ) {
-			throw new Exception( "Key contains invalid characters: $key" );
+			throw new InvalidArgumentException( "Key contains invalid characters: $key" );
 		}
 
 		return $key;
@@ -134,9 +139,8 @@ abstract class MemcachedBagOStuff extends MediumSpecificBagOStuff {
 			return $key;
 		}
 
-		$prefixLength = strlen( $this->routingPrefix );
-		if ( substr( $key, 0, $prefixLength ) === $this->routingPrefix ) {
-			return substr( $key, $prefixLength );
+		if ( str_starts_with( $key, $this->routingPrefix ) ) {
+			return substr( $key, strlen( $this->routingPrefix ) );
 		}
 
 		return $key;

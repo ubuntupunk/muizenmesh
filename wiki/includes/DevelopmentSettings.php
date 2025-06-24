@@ -29,19 +29,20 @@
  * Debugging for PHP
  */
 
-// Enable showing of errors
-use MediaWiki\WikiMap\WikiMap;
-
+// Enable logging of all errors
 error_reporting( -1 );
-// @phan-suppress-next-line PhanTypeMismatchArgumentInternal Scalar okay with php8.1
-ini_set( 'display_errors', 1 );
+
+// Enable showing of errors, but avoid breaking non-HTML responses
+if ( MW_ENTRY_POINT === 'index' ) {
+	ini_set( 'display_errors', '1' );
+}
 
 /**
  * Debugging for MediaWiki
  */
 
 global $wgDevelopmentWarnings, $wgShowExceptionDetails, $wgShowHostnames,
-	$wgCommandLineMode, $wgDebugLogFile,
+	$wgDebugLogFile,
 	$wgDBerrorLog, $wgDebugLogGroups;
 
 // Use of wfWarn() should cause tests to fail
@@ -54,7 +55,10 @@ $wgShowHostnames = true;
 // Enable log files
 $logDir = getenv( 'MW_LOG_DIR' );
 if ( $logDir ) {
-	if ( $wgCommandLineMode ) {
+	if ( !file_exists( $logDir ) ) {
+		mkdir( $logDir );
+	}
+	if ( MW_ENTRY_POINT === 'cli' ) {
 		$wgDebugLogFile = "$logDir/mw-debug-cli.log";
 	} else {
 		$wgDebugLogFile = "$logDir/mw-debug-www.log";
@@ -118,12 +122,13 @@ $wgVueDevelopmentMode = true;
  * (Must reference a Phabricator ticket)
  */
 
-global $wgSQLMode, $wgLocalisationCacheConf, $wgCiteBookReferencing,
+global $wgSQLMode, $wgDBStrictWarnings, $wgLocalisationCacheConf, $wgCiteBookReferencing,
 	$wgCacheDirectory, $wgEnableUploads, $wgUsePigLatinVariant,
 	$wgVisualEditorEnableWikitext, $wgDefaultUserOptions;
 
 // Enable MariaDB/MySQL strict mode (T108255)
 $wgSQLMode = 'STRICT_ALL_TABLES,ONLY_FULL_GROUP_BY';
+$wgDBStrictWarnings = true;
 
 // Localisation Cache to StaticArray (T218207)
 $wgLocalisationCacheConf['store'] = 'array';
@@ -135,13 +140,15 @@ $wgCiteBookReferencing = true;
 // directory by default (T218207)
 $wgCacheDirectory = TempFSFile::getUsableTempDirectory() .
 	DIRECTORY_SEPARATOR .
-	rawurlencode( WikiMap::getCurrentWikiId() );
+	rawurlencode( MediaWiki\WikiMap\WikiMap::getCurrentWikiId() );
 
 // Enable uploads for FileImporter browser tests (T190829)
 $wgEnableUploads = true;
 
 // Enable en-x-piglatin variant conversion for testing
 $wgUsePigLatinVariant = true;
+// Enable x-xss language code for testing correct message escaping
+$wgUseXssLanguage = true;
 
 // Enable the new wikitext mode for browser testing (T270240)
 $wgVisualEditorEnableWikitext = true;

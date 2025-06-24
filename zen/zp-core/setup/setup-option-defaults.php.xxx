@@ -3,7 +3,7 @@
 
 /**
  * stores all the default values for options
- * @package setup
+ * @package zpcore\setup
  */
 setup::Log(gettext('Set Zenphoto default options'), true);
 
@@ -77,7 +77,7 @@ setOption('mod_rewrite_detected', 0);
 if (isset($_GET['mod_rewrite'])) {
 	if (!function_exists('curl_init')) {
 		?>
-		<script type="text/javascript">
+		<script>
 			$(function() {
 				$('img').error(function() {
 					var link = $(this).attr('src');
@@ -97,6 +97,9 @@ if (isset($_POST['setUTF8URI']) && $_POST['setUTF8URI'] != 'dont') {
 	setOption('UTF8_image_URI', (int) ($_POST['setUTF8URI'] == 'true'));
 }
 setOptionDefault('server_protocol', "http");
+if (getOption('server_protocol') == 'https_admin') {
+	setOption('server_protocol', 'https');
+}
 setOptionDefault('charset', "UTF-8");
 setOptionDefault('filesystem_charset', "UTF-8");
 setOptionDefault('image_quality', 85);
@@ -186,6 +189,7 @@ $general_tags = "a => (href =>() title =>() target=>() class=>() id=>() rel=>() 
 setOption('allowed_tags_default', $style_tags . $general_tags);
 setOptionDefault('allowed_tags', $style_tags . $general_tags);
 setOptionDefault('style_tags', strtolower($style_tags));
+setOptionDefault('daily_logs', 0);
 
 setOptionDefault('full_image_quality', 75);
 
@@ -220,7 +224,8 @@ if ($protection) {
 }
 
 setOptionDefault('locale', '');
-setOptionDefault('date_format', '%x');
+setOptionDefault('date_format', 'Y-m-d');
+setOptionDefault('date_format_localized', 0);
 
 setOptionDefault('use_lock_image', 1);
 setOptionDefault('search_user', '');
@@ -251,6 +256,7 @@ foreach ($_zp_exifvars as $key => $item) {
 setOptionDefault('IPTC_encoding', 'ISO-8859-1');
 setOptionDefault('IPTC_convert_linebreaks', 0);
 renameOption('ImbedIPTC', 'EmbedIPTC');
+setOptionDefault('metadata_refresh_behaviour', 'full-refresh');
 
 setOptionDefault('UTF8_image_URI', 0);
 
@@ -260,6 +266,7 @@ setOptionDefault('sharpen_threshold', 3);
 
 setOptionDefault('search_space_is_or', 0);
 setOptionDefault('search_no_albums', 0);
+setOptionDefault('search_fieldsselector_enabled', 1);
 
 //	 update group descriptions location
 $admins = $_zp_authority->getAdministrators('groups');
@@ -505,10 +512,10 @@ purgeOption('image_default');
 purgeThemeOptionTotal('display_copyright_notice');
 setOptionDefault('display_copyright_notice', 1); // enable new global one by default
 
-if(getOption('use_imagick') && $_zp_graphics->imagick_present) {
-	setOptionDefault('graphicslib_selected', 'imagick', true);
+if (getOption('use_imagick') && $_zp_graphics->imagick_present) {
+	setOptionDefault('graphicslib_selected', 'imagick');
 } else {
-	setOptionDefault('graphicslib_selected', 'gd', true);
+	setOptionDefault('graphicslib_selected', 'gd');
 }
 purgeOption('use_imagick');
 

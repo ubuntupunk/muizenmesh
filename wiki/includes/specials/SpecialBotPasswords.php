@@ -21,11 +21,26 @@
  * @ingroup SpecialPage
  */
 
+namespace MediaWiki\Specials;
+
+use ErrorPageError;
+use HTMLRestrictionsField;
+use InvalidPassword;
 use MediaWiki\Auth\AuthManager;
+use MediaWiki\Html\Html;
+use MediaWiki\HTMLForm\HTMLForm;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MainConfigNames;
 use MediaWiki\Permissions\GrantsInfo;
 use MediaWiki\Permissions\GrantsLocalization;
+use MediaWiki\SpecialPage\FormSpecialPage;
+use MediaWiki\Status\Status;
+use MediaWiki\User\BotPassword;
+use MediaWiki\User\CentralId\CentralIdLookup;
+use MediaWiki\User\User;
+use PasswordError;
+use PasswordFactory;
+use Psr\Log\LoggerInterface;
 
 /**
  * Let users manage bot passwords
@@ -46,20 +61,11 @@ class SpecialBotPasswords extends FormSpecialPage {
 	/** @var string|null New password set, for communication between onSubmit() and onSuccess() */
 	private $password = null;
 
-	/** @var Psr\Log\LoggerInterface */
-	private $logger;
-
-	/** @var PasswordFactory */
-	private $passwordFactory;
-
-	/** @var CentralIdLookup */
-	private $centralIdLookup;
-
-	/** @var GrantsInfo */
-	private $grantsInfo;
-
-	/** @var GrantsLocalization */
-	private $grantsLocalization;
+	private LoggerInterface $logger;
+	private PasswordFactory $passwordFactory;
+	private CentralIdLookup $centralIdLookup;
+	private GrantsInfo $grantsInfo;
+	private GrantsLocalization $grantsLocalization;
 
 	/**
 	 * @param PasswordFactory $passwordFactory
@@ -100,8 +106,9 @@ class SpecialBotPasswords extends FormSpecialPage {
 	 * @param string|null $par
 	 */
 	public function execute( $par ) {
-		$this->getOutput()->disallowUserJs();
 		$this->requireNamedUser();
+		$this->getOutput()->disallowUserJs();
+		$this->getOutput()->addModuleStyles( 'mediawiki.special' );
 		$this->addHelpLink( 'Manual:Bot_passwords' );
 
 		if ( $par !== null ) {
@@ -160,19 +167,23 @@ class SpecialBotPasswords extends FormSpecialPage {
 				}
 			}
 
-			$lang = $this->getLanguage();
 			$showGrants = $this->grantsInfo->getValidGrants();
-			$grantLinks = array_map( [ $this->grantsLocalization, 'getGrantsLink' ], $showGrants );
+			$grantNames = $this->grantsLocalization->getGrantDescriptionsWithClasses(
+				$showGrants, $this->getLanguage() );
 
+			$fields[] = [
+				'type' => 'info',
+				'default' => '',
+				'help-message' => 'botpasswords-help-grants',
+			];
 			$fields['grants'] = [
 				'type' => 'checkmatrix',
 				'label-message' => 'botpasswords-label-grants',
-				'help-message' => 'botpasswords-help-grants',
 				'columns' => [
 					$this->msg( 'botpasswords-label-grants-column' )->escaped() => 'grant'
 				],
 				'rows' => array_combine(
-					$grantLinks,
+					$grantNames,
 					$showGrants
 				),
 				'default' => array_map(
@@ -181,12 +192,13 @@ class SpecialBotPasswords extends FormSpecialPage {
 					},
 					$this->botPassword->getGrants()
 				),
-				'tooltips' => array_combine(
-					$grantLinks,
+				'tooltips-html' => array_combine(
+					$grantNames,
 					array_map(
-						static function ( $rights ) use ( $lang ) {
-							return $lang->semicolonList( array_map( [ User::class, 'getRightDescription' ], $rights ) );
-						},
+						fn ( $rights ) => Html::rawElement( 'ul', [], implode( '', array_map(
+							fn ( $right ) => Html::rawElement( 'li', [], $this->msg( "right-$right" )->parse() ),
+							$rights
+						) ) ),
 						array_intersect_key( $this->grantsInfo->getRightsByGrant(),
 							array_fill_keys( $showGrants, true ) )
 					)
@@ -208,13 +220,12 @@ class SpecialBotPasswords extends FormSpecialPage {
 		} else {
 			$linkRenderer = $this->getLinkRenderer();
 
-			$dbr = BotPassword::getDB( DB_REPLICA );
-			$res = $dbr->select(
-				'bot_passwords',
-				[ 'bp_app_id', 'bp_password' ],
-				[ 'bp_user' => $this->userId ],
-				__METHOD__
-			);
+			$dbr = BotPassword::getReplicaDatabase();
+			$res = $dbr->newSelectQueryBuilder()
+				->select( [ 'bp_app_id', 'bp_password' ] )
+				->from( 'bot_passwords' )
+				->where( [ 'bp_user' => $this->userId ] )
+				->caller( __METHOD__ )->fetchResultSet();
 			foreach ( $res as $row ) {
 				try {
 					$password = $this->passwordFactory->newFromCiphertext( $row->bp_password );
@@ -398,17 +409,17 @@ class SpecialBotPasswords extends FormSpecialPage {
 		$username = $this->getUser()->getName();
 		switch ( $this->operation ) {
 			case 'insert':
-				$out->setPageTitle( $this->msg( 'botpasswords-created-title' )->text() );
+				$out->setPageTitleMsg( $this->msg( 'botpasswords-created-title' ) );
 				$out->addWikiMsg( 'botpasswords-created-body', $this->par, $username );
 				break;
 
 			case 'update':
-				$out->setPageTitle( $this->msg( 'botpasswords-updated-title' )->text() );
+				$out->setPageTitleMsg( $this->msg( 'botpasswords-updated-title' ) );
 				$out->addWikiMsg( 'botpasswords-updated-body', $this->par, $username );
 				break;
 
 			case 'delete':
-				$out->setPageTitle( $this->msg( 'botpasswords-deleted-title' )->text() );
+				$out->setPageTitleMsg( $this->msg( 'botpasswords-deleted-title' ) );
 				$out->addWikiMsg( 'botpasswords-deleted-body', $this->par, $username );
 				$this->password = null;
 				break;
@@ -430,10 +441,13 @@ class SpecialBotPasswords extends FormSpecialPage {
 	}
 
 	protected function getGroupName() {
-		return 'users';
+		return 'login';
 	}
 
 	protected function getDisplayFormat() {
 		return 'ooui';
 	}
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( SpecialBotPasswords::class, 'SpecialBotPasswords' );

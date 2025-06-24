@@ -3,16 +3,14 @@
 namespace MediaWiki\Rest\Handler;
 
 use LogicException;
-use MediaWiki\MediaWikiServices;
-use MediaWiki\Page\RedirectStore;
 use MediaWiki\Rest\Handler\Helper\HtmlOutputHelper;
 use MediaWiki\Rest\Handler\Helper\PageContentHelper;
+use MediaWiki\Rest\Handler\Helper\PageRedirectHelper;
 use MediaWiki\Rest\Handler\Helper\PageRestHelperFactory;
 use MediaWiki\Rest\LocalizedHttpException;
 use MediaWiki\Rest\Response;
 use MediaWiki\Rest\SimpleHandler;
 use MediaWiki\Rest\StringStream;
-use TitleFormatter;
 use Wikimedia\Assert\Assert;
 
 /**
@@ -23,40 +21,31 @@ use Wikimedia\Assert\Assert;
  * @package MediaWiki\Rest\Handler
  */
 class PageHTMLHandler extends SimpleHandler {
-	use PageRedirectHandlerTrait;
 
-	/** @var HtmlOutputHelper */
-	private $htmlHelper;
-
-	/** @var PageContentHelper */
-	private $contentHelper;
-
-	/** @var TitleFormatter */
-	private $titleFormatter;
-
-	/** @var RedirectStore */
-	private $redirectStore;
-
+	private HtmlOutputHelper $htmlHelper;
+	private PageContentHelper $contentHelper;
 	private PageRestHelperFactory $helperFactory;
 
 	public function __construct(
-		TitleFormatter $titleFormatter,
-		RedirectStore $redirectStore,
 		PageRestHelperFactory $helperFactory
 	) {
-		$this->titleFormatter = $titleFormatter;
-		$this->redirectStore = $redirectStore;
 		$this->contentHelper = $helperFactory->newPageContentHelper();
 		$this->helperFactory = $helperFactory;
 		$this->htmlHelper = $helperFactory->newHtmlOutputRendererHelper();
 	}
 
-	protected function postValidationSetup() {
-		// TODO: Once Authority supports rate limit (T310476), just inject the Authority.
-		$user = MediaWikiServices::getInstance()->getUserFactory()
-			->newFromUserIdentity( $this->getAuthority()->getUser() );
+	private function getRedirectHelper(): PageRedirectHelper {
+		return $this->helperFactory->newPageRedirectHelper(
+			$this->getResponseFactory(),
+			$this->getRouter(),
+			$this->getPath(),
+			$this->getRequest()
+		);
+	}
 
-		$this->contentHelper->init( $user, $this->getValidatedParams() );
+	protected function postValidationSetup() {
+		$authority = $this->getAuthority();
+		$this->contentHelper->init( $authority, $this->getValidatedParams() );
 
 		$page = $this->contentHelper->getPageIdentity();
 		$isSystemMessage = $this->contentHelper->useDefaultSystemMessage();
@@ -69,7 +58,7 @@ class PageHTMLHandler extends SimpleHandler {
 				$revision = $this->contentHelper->getTargetRevision();
 				// NOTE: We know that $this->htmlHelper is an instance of HtmlOutputRendererHelper
 				//       because we set it in the constructor.
-				$this->htmlHelper->init( $page, $this->getValidatedParams(), $user, $revision );
+				$this->htmlHelper->init( $page, $this->getValidatedParams(), $authority, $revision );
 
 				$request = $this->getRequest();
 				$acceptLanguage = $request->getHeaderLine( 'Accept-Language' ) ?: null;
@@ -87,7 +76,7 @@ class PageHTMLHandler extends SimpleHandler {
 	 * @throws LocalizedHttpException
 	 */
 	public function run(): Response {
-		$this->contentHelper->checkAccess();
+		$this->contentHelper->checkAccessPermission();
 		$page = $this->contentHelper->getPageIdentity();
 		$params = $this->getRequest()->getQueryParams();
 
@@ -101,22 +90,24 @@ class PageHTMLHandler extends SimpleHandler {
 		// $this->contentHelper->checkAccess() did not throw.
 		Assert::invariant( $page !== null, 'Page should be known' );
 
-		$redirectResponse = $this->createRedirectResponseIfNeeded(
+		$redirectHelper = $this->getRedirectHelper();
+		$redirectHelper->setFollowWikiRedirects( $followWikiRedirects );
+		// Should treat variant redirects a special case as wiki redirects
+		// if ?redirect=no language variant should do nothing and fall into the 404 path
+		$redirectResponse = $redirectHelper->createRedirectResponseIfNeeded(
 			$page,
-			$followWikiRedirects,
-			$this->contentHelper->getTitleText(),
-			$this->titleFormatter,
-			$this->redirectStore
+			$this->contentHelper->getTitleText()
 		);
 
 		if ( $redirectResponse !== null ) {
 			return $redirectResponse;
 		}
 
-		$parserOutput = $this->htmlHelper->getHtml();
+		// We could have a missing page at this point, check and return 404 if that's the case
+		$this->contentHelper->checkHasContent();
 
-		// Do not de-duplicate styles, Parsoid already does it in a slightly different way (T300325)
-		$parserOutputHtml = $parserOutput->getText( [ 'deduplicateStyles' => false ] );
+		$parserOutput = $this->htmlHelper->getHtml();
+		$parserOutputHtml = $parserOutput->getRawText();
 
 		$outputMode = $this->getOutputMode();
 		switch ( $outputMode ) {
@@ -129,9 +120,7 @@ class PageHTMLHandler extends SimpleHandler {
 				$body = $this->contentHelper->constructMetadata();
 				$body['html'] = $parserOutputHtml;
 
-				$redirectTargetUrl = $this->getWikiRedirectTargetUrl(
-					$page, $this->redirectStore, $this->titleFormatter
-				);
+				$redirectTargetUrl = $redirectHelper->getWikiRedirectTargetUrl( $page );
 
 				if ( $redirectTargetUrl ) {
 					$body['redirect_target'] = $redirectTargetUrl;

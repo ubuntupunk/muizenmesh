@@ -24,10 +24,10 @@
 
 require_once __DIR__ . '/Maintenance.php';
 
-use MediaWiki\MediaWikiServices;
 use MediaWiki\StubObject\StubGlobalUser;
 use MediaWiki\Title\Title;
 use MediaWiki\User\ActorMigration;
+use MediaWiki\User\User;
 
 /**
  * Maintenance script that deletes all pages in the MediaWiki namespace
@@ -44,10 +44,10 @@ class DeleteDefaultMessages extends Maintenance {
 	}
 
 	public function execute() {
-		$services = MediaWikiServices::getInstance();
+		$services = $this->getServiceContainer();
 
 		$this->output( "Checking existence of old default messages..." );
-		$dbr = $this->getDB( DB_REPLICA );
+		$dbr = $this->getReplicaDB();
 
 		$userFactory = $services->getUserFactory();
 		$actorQuery = ActorMigration::newMigration()
@@ -92,9 +92,10 @@ class DeleteDefaultMessages extends Maintenance {
 
 		// Handle deletion
 		$this->output( "\n...deleting old default messages (this may take a long time!)...", 'msg' );
-		$dbw = $this->getDB( DB_PRIMARY );
+		$dbw = $this->getPrimaryDB();
 
 		$wikiPageFactory = $services->getWikiPageFactory();
+		$delPageFactory = $services->getDeletePageFactory();
 
 		foreach ( $res as $row ) {
 			$this->waitForReplication();
@@ -102,7 +103,7 @@ class DeleteDefaultMessages extends Maintenance {
 			$title = Title::makeTitle( $row->page_namespace, $row->page_title );
 			$page = $wikiPageFactory->newFromTitle( $title );
 			// FIXME: Deletion failures should be reported, not silently ignored.
-			$page->doDeleteArticleReal( 'No longer required', $user );
+			$delPageFactory->newDeletePage( $page, $user )->deleteUnsafe( 'No longer required' );
 		}
 
 		$this->output( "done!\n", 'msg' );

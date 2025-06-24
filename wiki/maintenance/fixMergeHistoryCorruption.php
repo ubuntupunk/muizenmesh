@@ -49,8 +49,8 @@ class FixMergeHistoryCorruption extends Maintenance {
 	}
 
 	public function execute() {
-		$dbr = $this->getDB( DB_REPLICA );
-		$dbw = $this->getDB( DB_PRIMARY );
+		$dbr = $this->getReplicaDB();
+		$dbw = $this->getPrimaryDB();
 
 		$dryRun = true;
 		if ( $this->hasOption( 'dry-run' ) && $this->hasOption( 'delete' ) ) {
@@ -94,19 +94,21 @@ class FixMergeHistoryCorruption extends Maintenance {
 
 			// Check if there are any revisions that have this $row->page_id as their
 			// rev_page and select the largest which should be the newest revision.
-			$revId = $dbr->selectField(
-				'revision',
-				'MAX(rev_id)',
-				[ 'rev_page' => $row->page_id ],
-				__METHOD__
-			);
+			$revId = $dbr->newSelectQueryBuilder()
+				->select( 'MAX(rev_id)' )
+				->from( 'revision' )
+				->where( [ 'rev_page' => $row->page_id ] )
+				->caller( __METHOD__ )->fetchField();
 
 			if ( !$revId ) {
 				if ( $dryRun ) {
 					$this->output( "Would delete $titleText with page_id: $row->page_id\n" );
 				} else {
 					$this->output( "Deleting $titleText with page_id: $row->page_id\n" );
-					$dbw->delete( 'page', [ 'page_id' => $row->page_id ], __METHOD__ );
+					$dbw->newDeleteQueryBuilder()
+						->deleteFrom( 'page' )
+						->where( [ 'page_id' => $row->page_id ] )
+						->caller( __METHOD__ )->execute();
 				}
 				$numDeleted++;
 			} else {
@@ -114,12 +116,11 @@ class FixMergeHistoryCorruption extends Maintenance {
 					$this->output( "Would update page_id $row->page_id to page_latest $revId\n" );
 				} else {
 					$this->output( "Updating page_id $row->page_id to page_latest $revId\n" );
-					$dbw->update(
-						'page',
-						[ 'page_latest' => $revId ],
-						[ 'page_id' => $row->page_id ],
-						__METHOD__
-					);
+					$dbw->newUpdateQueryBuilder()
+						->update( 'page' )
+						->set( [ 'page_latest' => $revId ] )
+						->where( [ 'page_id' => $row->page_id ] )
+						->caller( __METHOD__ )->execute();
 				}
 				$numUpdated++;
 			}

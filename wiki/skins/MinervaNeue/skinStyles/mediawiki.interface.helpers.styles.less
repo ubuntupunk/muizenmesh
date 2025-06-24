@@ -1,7 +1,5 @@
 @import '../minerva.less/minerva.mixins.less';
 @import '../minerva.less/minerva.variables.less';
-@import 'mediawiki.ui/variables.less';
-@import 'mediawiki.ui/mixins.buttons.less';
 @import 'mediawiki.mixins.less';
 
 /**
@@ -9,15 +7,15 @@
  */
 
 .mw-changeslist-links {
-	& > span:before {
+	& > span::before {
 		content: '@{msg-parentheses-start}';
 	}
 
-	& > span:not( :first-child ):before {
+	& > span:not( :first-child )::before {
 		content: '@{msg-pipe-separator}';
 	}
 
-	& > span:last-child:after {
+	& > span:last-child::after {
 		content: '@{msg-parentheses-end}';
 	}
 }
@@ -27,8 +25,8 @@
 	margin-left: 8px;
 
 	&.mw-changeslist-links {
-		> span:after,
-		> span:before {
+		> span::after,
+		> span::before {
 			content: none;
 		}
 	}
@@ -40,14 +38,12 @@
 
 	a {
 		float: right;
-		background-color: @colorGray15;
-		color: @colorText;
+		background-color: var( --background-color-interactive-subtle );
+		color: var( --color-base );
 		text-decoration: none;
-		.mw-ui-button();
-		.mw-ui-button-states();
 		font-size: @font-size-minerva-smallest;
 
-		&:after {
+		&::after {
 			.clearfix();
 		}
 	}

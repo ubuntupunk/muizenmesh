@@ -21,14 +21,15 @@
 use MediaWiki\Preferences\IntvalFilter;
 use MediaWiki\Preferences\MultiUsernameFilter;
 use MediaWiki\Preferences\TimezoneFilter;
+use MediaWiki\User\CentralId\CentralIdLookup;
 
 /**
  * @group Preferences
  */
 class FiltersTest extends \MediaWikiUnitTestCase {
 	/**
-	 * @covers MediaWiki\Preferences\IntvalFilter::filterFromForm()
-	 * @covers MediaWiki\Preferences\IntvalFilter::filterForForm()
+	 * @covers \MediaWiki\Preferences\IntvalFilter::filterFromForm()
+	 * @covers \MediaWiki\Preferences\IntvalFilter::filterForForm()
 	 */
 	public function testIntvalFilter() {
 		$filter = new IntvalFilter();
@@ -38,7 +39,7 @@ class FiltersTest extends \MediaWikiUnitTestCase {
 	}
 
 	/**
-	 * @covers MediaWiki\Preferences\TimezoneFilter::filterFromForm()
+	 * @covers \MediaWiki\Preferences\TimezoneFilter::filterFromForm()
 	 * @dataProvider provideTimezoneFilter
 	 *
 	 * @param string $input
@@ -50,7 +51,7 @@ class FiltersTest extends \MediaWikiUnitTestCase {
 		self::assertEquals( $expected, $result );
 	}
 
-	public function provideTimezoneFilter() {
+	public static function provideTimezoneFilter() {
 		return [
 			[ 'ZoneInfo', 'Offset|0' ],
 			[ 'ZoneInfo|bogus', 'Offset|0' ],
@@ -61,7 +62,7 @@ class FiltersTest extends \MediaWikiUnitTestCase {
 	}
 
 	/**
-	 * @covers MediaWiki\Preferences\MultiUsernameFilter::filterFromForm()
+	 * @covers \MediaWiki\Preferences\MultiUsernameFilter::filterFromForm()
 	 * @dataProvider provideMultiUsernameFilterFrom
 	 *
 	 * @param string $input
@@ -73,7 +74,7 @@ class FiltersTest extends \MediaWikiUnitTestCase {
 		self::assertSame( $expected, $result );
 	}
 
-	public function provideMultiUsernameFilterFrom() {
+	public static function provideMultiUsernameFilterFrom() {
 		return [
 			[ '', null ],
 			[ "\n\n\n", null ],
@@ -86,7 +87,7 @@ class FiltersTest extends \MediaWikiUnitTestCase {
 	}
 
 	/**
-	 * @covers MediaWiki\Preferences\MultiUsernameFilter::filterForForm()
+	 * @covers \MediaWiki\Preferences\MultiUsernameFilter::filterForForm()
 	 * @dataProvider provideMultiUsernameFilterFor
 	 *
 	 * @param string $input
@@ -98,7 +99,7 @@ class FiltersTest extends \MediaWikiUnitTestCase {
 		self::assertSame( $expected, $result );
 	}
 
-	public function provideMultiUsernameFilterFor() {
+	public static function provideMultiUsernameFilterFor() {
 		return [
 			[ '', '' ],
 			[ "\n", '' ],

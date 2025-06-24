@@ -21,6 +21,14 @@
  * @ingroup Installer
  */
 
+namespace MediaWiki\Installer;
+
+use FixInconsistentRedirects;
+use MigrateExternallinks;
+use MigrateRevisionActorTemp;
+use MigrateRevisionCommentTemp;
+use PopulateUserIsTemp;
+use UpdateRestrictions;
 use Wikimedia\Rdbms\DatabasePostgres;
 
 /**
@@ -157,7 +165,7 @@ class PostgresUpdater extends DatabaseUpdater {
 			[ 'addPgIndex', 'page_restrictions', 'pr_typelevel', '(pr_type, pr_level)' ],
 			[ 'addPgIndex', 'page_restrictions', 'pr_level', '(pr_level)' ],
 			[ 'addPgIndex', 'page_restrictions', 'pr_cascade', '(pr_cascade)' ],
-			[ 'changePrimaryKey', 'page_restrictions', [ 'pr_id' ], 'page_restrictions_pk' ] ,
+			[ 'changePrimaryKey', 'page_restrictions', [ 'pr_id' ], 'page_restrictions_pk' ],
 			[ 'changeNullableField', 'page_restrictions', 'pr_page', 'NOT NULL', true ],
 			[ 'dropFkey', 'user_groups', 'ug_user' ],
 			[ 'setDefault', 'user_groups', 'ug_user', 0 ],
@@ -201,20 +209,16 @@ class PostgresUpdater extends DatabaseUpdater {
 			[ 'changeField', 'protected_titles', 'pt_reason_id', 'BIGINT', '' ],
 			[ 'dropDefault', 'protected_titles', 'pt_create_perm' ],
 			[ 'dropFkey', 'externallinks', 'el_from' ],
-			[ 'setDefault', 'externallinks', 'el_from', 0 ],
-			[ 'changeField', 'externallinks', 'el_index_60', 'TEXT', '' ],
 			[ 'renameIndex', 'externallinks', 'externallinks_from_to', 'el_from' ],
 			[ 'renameIndex', 'externallinks', 'externallinks_index', 'el_index' ],
-			[ 'addPgIndex', 'externallinks', 'el_to', '(el_to, el_from)' ],
 			[ 'dropSequence', 'ip_changes', 'ip_changes_ipc_rev_id_seq' ],
 			[ 'changeField', 'ip_changes', 'ipc_hex', 'TEXT', "ipc_hex::TEXT DEFAULT ''" ],
 			[ 'setDefault', 'ip_changes', 'ipc_rev_id', 0 ],
-			[ 'changeField', 'revision_comment_temp', 'revcomment_comment_id', 'BIGINT', '' ],
 			[ 'renameIndex', 'watchlist', 'namespace_title', 'wl_namespace_title' ],
 			[ 'dropFkey', 'page_props', 'pp_page' ],
 			// page_props primary key change moved from the Schema SQL file to here in 1.36
 			[ 'changePrimaryKey', 'page_props', [ 'pp_page', 'pp_propname' ], 'page_props_pk' ],
-			[ 'setDefault','job', 'job_cmd', '' ],
+			[ 'setDefault', 'job', 'job_cmd', '' ],
 			[ 'changeField', 'job', 'job_namespace', 'INTEGER', '' ],
 			[ 'dropPgIndex', 'job', 'job_cmd_namespace_title' ],
 			[ 'addPgIndex', 'job', 'job_cmd', '(job_cmd, job_namespace, job_title, job_params)' ],
@@ -226,10 +230,10 @@ class PostgresUpdater extends DatabaseUpdater {
 			[ 'renameIndex', 'page', 'page_unique_name', 'page_name_title' ],
 			[ 'addPGIndex', 'page', 'page_redirect_namespace_len', '(page_is_redirect, page_namespace, page_len)' ],
 			[ 'dropFkey', 'categorylinks', 'cl_from' ],
-			[ 'setDefault','categorylinks', 'cl_from', 0 ],
-			[ 'setDefault','categorylinks', 'cl_to', '' ],
-			[ 'setDefault','categorylinks', 'cl_sortkey', '' ],
-			[ 'setDefault','categorylinks', 'cl_collation', '' ],
+			[ 'setDefault', 'categorylinks', 'cl_from', 0 ],
+			[ 'setDefault', 'categorylinks', 'cl_to', '' ],
+			[ 'setDefault', 'categorylinks', 'cl_sortkey', '' ],
+			[ 'setDefault', 'categorylinks', 'cl_collation', '' ],
 			[ 'changeNullableField', 'categorylinks', 'cl_sortkey', 'NOT NULL', true ],
 			[ 'addIndex', 'categorylinks', 'categorylinks_pkey', 'patch-categorylinks-pk.sql' ],
 			[ 'addPgIndex', 'categorylinks', 'cl_timestamp', '(cl_to, cl_timestamp)' ],
@@ -447,6 +451,28 @@ class PostgresUpdater extends DatabaseUpdater {
 
 			// 1.40
 			[ 'addField', 'externallinks', 'el_to_path', 'patch-externallinks-el_to_path.sql' ],
+
+			// 1.41
+			[ 'addField', 'user', 'user_is_temp', 'patch-user-user_is_temp.sql' ],
+			[ 'runMaintenance', MigrateRevisionCommentTemp::class, 'maintenance/migrateRevisionCommentTemp.php' ],
+			[ 'dropTable', 'revision_comment_temp' ],
+			[ 'runMaintenance', MigrateExternallinks::class, 'maintenance/migrateExternallinks.php' ],
+			[ 'modifyField', 'externallinks', 'el_to', 'patch-externallinks-el_to_default.sql' ],
+			[ 'addField', 'pagelinks', 'pl_target_id', 'patch-pagelinks-target_id.sql' ],
+			[ 'dropField', 'externallinks', 'el_to', 'patch-externallinks-drop-el_to.sql' ],
+			[ 'runMaintenance', FixInconsistentRedirects::class, 'maintenance/fixInconsistentRedirects.php' ],
+			[ 'modifyField', 'image', 'img_size', 'patch-image-img_size_to_bigint.sql' ],
+			[ 'modifyField', 'filearchive', 'fa_size', 'patch-filearchive-fa_size_to_bigint.sql' ],
+			[ 'modifyField', 'oldimage', 'oi_size', 'patch-oldimage-oi_size_to_bigint.sql' ],
+			[ 'modifyField', 'uploadstash', 'us_size', 'patch-uploadstash-us_size_to_bigint.sql' ],
+
+			// 1.42
+			[ 'addField', 'user_autocreate_serial', 'uas_year', 'patch-user_autocreate_serial-uas_year.sql' ],
+			[ 'addTable', 'block_target', 'patch-block_target.sql' ],
+			[ 'dropIndex', 'categorylinks', 'cl_collation_ext', 'patch-drop-cl_collation_ext.sql' ],
+			[ 'runMaintenance', PopulateUserIsTemp::class, 'maintenance/populateUserIsTemp.php' ],
+			[ 'dropIndex', 'sites', 'site_type', 'patch-sites-drop_indexes.sql' ],
+			[ 'dropIndex', 'iwlinks', 'iwl_prefix_from_title', 'patch-iwlinks-drop-iwl_prefix_from_title.sql' ],
 		];
 	}
 
@@ -817,46 +843,6 @@ END;
 		}
 	}
 
-	/**
-	 * Add a value to an existing PostgreSQL enum type
-	 * @since 1.31
-	 * @param string $type Type name. Must be in the core schema.
-	 * @param string $value Value to add.
-	 */
-	protected function addPgEnumValue( $type, $value ) {
-		$row = $this->db->selectRow(
-			[
-				't' => 'pg_catalog.pg_type',
-				'n' => 'pg_catalog.pg_namespace',
-				'e' => 'pg_catalog.pg_enum',
-			],
-			[ 't.typname', 't.typtype', 'e.enumlabel' ],
-			[
-				't.typname' => $type,
-				'n.nspname' => $this->db->getCoreSchema(),
-			],
-			__METHOD__,
-			[],
-			[
-				'n' => [ 'JOIN', 't.typnamespace = n.oid' ],
-				'e' => [ 'LEFT JOIN', [ 'e.enumtypid = t.oid', 'e.enumlabel' => $value ] ],
-			]
-		);
-
-		if ( !$row ) {
-			$this->output( "...Type $type does not exist, skipping modify enum.\n" );
-		} elseif ( $row->typtype !== 'e' ) {
-			$this->output( "...Type $type does not seem to be an enum, skipping modify enum.\n" );
-		} elseif ( $row->enumlabel === $value ) {
-			$this->output( "...Enum type $type already contains value '$value'.\n" );
-		} else {
-			$this->output( "...Adding value '$value' to enum type $type.\n" );
-			$etype = $this->db->addIdentifierQuotes( $type );
-			$evalue = $this->db->addQuotes( $value );
-			$this->db->query( "ALTER TYPE $etype ADD VALUE $evalue", __METHOD__ );
-		}
-	}
-
 	protected function dropFkey( $table, $field ) {
 		$fi = $this->db->fieldInfo( $table, $field );
 		if ( $fi === null ) {
@@ -909,7 +895,7 @@ END;
 
 	protected function checkIndex( $index, $should_be, $good_def ) {
 		$pu = $this->db->indexAttributes( $index );
-		if ( !empty( $pu ) && $pu != $should_be ) {
+		if ( $pu && $pu != $should_be ) {
 			$this->output( "Dropping obsolete version of index '$index'\n" );
 			$this->db->query( "DROP INDEX \"" . $index . "\"", __METHOD__ );
 			$pu = [];
@@ -917,7 +903,7 @@ END;
 			$this->output( "...no need to drop index '$index'\n" );
 		}
 
-		if ( empty( $pu ) ) {
+		if ( !$pu ) {
 			$this->output( "Creating index '$index'\n" );
 			$this->db->query( $good_def, __METHOD__ );
 		} else {

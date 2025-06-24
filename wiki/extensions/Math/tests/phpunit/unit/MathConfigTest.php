@@ -29,7 +29,7 @@ class MathConfigTest extends TestCase {
 		);
 	}
 
-	public function provideTexCheckDisabled() {
+	public static function provideTexCheckDisabled() {
 		yield 'always' => [ 'always', MathConfig::ALWAYS ];
 		yield 'never' => [ 'never', MathConfig::NEVER ];
 		yield 'new' => [ 'new', MathConfig::NEW ];
@@ -47,7 +47,7 @@ class MathConfigTest extends TestCase {
 		$this->assertSame( $expected, $mathConfig->texCheckDisabled() );
 	}
 
-	public function provideNormalizeRenderingMode() {
+	public static function provideNormalizeRenderingMode() {
 		yield 'legacy user option' => [ 1, self::TEST_DEFAULT ];
 		yield 'source user option' => [ 3, MathConfig::MODE_SOURCE ];
 		yield 'mathml user option' => [ 5, MathConfig::MODE_MATHML ];
@@ -57,7 +57,8 @@ class MathConfigTest extends TestCase {
 		yield 'mathml string' => [ 'mathml', MathConfig::MODE_MATHML ];
 		yield 'latexml string' => [ 'latexml', MathConfig::MODE_LATEXML ];
 		yield 'native string' => [ 'native', MathConfig::MODE_NATIVE_MML ];
-		yield 'wrong capitalizaton' => [ 'LaTeXmL', MathConfig::MODE_LATEXML ];
+		yield 'mathjax string' => [ 'mathjax', MathConfig::MODE_NATIVE_JAX ];
+		yield 'wrong capitalization' => [ 'LaTeXmL', MathConfig::MODE_LATEXML ];
 		yield 'unrecognized' => [ 'garbage', self::TEST_DEFAULT ];
 	}
 
@@ -82,7 +83,7 @@ class MathConfigTest extends TestCase {
 		$this->assertContains( MathConfig::MODE_SOURCE, $actualModes );
 	}
 
-	public function provideIsValidRenderingMode() {
+	public static function provideIsValidRenderingMode() {
 		yield 'valid' => [ MathConfig::MODE_MATHML, true ];
 		yield 'garbage' => [ 'garbage', false ];
 		yield 'does not normalize' => [ 0, false ];
@@ -103,7 +104,7 @@ class MathConfigTest extends TestCase {
 			'MathValidModes' => [ MathConfig::MODE_MATHML ],
 		] );
 		$this->assertEquals(
-			[ 'mathml' => 'mw_math_mathml' ],
+			[ 'mathml' => 'mw-math-mathml' ],
 			$mathConfig->getValidRenderingModeKeys() );
 	}
 

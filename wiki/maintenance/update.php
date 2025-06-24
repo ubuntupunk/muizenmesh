@@ -29,7 +29,10 @@
 
 require_once __DIR__ . '/Maintenance.php';
 
-use MediaWiki\MediaWikiServices;
+use MediaWiki\Context\RequestContext;
+use MediaWiki\Installer\DatabaseInstaller;
+use MediaWiki\Installer\DatabaseUpdater;
+use MediaWiki\Installer\Installer;
 use MediaWiki\Settings\SettingsBuilder;
 use MediaWiki\WikiMap\WikiMap;
 use Wikimedia\Rdbms\DatabaseSqlite;
@@ -43,7 +46,6 @@ class UpdateMediaWiki extends Maintenance {
 	public function __construct() {
 		parent::__construct();
 		$this->addDescription( 'MediaWiki database updater' );
-		$this->addOption( 'skip-compat-checks', 'Skips compatibility checks, mostly for developers' );
 		$this->addOption( 'quick', 'Skip 5 second countdown before starting' );
 		$this->addOption( 'doshared', 'Also update shared tables' );
 		$this->addOption( 'noschema', 'Only do the updates that are not done during schema updates' );
@@ -69,25 +71,11 @@ class UpdateMediaWiki extends Maintenance {
 		return Maintenance::DB_ADMIN;
 	}
 
-	private function compatChecks() {
-		$minimumPcreVersion = Installer::MINIMUM_PCRE_VERSION;
-
-		$pcreVersion = explode( ' ', PCRE_VERSION, 2 )[0];
-		if ( version_compare( $pcreVersion, $minimumPcreVersion, '<' ) ) {
-			$this->fatalError(
-				"PCRE $minimumPcreVersion or later is required.\n" .
-				"Your PHP binary is linked with PCRE $pcreVersion.\n\n" .
-				"More information:\n" .
-				"https://www.mediawiki.org/wiki/Manual:Errors_and_symptoms/PCRE\n\n" .
-				"ABORTING.\n" );
-		}
-	}
-
 	public function setup() {
 		global $wgMessagesDirs;
 		// T206765: We need to load the installer i18n files as some of errors come installer/updater code
 		// T310378: We have to ensure we do this before execute()
-		$wgMessagesDirs['MediawikiInstaller'] = dirname( __DIR__ ) . '/includes/installer/i18n';
+		$wgMessagesDirs['MediaWikiInstaller'] = dirname( __DIR__ ) . '/includes/installer/i18n';
 	}
 
 	public function execute() {
@@ -106,7 +94,7 @@ class UpdateMediaWiki extends Maintenance {
 		}
 
 		$this->fileHandle = null;
-		if ( substr( $this->getOption( 'schema', '' ), 0, 2 ) === "--" ) {
+		if ( str_starts_with( $this->getOption( 'schema', '' ), '--' ) ) {
 			$this->fatalError( "The --schema option requires a file as an argument.\n" );
 		} elseif ( $this->hasOption( 'schema' ) ) {
 			$file = $this->getOption( 'schema' );
@@ -122,7 +110,7 @@ class UpdateMediaWiki extends Maintenance {
 			$this->validateSettings();
 		}
 
-		$lang = MediaWikiServices::getInstance()->getLanguageFactory()->getLanguage( 'en' );
+		$lang = $this->getServiceContainer()->getLanguageFactory()->getLanguage( 'en' );
 		// Set global language to ensure localised errors are in English (T22633)
 		RequestContext::getMain()->setLanguage( $lang );
 
@@ -133,14 +121,7 @@ class UpdateMediaWiki extends Maintenance {
 
 		$this->output( 'MediaWiki ' . MW_VERSION . " Updater\n\n" );
 
-		MediaWikiServices::getInstance()->getDBLoadBalancerFactory()->waitForReplication();
-
-		if ( !$this->hasOption( 'skip-compat-checks' ) ) {
-			$this->compatChecks();
-		} else {
-			$this->output( "Skipping compatibility checks, proceed at your own risk (Ctrl+C to abort)\n" );
-			$this->countDown( 5 );
-		}
+		$this->waitForReplication();
 
 		// Check external dependencies are up to date
 		if ( !$this->hasOption( 'skip-external-dependencies' ) ) {
@@ -154,7 +135,7 @@ class UpdateMediaWiki extends Maintenance {
 
 		# Attempt to connect to the database as a privileged user
 		# This will vomit up an error if there are permissions problems
-		$db = $this->getDB( DB_PRIMARY );
+		$db = $this->getPrimaryDB();
 
 		# Check to see whether the database server meets the minimum requirements
 		/** @var DatabaseInstaller $dbInstallerClass */

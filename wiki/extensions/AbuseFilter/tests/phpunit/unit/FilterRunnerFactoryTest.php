@@ -20,10 +20,10 @@ use MediaWiki\Extension\AbuseFilter\Variables\VariableHolder;
 use MediaWiki\Extension\AbuseFilter\Variables\VariablesManager;
 use MediaWiki\Extension\AbuseFilter\Watcher\EmergencyWatcher;
 use MediaWiki\Extension\AbuseFilter\Watcher\UpdateHitCountWatcher;
+use MediaWiki\Title\Title;
+use MediaWiki\User\User;
 use MediaWikiUnitTestCase;
 use Psr\Log\NullLogger;
-use Title;
-use User;
 
 /**
  * @group Test

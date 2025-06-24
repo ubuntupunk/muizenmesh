@@ -1,7 +1,7 @@
 /*!
  * VisualEditor UserInterface PreviewElement class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
@@ -75,6 +75,11 @@ ve.ui.PreviewElement.prototype.setModel = function ( model ) {
  * @param {HTMLElement} element Element to be appended
  */
 ve.ui.PreviewElement.prototype.beforeAppend = function ( element ) {
+	// Remove slugs and nails. This used to be done in CSS but triggered
+	// a catastrophic browser bug in Chrome (T341901)
+	Array.prototype.forEach.call( element.querySelectorAll( '.ve-ce-nail, .ve-ce-branchNode-slug' ), function ( el ) {
+		el.parentNode.removeChild( el );
+	} );
 	ve.targetLinksToNewWindow( element );
 };
 

@@ -24,8 +24,7 @@
 
 namespace MediaWiki\Extension\CategoryTree;
 
-use Config;
-use Html;
+use MediaWiki\Config\Config;
 use MediaWiki\Hook\CategoryViewer__doCategoryQueryHook;
 use MediaWiki\Hook\CategoryViewer__generateLinkHook;
 use MediaWiki\Hook\OutputPageMakeCategoryLinksHook;
@@ -33,15 +32,19 @@ use MediaWiki\Hook\ParserFirstCallInitHook;
 use MediaWiki\Hook\SkinBuildSidebarHook;
 use MediaWiki\Hook\SpecialTrackingCategories__generateCatLinkHook;
 use MediaWiki\Hook\SpecialTrackingCategories__preprocessHook;
+use MediaWiki\Html\Html;
+use MediaWiki\Linker\LinkRenderer;
 use MediaWiki\Linker\LinkTarget;
-use OutputPage;
+use MediaWiki\Output\OutputPage;
+use MediaWiki\Parser\Sanitizer;
+use MediaWiki\ResourceLoader as RL;
+use MediaWiki\SpecialPage\SpecialPage;
+use MediaWiki\Title\Title;
 use Parser;
 use PPFrame;
 use RequestContext;
-use Sanitizer;
 use Skin;
-use SpecialPage;
-use Title;
+use Wikimedia\Rdbms\IConnectionProvider;
 use Wikimedia\Rdbms\IResultWrapper;
 
 /**
@@ -66,13 +69,28 @@ class Hooks implements
 	/** @var Config */
 	private $config;
 
+	/** @var IConnectionProvider */
+	private IConnectionProvider $dbProvider;
+
+	/** @var LinkRenderer */
+	private $linkRenderer;
+
 	/**
 	 * @param CategoryCache $categoryCache
 	 * @param Config $config
+	 * @param IConnectionProvider $dbProvider
+	 * @param LinkRenderer $linkRenderer
 	 */
-	public function __construct( CategoryCache $categoryCache, Config $config ) {
+	public function __construct(
+		CategoryCache $categoryCache,
+		Config $config,
+		IConnectionProvider $dbProvider,
+		LinkRenderer $linkRenderer
+	) {
 		$this->categoryCache = $categoryCache;
 		$this->config = $config;
+		$this->dbProvider = $dbProvider;
+		$this->linkRenderer = $linkRenderer;
 	}
 
 	/**
@@ -192,17 +210,17 @@ class Hooks implements
 			$parserOutput->addModules( [ 'ext.categoryTree' ] );
 		}
 
-		$ct = new CategoryTree( $argv );
+		$ct = new CategoryTree( $argv, $this->config, $this->dbProvider, $this->linkRenderer );
 
 		$attr = Sanitizer::validateTagAttributes( $argv, 'div' );
 
 		$hideroot = isset( $argv['hideroot'] )
-			? CategoryTree::decodeBoolean( $argv['hideroot'] ) : null;
+			? OptionManager::decodeBoolean( $argv['hideroot'] ) : null;
 		$onlyroot = isset( $argv['onlyroot'] )
-			? CategoryTree::decodeBoolean( $argv['onlyroot'] ) : null;
+			? OptionManager::decodeBoolean( $argv['onlyroot'] ) : null;
 		$depthArg = isset( $argv['depth'] ) ? (int)$argv['depth'] : null;
 
-		$depth = CategoryTree::capDepth( $ct->getOption( 'mode' ), $depthArg );
+		$depth = $ct->optionManager->capDepth( $depthArg );
 		if ( $onlyroot ) {
 			$depth = 0;
 		}
@@ -236,16 +254,16 @@ class Hooks implements
 	 * Get exported data for the "ext.categoryTree" ResourceLoader module.
 	 *
 	 * @internal For use in extension.json only.
+	 * @param RL\Context $context
+	 * @param Config $config
 	 * @return array Data to be serialised as data.json
 	 */
-	public static function getDataForJs() {
-		global $wgCategoryTreeCategoryPageOptions;
-
+	public static function getDataForJs( RL\Context $context, Config $config ) {
 		// Look, this is pretty bad but CategoryTree is just whacky, it needs to be rewritten
-		$ct = new CategoryTree( $wgCategoryTreeCategoryPageOptions );
+		$optionManager = new OptionManager( $config->get( 'CategoryTreeCategoryPageOptions' ), $config );
 
 		return [
-			'defaultCtOptions' => $ct->getOptionsAsJsStructure(),
+			'defaultCtOptions' => $optionManager->getOptionsAsJsStructure(),
 		];
 	}
 
@@ -315,7 +333,7 @@ class Hooks implements
 		if ( $mode !== null ) {
 			$options['mode'] = $mode;
 		}
-		$tree = new CategoryTree( $options );
+		$tree = new CategoryTree( $options, $this->config, $this->dbProvider, $this->linkRenderer );
 
 		$cat = $this->categoryCache->getCategory( $title );
 

@@ -21,6 +21,7 @@
  */
 
 use MediaWiki\Cache\LinkBatchFactory;
+use MediaWiki\Cache\LinkCache;
 use MediaWiki\CommentFormatter\CommentFormatter;
 use MediaWiki\Content\IContentHandlerFactory;
 use MediaWiki\Content\Renderer\ContentRenderer;
@@ -28,14 +29,22 @@ use MediaWiki\Content\Transform\ContentTransformer;
 use MediaWiki\EditPage\EditPage;
 use MediaWiki\Language\RawMessage;
 use MediaWiki\Languages\LanguageNameUtils;
+use MediaWiki\Output\OutputPage;
 use MediaWiki\Page\PageReference;
 use MediaWiki\Page\WikiPageFactory;
+use MediaWiki\Parser\Parser;
+use MediaWiki\Parser\ParserOutput;
 use MediaWiki\Parser\ParserOutputFlags;
+use MediaWiki\PoolCounter\PoolCounterWorkViaCallback;
 use MediaWiki\Request\FauxRequest;
 use MediaWiki\Revision\RevisionLookup;
 use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\Revision\SlotRecord;
 use MediaWiki\Title\Title;
+use MediaWiki\Title\TitleFormatter;
+use MediaWiki\User\TempUser\TempUserCreator;
+use MediaWiki\User\UserFactory;
+use MediaWiki\Utils\UrlUtils;
 use MediaWiki\WikiMap\WikiMap;
 use Wikimedia\ParamValidator\ParamValidator;
 use Wikimedia\ParamValidator\TypeDef\EnumDef;
@@ -57,38 +66,21 @@ class ApiParse extends ApiBase {
 	/** @var bool */
 	private $contentIsDeleted = false, $contentIsSuppressed = false;
 
-	/** @var RevisionLookup */
-	private $revisionLookup;
-
-	/** @var SkinFactory */
-	private $skinFactory;
-
-	/** @var LanguageNameUtils */
-	private $languageNameUtils;
-
-	/** @var LinkBatchFactory */
-	private $linkBatchFactory;
-
-	/** @var LinkCache */
-	private $linkCache;
-
-	/** @var IContentHandlerFactory */
-	private $contentHandlerFactory;
-
-	/** @var Parser */
-	private $parser;
-
-	/** @var WikiPageFactory */
-	private $wikiPageFactory;
-
-	/** @var ContentTransformer */
-	private $contentTransformer;
-
-	/** @var CommentFormatter */
-	private $commentFormatter;
-
-	/** @var ContentRenderer */
-	private $contentRenderer;
+	private RevisionLookup $revisionLookup;
+	private SkinFactory $skinFactory;
+	private LanguageNameUtils $languageNameUtils;
+	private LinkBatchFactory $linkBatchFactory;
+	private LinkCache $linkCache;
+	private IContentHandlerFactory $contentHandlerFactory;
+	private ParserFactory $parserFactory;
+	private WikiPageFactory $wikiPageFactory;
+	private ContentTransformer $contentTransformer;
+	private CommentFormatter $commentFormatter;
+	private ContentRenderer $contentRenderer;
+	private TempUserCreator $tempUserCreator;
+	private UserFactory $userFactory;
+	private UrlUtils $urlUtils;
+	private TitleFormatter $titleFormatter;
 
 	/**
 	 * @param ApiMain $main
@@ -99,11 +91,15 @@ class ApiParse extends ApiBase {
 	 * @param LinkBatchFactory $linkBatchFactory
 	 * @param LinkCache $linkCache
 	 * @param IContentHandlerFactory $contentHandlerFactory
-	 * @param Parser $parser
+	 * @param ParserFactory $parserFactory
 	 * @param WikiPageFactory $wikiPageFactory
 	 * @param ContentRenderer $contentRenderer
 	 * @param ContentTransformer $contentTransformer
 	 * @param CommentFormatter $commentFormatter
+	 * @param TempUserCreator $tempUserCreator
+	 * @param UserFactory $userFactory
+	 * @param UrlUtils $urlUtils
+	 * @param TitleFormatter $titleFormatter
 	 */
 	public function __construct(
 		ApiMain $main,
@@ -114,11 +110,15 @@ class ApiParse extends ApiBase {
 		LinkBatchFactory $linkBatchFactory,
 		LinkCache $linkCache,
 		IContentHandlerFactory $contentHandlerFactory,
-		Parser $parser,
+		ParserFactory $parserFactory,
 		WikiPageFactory $wikiPageFactory,
 		ContentRenderer $contentRenderer,
 		ContentTransformer $contentTransformer,
-		CommentFormatter $commentFormatter
+		CommentFormatter $commentFormatter,
+		TempUserCreator $tempUserCreator,
+		UserFactory $userFactory,
+		UrlUtils $urlUtils,
+		TitleFormatter $titleFormatter
 	) {
 		parent::__construct( $main, $action );
 		$this->revisionLookup = $revisionLookup;
@@ -127,11 +127,15 @@ class ApiParse extends ApiBase {
 		$this->linkBatchFactory = $linkBatchFactory;
 		$this->linkCache = $linkCache;
 		$this->contentHandlerFactory = $contentHandlerFactory;
-		$this->parser = $parser;
+		$this->parserFactory = $parserFactory;
 		$this->wikiPageFactory = $wikiPageFactory;
 		$this->contentRenderer = $contentRenderer;
 		$this->contentTransformer = $contentTransformer;
 		$this->commentFormatter = $commentFormatter;
+		$this->tempUserCreator = $tempUserCreator;
+		$this->userFactory = $userFactory;
+		$this->urlUtils = $urlUtils;
+		$this->titleFormatter = $titleFormatter;
 	}
 
 	private function getPoolKey(): string {
@@ -147,13 +151,15 @@ class ApiParse extends ApiBase {
 	private function getContentParserOutput(
 		Content $content,
 		PageReference $page,
-		$revId,
+		?RevisionRecord $revision,
 		ParserOptions $popts
 	) {
 		$worker = new PoolCounterWorkViaCallback( 'ApiParser', $this->getPoolKey(),
 			[
-				'doWork' => function () use ( $content, $page, $revId, $popts ) {
-					return $this->contentRenderer->getParserOutput( $content, $page, $revId, $popts );
+				'doWork' => function () use ( $content, $page, $revision, $popts ) {
+					return $this->contentRenderer->getParserOutput(
+						$content, $page, $revision, $popts
+					);
 				},
 				'error' => function () {
 					$this->dieWithError( 'apierror-concurrency-limit' );
@@ -161,6 +167,16 @@ class ApiParse extends ApiBase {
 			]
 		);
 		return $worker->execute();
+	}
+
+	private function getUserForPreview() {
+		$user = $this->getUser();
+		if ( $this->tempUserCreator->shouldAutoCreate( $user, 'edit' ) ) {
+			return $this->userFactory->newUnsavedTempUser(
+				$this->tempUserCreator->getStashedName( $this->getRequest()->getSession() )
+			);
+		}
+		return $user;
 	}
 
 	private function getPageParserOutput(
@@ -280,8 +296,8 @@ class ApiParse extends ApiBase {
 					$pageSet->execute();
 					$redirValues = $pageSet->getRedirectTitlesAsResult( $this->getResult() );
 
-					foreach ( $pageSet->getRedirectTitles() as $title ) {
-						$pageParams = [ 'title' => $title->getFullText() ];
+					foreach ( $pageSet->getRedirectTargets() as $redirectTarget ) {
+						$pageParams = [ 'title' => $this->titleFormatter->getFullText( $redirectTarget ) ];
 					}
 				} elseif ( $pageid !== null ) {
 					$pageParams = [ 'pageid' => $pageid ];
@@ -316,6 +332,7 @@ class ApiParse extends ApiBase {
 				$this->dieWithError( [ 'apierror-invalidtitle', wfEscapeWikiText( $title ) ] );
 			}
 			$revid = $params['revid'];
+			$rev = null;
 			if ( $revid !== null ) {
 				$rev = $this->revisionLookup->getRevisionById( $revid );
 				if ( !$rev ) {
@@ -397,7 +414,7 @@ class ApiParse extends ApiBase {
 				$this->pstContent = $this->contentTransformer->preSaveTransform(
 					$this->content,
 					$titleObj,
-					$this->getUser(),
+					$this->getUserForPreview(),
 					$popts
 				);
 			}
@@ -424,9 +441,9 @@ class ApiParse extends ApiBase {
 
 			// Not cached (save or load)
 			if ( $params['pst'] ) {
-				$p_result = $this->getContentParserOutput( $this->pstContent, $titleObj, $revid, $popts );
+				$p_result = $this->getContentParserOutput( $this->pstContent, $titleObj, $rev, $popts );
 			} else {
-				$p_result = $this->getContentParserOutput( $this->content, $titleObj, $revid, $popts );
+				$p_result = $this->getContentParserOutput( $this->content, $titleObj, $rev, $popts );
 			}
 		}
 
@@ -456,7 +473,6 @@ class ApiParse extends ApiBase {
 			// Enabling the skin via 'useskin', 'subtitle', 'headhtml', or 'categorieshtml'
 			// gets OutputPage and Skin involved, which (among others) applies
 			// these hooks:
-			// - ParserOutputHooks
 			// - Hook: LanguageLinks
 			// - Hook: SkinSubPageSubtitle
 			// - Hook: OutputPageParserOutput
@@ -560,7 +576,7 @@ class ApiParse extends ApiBase {
 			$result_array['langlinks'] = $this->formatLangLinks( $langlinks );
 		}
 		if ( isset( $prop['categories'] ) ) {
-			$result_array['categories'] = $this->formatCategoryLinks( $p_result->getCategories() );
+			$result_array['categories'] = $this->formatCategoryLinks( $p_result->getCategoryMap() );
 		}
 		if ( isset( $prop['categorieshtml'] ) ) {
 			$result_array['categorieshtml'] = $outputPage->getSkin()->getCategories();
@@ -573,7 +589,12 @@ class ApiParse extends ApiBase {
 			$result_array['templates'] = $this->formatLinks( $p_result->getTemplates() );
 		}
 		if ( isset( $prop['images'] ) ) {
-			$result_array['images'] = array_keys( $p_result->getImages() );
+			// Cast image links to string since PHP coerces numeric string array keys to numbers
+			// (T346265).
+			$result_array['images'] = array_map(
+				fn ( $link ) => (string)$link,
+				array_keys( $p_result->getImages() )
+			);
 		}
 		if ( isset( $prop['externallinks'] ) ) {
 			$result_array['externallinks'] = array_keys( $p_result->getExternalLinks() );
@@ -654,9 +675,9 @@ class ApiParse extends ApiBase {
 
 		if ( isset( $prop['indicators'] ) ) {
 			if ( $skin ) {
-				$result_array['indicators'] = (array)$outputPage->getIndicators();
+				$result_array['indicators'] = $outputPage->getIndicators();
 			} else {
-				$result_array['indicators'] = (array)$p_result->getIndicators();
+				$result_array['indicators'] = $p_result->getIndicators();
 			}
 			ApiResult::setArrayType( $result_array['indicators'], 'BCkvp', 'name' );
 		}
@@ -693,9 +714,10 @@ class ApiParse extends ApiBase {
 				$this->dieWithError( 'apierror-parsetree-notwikitext', 'notwikitext' );
 			}
 
-			$this->parser->startExternalParse( $titleObj, $popts, Parser::OT_PREPROCESS );
+			$parser = $this->parserFactory->getInstance();
+			$parser->startExternalParse( $titleObj, $popts, Parser::OT_PREPROCESS );
 			// @phan-suppress-next-line PhanUndeclaredMethod
-			$xml = $this->parser->preprocessToDom( $this->content->getText() )->__toString();
+			$xml = $parser->preprocessToDom( $this->content->getText() )->__toString();
 			$result_array['parsetree'] = $xml;
 			$result_array[ApiResult::META_BC_SUBELEMENTS][] = 'parsetree';
 		}
@@ -754,6 +776,9 @@ class ApiParse extends ApiBase {
 		if ( $params['wrapoutputclass'] !== '' ) {
 			$popts->setWrapOutputClass( $params['wrapoutputclass'] );
 		}
+		if ( $params['parsoid'] ) {
+			$popts->setUseParsoid();
+		}
 
 		$reset = null;
 		$suppressCache = false;
@@ -802,13 +827,21 @@ class ApiParse extends ApiBase {
 				$this->content,
 				$pageId === null ? $page->getTitle()->getPrefixedText() : $this->msg( 'pageid', $pageId )
 			);
-			return $this->getContentParserOutput( $this->content, $page->getTitle(), $revId, $popts );
+			return $this->getContentParserOutput(
+				$this->content, $page->getTitle(),
+				$rev,
+				$popts
+			);
 		}
 
 		if ( $isDeleted ) {
 			// getParserOutput can't do revdeled revisions
 
-			$pout = $this->getContentParserOutput( $this->content, $page->getTitle(), $revId, $popts );
+			$pout = $this->getContentParserOutput(
+				$this->content, $page->getTitle(),
+				$rev,
+				$popts
+			);
 		} else {
 			// getParserOutput will save to Parser cache if able
 			$pout = $this->getPageParserOutput( $page, $revId, $popts, $suppressCache );
@@ -860,7 +893,7 @@ class ApiParse extends ApiBase {
 			}
 			if ( $summary !== '' ) {
 				$summary = $this->msg( 'newsectionsummary' )
-					->rawParams( $this->parser->stripSectionName( $summary ) )
+					->rawParams( $this->parserFactory->getMainInstance()->stripSectionName( $summary ) )
 					->inContentLanguage()->text();
 			}
 		}
@@ -876,7 +909,7 @@ class ApiParse extends ApiBase {
 
 			$entry['lang'] = $bits[0];
 			if ( $title ) {
-				$entry['url'] = wfExpandUrl( $title->getFullURL(), PROTO_CURRENT );
+				$entry['url'] = (string)$this->urlUtils->expand( $title->getFullURL(), PROTO_CURRENT );
 				// localised language name in 'uselang' language
 				$entry['langname'] = $this->languageNameUtils->getLanguageName(
 					$title->getInterwiki(),
@@ -958,13 +991,13 @@ class ApiParse extends ApiBase {
 	private function formatIWLinks( $iw ) {
 		$result = [];
 		foreach ( $iw as $prefix => $titles ) {
-			foreach ( array_keys( $titles ) as $title ) {
+			foreach ( $titles as $title => $_ ) {
 				$entry = [];
 				$entry['prefix'] = $prefix;
 
 				$title = Title::newFromText( "{$prefix}:{$title}" );
 				if ( $title ) {
-					$entry['url'] = wfExpandUrl( $title->getFullURL(), PROTO_CURRENT );
+					$entry['url'] = (string)$this->urlUtils->expand( $title->getFullURL(), PROTO_CURRENT );
 				}
 
 				ApiResult::setContentValue( $entry, 'title', $title->getFullText() );
@@ -1071,6 +1104,7 @@ class ApiParse extends ApiBase {
 				],
 			],
 			'wrapoutputclass' => 'mw-parser-output',
+			'parsoid' => false, // since 1.41
 			'pst' => false,
 			'onlypst' => false,
 			'effectivelanglinks' => [

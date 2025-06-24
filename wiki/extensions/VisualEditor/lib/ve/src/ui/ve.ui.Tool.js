@@ -1,7 +1,7 @@
 /*!
  * VisualEditor UserInterface Tool classes.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
 
 /**
@@ -58,6 +58,15 @@ ve.ui.Tool.static.deactivateOnSelect = true;
  * @inheritable
  */
 ve.ui.Tool.static.makesEmbeddableContextItem = true;
+
+/**
+ * Icon to use when this tool is shown in a non-toolbar context
+ *
+ * @static
+ * @property {string|null}
+ * @inheritable
+ */
+ve.ui.Tool.static.fallbackIcon = null;
 
 /**
  * Get the symbolic command name for this tool.

@@ -23,6 +23,8 @@
 	"cite-ve-citationneeded-title": "Потребна референца",
 	"cite-ve-dialog-reference-editing-reused": "Тота референца похаснована {{PLURAL:$1|1=раз|2=два раз|$1 раз}} на тим боку.",
 	"cite-ve-dialog-reference-editing-reused-long": "Тота референца похаснована {{PLURAL:$1|раз|2=два раз|$1 раз}} на тим боку. Пременки хтори ше ту зроби буду применєни на шицких местох дзе ше тота референца ознова хаснує.",
+	"cite-ve-dialog-reference-editing-extends": "То преширенє другей референци.",
+	"cite-ve-dialog-reference-editing-extends-long": "То преширенє другей референци \"$1\".",
 	"cite-ve-dialog-reference-options-group-label": "Похаснуй тоту ґрупу",
 	"cite-ve-dialog-reference-options-group-placeholder": "Общи референци",
 	"cite-ve-dialog-reference-options-name-label": "Ознова похаснуй под тим меном",
@@ -47,7 +49,5 @@
 	"cite-ve-referenceslist-missingref-in-list": "Тота референца дефинована у шаблону або у иншаким ґенерованим блоку и затераз ю мож опатрац лєм у жридловим режиму.",
 	"cite-ve-referenceslist-missingreflist": "Тот список референцох ґенеровал шаблон и затераз ше го може ушорйовац лєм у жридловим режиму.",
 	"cite-ve-toolbar-group-label": "Референца",
-	"cite-ve-othergroup-item": "$1 референца",
-	"visualeditor-internal-list-diff-default-group-name-mwreference": "Референци",
-	"visualeditor-internal-list-diff-group-name-mwreference": "Назва ґрупи референцох: „$1”"
+	"cite-ve-othergroup-item": "$1 референца"
 }

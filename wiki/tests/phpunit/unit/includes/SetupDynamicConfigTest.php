@@ -8,6 +8,7 @@ use MediaWiki\Settings\Config\PhpIniSink;
 use MediaWiki\Settings\DynamicDefaultValues;
 use MediaWiki\Settings\SettingsBuilder;
 use MediaWiki\Settings\Source\ReflectionSchemaSource;
+use MediaWiki\Title\NamespaceInfo;
 
 class SetupDynamicConfigTest extends MediaWikiUnitTestCase {
 	/** @var string */
@@ -657,7 +658,7 @@ class SetupDynamicConfigTest extends MediaWikiUnitTestCase {
 				'DefaultUserOptions' => [
 					'rcdays' => 0,
 					'watchlistdays' => 0,
-					'timecorrection' => 'System|' . (string)( -7 * 60 ),
+					'timecorrection' => 'System|' . ( -7 * 60 ),
 				],
 				'DBerrorLogTZ' => 'America/Phoenix',
 			],
@@ -803,7 +804,7 @@ class SetupDynamicConfigTest extends MediaWikiUnitTestCase {
 			static function ( self $testObj, array $vars ) use ( $expectedDefault ): array {
 				$testObj->assertContains( 'pagelang', $vars['LogTypes'] );
 				$testObj->assertSame( PageLangLogFormatter::class,
-					$vars['LogActionsHandlers']['pagelang/pagelang'] );
+					$vars['LogActionsHandlers']['pagelang/pagelang']['class'] );
 
 				return $expectedDefault;
 			},
@@ -865,22 +866,6 @@ class SetupDynamicConfigTest extends MediaWikiUnitTestCase {
 				$_SERVER['HTTPS'] = null;
 				$_SERVER['HTTP_X_FORWARDED_PROTO'] = 'https';
 			}
-		];
-		yield '$wgMinimalPasswordLength' => [
-			[ 'MinimalPasswordLength' => 17 ],
-			static function ( self $testObj, array $vars ) use ( $expectedDefault ): array {
-				$testObj->assertSame( 17,
-					$vars['PasswordPolicy']['policies']['default']['MinimalPasswordLength'] );
-				return $expectedDefault;
-			},
-		];
-		yield '$wgMaximalPasswordLength' => [
-			[ 'MaximalPasswordLength' => 17 ],
-			static function ( self $testObj, array $vars ) use ( $expectedDefault ): array {
-				$testObj->assertSame( 17,
-					$vars['PasswordPolicy']['policies']['default']['MaximalPasswordLength'] );
-				return $expectedDefault;
-			},
 		];
 		yield 'Bogus $wgPHPSessionHandling' => [
 			[ 'PHPSessionHandling' => 'bogus' ],

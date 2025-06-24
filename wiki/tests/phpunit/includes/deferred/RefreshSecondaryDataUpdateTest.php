@@ -1,5 +1,7 @@
 <?php
 
+use MediaWiki\Deferred\DataUpdate;
+use MediaWiki\Deferred\DeferredUpdates;
 use MediaWiki\Revision\MutableRevisionRecord;
 use MediaWiki\Storage\DerivedPageDataUpdater;
 use MediaWiki\Title\Title;
@@ -7,7 +9,8 @@ use Psr\Log\NullLogger;
 use Wikimedia\ScopedCallback;
 
 /**
- * @covers RefreshSecondaryDataUpdate
+ * @covers \RefreshSecondaryDataUpdate
+ * @group Database
  */
 class RefreshSecondaryDataUpdateTest extends MediaWikiIntegrationTestCase {
 	public function testSuccess() {
@@ -44,7 +47,7 @@ class RefreshSecondaryDataUpdateTest extends MediaWikiIntegrationTestCase {
 		$revision->method( 'getId' )
 			->willReturn( 42 );
 
-		$dbw = wfGetDB( DB_PRIMARY );
+		$dbw = $this->getDb();
 
 		$dbw->startAtomic( __METHOD__ );
 
@@ -122,7 +125,7 @@ class RefreshSecondaryDataUpdateTest extends MediaWikiIntegrationTestCase {
 		$revision->method( 'getId' )
 			->willReturn( 42 );
 
-		$dbw = wfGetDB( DB_PRIMARY );
+		$dbw = $this->getDb();
 		$dbw->startAtomic( __METHOD__ );
 		$goodCalls = 0;
 
@@ -177,7 +180,10 @@ class RefreshSecondaryDataUpdateTest extends MediaWikiIntegrationTestCase {
 		$reset = new ScopedCallback( [ $dbw, 'restoreFlags' ] );
 
 		$this->assertSame( 0, $dbw->trxLevel() );
-		$dbw->selectRow( 'page', '*', '', __METHOD__ );
+		$dbw->newSelectQueryBuilder()
+			->select( '*' )
+			->from( 'page' )
+			->caller( __METHOD__ )->fetchRow();
 		if ( !$dbw->trxLevel() ) {
 			$this->markTestSkipped( 'No implicit transaction, cannot test for T248003' );
 		}
@@ -199,14 +205,17 @@ class RefreshSecondaryDataUpdateTest extends MediaWikiIntegrationTestCase {
 			->getMock();
 		$updater->method( 'getSecondaryDataUpdates' )
 			->willReturnCallback( static function () use ( $dbw, $fname, $goodUpdate ) {
-				$dbw->selectRow( 'page', '*', '', $fname );
+				$dbw->newSelectQueryBuilder()
+					->select( '*' )
+					->from( 'page' )
+					->caller( $fname )->fetchRow();
 				$dbw->onTransactionResolution( static function () {
 				}, $fname );
 
 				return [ $goodUpdate ];
 			} );
 
-		$wikiPage = $services->getWikiPageFactory()->newFromTitle( Title::makeTitle( NS_MAIN, 'UTPage' ) );
+		$wikiPage = $this->getExistingTestPage();
 		$update = new RefreshSecondaryDataUpdate(
 			$lbFactory,
 			$user,

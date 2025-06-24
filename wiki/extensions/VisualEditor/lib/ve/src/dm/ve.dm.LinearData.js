@@ -3,7 +3,7 @@
  *
  * Class containing linear data and an hash-value store.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see http://ve.mit-license.org
+ * @copyright See AUTHORS.txt
  */
 
 /**
@@ -235,9 +235,7 @@ ve.dm.LinearData.prototype.getDataSlice = function ( range, deep ) {
 		start = Math.max( 0, Math.min( length, range.start ) );
 		end = Math.max( 0, Math.min( length, range.end ) );
 	}
-	// Support: IE
-	// IE work-around: arr.slice( 0, undefined ) returns [] while arr.slice( 0 ) behaves correctly
-	var data = end === undefined ? this.slice( start ) : this.slice( start, end );
+	var data = this.slice( start, end );
 	// Return either the slice or a deep copy of the slice
 	return deep ? ve.copy( data ) : data;
 };

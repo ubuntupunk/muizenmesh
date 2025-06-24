@@ -24,6 +24,7 @@ use MediaWiki\MediaWikiServices;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use Wikimedia\Http\TelemetryHeadersInterface;
 
 /**
  * Class to handle multiple HTTP requests
@@ -81,14 +82,18 @@ class MultiHttpClient implements LoggerAwareInterface {
 	/** @var string[] */
 	protected $localVirtualHosts = [];
 	/** @var string */
-	protected $userAgent = 'wikimedia/multi-http-client v1.0';
+	protected $userAgent = 'wikimedia/multi-http-client v1.1';
 	/** @var LoggerInterface */
 	protected $logger;
+	/** @var array */
+	protected array $headers = [];
 
 	// In PHP 7 due to https://bugs.php.net/bug.php?id=76480 the request/connect
 	// timeouts are periodically polled instead of being accurately respected.
 	// The select timeout is set to the minimum timeout multiplied by this factor.
 	private const TIMEOUT_ACCURACY_FACTOR = 0.1;
+
+	private ?TelemetryHeadersInterface $telemetry = null;
 
 	/**
 	 * Since 1.35, callers should use HttpRequestFactory::createMultiClient() to get
@@ -108,19 +113,21 @@ class MultiHttpClient implements LoggerAwareInterface {
 	 *   - userAgent         : The User-Agent header value to send
 	 *   - logger            : a \Psr\Log\LoggerInterface instance for debug logging
 	 *   - caBundlePath      : path to specific Certificate Authority bundle (if any)
+	 *   - headers           : an array of default headers to send with every request
+	 *   - telemetry         : a \Wikimedia\Http\RequestTelemetry instance to track telemetry data
 	 * @throws Exception
 	 */
 	public function __construct( array $options ) {
 		if ( isset( $options['caBundlePath'] ) ) {
 			$this->caBundlePath = $options['caBundlePath'];
 			if ( !file_exists( $this->caBundlePath ) ) {
-				throw new Exception( "Cannot find CA bundle: " . $this->caBundlePath );
+				throw new InvalidArgumentException( "Cannot find CA bundle: " . $this->caBundlePath );
 			}
 		}
 		static $opts = [
 			'connTimeout', 'maxConnTimeout', 'reqTimeout', 'maxReqTimeout',
 			'usePipelining', 'maxConnsPerHost', 'proxy', 'userAgent', 'logger',
-			'localProxy', 'localVirtualHosts',
+			'localProxy', 'localVirtualHosts', 'headers', 'telemetry'
 		];
 		foreach ( $opts as $key ) {
 			if ( isset( $options[$key] ) ) {
@@ -342,7 +349,7 @@ class MultiHttpClient implements LoggerAwareInterface {
 	/**
 	 * @param array &$req HTTP request map
 	 * @phpcs:ignore Generic.Files.LineLength
-	 * @phan-param array{url:string,proxy?:?string,query:mixed,method:string,body:string|resource,headers:string[],stream?:resource,flags:array} $req
+	 * @phan-param array{url:string,proxy?:?string,query:mixed,method:string,body:string|resource,headers:array<string,string>,stream?:resource,flags:array} $req
 	 * @param array $opts
 	 *   - connTimeout : default connection timeout
 	 *   - reqTimeout : default request timeout
@@ -388,7 +395,7 @@ class MultiHttpClient implements LoggerAwareInterface {
 				) {
 					curl_setopt( $ch, CURLOPT_UPLOAD, true );
 				} else {
-					throw new Exception( "Missing 'Content-Length' or 'Transfer-Encoding' header." );
+					throw new InvalidArgumentException( "Missing 'Content-Length' or 'Transfer-Encoding' header." );
 				}
 			} elseif ( $req['body'] !== '' ) {
 				$fp = fopen( "php://temp", "wb+" );
@@ -411,7 +418,7 @@ class MultiHttpClient implements LoggerAwareInterface {
 		} else {
 			// phpcs:ignore MediaWiki.Usage.ForbiddenFunctions.is_resource
 			if ( is_resource( $req['body'] ) || $req['body'] !== '' ) {
-				throw new Exception( "HTTP body specified for a non PUT/POST request." );
+				throw new InvalidArgumentException( "HTTP body specified for a non PUT/POST request." );
 			}
 			$req['headers']['content-length'] = 0;
 		}
@@ -422,8 +429,8 @@ class MultiHttpClient implements LoggerAwareInterface {
 
 		$headers = [];
 		foreach ( $req['headers'] as $name => $value ) {
-			if ( strpos( $name, ': ' ) ) {
-				throw new Exception( "Headers cannot have ':' in the name." );
+			if ( strpos( $name, ':' ) !== false ) {
+				throw new InvalidArgumentException( "Header name must not contain colon-space." );
 			}
 			$headers[] = $name . ': ' . trim( $value );
 		}
@@ -546,7 +553,7 @@ class MultiHttpClient implements LoggerAwareInterface {
 	 * @todo Remove dependency on MediaWikiServices: rewrite using Guzzle T202352
 	 * @param array $reqs Map of HTTP request arrays
 	 * @phpcs:ignore Generic.Files.LineLength
-	 * @phan-param array<int,array{url:string,query:array,method:string,body:string,proxy?:?string,headers?:string[]}> $reqs
+	 * @phan-param array<int,array{url:string,query:array,method:string,body:string,headers:array<string,string>,proxy?:?string}> $reqs
 	 * @param array $opts
 	 *   - connTimeout     : connection timeout per request (seconds)
 	 *   - reqTimeout      : post-connection timeout per request (seconds)
@@ -578,6 +585,9 @@ class MultiHttpClient implements LoggerAwareInterface {
 			$httpRequest = MediaWikiServices::getInstance()->getHttpRequestFactory()->create(
 				$url, $reqOptions, __METHOD__ );
 			$httpRequest->setLogger( $this->logger );
+			foreach ( $req['headers'] as $header => $value ) {
+				$httpRequest->setHeader( $header, $value );
+			}
 			$sv = $httpRequest->execute()->getStatusValue();
 
 			$respHeaders = array_map(
@@ -624,6 +634,19 @@ class MultiHttpClient implements LoggerAwareInterface {
 	}
 
 	/**
+	 * Normalize headers array
+	 * @param array $headers
+	 * @return array
+	 */
+	private function normalizeHeaders( array $headers ): array {
+		$normalized = [];
+		foreach ( $headers as $name => $value ) {
+			$normalized[strtolower( $name )] = $value;
+		}
+		return $normalized;
+	}
+
+	/**
 	 * Normalize request information
 	 *
 	 * @param array[] &$reqs the requests to normalize
@@ -646,21 +669,22 @@ class MultiHttpClient implements LoggerAwareInterface {
 				unset( $req[1] );
 			}
 			if ( !isset( $req['method'] ) ) {
-				throw new Exception( "Request has no 'method' field set." );
+				throw new InvalidArgumentException( "Request has no 'method' field set." );
 			} elseif ( !isset( $req['url'] ) ) {
-				throw new Exception( "Request has no 'url' field set." );
+				throw new InvalidArgumentException( "Request has no 'url' field set." );
 			}
 			if ( $this->localProxy !== false && $this->isLocalURL( $req['url'] ) ) {
 				$this->useReverseProxy( $req, $this->localProxy );
 			}
 			$req['query'] ??= [];
-			$headers = []; // normalized headers
-			if ( isset( $req['headers'] ) ) {
-				foreach ( $req['headers'] as $name => $value ) {
-					$headers[strtolower( $name )] = $value;
-				}
-			}
-			$req['headers'] = $headers;
+			$req['headers'] = $this->normalizeHeaders(
+				array_merge(
+					$this->headers,
+					$this->telemetry ? $this->telemetry->getRequestHeaders() : [],
+					$req['headers'] ?? []
+				)
+			);
+
 			if ( !isset( $req['body'] ) ) {
 				$req['body'] = '';
 				$req['headers']['content-length'] = 0;
@@ -686,11 +710,11 @@ class MultiHttpClient implements LoggerAwareInterface {
 	private function useReverseProxy( array &$req, $proxy ) {
 		$parsedProxy = wfParseUrl( $proxy );
 		if ( $parsedProxy === false ) {
-			throw new Exception( "Invalid reverseProxy configured: $proxy" );
+			throw new InvalidArgumentException( "Invalid reverseProxy configured: $proxy" );
 		}
 		$parsedUrl = wfParseUrl( $req['url'] );
 		if ( $parsedUrl === false ) {
-			throw new Exception( "Invalid url specified: {$req['url']}" );
+			throw new InvalidArgumentException( "Invalid url specified: {$req['url']}" );
 		}
 		// Set the current host in the Host header
 		$req['headers']['Host'] = $parsedUrl['host'];
@@ -786,4 +810,5 @@ class MultiHttpClient implements LoggerAwareInterface {
 			$this->cmh = null;
 		}
 	}
+
 }

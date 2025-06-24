@@ -1,6 +1,9 @@
 <?php
 
+namespace MediaWiki\HTMLForm\Field;
+
 use MediaWiki\Html\Html;
+use MediaWiki\HTMLForm\HTMLFormField;
 use OOUI\Widget;
 
 /**
@@ -49,6 +52,13 @@ class HTMLFileField extends HTMLFormField {
 
 	/**
 	 * @inheritDoc
+	 */
+	public function loadDataFromRequest( $request ) {
+		return $request->getUpload( $this->mName )->getName();
+	}
+
+	/**
+	 * @inheritDoc
 	 * @stable to override
 	 */
 	public function getInputHTML( $value ) {
@@ -80,7 +90,7 @@ class HTMLFileField extends HTMLFormField {
 
 		$attribs += $this->getAttributes( $allowedParams );
 
-		return Html::input( $this->mName, $value, 'file', $attribs );
+		return Html::input( $this->mName, $value ?? '', 'file', $attribs );
 	}
 
 	/**
@@ -114,7 +124,7 @@ class HTMLFileField extends HTMLFormField {
 			'readonly',
 		];
 
-		$attribs += OOUI\Element::configFromHtmlAttributes(
+		$attribs += \OOUI\Element::configFromHtmlAttributes(
 			$this->getAttributes( $allowedParams )
 		);
 
@@ -133,7 +143,7 @@ class HTMLFileField extends HTMLFormField {
 	 * @return Widget
 	 */
 	protected function getInputWidget( $params ) {
-		return new OOUI\SelectFileInputWidget( $params );
+		return new \OOUI\SelectFileInputWidget( $params );
 	}
 
 	/**
@@ -144,3 +154,6 @@ class HTMLFileField extends HTMLFormField {
 		return true;
 	}
 }
+
+/** @deprecated class alias since 1.42 */
+class_alias( HTMLFileField::class, 'HTMLFileField' );

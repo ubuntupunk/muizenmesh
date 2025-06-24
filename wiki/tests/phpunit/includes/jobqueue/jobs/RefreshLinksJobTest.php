@@ -1,10 +1,11 @@
 <?php
 
+use MediaWiki\CommentStore\CommentStoreComment;
 use MediaWiki\Page\PageAssertionException;
 use MediaWiki\Title\Title;
 
 /**
- * @covers RefreshLinksJob
+ * @covers \RefreshLinksJob
  *
  * @group JobQueue
  * @group Database
@@ -13,16 +14,6 @@ use MediaWiki\Title\Title;
  * @author Addshore
  */
 class RefreshLinksJobTest extends MediaWikiIntegrationTestCase {
-
-	protected function setUp(): void {
-		parent::setUp();
-
-		$this->tablesUsed[] = 'page';
-		$this->tablesUsed[] = 'revision';
-
-		$this->tablesUsed[] = 'pagelinks';
-		$this->tablesUsed[] = 'categorylinks';
-	}
 
 	/**
 	 * @param string $name
@@ -77,18 +68,16 @@ class RefreshLinksJobTest extends MediaWikiIntegrationTestCase {
 		$job = new RefreshLinksJob( $page->getTitle(), [ 'parseThreshold' => 0 ] );
 		$job->run();
 
-		$this->assertSelect(
-			'pagelinks',
-			'pl_title',
-			[ 'pl_from' => $page->getId() ],
-			[ [ 'Kittens' ] ]
-		);
-		$this->assertSelect(
-			'categorylinks',
-			'cl_to',
-			[ 'cl_from' => $page->getId() ],
-			[ [ 'Goats' ] ]
-		);
+		$this->newSelectQueryBuilder()
+			->select( 'pl_title' )
+			->from( 'pagelinks' )
+			->where( [ 'pl_from' => $page->getId() ] )
+			->assertFieldValue( 'Kittens' );
+		$this->newSelectQueryBuilder()
+			->select( 'cl_to' )
+			->from( 'categorylinks' )
+			->where( [ 'cl_from' => $page->getId() ] )
+			->assertFieldValue( 'Goats' );
 	}
 
 	public function testRunForMultiPage() {
@@ -122,29 +111,25 @@ class RefreshLinksJobTest extends MediaWikiIntegrationTestCase {
 		);
 		$job->run();
 
-		$this->assertSelect(
-			'pagelinks',
-			'pl_title',
-			[ 'pl_from' => $page1->getId() ],
-			[ [ 'Kittens' ] ]
-		);
-		$this->assertSelect(
-			'categorylinks',
-			'cl_to',
-			[ 'cl_from' => $page1->getId() ],
-			[ [ 'Goats' ] ]
-		);
-		$this->assertSelect(
-			'pagelinks',
-			'pl_title',
-			[ 'pl_from' => $page2->getId() ],
-			[ [ 'Dogs' ] ]
-		);
-		$this->assertSelect(
-			'categorylinks',
-			'cl_to',
-			[ 'cl_from' => $page2->getId() ],
-			[ [ 'Hamsters' ] ]
-		);
+		$this->newSelectQueryBuilder()
+			->select( 'pl_title' )
+			->from( 'pagelinks' )
+			->where( [ 'pl_from' => $page1->getId() ] )
+			->assertFieldValue( 'Kittens' );
+		$this->newSelectQueryBuilder()
+			->select( 'cl_to' )
+			->from( 'categorylinks' )
+			->where( [ 'cl_from' => $page1->getId() ] )
+			->assertFieldValue( 'Goats' );
+		$this->newSelectQueryBuilder()
+			->select( 'pl_title' )
+			->from( 'pagelinks' )
+			->where( [ 'pl_from' => $page2->getId() ] )
+			->assertFieldValue( 'Dogs' );
+		$this->newSelectQueryBuilder()
+			->select( 'cl_to' )
+			->from( 'categorylinks' )
+			->where( [ 'cl_from' => $page2->getId() ] )
+			->assertFieldValue( 'Hamsters' );
 	}
 }

@@ -17,14 +17,16 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  * http://www.gnu.org/copyleft/gpl.html
  *
- * @since 1.34
+ * @since 1.36 (As UnknownContentHandler in 1.34)
  *
  * @file
  * @ingroup Content
  */
 
 use MediaWiki\Content\Renderer\ContentParseParams;
+use MediaWiki\Context\IContextSource;
 use MediaWiki\Html\Html;
+use MediaWiki\Parser\ParserOutput;
 
 /**
  * Content handler implementation for unknown content.
@@ -123,7 +125,7 @@ class FallbackContentHandler extends ContentHandler {
 		'@phan-var FallbackContent $content';
 		$msg = wfMessage( 'unsupported-content-model', [ $content->getModel() ] );
 		$html = Html::rawElement( 'div', [ 'class' => 'error' ], $msg->inContentLanguage()->parse() );
-		$output->setText( $html );
+		$output->setRawText( $html );
 	}
 
 	/**

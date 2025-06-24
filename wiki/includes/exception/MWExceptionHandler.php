@@ -18,9 +18,10 @@
  * @file
  */
 
+use MediaWiki\HookContainer\HookRunner;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MediaWikiServices;
-use MediaWiki\Request\FauxRequest;
+use MediaWiki\Request\WebRequest;
 use Psr\Log\LogLevel;
 use Wikimedia\NormalizedException\INormalizedException;
 use Wikimedia\Rdbms\DBError;
@@ -103,17 +104,17 @@ class MWExceptionHandler {
 		//   Same as previous case, but more common to bubble to here instead of
 		//   caught locally because they tend to not be safe to recover from.
 		//   (e.g. argument TypeError, division by zero, etc.)
-		set_exception_handler( 'MWExceptionHandler::handleUncaughtException' );
+		set_exception_handler( [ self::class, 'handleUncaughtException' ] );
 
 		// This catches recoverable errors (e.g. PHP Notice, PHP Warning, PHP Error) that do not
 		// interrupt execution in any way. We log these in the background and then continue execution.
-		set_error_handler( 'MWExceptionHandler::handleError' );
+		set_error_handler( [ self::class, 'handleError' ] );
 
 		// This catches fatal errors for which no Throwable is thrown,
 		// including Out-Of-Memory and Timeout fatals.
 		// Reserve 16k of memory so we can report OOM fatals.
 		self::$reservedMemory = str_repeat( ' ', 16384 );
-		register_shutdown_function( 'MWExceptionHandler::handleFatalError' );
+		register_shutdown_function( [ self::class, 'handleFatalError' ] );
 	}
 
 	/**
@@ -123,7 +124,7 @@ class MWExceptionHandler {
 	protected static function report( Throwable $e ) {
 		try {
 			// Try and show the exception prettily, with the normal skin infrastructure
-			if ( $e instanceof MWException ) {
+			if ( $e instanceof MWException && $e->hasOverriddenHandler() ) {
 				// Delegate to MWException until all subclasses are handled by
 				// MWExceptionRenderer and MWException::report() has been
 				// removed.
@@ -192,19 +193,6 @@ class MWExceptionHandler {
 		self::rollbackPrimaryChanges();
 
 		self::logException( $e, $catcher );
-	}
-
-	/**
-	 * @deprecated since 1.37; please use rollbackPrimaryChangesAndLog() instead.
-	 * @param Throwable $e
-	 * @param string $catcher CAUGHT_BY_* class constant indicating what caught the error
-	 */
-	public static function rollbackMasterChangesAndLog(
-		Throwable $e,
-		$catcher = self::CAUGHT_BY_OTHER
-	) {
-		wfDeprecated( __METHOD__, '1.37' );
-		self::rollbackPrimaryChangesAndLog( $e, $catcher );
 	}
 
 	/**
@@ -334,7 +322,7 @@ class MWExceptionHandler {
 
 		// @phan-suppress-next-line PhanTypeMismatchArgumentNullableInternal False positive
 		$e = new ErrorException( $prefix . $message, 0, $level, $file, $line );
-		self::logError( $e, 'error', $severity, self::CAUGHT_BY_HANDLER );
+		self::logError( $e, $severity, self::CAUGHT_BY_HANDLER );
 
 		// If $propagateErrors is true return false so PHP shows/logs the error normally.
 		// Ignore $propagateErrors if track_errors is set
@@ -508,11 +496,10 @@ TXT;
 	 * @return string|false
 	 */
 	public static function getURL() {
-		global $wgRequest;
-		if ( !isset( $wgRequest ) || $wgRequest instanceof FauxRequest ) {
+		if ( MW_ENTRY_POINT === 'cli' ) {
 			return false;
 		}
-		return $wgRequest->getRequestURL();
+		return WebRequest::getGlobalRequestURL();
 	}
 
 	/**
@@ -760,7 +747,7 @@ TXT;
 				$logger->error( $json, [ 'private' => true ] );
 			}
 
-			Hooks::runner()->onLogException( $e, false );
+			( new HookRunner( MediaWikiServices::getInstance()->getHookContainer() ) )->onLogException( $e, false );
 		}
 	}
 
@@ -768,43 +755,41 @@ TXT;
 	 * Log an exception that wasn't thrown but made to wrap an error.
 	 *
 	 * @param ErrorException $e
-	 * @param string $channel
 	 * @param string $level
 	 * @param string $catcher CAUGHT_BY_* class constant indicating what caught the error
 	 */
 	private static function logError(
 		ErrorException $e,
-		$channel,
 		$level,
 		$catcher
 	) {
 		// The set_error_handler callback is independent from error_reporting.
-		// Filter out unwanted errors manually (e.g. when
-		// AtEase::suppressWarnings is active).
 		$suppressed = ( error_reporting() & $e->getSeverity() ) === 0;
-		if ( !$suppressed ) {
-			$logger = LoggerFactory::getInstance( $channel );
-			$logger->log(
-				$level,
-				self::getLogNormalMessage( $e ),
-				self::getLogContext( $e, $catcher )
-			);
+		if ( $suppressed ) {
+			// Instead of discarding these entirely, give some visibility (but only
+			// when debugging) to errors that were intentionally silenced via
+			// the error silencing operator (@) or Wikimedia\AtEase.
+			// To avoid clobbering Logstash results, set the level to DEBUG
+			// and also send them to a dedicated channel (T193472).
+			$channel = 'silenced-error';
+			$level = LogLevel::DEBUG;
+		} else {
+			$channel = 'error';
 		}
+		$logger = LoggerFactory::getInstance( $channel );
+		$logger->log(
+			$level,
+			self::getLogNormalMessage( $e ),
+			self::getLogContext( $e, $catcher )
+		);
 
-		// Include all errors in the json log (suppressed errors will be flagged)
+		// TODO: Remove this per T193472.
 		$json = self::jsonSerializeException( $e, false, FormatJson::ALL_OK, $catcher );
 		if ( $json !== false ) {
-			$logger = LoggerFactory::getInstance( "{$channel}-json" );
-			// Unlike the 'error' channel, the 'error-json' channel is unfiltered,
-			// and emits messages even if wikimedia/at-ease was used to suppress the
-			// error. To avoid clobbering Logstash dashboards with these, make sure
-			// those have their level casted to DEBUG so that they are excluded by
-			// level-based filters automatically instead of requiring a dedicated filter
-			// for this channel. To be improved: T193472.
-			$unfilteredLevel = $suppressed ? LogLevel::DEBUG : $level;
-			$logger->log( $unfilteredLevel, $json, [ 'private' => true ] );
+			$logger = LoggerFactory::getInstance( "error-json" );
+			$logger->log( $level, $json, [ 'private' => true ] );
 		}
 
-		Hooks::runner()->onLogException( $e, $suppressed );
+		( new HookRunner( MediaWikiServices::getInstance()->getHookContainer() ) )->onLogException( $e, $suppressed );
 	}
 }

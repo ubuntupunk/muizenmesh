@@ -11,8 +11,7 @@
  * <b>Legal note:</b> Use the <i>Disguise IP</i> option if your country considers IP tracking a privacy violation.
  *
  * @author Stephen Billard (sbillard), Malte Müller (acrylian)
- * @package plugins
- * @subpackage rating
+ * @package zpcore\plugins\rating
  */
 if (!defined('OFFSET_PATH')) {
 	define('OFFSET_PATH', 3);
@@ -68,7 +67,7 @@ if (in_context(ZP_INDEX)) {
  */
 class jquery_rating {
 
-	var $ratingstate;
+	public $ratingstate;
 
 	/**
 	 * class instantiation function
@@ -134,16 +133,14 @@ class jquery_rating {
 	static function ratingJS() {
 		$ME = substr(basename(__FILE__), 0, -4);
 		?>
-		<script type="text/javascript" src="<?php echo WEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER . '/' . $ME; ?>/jquery.MetaData.js"></script>
-		<script type="text/javascript" src="<?php echo WEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER . '/' . $ME; ?>/jquery.rating.js"></script>
+		<script src="<?php echo WEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER . '/' . $ME; ?>/jquery.MetaData.js"></script>
+		<script src="<?php echo WEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER . '/' . $ME; ?>/jquery.rating.js"></script>
 		<?php
 		$css = getPlugin('rating/jquery.rating.css', true, true);
 		?>
 		<link rel="stylesheet" href="<?php echo pathurlencode($css); ?>" type="text/css" />
-		<script type="text/javascript">
-			// <!-- <![CDATA[
+		<script>
 			$.fn.rating.options = {cancel: '<?php echo gettext('retract'); ?>'};
-			// ]]> -->
 		</script>
 		<?php
 	}
@@ -296,7 +293,7 @@ function printRating($vote = 3, $object = NULL, $text = true) {
 				case 'album.php':
 					$album = $object;
 					$hint = '';
-					if (!(zp_loggedin() || checkAlbumPassword($album->name))) {
+					if (!(zp_loggedin() || $album->isProtected())) {
 						$vote = 0;
 					}
 					break;
@@ -309,7 +306,7 @@ function printRating($vote = 3, $object = NULL, $text = true) {
 				default:
 					$album = $object->getAlbum();
 					$hint = '';
-					if (!(zp_loggedin() || checkAlbumPassword($album->name))) {
+					if (!(zp_loggedin() || $album->isProtected())) {
 						$vote = 0;
 					}
 					break;
@@ -369,8 +366,7 @@ function printRating($vote = 3, $object = NULL, $text = true) {
 	<span class="vote" id="vote<?php echo $unique; ?>" <?php if (!$text) echo 'style="display:none;"'; ?>>
 		<?php echo $msg; ?>
 	</span>
-	<script type="text/javascript">
-		// <!-- <![CDATA[
+	<script>
 		var recast<?php echo $unique; ?> = <?php printf('%u', $recast && $oldrating); ?>;
 		$(document).ready(function() {
 			$('#star_rating<?php echo $unique; ?> :radio.star').rating('select', '<?php echo $starselector; ?>');
@@ -412,7 +408,6 @@ function printRating($vote = 3, $object = NULL, $text = true) {
 				$('#vote<?php echo $unique; ?>').html('<?php echo gettext('nothing to submit'); ?>');
 			}
 		}
-		// ]]> -->
 	</script>
 	<?php
 }

@@ -1,6 +1,6 @@
 <?php
-/**
- * 2007-2023 PayPal
+/*
+ * Since 2007 PayPal
  *
  * NOTICE OF LICENSE
  *
@@ -18,13 +18,18 @@
  *  versions in the future. If you wish to customize PrestaShop for your
  *  needs please refer to http://www.prestashop.com for more information.
  *
- *  @author 2007-2023 PayPal
+ *  @author Since 2007 PayPal
  *  @author 202 ecommerce <tech@202-ecommerce.com>
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
+ *
  */
 
 namespace PaypalAddons\classes\PUI;
+
+use DateTime;
+use PayPal;
+use PaypalAddons\services\FormatterPaypal;
 
 if (!defined('_PS_VERSION_')) {
     exit;
@@ -46,6 +51,15 @@ class DataUserForm
 
     /** @var string */
     protected $birth;
+    /**
+     * @var FormatterPaypal
+     */
+    protected $formatter;
+
+    public function __construct()
+    {
+        $this->formatter = new FormatterPaypal();
+    }
 
     /**
      * @return string
@@ -102,7 +116,7 @@ class DataUserForm
      */
     public function setPhone($phone)
     {
-        $this->phone = (string) $phone;
+        $this->phone = $this->formatter->formatPhoneNumber((string) $phone);
 
         return $this;
     }
@@ -130,9 +144,15 @@ class DataUserForm
     /**
      * @return string
      */
-    public function getBirth()
+    public function getBirth($format = PayPal::PS_CUSTOMER_DATE_FORMAT)
     {
-        return (string) $this->birth;
+        $date = DateTime::createFromFormat(PayPal::PS_CUSTOMER_DATE_FORMAT, (string) $this->birth);
+
+        if (!$date) {
+            return '';
+        }
+
+        return $date->format($format);
     }
 
     /**

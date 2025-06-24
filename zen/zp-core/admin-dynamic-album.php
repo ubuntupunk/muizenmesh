@@ -1,7 +1,7 @@
 <?php
 /**
  * This script is used to create dynamic albums from a search.
- * @package core
+ * @package zpcore\admin
  */
 // force UTF-8 Ø
 
@@ -212,8 +212,7 @@ while ($old != $albumname) {
 			</td>
 		</tr>
 
-		<script type="text/javascript">
-			// <!-- <![CDATA[
+		<script>
 			function setTagged(state) {
 				if (state) {
 					$('#album_tag').removeAttr('disabled');
@@ -223,7 +222,6 @@ while ($old != $albumname) {
 					$('#album_tag').attr('disabled', 'disabled');
 				}
 			}
-			// ]]> -->
 		</script>
 
 		<tr>

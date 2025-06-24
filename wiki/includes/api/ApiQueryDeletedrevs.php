@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright © 2007 Roan Kattouw "<Firstname>.<Lastname>@gmail.com"
+ * Copyright © 2007 Roan Kattouw <roan.kattouw@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,6 +33,8 @@ use MediaWiki\Title\Title;
 use Wikimedia\ParamValidator\ParamValidator;
 use Wikimedia\ParamValidator\TypeDef\EnumDef;
 use Wikimedia\ParamValidator\TypeDef\IntegerDef;
+use Wikimedia\Rdbms\IExpression;
+use Wikimedia\Rdbms\LikeValue;
 
 /**
  * Query module to enumerate all deleted revisions.
@@ -42,20 +44,11 @@ use Wikimedia\ParamValidator\TypeDef\IntegerDef;
  */
 class ApiQueryDeletedrevs extends ApiQueryBase {
 
-	/** @var CommentStore */
-	private $commentStore;
-
-	/** @var RowCommentFormatter */
-	private $commentFormatter;
-
-	/** @var RevisionStore */
-	private $revisionStore;
-
-	/** @var NameTableStore */
-	private $changeTagDefStore;
-
-	/** @var LinkBatchFactory */
-	private $linkBatchFactory;
+	private CommentStore $commentStore;
+	private RowCommentFormatter $commentFormatter;
+	private RevisionStore $revisionStore;
+	private NameTableStore $changeTagDefStore;
+	private LinkBatchFactory $linkBatchFactory;
 
 	/**
 	 * @param ApiQuery $query
@@ -108,12 +101,10 @@ class ApiQueryDeletedrevs extends ApiQueryBase {
 
 		// If we're in a mode that breaks the same-origin policy, no tokens can
 		// be obtained
-		if ( $this->lacksSameOriginSecurity() ) {
-			$fld_token = false;
-		}
-
-		// If user can't undelete, no tokens
-		if ( !$this->getAuthority()->isAllowed( 'undelete' ) ) {
+		if ( $this->lacksSameOriginSecurity() ||
+			// If user can't undelete, no tokens
+			!$this->getAuthority()->isAllowed( 'undelete' )
+		) {
 			$fld_token = false;
 		}
 
@@ -223,9 +214,16 @@ class ApiQueryDeletedrevs extends ApiQueryBase {
 			$this->addWhereRange( 'ar_title', $dir, $from, $to );
 
 			if ( isset( $params['prefix'] ) ) {
-				$this->addWhere( 'ar_title' . $db->buildLike(
-					$this->titlePartToKey( $params['prefix'], $params['namespace'] ),
-					$db->anyString() ) );
+				$this->addWhere(
+					$db->expr(
+						'ar_title',
+						IExpression::LIKE,
+						new LikeValue(
+							$this->titlePartToKey( $params['prefix'], $params['namespace'] ),
+							$db->anyString()
+						)
+					)
+				);
 			}
 		}
 
@@ -233,7 +231,7 @@ class ApiQueryDeletedrevs extends ApiQueryBase {
 			// We already join on actor due to getArchiveQueryInfo()
 			$this->addWhereFld( 'actor_name', $params['user'] );
 		} elseif ( $params['excludeuser'] !== null ) {
-			$this->addWhere( 'actor_name<>' . $db->addQuotes( $params['excludeuser'] ) );
+			$this->addWhere( $db->expr( 'actor_name', '!=', $params['excludeuser'] ) );
 		}
 
 		if ( $params['user'] !== null || $params['excludeuser'] !== null ) {
@@ -462,6 +460,7 @@ class ApiQueryDeletedrevs extends ApiQueryBase {
 	}
 
 	public function getAllowedParams() {
+		$smallLimit = $this->getMain()->canApiHighLimits() ? ApiBase::LIMIT_SML2 : ApiBase::LIMIT_SML1;
 		return [
 			'start' => [
 				ParamValidator::PARAM_TYPE => 'timestamp',
@@ -505,11 +504,11 @@ class ApiQueryDeletedrevs extends ApiQueryBase {
 			'tag' => null,
 			'user' => [
 				ParamValidator::PARAM_TYPE => 'user',
-				UserDef::PARAM_ALLOWED_USER_TYPES => [ 'name', 'ip', 'id', 'interwiki' ],
+				UserDef::PARAM_ALLOWED_USER_TYPES => [ 'name', 'ip', 'temp', 'id', 'interwiki' ],
 			],
 			'excludeuser' => [
 				ParamValidator::PARAM_TYPE => 'user',
-				UserDef::PARAM_ALLOWED_USER_TYPES => [ 'name', 'ip', 'id', 'interwiki' ],
+				UserDef::PARAM_ALLOWED_USER_TYPES => [ 'name', 'ip', 'temp', 'id', 'interwiki' ],
 			],
 			'prop' => [
 				ParamValidator::PARAM_DEFAULT => 'user|comment',
@@ -528,7 +527,9 @@ class ApiQueryDeletedrevs extends ApiQueryBase {
 					'tags'
 				],
 				ParamValidator::PARAM_ISMULTI => true,
-				ApiBase::PARAM_HELP_MSG_PER_VALUE => [],
+				ApiBase::PARAM_HELP_MSG_PER_VALUE => [
+					'content' => [ 'apihelp-query+deletedrevs-paramvalue-prop-content', $smallLimit ],
+				],
 				EnumDef::PARAM_DEPRECATED_VALUES => [
 					'token' => true,
 				],
@@ -538,7 +539,8 @@ class ApiQueryDeletedrevs extends ApiQueryBase {
 				ParamValidator::PARAM_TYPE => 'limit',
 				IntegerDef::PARAM_MIN => 1,
 				IntegerDef::PARAM_MAX => ApiBase::LIMIT_BIG1,
-				IntegerDef::PARAM_MAX2 => ApiBase::LIMIT_BIG2
+				IntegerDef::PARAM_MAX2 => ApiBase::LIMIT_BIG2,
+				ApiBase::PARAM_HELP_MSG => [ 'apihelp-query+deletedrevs-param-limit', $smallLimit ],
 			],
 			'continue' => [
 				ApiBase::PARAM_HELP_MSG => 'api-help-param-continue',

@@ -3,14 +3,18 @@
 namespace MediaWiki\Tests\ResourceLoader;
 
 use EmptyResourceLoader;
-use HashConfig;
+use MediaWiki\Config\HashConfig;
+use MediaWiki\MainConfigNames;
+use MediaWiki\Message\Message;
 use MediaWiki\Request\FauxRequest;
+use MediaWiki\Request\WebRequest;
 use MediaWiki\ResourceLoader\Context;
 use MediaWiki\ResourceLoader\ResourceLoader;
+use MediaWiki\User\User;
 use MediaWikiCoversValidator;
-use Message;
-use User;
-use WebRequest;
+use MediaWikiTestCaseTrait;
+use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 
 /**
  * See also:
@@ -19,14 +23,15 @@ use WebRequest;
  * @group ResourceLoader
  * @covers \MediaWiki\ResourceLoader\Context
  */
-class ContextTest extends \PHPUnit\Framework\TestCase {
+class ContextTest extends TestCase {
 
 	use MediaWikiCoversValidator;
+	use MediaWikiTestCaseTrait;
 
 	protected static function getResourceLoader() {
 		return new EmptyResourceLoader( new HashConfig( [
-			'ResourceLoaderDebug' => false,
-			'LoadScript' => '/w/load.php',
+			MainConfigNames::ResourceLoaderDebug => false,
+			MainConfigNames::LoadScript => '/w/load.php',
 		] ) );
 	}
 
@@ -61,7 +66,7 @@ class ContextTest extends \PHPUnit\Framework\TestCase {
 		$ctx = new Context( $this->getResourceLoader(), new FauxRequest( [] ) );
 		$this->assertInstanceOf( ResourceLoader::class, $ctx->getResourceLoader() );
 		$this->assertInstanceOf( WebRequest::class, $ctx->getRequest() );
-		$this->assertInstanceOf( \Psr\Log\LoggerInterface::class, $ctx->getLogger() );
+		$this->assertInstanceOf( LoggerInterface::class, $ctx->getLogger() );
 	}
 
 	public function testTypicalRequest() {
@@ -184,12 +189,16 @@ class ContextTest extends \PHPUnit\Framework\TestCase {
 	public function testEncodeJsonWarning() {
 		$ctx = new Context( $this->getResourceLoader(), new FauxRequest( [] ) );
 
-		$this->expectWarning();
-		$this->expectWarningMessage( 'encodeJson partially failed: Malformed UTF-8' );
-		$ctx->encodeJson( [
-			'x' => 'A',
-			'y' => "Foo\x80\xf0Bar",
-			'z' => 'C',
-		] );
+		$this->expectPHPError(
+			E_USER_WARNING,
+			static function () use ( $ctx ) {
+				$ctx->encodeJson( [
+					'x' => 'A',
+					'y' => "Foo\x80\xf0Bar",
+					'z' => 'C',
+				] );
+			},
+			'encodeJson partially failed: Malformed UTF-8'
+		);
 	}
 }

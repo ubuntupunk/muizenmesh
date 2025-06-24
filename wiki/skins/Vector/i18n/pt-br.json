@@ -15,6 +15,7 @@
 			"Jaideraf",
 			"Luan",
 			"Opraco",
+			"Re demz",
 			"YuriNikolai",
 			555
 		]
@@ -33,7 +34,6 @@
 	"vector-language-button-label": "{{PLURAL:$1|$1 idioma|$1 idiomas}}",
 	"vector-no-language-button-label": "Adicionar idiomas",
 	"vector-no-language-button-aria-label": "Este artigo existe somente neste idioma. Adicione o artigo em outros idiomas",
-	"vector-language-redirect-to-top": "Nesta {{SITENAME}}, os links dos idiomas estão no topo da página, em frente ao título do artigo. [[#p-lang-btn|Ir para o topo]].",
 	"vector-language-variant-switcher-label": "Alterar a variante de idioma",
 	"vector-action-addsection": "Adicionar tópico",
 	"vector-action-delete": "Excluir",
@@ -64,6 +64,8 @@
 	"vector-toc-collapsible-button-label": "Alternar o índice",
 	"vector-site-nav-label": "Site",
 	"vector-main-menu-label": "Menu principal",
+	"vector-limited-width-toggle-on-popup": "Você mudou o layout para largura total. Para voltar à largura limitada aperte esse botão.",
+	"vector-limited-width-toggle-off-popup": "Você pode alternar entre largura limitada e largura total clicando esse botão.",
 	"vector-page-tools-label": "Ferramentas",
 	"vector-page-tools-general-label": "Geral",
 	"vector-page-tools-actions-label": "Ações",

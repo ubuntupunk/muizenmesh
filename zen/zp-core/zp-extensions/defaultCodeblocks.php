@@ -3,10 +3,8 @@
 /**
  * Supply default codeblocks to theme pages.
  *
- * @package plugins
  * @author Stephen Billard (sbillard)
- * @package plugins
- * @subpackage defaultcodeblocks
+ * @package zpcore\plugins\defaultcodeblocks
  */
 $plugin_is_filter = 500 | ADMIN_PLUGIN | THEME_PLUGIN;
 $plugin_description = gettext('Create default codeblocks.');
@@ -18,7 +16,7 @@ zp_register_filter('codeblock', 'defaultCodeblocks_codebox');
 
 class defaultCodeblocks {
 
-	var $codeblocks;
+	public $codeblocks;
 
 	function __construct() {
 		global $_zp_db;

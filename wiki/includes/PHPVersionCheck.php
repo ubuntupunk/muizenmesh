@@ -33,7 +33,7 @@
  */
 class PHPVersionCheck {
 	/** @var string The number of the MediaWiki version used. If you're updating MW_VERSION in Defines.php, you must also update this value. */
-	var $mwVersion = '1.40';
+	var $mwVersion = '1.42';
 
 	/** @var string[] A mapping of PHP functions to PHP extensions. */
 	var $functionsExtensionsMapping = array(
@@ -78,7 +78,7 @@ class PHPVersionCheck {
 	 * Displays an error, if the installed PHP version does not meet the minimum requirement.
 	 */
 	function checkRequiredPHPVersion() {
-		$minimumVersion = '7.4.3';
+		$minimumVersion = '8.1.0';
 
 		/**
 		 * This is a list of known-bad ranges of PHP versions. Syntax is like SemVer – either:
@@ -104,7 +104,7 @@ class PHPVersionCheck {
 		if ( count( $knownBad ) ) {
 			$versionString .= ' (and not ' . implode( ', ', array_values( $knownBad ) ) . ')';
 
-			foreach ( $knownBad as $task => $range ) {
+			foreach ( $knownBad as $range ) {
 				// As we don't have composer at this point, we have to do our own version range checking.
 				if ( strpos( $range, '-' ) ) {
 					$passes = $passes && !(
@@ -131,8 +131,8 @@ class PHPVersionCheck {
 			$web['longHtml'] = <<<HTML
 		<p>
 			Please consider <a href="https://www.php.net/downloads.php">upgrading your copy of PHP</a>.
-			PHP versions less than v7.3.0 are no longer supported by the PHP Group and will not receive
-			security or bugfix updates.
+			PHP versions less than v8.1.0 are no longer <a href="https://www.php.net/supported-versions.php">supported</a>
+			by the PHP Group and will not receive security or bugfix updates.
 		</p>
 		<p>
 			If for some reason you are unable to upgrade your PHP version, you will need to
@@ -156,8 +156,9 @@ HTML;
 	function checkVendorExistence() {
 		if ( !file_exists( dirname( __FILE__ ) . '/../vendor/autoload.php' ) ) {
 			$cliText = "Error: You are missing some external dependencies. \n"
-				. "MediaWiki also has some external dependencies that need to be installed\n"
-				. "via composer or from a separate git repo. Please see\n"
+				. "MediaWiki has external dependencies that need to be installed via Composer\n"
+				. "or from a separate repository. Please see\n"
+				. "https://www.mediawiki.org/wiki/Manual:Installation_requirements#PHP and\n"
 				. "https://www.mediawiki.org/wiki/Download_from_Git#Fetch_external_libraries\n"
 				. "for help on installing the required components.";
 
@@ -167,10 +168,12 @@ HTML;
 			// phpcs:disable Generic.Files.LineLength
 			$web['longHtml'] = <<<HTML
 		<p>
-		MediaWiki also has some external dependencies that need to be installed via
-		composer or from a separate git repo. Please see the
+		MediaWiki has external dependencies that need to be installed via Composer
+		or from a separate repository. Please see the
+		<a href="https://www.mediawiki.org/wiki/Manual:Installation_requirements#PHP">PHP
+		installation requirements</a> and the
 		<a href="https://www.mediawiki.org/wiki/Download_from_Git#Fetch_external_libraries">instructions
-		for installing libraries</a> on mediawiki.org for help on installing the required components.
+		for installing PHP libraries</a> on mediawiki.org for help on installing the required components.
 		</p>
 HTML;
 			// phpcs:enable Generic.Files.LineLength
@@ -229,8 +232,7 @@ HTML;
 
 		header( "$protocol 500 MediaWiki configuration Error" );
 		// Don't cache error pages! They cause no end of trouble...
-		header( 'Cache-control: none' );
-		header( 'Pragma: no-cache' );
+		header( 'Cache-Control: no-cache' );
 	}
 
 	/**

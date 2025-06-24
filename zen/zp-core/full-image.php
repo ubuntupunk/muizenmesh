@@ -2,7 +2,7 @@
 
 /**
  * handles the watermarking and protecting of the full image link
- * @package core
+ * @package zpcore
  */
 // force UTF-8 Ø
 if (!defined('OFFSET_PATH'))
@@ -225,7 +225,7 @@ if (is_null($cache_path) || !file_exists($cache_path)) { //process the image
 		$iMutex->lock();
 		$newim = $_zp_graphics->imageGet($image_path);
 		if ($rotate) {
-			$newim = $_zp_graphics->rotateImage($newim, $rotate);
+			$newim = $_zp_graphics->flipRotateImage($newim, $rotate);
 		}
 		if ($watermark_use_image) {
 			$watermark_image = getWatermarkPath($watermark_use_image);

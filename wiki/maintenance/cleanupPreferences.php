@@ -27,7 +27,6 @@
 require_once __DIR__ . '/Maintenance.php';
 
 use MediaWiki\MainConfigNames;
-use MediaWiki\MediaWikiServices;
 
 /**
  * Maintenance script that removes unused preferences from the database.
@@ -80,7 +79,7 @@ class CleanupPreferences extends Maintenance {
 
 		// Remove unknown preferences. Special-case 'userjs-' as we can't control those names.
 		if ( $unknown ) {
-			$defaultUserOptions = MediaWikiServices::getInstance()->getUserOptionsLookup()->getDefaultOptions();
+			$defaultUserOptions = $this->getServiceContainer()->getUserOptionsLookup()->getDefaultOptions( null );
 			$where = [
 				'up_property NOT' . $dbr->buildLike( 'userjs-', $dbr->anyString() ),
 				'up_property NOT IN (' . $dbr->makeList( array_keys( $defaultUserOptions ) ) . ')',
@@ -109,7 +108,7 @@ class CleanupPreferences extends Maintenance {
 		$iterator->addConditions( $where );
 		$iterator->setCaller( __METHOD__ );
 
-		$dbw = $this->getDB( DB_PRIMARY );
+		$dbw = $this->getPrimaryDB();
 		$total = 0;
 		foreach ( $iterator as $batch ) {
 			$numRows = count( $batch );
@@ -132,11 +131,10 @@ class CleanupPreferences extends Maintenance {
 				$deleteWhere[$row->up_user][$row->up_property] = true;
 			}
 			if ( $deleteWhere && !$dryRun ) {
-				$dbw->delete(
-					'user_properties',
-					$dbw->makeWhereFrom2d( $deleteWhere, 'up_user', 'up_property' ),
-					__METHOD__
-				);
+				$dbw->newDeleteQueryBuilder()
+					->deleteFrom( 'user_properties' )
+					->where( $dbw->makeWhereFrom2d( $deleteWhere, 'up_user', 'up_property' ) )
+					->caller( __METHOD__ )->execute();
 
 				$this->waitForReplication();
 			}

@@ -1,7 +1,5 @@
 <?php
 /**
- * Job queue task base code.
- *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -18,22 +16,25 @@
  * http://www.gnu.org/copyleft/gpl.html
  *
  * @file
- * @defgroup JobQueue JobQueue
  */
 
+use MediaWiki\Http\Telemetry;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Page\PageReference;
 use MediaWiki\Title\Title;
 
 /**
- * Class to both describe a background job and handle jobs.
- * To push jobs onto queues, use MediaWikiServices::getInstance()->getJobQueueGroup()->push();
+ * Describe and execute a background job.
  *
- * Job objects are constructed by the job queue, and must have an appropriate
- * constructor signature; see IJobSpecification.
+ * Push jobs onto queues via the JobQueueGroup service.
+ *
+ * Job objects must implement IJobSpecification to allow JobQueue to store the job,
+ * and later re-constructing the object from storage in a JobRunner.
+ *
+ * See [the architecture doc](@ref jobqueuearch) for more information.
  *
  * @stable to extend
- *
+ * @since 1.6
  * @ingroup JobQueue
  */
 abstract class Job implements RunnableJob {
@@ -111,7 +112,9 @@ abstract class Job implements RunnableJob {
 		}
 
 		$this->command = $command;
-		$this->params = $params + [ 'requestId' => WebRequest::getRequestId() ];
+		$this->params = $params + [
+			'requestId' => Telemetry::getInstance()->getRequestId(),
+		];
 
 		if ( $this->title === null ) {
 			// Set this field for access via getTitle().
@@ -192,9 +195,8 @@ abstract class Job implements RunnableJob {
 	 * @since 1.22
 	 */
 	public function getReleaseTimestamp() {
-		return isset( $this->params['jobReleaseTimestamp'] )
-			? wfTimestampOrNull( TS_UNIX, $this->params['jobReleaseTimestamp'] )
-			: null;
+		$time = wfTimestampOrNull( TS_UNIX, $this->params['jobReleaseTimestamp'] ?? null );
+		return $time ? (int)$time : null;
 	}
 
 	/**
@@ -202,9 +204,8 @@ abstract class Job implements RunnableJob {
 	 * @since 1.26
 	 */
 	public function getQueuedTimestamp() {
-		return isset( $this->metadata['timestamp'] )
-			? wfTimestampOrNull( TS_UNIX, $this->metadata['timestamp'] )
-			: null;
+		$time = wfTimestampOrNull( TS_UNIX, $this->metadata['timestamp'] ?? null );
+		return $time ? (int)$time : null;
 	}
 
 	/**
@@ -400,6 +401,10 @@ abstract class Job implements RunnableJob {
 				if ( mb_strlen( $flatValue ) > 1024 ) {
 					$flatValue = "string(" . mb_strlen( $value ) . ")";
 				}
+
+				// Remove newline characters from the value, since
+				// newlines indicate new job lines in log files
+				$flatValue = preg_replace( '/\s+/', ' ', $flatValue );
 
 				$paramString .= "$key={$flatValue}";
 			}

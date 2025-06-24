@@ -100,16 +100,7 @@ Model.static.compare = function ( obj1, obj2, allowSubset ) {
  * @return {string} Normalized non-obsolete type
  */
 Model.static.translateObsoleteParamTypes = function ( paramType ) {
-	switch ( paramType ) {
-		case 'string/wiki-page-name':
-			return 'wiki-page-name';
-		case 'string/wiki-file-name':
-			return 'wiki-file-name';
-		case 'string/wiki-user-name':
-			return 'wiki-user-name';
-		default:
-			return paramType;
-	}
+	return paramType.replace( /^string\//, '' );
 };
 
 /**
@@ -172,6 +163,16 @@ Model.static.getAllProperties = function ( getFullData ) {
 		},
 		autovalue: {
 			type: 'string'
+		},
+		status: {
+			type: 'select',
+			children: [
+				'optional',
+				'deprecated',
+				'required',
+				'suggested'
+			],
+			default: 'optional'
 		},
 		deprecated: {
 			type: 'boolean',
@@ -337,10 +338,8 @@ Model.prototype.importSourceCodeParameters = function () {
 
 	// Add sourceCodeParameters to the model
 	this.sourceCodeParameters.forEach( function ( sourceCodeParameter ) {
-		if (
-			existingArray.indexOf( sourceCodeParameter ) === -1 &&
-			model.addParam( sourceCodeParameter )
-		) {
+		if ( existingArray.indexOf( sourceCodeParameter ) === -1 ) {
+			model.addParam( sourceCodeParameter );
 			importedArray.push( sourceCodeParameter );
 		} else {
 			skippedArray.push( sourceCodeParameter );
@@ -386,7 +385,6 @@ Model.prototype.getExistingLanguageCodes = function () {
  *
  * @param {string} key Parameter key
  * @param {Object} [paramData] Parameter data
- * @return {boolean} Parameter was added successfully
  * @fires add-param
  * @fires change
  */
@@ -470,7 +468,6 @@ Model.prototype.addParam = function ( key, paramData ) {
 	// Trigger the add parameter event
 	this.emit( 'add-param', key, this.params[ key ] );
 	this.emit( 'change' );
-	return true;
 };
 
 /**
@@ -1009,7 +1006,7 @@ Model.prototype.outputTemplateData = function () {
 
 		// Go over all properties
 		for ( var prop in allProps ) {
-			if ( prop === 'deprecatedValue' || prop === 'name' ) {
+			if ( prop === 'status' || prop === 'deprecatedValue' || prop === 'name' ) {
 				continue;
 			}
 
@@ -1019,12 +1016,12 @@ Model.prototype.outputTemplateData = function () {
 					// or if the current type is not undefined
 					if (
 						original.params[ key ] &&
-						original.params[ key ].type !== 'unknown' &&
-						this.params[ key ].type === 'unknown'
+						original.params[ key ][ prop ] !== 'unknown' &&
+						this.params[ key ][ prop ] === 'unknown'
 					) {
 						result.params[ name ][ prop ] = undefined;
 					} else {
-						result.params[ name ][ prop ] = this.params[ key ].type;
+						result.params[ name ][ prop ] = this.params[ key ][ prop ];
 					}
 					break;
 				case 'boolean':

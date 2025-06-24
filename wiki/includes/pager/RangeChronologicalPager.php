@@ -17,6 +17,10 @@
  *
  * @file
  */
+
+namespace MediaWiki\Pager;
+
+use MediaWiki\Utils\MWTimestamp;
 use Wikimedia\Timestamp\TimestampException;
 
 /**
@@ -104,7 +108,7 @@ abstract class RangeChronologicalPager extends ReverseChronologicalPager {
 		);
 		// End of the range has been added by ReverseChronologicalPager
 		if ( $this->startOffset ) {
-			$conds[] = $this->mDb->buildComparison( '>=', [ $this->getTimestampField() => $this->startOffset ] );
+			$conds[] = $this->mDb->expr( $this->getTimestampField(), '>=', $this->startOffset );
 		} elseif ( $this->rangeConds ) {
 			// Keep compatibility with some derived classes, T325034
 			$conds = array_merge( $conds, $this->rangeConds );
@@ -113,3 +117,6 @@ abstract class RangeChronologicalPager extends ReverseChronologicalPager {
 		return [ $tables, $fields, $conds, $fname, $options, $join_conds ];
 	}
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( RangeChronologicalPager::class, 'RangeChronologicalPager' );

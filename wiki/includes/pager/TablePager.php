@@ -18,8 +18,16 @@
  * @file
  */
 
+namespace MediaWiki\Pager;
+
+use MediaWiki\Context\IContextSource;
 use MediaWiki\Html\Html;
 use MediaWiki\Linker\LinkRenderer;
+use MediaWiki\Parser\ParserOutput;
+use OOUI\ButtonGroupWidget;
+use OOUI\ButtonWidget;
+use stdClass;
+use XmlSelect;
 
 /**
  * Table-based display with a user-selectable sort order
@@ -73,9 +81,11 @@ abstract class TablePager extends IndexPager {
 	 * rather than mysteriously render things wrong.
 	 *
 	 * @deprecated since 1.24, use getBodyOutput() or getFullOutput() instead
+	 *   Emitting deprecation warnings since 1.41.
 	 * @return string
 	 */
 	final public function getBody() {
+		wfDeprecated( __METHOD__, '1.24' );
 		return parent::getBody();
 	}
 
@@ -92,7 +102,7 @@ abstract class TablePager extends IndexPager {
 		$body = parent::getBody();
 
 		$pout = new ParserOutput;
-		$pout->setText( $body );
+		$pout->setRawText( $body );
 		return $pout;
 	}
 
@@ -110,7 +120,7 @@ abstract class TablePager extends IndexPager {
 		$body = parent::getBody();
 
 		$pout = new ParserOutput;
-		$pout->setText( $navigation . $body . $navigation );
+		$pout->setRawText( $navigation . $body . $navigation );
 		$pout->addModuleStyles( $this->getModuleStyles() );
 		return $pout;
 	}
@@ -312,7 +322,7 @@ abstract class TablePager extends IndexPager {
 		$title = $this->getTitle();
 
 		foreach ( $types as $type ) {
-			$buttons[] = new \OOUI\ButtonWidget( [
+			$buttons[] = new ButtonWidget( [
 				// Messages used here:
 				// * table_pager_first
 				// * table_pager_prev
@@ -329,7 +339,7 @@ abstract class TablePager extends IndexPager {
 				'disabled' => $queries[ $type ] === false
 			] );
 		}
-		return new \OOUI\ButtonGroupWidget( [
+		return new ButtonGroupWidget( [
 			'classes' => [ $this->getNavClass() ],
 			'items' => $buttons,
 		] );
@@ -489,3 +499,6 @@ abstract class TablePager extends IndexPager {
 	 */
 	abstract protected function getFieldNames();
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( TablePager::class, 'TablePager' );

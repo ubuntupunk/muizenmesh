@@ -1,5 +1,6 @@
 var checkboxShift = require( './checkboxShift.js' );
 var config = require( './config.json' );
+var teleportTarget = require( './teleportTarget.js' );
 
 // Break out of framesets
 if ( mw.config.get( 'wgBreakFrames' ) ) {
@@ -45,9 +46,15 @@ mw.hook( 'wikipage.content' ).add( function ( $content ) {
 			}
 		} );
 	}
+	if ( $content[ 0 ] && $content[ 0 ].isConnected === false ) {
+		mw.log.warn( 'wikipage.content hook should not be fired on unattached content' );
+	}
 
 	checkboxShift( $content.find( 'input[type="checkbox"]:not(.noshiftselect)' ) );
 } );
+
+// Add toolbox portlet to toggle all collapsibles if there are any
+require( './toggleAllCollapsibles.js' );
 
 // Handle elements outside the wikipage content
 $( function () {
@@ -80,11 +87,12 @@ $( function () {
 	var node = document.querySelector( '.mw-indicators' );
 	if ( node && node.children.length ) {
 		/**
-		 * Fired when indicators are being added to the DOM
+		 * Fired when a page's status indicators are being added to the DOM.
 		 *
-		 * @event wikipage_indicators
-		 * @member mw.hook
+		 * @event ~'wikipage.indicators'
+		 * @memberof Hooks
 		 * @param {jQuery} $content jQuery object with the elements of the indicators
+		 * @see https://www.mediawiki.org/wiki/Special:MyLanguage/Help:Page_status_indicators
 		 */
 		mw.hook( 'wikipage.indicators' ).fire( $( node.children ) );
 	}
@@ -94,17 +102,15 @@ $( function () {
 	// do not display any content (T259577).
 	if ( $content.length ) {
 		/**
-		 * Fired when wiki content is being added to the DOM
+		 * Fired when wiki content has been added to the DOM.
 		 *
-		 * It is encouraged to fire it before the main DOM is changed (when $content
-		 * is still detached).  However, this order is not defined either way, so you
-		 * should only rely on $content itself.
+		 * This should only be fired after $content has been attached.
 		 *
 		 * This includes the ready event on a page load (including post-edit loads)
 		 * and when content has been previewed with LivePreview.
 		 *
-		 * @event wikipage_content
-		 * @member mw.hook
+		 * @event ~'wikipage.content'
+		 * @memberof Hooks
 		 * @param {jQuery} $content The most appropriate element containing the content,
 		 *   such as #mw-content-text (regular content root) or #wikiPreview (live preview
 		 *   root)
@@ -115,7 +121,7 @@ $( function () {
 	var $nodes = $( '.catlinks[data-mw="interface"]' );
 	if ( $nodes.length ) {
 		/**
-		 * Fired when categories are being added to the DOM
+		 * Fired when categories are being added to the DOM.
 		 *
 		 * It is encouraged to fire it before the main DOM is changed (when $content
 		 * is still detached).  However, this order is not defined either way, so you
@@ -124,8 +130,8 @@ $( function () {
 		 * This includes the ready event on a page load (including post-edit loads)
 		 * and when content has been previewed with LivePreview.
 		 *
-		 * @event wikipage_categories
-		 * @member mw.hook
+		 * @event ~'wikipage.categories'
+		 * @memberof Hooks
 		 * @param {jQuery} $content The most appropriate element containing the content,
 		 *   such as .catlinks
 		 */
@@ -135,13 +141,13 @@ $( function () {
 	$nodes = $( 'table.diff[data-mw="interface"]' );
 	if ( $nodes.length ) {
 		/**
-		 * Fired when the diff is added to a page containing a diff
+		 * Fired when the diff is added to a page containing a diff.
 		 *
-		 * Similar to the {@link mw.hook#event-wikipage_content wikipage.content hook}
+		 * Similar to the {@link Hooks~'wikipage.content' wikipage.content hook}
 		 * $diff may still be detached when the hook is fired.
 		 *
-		 * @event wikipage_diff
-		 * @member mw.hook
+		 * @event ~'wikipage.diff'
+		 * @memberof Hooks
 		 * @param {jQuery} $diff The root element of the MediaWiki diff (`table.diff`).
 		 */
 		mw.hook( 'wikipage.diff' ).fire( $nodes.eq( 0 ) );
@@ -171,8 +177,8 @@ $( function () {
 	 * This will end the user session, and either redirect to the given URL
 	 * on success, or queue an error message via mw.notification.
 	 *
-	 * @event skin_logout
-	 * @member mw.hook
+	 * @event ~'skin.logout'
+	 * @memberof Hooks
 	 * @param {string} href Full URL
 	 */
 	var LOGOUT_EVENT = 'skin.logout';
@@ -203,12 +209,9 @@ $( function () {
 		e.preventDefault();
 	} );
 	fixViewportForTabletDevices();
-} );
 
-/**
- * @class mw.plugin.page.ready
- * @singleton
- */
+	teleportTarget.attach();
+} );
 
 /**
  * @private
@@ -217,12 +220,13 @@ $( function () {
  */
 function isSearchInput( element ) {
 	return element.id === 'searchInput' ||
-		/(^|\s)mw-searchInput($|\s)/.test( element.className );
+		element.classList.contains( 'mw-searchInput' );
 }
 
 /**
  * Load a given module when a search input is focused.
  *
+ * @memberof module:mediawiki.page.ready
  * @param {string} moduleName Name of a module
  */
 function loadSearchModule( moduleName ) {
@@ -233,7 +237,6 @@ function loadSearchModule( moduleName ) {
 	// Vue search isn't loaded through this function so we are only collecting
 	// legacy search performance metrics here.
 
-	/* eslint-disable compat/compat */
 	var shouldTestSearch = !!( moduleName === 'mediawiki.searchSuggest' &&
 		mw.config.get( 'skin' ) === 'vector' &&
 		window.performance &&
@@ -242,7 +245,6 @@ function loadSearchModule( moduleName ) {
 		performance.getEntriesByName ),
 		loadStartMark = 'mwVectorLegacySearchLoadStart',
 		loadEndMark = 'mwVectorLegacySearchLoadEnd';
-	/* eslint-enable compat/compat */
 
 	function requestSearchModule() {
 		if ( shouldTestSearch ) {
@@ -280,7 +282,25 @@ if ( config.search ) {
 	loadSearchModule( 'mediawiki.searchSuggest' );
 }
 
+try {
+	// Load the post-edit notification module if a notification has been scheduled.
+	// Use `sessionStorage` directly instead of 'mediawiki.storage' to minimize dependencies.
+	if ( sessionStorage.getItem( 'mw-PostEdit' + mw.config.get( 'wgPageName' ) ) ) {
+		mw.loader.load( 'mediawiki.action.view.postEdit' );
+	}
+} catch ( err ) {}
+
+/**
+ * @exports mediawiki.page.ready
+ */
 module.exports = {
-	loadSearchModule: loadSearchModule,
-	checkboxHack: require( './checkboxHack.js' )
+	loadSearchModule,
+	/** @type {module:mediawiki.page.ready.CheckboxHack} */
+	checkboxHack: require( './checkboxHack.js' ),
+	/**
+	 * A container for displaying elements that overlay the page, such as dialogs.
+	 *
+	 * @type {HTMLElement}
+	 */
+	teleportTarget: teleportTarget.target
 };

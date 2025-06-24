@@ -6,7 +6,7 @@ array (
   'title' => 'Muizenberg Electricity Cooperative',
   'mail' => 'ZenAdmin',
   'content' => 'Anyone wanting to discuss the creation of our Cooperative Project can post here.',
-  'view' => 58,
+  'view' => 3021,
   'forum' => 'muizenmesh-forum',
   'reply' => 
   array (

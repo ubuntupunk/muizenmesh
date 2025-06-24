@@ -1,7 +1,9 @@
 <?php
 
+use MediaWiki\Output\OutputPage;
+
 /**
- * @covers DifferenceEngineSlotDiffRenderer
+ * @covers \DifferenceEngineSlotDiffRenderer
  */
 class DifferenceEngineSlotDiffRendererTest extends MediaWikiIntegrationTestCase {
 

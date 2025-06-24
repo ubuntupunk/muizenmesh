@@ -8,8 +8,7 @@
  * simply sets the user <i>rights</i> one time. Afterwards the user is independent from the <i>template</i>.
  *
  * @author Stephen Billard (sbillard)
- * @package plugins
- * @subpackage user-groups
+ * @package zpcore\plugins\usergroups
  */
 // force UTF-8 Ø
 
@@ -116,8 +115,7 @@ class user_groups {
 		if (empty($groups))
 			return gettext('no groups established'); // no groups setup yet
 		$grouppart = '
-		<script type="text/javascript">
-			// <!-- <![CDATA[
+		<script>
 			function groupchange' . $i . '(type) {
 				switch (type) {
 				case 0:	//	none
@@ -138,7 +136,6 @@ class user_groups {
 					break;
 			}
 		}
-		//]]> -->
 	</script>' . "\n";
 
 		$grouppart .= '<ul class="customchecklist">' . "\n";

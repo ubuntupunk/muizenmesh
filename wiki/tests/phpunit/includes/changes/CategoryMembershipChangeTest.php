@@ -2,10 +2,11 @@
 
 use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\Title\Title;
+use MediaWiki\User\User;
 use MediaWiki\User\UserIdentity;
 
 /**
- * @covers CategoryMembershipChange
+ * @covers \CategoryMembershipChange
  *
  * @group Database
  *
@@ -85,7 +86,7 @@ class CategoryMembershipChangeTest extends MediaWikiLangTestCase {
 
 		$this->assertSame( 1, self::$notifyCallCounter );
 
-		$this->assertTrue( strlen( self::$lastNotifyArgs[0] ) === 14 );
+		$this->assertSame( 14, strlen( self::$lastNotifyArgs[0] ) );
 		$this->assertEquals( 'Category:CategoryName', self::$lastNotifyArgs[1]->getPrefixedText() );
 		$this->assertEquals( '(autochange-username)', self::$lastNotifyArgs[2]->getName() );
 		$this->assertEquals( '(recentchanges-page-added-to-category: ' . self::$pageName . ')',
@@ -105,7 +106,7 @@ class CategoryMembershipChangeTest extends MediaWikiLangTestCase {
 
 		$this->assertSame( 1, self::$notifyCallCounter );
 
-		$this->assertTrue( strlen( self::$lastNotifyArgs[0] ) === 14 );
+		$this->assertSame( 14, strlen( self::$lastNotifyArgs[0] ) );
 		$this->assertEquals( 'Category:CategoryName', self::$lastNotifyArgs[1]->getPrefixedText() );
 		$this->assertEquals( '(autochange-username)', self::$lastNotifyArgs[2]->getName() );
 		$this->assertEquals( '(recentchanges-page-removed-from-category: ' . self::$pageName . ')',
@@ -128,7 +129,7 @@ class CategoryMembershipChangeTest extends MediaWikiLangTestCase {
 
 		$this->assertSame( 1, self::$notifyCallCounter );
 
-		$this->assertTrue( strlen( self::$lastNotifyArgs[0] ) === 14 );
+		$this->assertSame( 14, strlen( self::$lastNotifyArgs[0] ) );
 		$this->assertEquals( 'Category:CategoryName', self::$lastNotifyArgs[1]->getPrefixedText() );
 		$this->assertEquals( self::$revUser->getName(), self::$lastNotifyArgs[2]->getName() );
 		$this->assertEquals( '(recentchanges-page-added-to-category: ' . self::$pageName . ')',
@@ -151,7 +152,7 @@ class CategoryMembershipChangeTest extends MediaWikiLangTestCase {
 
 		$this->assertSame( 1, self::$notifyCallCounter );
 
-		$this->assertTrue( strlen( self::$lastNotifyArgs[0] ) === 14 );
+		$this->assertSame( 14, strlen( self::$lastNotifyArgs[0] ) );
 		$this->assertEquals( 'Category:CategoryName', self::$lastNotifyArgs[1]->getPrefixedText() );
 		$this->assertEquals( self::$revUser->getName(), self::$lastNotifyArgs[2]->getName() );
 		$this->assertEquals( '(recentchanges-page-removed-from-category: ' . self::$pageName . ')',

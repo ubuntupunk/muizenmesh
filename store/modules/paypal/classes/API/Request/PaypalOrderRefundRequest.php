@@ -1,6 +1,6 @@
 <?php
-/**
- * 2007-2023 PayPal
+/*
+ * Since 2007 PayPal
  *
  * NOTICE OF LICENSE
  *
@@ -18,25 +18,27 @@
  *  versions in the future. If you wish to customize PrestaShop for your
  *  needs please refer to http://www.prestashop.com for more information.
  *
- *  @author 2007-2023 PayPal
+ *  @author Since 2007 PayPal
  *  @author 202 ecommerce <tech@202-ecommerce.com>
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
+ *
  */
 
 namespace PaypalAddons\classes\API\Request;
 
 use Exception;
 use PaypalAddons\classes\AbstractMethodPaypal;
+use PaypalAddons\classes\API\Client\HttpClient;
+use PaypalAddons\classes\API\ExtensionSDK\Order\CapturesRefundRequest;
+use PaypalAddons\classes\API\HttpAdoptedResponse;
 use PaypalAddons\classes\API\Response\Error;
 use PaypalAddons\classes\API\Response\ResponseOrderRefund;
 use PaypalAddons\classes\Exception\OrderFullyRefundedException;
 use PaypalAddons\classes\Exception\RefundCalculationException;
+use PaypalAddons\classes\PaypalException;
 use PaypalAddons\services\PaymentTotalAmount;
 use PaypalAddons\services\ServicePaypalOrder;
-use PayPalCheckoutSdk\Core\PayPalHttpClient;
-use PayPalCheckoutSdk\Payments\CapturesRefundRequest;
-use PayPalHttp\HttpException;
 use Throwable;
 use Validate;
 
@@ -48,7 +50,7 @@ class PaypalOrderRefundRequest extends RequestAbstract
 {
     protected $paypalOrder;
 
-    public function __construct(PayPalHttpClient $client, AbstractMethodPaypal $method, \PaypalOrder $paypalOrder)
+    public function __construct(HttpClient $client, AbstractMethodPaypal $method, \PaypalOrder $paypalOrder)
     {
         parent::__construct($client, $method);
         $this->paypalOrder = $paypalOrder;
@@ -58,15 +60,17 @@ class PaypalOrderRefundRequest extends RequestAbstract
     {
         $response = new ResponseOrderRefund();
         $captureRefund = new CapturesRefundRequest($this->getResourceId());
-        $captureRefund->prefer('return=representation');
-        $captureRefund->headers = array_merge($this->getHeaders(), $captureRefund->headers);
 
         try {
             if ($body = $this->buildRequestBody()) {
-                $captureRefund->body = $body;
+                $captureRefund->setBody(json_encode($body));
             }
 
             $exec = $this->client->execute($captureRefund);
+
+            if ($exec instanceof HttpAdoptedResponse) {
+                $exec = $exec->getAdoptedResponse();
+            }
 
             if (in_array($exec->statusCode, [200, 201, 202])) {
                 $response->setSuccess(true)
@@ -80,7 +84,7 @@ class PaypalOrderRefundRequest extends RequestAbstract
                 $error->setMessage($resultDecoded->message);
                 $response->setSuccess(false)->setError($error);
             }
-        } catch (HttpException $e) {
+        } catch (PaypalException $e) {
             $error = new Error();
             $resultDecoded = json_decode($e->getMessage());
 

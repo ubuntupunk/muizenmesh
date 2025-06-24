@@ -49,15 +49,14 @@
  * plugin folder.
  *
  * @author Stephen Billard (sbillard)
- * @package plugins
- * @subpackage class-textobject
+ * @package zpcore\plugins\classtextobject
  *
  */
 $plugin_is_filter = 990 | CLASS_PLUGIN;
 $plugin_description = gettext('Provides a means for showing text type documents (.txt, .html, .htm).');
 $plugin_author = "Stephen Billard (sbillard)";
 $plugin_category = gettext('Media');
-
+$plugin_deprecated = gettext('This plugin will be restructured and moved to core in later versions');
 
 Gallery::addImageHandler('htm', 'TextObject');
 Gallery::addImageHandler('html', 'TextObject');
@@ -66,13 +65,13 @@ $option_interface = 'textObject_Options';
 
 /**
  * Option class for textobjects objects
- *
+ * @deprecated 2.0
  */
 class TextObject_Options {
 
 	/**
 	 * Standard option interface
-	 *
+	  * @deprecated 2.0
 	 * @return array
 	 */
 	function getOptionsSupported() {

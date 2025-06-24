@@ -2,8 +2,7 @@
 /**
  * Provides automatic hitcounter counting for Zenphoto objects
  * @author Stephen Billard (sbillard), Malte Müller (acrylian)
- * @package plugins
- * @subpackage hitcounter
+ * @package zpcore\plugins\hitcounter
  */
 /** Reset hitcounters ********************************************************** */
 /* * ***************************************************************************** */
@@ -46,7 +45,7 @@ zp_register_filter('admin_utilities_buttons', 'hitcounter::button');
  */
 class hitcounter {
 
-	var $defaultbots = 'Teoma, alexa, froogle, Gigabot,inktomi, looksmart, URL_Spider_SQL, Firefly, NationalDirectory, Ask Jeeves, TECNOSEEK, InfoSeek, WebFindBot, girafabot, crawler, www.galaxy.com, Googlebot, Scooter, Slurp, msnbot, appie, FAST, WebBug, Spade, ZyBorg, rabaz ,Baiduspider, Feedfetcher-Google, TechnoratiSnoop, Rankivabot, Mediapartners-Google, Sogou web spider, WebAlta Crawler';
+	public $defaultbots = 'Teoma, alexa, froogle, Gigabot,inktomi, looksmart, URL_Spider_SQL, Firefly, NationalDirectory, Ask Jeeves, TECNOSEEK, InfoSeek, WebFindBot, girafabot, crawler, www.galaxy.com, Googlebot, Scooter, Slurp, msnbot, appie, FAST, WebBug, Spade, ZyBorg, rabaz ,Baiduspider, Feedfetcher-Google, TechnoratiSnoop, Rankivabot, Mediapartners-Google, Sogou web spider, WebAlta Crawler';
 
 	function __construct() {
 		setOptionDefault('hitcounter_ignoreIPList_enable', 0);
@@ -91,8 +90,7 @@ class hitcounter {
 		switch ($option) {
 			case 'hitcounter_set_defaults':
 				?>
-				<script type="text/javascript">
-					// <!-- <![CDATA[
+				<script>
 					var reset = "<?php echo $this->defaultbots; ?>";
 					function hitcounter_defaults() {
 						$('#hitcounter_ignoreIPList').val('');
@@ -105,7 +103,6 @@ class hitcounter {
 
 
 					}
-					// ]]> -->
 				</script>
 				<label><input id="hitcounter_reset_button" type="button" value="<?php echo gettext('Defaults'); ?>" onclick="hitcounter_defaults();" /></label>
 				<?php
@@ -114,8 +111,7 @@ class hitcounter {
 				?>
 				<input type="hidden" name="<?php echo CUSTOM_OPTION_PREFIX; ?>'text-hitcounter_ignoreIPList" value="0" />
 				<input type="text" size="30" id="hitcounter_ignoreIPList" name="hitcounter_ignoreIPList" value="<?php echo html_encode($currentValue); ?>" />
-				<script type="text/javascript">
-					// <!-- <![CDATA[
+				<script>
 					function hitcounter_insertIP() {
 						if ($('#hitcounter_ignoreIPList').val() == '') {
 							$('#hitcounter_ignoreIPList').val('<?php echo getUserIP(); ?>');
@@ -130,7 +126,6 @@ class hitcounter {
 							$('#hitcounter_ip_button').removeAttr('disabled');
 						}
 					});
-					// ]]> -->
 				</script>
 				<label><input id="hitcounter_ip_button" type="button" value="<?php echo gettext('Insert my IP'); ?>" onclick="hitcounter_insertIP();" disabled="disabled" /></label>
 				<?php
@@ -212,7 +207,7 @@ class hitcounter {
 				'category' => gettext('Database'),
 				'enable' => true,
 				'button_text' => gettext('Reset all hitcounters'),
-				'formname' => 'reset_all_hitcounters.php',
+				'formname' => 'reset_all_hitcounters',
 				'action' => FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER . '/hitcounter.php?action=reset_all_hitcounters',
 				'icon' => FULLWEBPATH . '/' . ZENFOLDER . '/images/reset.png',
 				'alt' => '',
@@ -267,7 +262,7 @@ function getHitcounter($obj = NULL) {
  * Gets the total hitcounter sum of one or several items
  * 
  * @author Malte Müller (acrylian)
- * @since ZenphotoCMS 1.5.3
+ * @since 1.5.3
  * 
  * @param array $items an array with one or more item table names, e.g. array('albums', 'images', 'news', 'news_categories', 'pages')
  * @return int

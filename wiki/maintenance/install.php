@@ -21,19 +21,22 @@
  * @ingroup Maintenance
  */
 
+use MediaWiki\Installer\Installer;
+use MediaWiki\Installer\InstallerOverrides;
+use MediaWiki\Installer\InstallException;
 use MediaWiki\Settings\SettingsBuilder;
 use Wikimedia\AtEase\AtEase;
 
 require_once __DIR__ . '/Maintenance.php';
 
-define( 'MW_CONFIG_CALLBACK', 'Installer::overrideConfig' );
+define( 'MW_CONFIG_CALLBACK', [ Installer::class, 'overrideConfig' ] );
 define( 'MEDIAWIKI_INSTALL', true );
 
 /**
  * Maintenance script to install and configure MediaWiki
  *
  * Default values for the options are defined in MainConfigSchema.php
- * (see the mapping in CliInstaller.php)
+ * (see the mapping in includes/installer/CliInstaller.php)
  * Default for --dbpath (SQLite-specific) is defined in SqliteInstaller::getGlobalDefaults
  *
  * @ingroup Maintenance
@@ -56,10 +59,9 @@ class CommandLineInstaller extends Maintenance {
 			false,
 			true
 		);
-		/* $this->addOption( 'email', 'The email for the wiki administrator', false, true ); */
 		$this->addOption(
 			'scriptpath',
-			'The relative path of the wiki in the web server (/wiki)',
+			'The relative path of the wiki in the web server (/' . basename( dirname( __DIR__ ) ) . ')',
 			false,
 			true
 		);
@@ -71,10 +73,10 @@ class CommandLineInstaller extends Maintenance {
 		);
 
 		$this->addOption( 'lang', 'The language to use (en)', false, true );
-		/* $this->addOption( 'cont-lang', 'The content language (en)', false, true ); */
 
 		$this->addOption( 'dbtype', 'The type of database (mysql)', false, true );
 		$this->addOption( 'dbserver', 'The database host (localhost)', false, true );
+		$this->addOption( 'dbssl', 'Connect to the database over SSL' );
 		$this->addOption( 'dbport', 'The database port; only for PostgreSQL (5432)', false, true );
 		$this->addOption( 'dbname', 'The database name (my_wiki)', false, true );
 		$this->addOption( 'dbpath', 'The path for the SQLite DB ($IP/data)', false, true );
@@ -92,10 +94,7 @@ class CommandLineInstaller extends Maintenance {
 		$this->addOption( 'confpath', "Path to write LocalSettings.php to ($IP)", false, true );
 		$this->addOption( 'dbschema', 'The schema for the MediaWiki DB in '
 			. 'PostgreSQL (mediawiki)', false, true );
-		/*
-		$this->addOption( 'namespace', 'The project namespace (same as the "name" argument)',
-			false, true );
-		*/
+
 		$this->addOption( 'env-checks', "Run environment checks only, don't change anything" );
 
 		$this->addOption( 'with-extensions', "Detect and include extensions" );
@@ -103,17 +102,14 @@ class CommandLineInstaller extends Maintenance {
 			false, true, false, true );
 		$this->addOption( 'skins', 'Comma-separated list of skins to install (default: all)',
 			false, true, false, true );
+		$this->addOption( 'with-developmentsettings', 'Load DevelopmentSettings.php in LocalSettings.php' );
 	}
 
 	public function canExecuteWithoutLocalSettings(): bool {
 		return true;
 	}
 
-	public function finalSetup( SettingsBuilder $settingsBuilder = null ) {
-		if ( !$settingsBuilder ) {
-			$settingsBuilder = SettingsBuilder::getInstance();
-		}
-
+	public function finalSetup( SettingsBuilder $settingsBuilder ) {
 		parent::finalSetup( $settingsBuilder );
 		Installer::overrideConfig( $settingsBuilder );
 	}
@@ -132,6 +128,11 @@ class CommandLineInstaller extends Maintenance {
 		$adminName = $this->getArg( 1 );
 		$envChecksOnly = $this->hasOption( 'env-checks' );
 
+		$scriptpath = $this->getOption( 'scriptpath', false );
+		if ( $scriptpath === false ) {
+			$this->mOptions['scriptpath'] = '/' . basename( dirname( __DIR__ ) );
+		}
+
 		$this->setDbPassOption();
 		if ( !$envChecksOnly ) {
 			$this->setPassOption();
@@ -139,7 +140,7 @@ class CommandLineInstaller extends Maintenance {
 
 		try {
 			$installer = InstallerOverrides::getCliInstaller( $siteName, $adminName, $this->parameters->getOptions() );
-		} catch ( \MediaWiki\Installer\InstallException $e ) {
+		} catch ( InstallException $e ) {
 			$this->error( $e->getStatus()->getMessage( false, false, 'en' )->text() . "\n" );
 			return false;
 		}

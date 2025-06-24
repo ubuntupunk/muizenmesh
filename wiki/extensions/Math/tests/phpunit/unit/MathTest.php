@@ -2,7 +2,7 @@
 namespace MediaWiki\Extension\Math\Tests;
 
 use ExtensionRegistry;
-use HashConfig;
+use MediaWiki\Config\HashConfig;
 use MediaWiki\Config\ServiceOptions;
 use MediaWiki\Extension\Math\Math;
 use MediaWiki\Extension\Math\MathConfig;
@@ -23,12 +23,13 @@ class MathTest extends MediaWikiUnitTestCase {
 		] );
 		$services = new MediaWikiServices( $config );
 		$services->defineService( 'Math.Config',
-			static function ( MediaWikiServices $services ){
-			return new MathConfig(
-				new ServiceOptions(
-					MathConfig::CONSTRUCTOR_OPTIONS,
-					$services->get( 'BootstrapConfig' ) ),
-				ExtensionRegistry::getInstance()
+			function ( MediaWikiServices $services ) use ( $config ) {
+				return new MathConfig(
+					new ServiceOptions(
+						MathConfig::CONSTRUCTOR_OPTIONS,
+						$config
+					),
+					$this->createMock( ExtensionRegistry::class )
 				);
 			}
 		);

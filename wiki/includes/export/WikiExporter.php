@@ -2,7 +2,7 @@
 /**
  * Base class for exporting
  *
- * Copyright © 2003, 2005, 2006 Brion Vibber <brion@pobox.com>
+ * Copyright © 2003, 2005, 2006 Brooke Vibber <bvibber@wikimedia.org>
  * https://www.mediawiki.org/
  *
  * This program is free software; you can redistribute it and/or modify
@@ -36,7 +36,9 @@ use MediaWiki\Page\PageIdentity;
 use MediaWiki\Revision\RevisionAccessException;
 use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\Revision\RevisionStore;
-use Wikimedia\Rdbms\IDatabase;
+use MediaWiki\Title\MalformedTitleException;
+use MediaWiki\Title\TitleParser;
+use Wikimedia\Rdbms\IReadableDatabase;
 use Wikimedia\Rdbms\IResultWrapper;
 
 /**
@@ -75,7 +77,7 @@ class WikiExporter {
 	/** @var XmlDumpWriter */
 	private $writer;
 
-	/** @var IDatabase */
+	/** @var IReadableDatabase */
 	protected $db;
 
 	/** @var array|int */
@@ -106,7 +108,7 @@ class WikiExporter {
 	}
 
 	/**
-	 * @param IDatabase $db
+	 * @param IReadableDatabase $db
 	 * @param CommentStore $commentStore
 	 * @param HookContainer $hookContainer
 	 * @param RevisionStore $revisionStore
@@ -234,7 +236,6 @@ class WikiExporter {
 
 	/**
 	 * @param string $name
-	 * @throws MWException
 	 */
 	public function pageByName( $name ) {
 		try {
@@ -243,7 +244,7 @@ class WikiExporter {
 				'page_namespace=' . $link->getNamespace() .
 				' AND page_title=' . $this->db->addQuotes( $link->getDBkey() ) );
 		} catch ( MalformedTitleException $ex ) {
-			throw new MWException( "Can't export invalid title" );
+			throw new RuntimeException( "Can't export invalid title" );
 		}
 	}
 
@@ -283,21 +284,12 @@ class WikiExporter {
 		$this->author_list = "<contributors>";
 		// rev_deleted
 
-		$revQuery = $this->revisionStore->getQueryInfo( [ 'page' ] );
-		$res = $this->db->newSelectQueryBuilder()
-			->select( [
-				'rev_user_text' => $revQuery['fields']['rev_user_text'],
-				'rev_user' => $revQuery['fields']['rev_user'],
-			] )
-			->tables( $revQuery['tables'] )
-			->where( [
-				$this->db->bitAnd( 'rev_deleted', RevisionRecord::DELETED_USER ) . ' = 0',
-				$cond,
-			] )
-			->joinConds( $revQuery['joins'] )
+		$res = $this->revisionStore->newSelectQueryBuilder( $this->db )
+			->joinPage()
 			->distinct()
-			->caller( __METHOD__ )
-			->fetchResultSet();
+			->where( $this->db->bitAnd( 'rev_deleted', RevisionRecord::DELETED_USER ) . ' = 0' )
+			->andWhere( $cond )
+			->caller( __METHOD__ )->fetchResultSet();
 
 		foreach ( $res as $row ) {
 			$this->author_list .= "<contributor>" .
@@ -315,8 +307,6 @@ class WikiExporter {
 	/**
 	 * @param string $cond
 	 * @param bool $orderRevs
-	 * @throws MWException
-	 * @throws Exception
 	 */
 	protected function dumpFrom( $cond = '', $orderRevs = false ) {
 		if ( is_int( $this->history ) && ( $this->history & self::LOGS ) ) {
@@ -328,7 +318,6 @@ class WikiExporter {
 
 	/**
 	 * @param string $cond
-	 * @throws Exception
 	 */
 	protected function dumpLogs( $cond ) {
 		$where = [];
@@ -383,8 +372,6 @@ class WikiExporter {
 	/**
 	 * @param string $cond
 	 * @param bool $orderRevs
-	 * @throws MWException
-	 * @throws Exception
 	 */
 	protected function dumpPages( $cond, $orderRevs ) {
 		$revQuery = $this->revisionStore->getQueryInfo( [ 'page' ] );
@@ -457,13 +444,13 @@ class WikiExporter {
 			$join['revision'] = [ 'JOIN', 'page_id=rev_page AND page_latest=rev_id' ];
 			# One, and only one hook should set this, and return false
 			if ( $this->hookRunner->onWikiExporter__dumpStableQuery( $tables, $opts, $join ) ) {
-				throw new MWException( __METHOD__ . " given invalid history dump type." );
+				throw new LogicException( __METHOD__ . " given invalid history dump type." );
 			}
 		} elseif ( $this->history & self::RANGE ) {
 			# Dump of revisions within a specified range.  Condition already set in revsByRange().
 		} else {
 			# Unknown history specification parameter?
-			throw new MWException( __METHOD__ . " given invalid history dump type." );
+			throw new UnexpectedValueException( __METHOD__ . " given invalid history dump type." );
 		}
 
 		$done = false;

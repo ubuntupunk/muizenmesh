@@ -1,5 +1,6 @@
 <?php
 
+use MediaWiki\Context\RequestContext;
 use MediaWiki\MainConfigNames;
 use MediaWiki\Title\Title;
 use Wikimedia\TestingAccessWrapper;
@@ -12,6 +13,7 @@ use Wikimedia\TestingAccessWrapper;
  * - do not have inconsistencies in the parameter definitions
  *
  * @group API
+ * @group Database
  * @coversNothing
  */
 class ApiStructureTest extends MediaWikiIntegrationTestCase {
@@ -56,8 +58,8 @@ class ApiStructureTest extends MediaWikiIntegrationTestCase {
 	 */
 	private function checkMessage( $msg, $what ) {
 		$msg = ApiBase::makeMessage( $msg, self::getMain()->getContext() );
-		$this->assertInstanceOf( Message::class, $msg, "$what message" );
-		$this->assertTrue( $msg->exists(), "$what message {$msg->getKey()} exists" );
+		$this->assertInstanceOf( Message::class, $msg, "API $what message should be a Message" );
+		$this->assertTrue( $msg->exists(), "API $what message \"{$msg->getKey()}\" must exist. Did you forgot to add it to your i18n/en.json?" );
 	}
 
 	/**
@@ -110,10 +112,7 @@ class ApiStructureTest extends MediaWikiIntegrationTestCase {
 		return $ret;
 	}
 
-	/**
-	 * @dataProvider provideParameters
-	 */
-	public function testParameters( string $path, array $params, string $name ): void {
+	private function doTestParameters( string $path, array $params, string $name ): void {
 		$main = self::getMain();
 
 		$dataName = $this->dataName();
@@ -156,6 +155,21 @@ class ApiStructureTest extends MediaWikiIntegrationTestCase {
 		}
 	}
 
+	/**
+	 * @dataProvider provideParameters
+	 */
+	public function testParameters( string $path, string $argset, array $args, ApiMain $main ): void {
+		$module = $main->getModuleFromPath( $path );
+		$params = $module->getFinalParams( ...$args );
+		if ( !$params ) {
+			$this->addToAssertionCount( 1 );
+			return;
+		}
+		foreach ( $params as $param => $_ ) {
+			$this->doTestParameters( $path, $params, $param );
+		}
+	}
+
 	public static function provideParameters(): Iterator {
 		$main = self::getMain();
 		$paths = self::getSubModulePaths( $main->getModuleManager() );
@@ -166,12 +180,10 @@ class ApiStructureTest extends MediaWikiIntegrationTestCase {
 		];
 
 		foreach ( $paths as $path ) {
-			$module = $main->getModuleFromPath( $path );
 			foreach ( $argsets as $argset => $args ) {
-				$params = $module->getFinalParams( ...$args );
-				foreach ( $params as $param => $dummy ) {
-					yield "Module $path, $argset, parameter $param" => [ $path, $params, $param ];
-				}
+				// NOTE: Retrieving the module parameters here may have side effects such as DB queries that
+				// should be avoided in data providers (T341731). So do that in the test method instead.
+				yield "Module $path, argset $argset" => [ $path, $argset, $args, $main ];
 			}
 		}
 	}

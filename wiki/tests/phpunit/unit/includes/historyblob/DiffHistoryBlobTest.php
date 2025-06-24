@@ -6,7 +6,7 @@
 class DiffHistoryBlobTest extends MediaWikiUnitTestCase {
 	/**
 	 * @dataProvider provideXdiffAdler32
-	 * @covers DiffHistoryBlob::xdiffAdler32
+	 * @covers \DiffHistoryBlob::xdiffAdler32
 	 */
 	public function testXdiffAdler32( $input ) {
 		$xdiffHash = substr( xdiff_string_rabdiff( $input, '' ), 0, 4 );
@@ -16,7 +16,7 @@ class DiffHistoryBlobTest extends MediaWikiUnitTestCase {
 			"Hash of " . addcslashes( $input, "\0..\37!@\@\177..\377" ) );
 	}
 
-	public function provideXdiffAdler32() {
+	public static function provideXdiffAdler32() {
 		return [
 			[ '', 'Empty string' ],
 			[ "\0", 'Null' ],

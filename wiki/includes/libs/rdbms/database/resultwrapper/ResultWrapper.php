@@ -18,7 +18,6 @@ use stdClass;
  * Subclasses can override methods to make it solely work on the result resource instead.
  *
  * @ingroup Database
- * @stable to override
  */
 abstract class ResultWrapper implements IResultWrapper {
 	/**
@@ -160,8 +159,3 @@ abstract class ResultWrapper implements IResultWrapper {
 		return $this->fieldNames;
 	}
 }
-
-/**
- * @deprecated since 1.29
- */
-class_alias( ResultWrapper::class, 'ResultWrapper' );

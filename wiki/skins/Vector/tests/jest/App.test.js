@@ -5,12 +5,14 @@ const defaultProps = {
 	id: 'searchform',
 	searchAccessKey: 'f',
 	searchTitle: 'search',
+	showThumbnail: true,
+	showDescription: true,
+	highlightQuery: true,
 	searchPlaceholder: 'Search MediaWiki',
 	searchQuery: ''
 };
 
 const mount = ( /** @type {Object} */ customProps ) => {
-	// @ts-ignore
 	return VueTestUtils.shallowMount( App, {
 		props: Object.assign( {}, defaultProps, customProps ),
 		global: {
@@ -21,7 +23,7 @@ const mount = ( /** @type {Object} */ customProps ) => {
 			},
 			directives: {
 				'i18n-html': ( el, binding ) => {
-					el.innerHTML = `${binding.arg} (${binding.value})`;
+					el.innerHTML = `${ binding.arg } (${ binding.value })`;
 				}
 			}
 		}

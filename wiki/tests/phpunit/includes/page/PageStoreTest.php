@@ -2,6 +2,7 @@
 namespace MediaWiki\Tests\Page;
 
 use Exception;
+use IDBAccessObject;
 use InvalidArgumentException;
 use LinkCacheTestTrait;
 use MediaWiki\Config\ServiceOptions;
@@ -12,9 +13,9 @@ use MediaWiki\Page\PageIdentityValue;
 use MediaWiki\Page\PageRecord;
 use MediaWiki\Page\PageStore;
 use MediaWiki\Title\Title;
+use MediaWiki\Title\TitleValue;
 use MediaWikiIntegrationTestCase;
 use MockTitleTrait;
-use TitleValue;
 use Wikimedia\Assert\PreconditionException;
 use Wikimedia\Rdbms\IDatabase;
 use Wikimedia\Rdbms\LoadBalancer;
@@ -26,11 +27,6 @@ class PageStoreTest extends MediaWikiIntegrationTestCase {
 
 	use MockTitleTrait;
 	use LinkCacheTestTrait;
-
-	protected function setUp(): void {
-		parent::setUp();
-		$this->tablesUsed[] = 'page';
-	}
 
 	/**
 	 * @param array $options
@@ -149,7 +145,7 @@ class PageStoreTest extends MediaWikiIntegrationTestCase {
 		$this->assertSame( $link->getDBkey(), $page->getDBkey() );
 	}
 
-	public function provideInvalidLinks() {
+	public static function provideInvalidLinks() {
 		yield 'section link' => [ new TitleValue( NS_MAIN, '', '#References' ) ];
 		yield 'special page' => [ new TitleValue( NS_SPECIAL, 'Test' ) ];
 		yield 'interwiki link' => [ new TitleValue( NS_MAIN, 'Test', '', 'acme' ) ];
@@ -389,7 +385,7 @@ class PageStoreTest extends MediaWikiIntegrationTestCase {
 		$this->assertSamePage( $existingPage, $page );
 	}
 
-	public function provideGetPageByName_invalid() {
+	public static function provideGetPageByName_invalid() {
 		yield 'empty title' => [ NS_MAIN, '' ];
 		yield 'spaces in title' => [ NS_MAIN, 'Foo Bar' ];
 		yield 'special page' => [ NS_SPECIAL, 'Test' ];
@@ -410,7 +406,7 @@ class PageStoreTest extends MediaWikiIntegrationTestCase {
 		$pageStore->getPageByName( $ns, $dbkey );
 	}
 
-	public function provideInvalidTitleText() {
+	public static function provideInvalidTitleText() {
 		yield 'empty' => [ '' ];
 		yield 'section' => [ '#foo' ];
 		yield 'autoblock' => [ 'User:#12345' ];
@@ -493,7 +489,7 @@ class PageStoreTest extends MediaWikiIntegrationTestCase {
 		$this->assertNull( $page->getLanguage() );
 	}
 
-	public function provideGetPageById_invalid() {
+	public static function provideGetPageById_invalid() {
 		yield 'zero' => [ 0 ];
 		yield 'negative' => [ -1 ];
 	}
@@ -651,11 +647,11 @@ class PageStoreTest extends MediaWikiIntegrationTestCase {
 		$existingPage = $this->getExistingTestPage();
 		$pageStore = $this->getPageStore();
 
-		$row = $this->db->selectRow(
-			'page',
-			$pageStore->getSelectFields(),
-			[ 'page_id' => $existingPage->getId() ]
-		);
+		$row = $this->db->newSelectQueryBuilder()
+			->select( $pageStore->getSelectFields() )
+			->from( 'page' )
+			->where( [ 'page_id' => $existingPage->getId() ] )
+			->fetchRow();
 
 		$rec = $pageStore->newPageRecordFromRow( $row );
 		$this->assertSamePage( $existingPage, $rec );
@@ -705,7 +701,7 @@ class PageStoreTest extends MediaWikiIntegrationTestCase {
 		// Test that the load balancer is asked for a master connection
 		$lb = $this->createMock( LoadBalancer::class );
 		$lb->expects( $this->atLeastOnce() )
-			->method( 'getConnectionRef' )
+			->method( 'getConnection' )
 			->with( DB_PRIMARY )
 			->willReturn( $db );
 
@@ -717,7 +713,7 @@ class PageStoreTest extends MediaWikiIntegrationTestCase {
 			[ 'dbLoadBalancer' => $lb ]
 		);
 
-		$pageStore->newSelectQueryBuilder( PageStore::READ_LATEST )
+		$pageStore->newSelectQueryBuilder( IDBAccessObject::READ_LATEST )
 			->fetchPageRecord();
 	}
 
@@ -748,7 +744,7 @@ class PageStoreTest extends MediaWikiIntegrationTestCase {
 		$this->assertTrue( $existingSubpageB->isSamePageAs( $subpages[1] ) );
 
 		// make sure the limit works as well
-		$this->assertCount( 1, $pageStore->getSubpages( $title, 1 ) );
+		$this->assertCount( 1, iterator_to_array( $pageStore->getSubpages( $title, 1 ) ) );
 	}
 
 	/**

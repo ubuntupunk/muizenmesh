@@ -1,7 +1,7 @@
 /*!
  * VisualEditor DataModel MWFlaggedMetaItem class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see AUTHORS.txt
+ * @copyright See AUTHORS.txt
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
@@ -40,18 +40,22 @@ ve.dm.MWFlaggedMetaItem.static.toDataElement = function ( domElements ) {
 	return { type: this.name, attributes: { property: property } };
 };
 
-ve.dm.MWFlaggedMetaItem.static.toDomElements = function ( dataElement, doc ) {
-	var meta = doc.createElement( 'meta' ),
-		property = OO.getProp( dataElement, 'attributes', 'property' );
+ve.dm.MWFlaggedMetaItem.static.toDomElements = function ( dataElement, doc, converter ) {
+	var domElement;
+	var property = OO.getProp( dataElement, 'attributes', 'property' );
 
 	if ( !property || this.matchRdfaTypes.indexOf( property ) === -1 ) {
 		// Fallback to first item if somehow unset
 		property = this.matchRdfaTypes[ 0 ];
 	}
-
-	meta.setAttribute( 'property', property );
-
-	return [ meta ];
+	if ( converter.isForPreview() ) {
+		domElement = doc.createElement( 'div' );
+		domElement.innerText = property;
+	} else {
+		domElement = doc.createElement( 'meta' );
+		domElement.setAttribute( 'property', property );
+	}
+	return [ domElement ];
 };
 
 /* No registration, as this is not a valid meta item, just an abstract class. */

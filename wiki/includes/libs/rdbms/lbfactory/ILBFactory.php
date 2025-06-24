@@ -49,27 +49,38 @@ interface ILBFactory extends IConnectionProvider {
 	/** Do not save "session consistency" DB replication positions */
 	public const SHUTDOWN_NO_CHRONPROT = 1;
 
-	/** @var string Default main LB cluster name (do not change this) */
+	/** @var string Default main cluster name (do not change this) */
 	public const CLUSTER_MAIN_DEFAULT = 'DEFAULT';
 
 	/**
 	 * Sub-classes may extend the required keys in $conf with additional parameters
 	 *
 	 * @param array $conf Array with keys:
-	 *  - localDomain: A DatabaseDomain or database domain ID string.
-	 *  - readOnlyReason: Reason the primary server is read-only if so [optional]
+	 *  - localDomain: A DatabaseDomain or database domain ID string
+	 *  - virtualDomains: List of virtual database domain ID strings [optional].
+	 *     These can be passed to {@see ILBFactory::getPrimaryDatabase()} and
+	 *     {@see ILBFactory::getReplicaDatabase()}, with the actual cluster and database
+	 *     domain being automatically resolved via "virtualDomainsMapping". Virtual database
+	 *     domains not defined there will resolve to the local database domain.
+	 *  - virtualDomainsMapping: Map of (virtual database domain ID => config map) [optional].
+	 *     Each config map has a "db" key and an optional "cluster" key. The "db" key specifies
+	 *     the actual database domain configured for use, with false indicating that the local
+	 *     database domain is configured for use. The "cluster" key, if provided, specifies the
+	 *     name of the external cluster configured for use, otherwise, the main cluster for the
+	 *     actual database domain will be used.
+	 *  - chronologyProtector: ChronologyProtector instance [optional]
+	 *  - readOnlyReason: Reason the primary server is read-only (false if not)
 	 *  - srvCache: BagOStuff instance for server cache [optional]
-	 *  - cpStash: BagOStuff instance for ChronologyProtector store [optional]
+	 *  - cpStash: BagOStuff instance for ChronologyProtector store [optional].
 	 *    See [ChronologyProtector requirements](@ref ChronologyProtector-storage-requirements).
 	 *  - wanCache: WANObjectCache instance [optional]
-	 *  - databaseFactory: DatabaseFactory instance [optional]
-	 *  - cliMode: Whether the execution context is a CLI script. [optional]
+	 *  - cliMode: Whether the execution context is a CLI script [optional]
 	 *  - profiler: Callback that takes a profile section name and returns a ScopedCallback
 	 *     that ends the profile section in its destructor [optional]
-	 *  - trxProfiler: TransactionProfiler instance. [optional]
-	 *  - logger: PSR-3 logger instance. [optional]
-	 *  - errorLogger: Callback that takes an Exception and logs it. [optional]
-	 *  - deprecationLogger: Callback to log a deprecation warning. [optional]
+	 *  - trxProfiler: TransactionProfiler instance [optional]
+	 *  - logger: PSR-3 logger instance [optional]
+	 *  - errorLogger: Callback that takes an Exception and logs it [optional]
+	 *  - deprecationLogger: Callback to log a deprecation warning [optional]
 	 *  - secret: Secret string to use for HMAC hashing [optional]
 	 *  - criticalSectionProvider: CriticalSectionProvider instance [optional]
 	 */
@@ -98,13 +109,6 @@ interface ILBFactory extends IConnectionProvider {
 	 * @since 1.32
 	 */
 	public function getLocalDomainID();
-
-	/**
-	 * @param DatabaseDomain|string|false $domain Database domain
-	 * @return string Value of $domain if provided or the local domain otherwise
-	 * @since 1.32
-	 */
-	public function resolveDomainID( $domain );
 
 	/**
 	 * Close all connections and redefine the local database domain
@@ -342,9 +346,7 @@ interface ILBFactory extends IConnectionProvider {
 	 * By default this waits on all DB clusters actually used in this request.
 	 * This makes sense when lag being waiting on is caused by the code that does this check.
 	 * In that case, setting "ifWritesSince" can avoid the overhead of waiting for clusters
-	 * that were not changed since the last wait check. To forcefully wait on a specific cluster
-	 * for a given domain, use the 'domain' parameter. To forcefully wait on an "external" cluster,
-	 * use the "cluster" parameter.
+	 * that were not changed since the last wait check.
 	 *
 	 * Never call this function after a large DB write that is *still* in a transaction.
 	 * It only makes sense to call this after the possible lag inducing changes were committed.
@@ -352,8 +354,6 @@ interface ILBFactory extends IConnectionProvider {
 	 * This only applies to the instantiated tracked load balancer instances.
 	 *
 	 * @param array $opts Optional fields that include:
-	 *   - domain: Wait on the load balancer DBs that handles the given domain ID.
-	 *   - cluster: Wait on the given external load balancer DBs.
 	 *   - timeout: Max wait time. Default: 60 seconds for CLI, 1 second for web.
 	 *   - ifWritesSince: Only wait if writes were done since this UNIX timestamp.
 	 * @return bool True on success, false if a timeout or error occurred while waiting
@@ -369,14 +369,6 @@ interface ILBFactory extends IConnectionProvider {
 	 * @param callable|null $callback Use null to unset a callback
 	 */
 	public function setWaitForReplicationListener( $name, callable $callback = null );
-
-	/**
-	 * Get the UNIX timestamp when the client last touched the DB, if they did so recently
-	 *
-	 * @param DatabaseDomain|string|false $domain Domain ID, or false for the current domain
-	 * @return float|false UNIX timestamp; false if not recent or on record
-	 */
-	public function getChronologyProtectorTouched( $domain = false );
 
 	/**
 	 * Disable the ChronologyProtector on all instantiated tracked load balancer instances
@@ -406,26 +398,12 @@ interface ILBFactory extends IConnectionProvider {
 	public function setAgentName( $agent );
 
 	/**
-	 * Append ?cpPosIndex parameter to a URL for ChronologyProtector purposes if needed
+	 * Whether it has streaming replica servers.
 	 *
-	 * Note that unlike cookies, this works across domains.
-	 *
-	 * @param string $url
-	 * @param int $index Write counter index
-	 * @return string
+	 * @since 1.41
+	 * @return bool
 	 */
-	public function appendShutdownCPIndexAsQuery( $url, $index );
-
-	/**
-	 * Inject HTTP request header/cookie information during setup of this instance
-	 *
-	 * @param array $info Map of fields, including:
-	 *   - IPAddress : IP address
-	 *   - UserAgent : User-Agent HTTP header
-	 *   - ChronologyProtection : cookie/header value specifying ChronologyProtector usage
-	 *   - ChronologyPositionIndex: timestamp used to get up-to-date DB positions for the agent
-	 */
-	public function setRequestInfo( array $info );
+	public function hasStreamingReplicaServers();
 
 	/**
 	 * Set the default timeout for replication wait checks

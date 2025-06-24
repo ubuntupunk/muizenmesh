@@ -1,11 +1,13 @@
 {
 	"@metadata": {
 		"authors": [
+			"Abijeet Patro",
 			"Anoop rao",
 			"Ansumang",
 			"Jayprakash12345",
 			"Kaustubh",
 			"Prong$31",
+			"Saurmandal",
 			"Sfic",
 			"Shubhamkanodia",
 			"Siddhartha Ghai",
@@ -27,7 +29,6 @@
 	"cite_error_included_ref": "<code>&lt;ref&gt;</code> टैग के लिए समाप्ति <code>&lt;/ref&gt;</code> टैग नहीं मिला",
 	"cite_error_group_refs_without_references": "\"$1\" नामक सन्दर्भ-समूह के लिए <code>&lt;ref&gt;</code> टैग मौजूद हैं, परन्तु समूह के लिए कोई <code>&lt;references group=\"$1\"/&gt;</code> टैग नहीं मिला। यह भी संभव है कि कोई समाप्ति <code>&lt;/ref&gt;</code> टैग गायब है।",
 	"cite_error_references_group_mismatch": "<code>&lt;references&gt;</code> में <code>&lt;ref&gt;</code> टैग के लिए group प्राचल (पैरामीटर) में अंतर्विरोधी जानकारी \"$1\" मौजूद है।",
-	"cite_error_references_missing_group": "<code>&lt;references&gt;</code> में परिभाषित <code>&lt;ref&gt;</code> टैग में group प्राचल (पैरामीटर) \"$1\" दिया है जो उससे पहले पृष्ठ के पाठ में मौजूद नहीं है।",
 	"cite_error_references_missing_key": "<code>&lt;references&gt;</code> में \"$1\" नाम के साथ परिभाषित <code>&lt;ref&gt;</code> टैग उससे पहले के पाठ में प्रयुक्त नहीं है।",
 	"cite_error_references_no_key": "<code>&lt;references&gt;</code> टैग में परिभाषित <code>&lt;ref&gt;</code> टैग का कोई नाम नहीं है।",
 	"cite_error_empty_references_define": "<code>&lt;references&gt;</code> टैग में परिभाषित \"$1\" नामक <code>&lt;ref&gt;</code> टैग में कोई सामग्री नहीं है।",
@@ -39,5 +40,11 @@
 	"cite_references_link_accessibility_back_label": "Jump back up",
 	"cite_section_preview_references": "सन्दर्भ की झलक",
 	"cite_warning": "सन्दर्भ चेतावनी: $1",
-	"cite_warning_sectionpreview_no_text": "<code>&lt;ref&gt;</code> टैग <code>$1</code> नाम के साथ पूर्वावलोकन किया जा सका क्योंकि या तो यह वर्तमान विभाग के बाहर परिभाषित है अथवा परिभाषित ही नहीं है।"
+	"cite_warning_sectionpreview_no_text": "<code>&lt;ref&gt;</code> टैग का <code>$1</code> नाम के साथ पूर्वावलोकन नहीं किया जा सका क्योंकि या तो यह वर्तमान विभाग के बाहर परिभाषित है अथवा परिभाषित ही नहीं है।",
+	"cite-wikieditor-tool-reference": "सन्दर्भ",
+	"cite-wikieditor-help-page-references": "सन्दर्भ",
+	"cite-wikieditor-help-content-reference-description": "सन्दर्भ",
+	"cite-wikieditor-help-content-named-reference-description": "नामित सन्दर्भ",
+	"cite-wikieditor-help-content-rereference-description": "एक ही सन्दर्भ का एकाधिक बार प्रयोग",
+	"cite-wikieditor-help-content-showreferences-description": "सन्दर्भ दिखाएँ"
 }

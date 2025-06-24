@@ -1,3 +1,5 @@
+'use strict';
+
 /*!
  * VisualEditor UserInterface MWReferenceResultWidget class.
  *
@@ -8,10 +10,8 @@
 /**
  * Creates an ve.ui.MWReferenceResultWidget object.
  *
- * @class
- * @extends OO.ui.OptionWidget
- *
  * @constructor
+ * @extends OO.ui.OptionWidget
  * @param {Object} [config] Configuration options
  */
 ve.ui.MWReferenceResultWidget = function VeUiMWReferenceResultWidget() {

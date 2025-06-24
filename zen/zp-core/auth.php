@@ -2,7 +2,7 @@
 
 /**
  * processes the authorization (or login) of admin users
- * @package admin
+ * @package zpcore\admin
  */
 // force UTF-8 Ø
 
@@ -50,7 +50,7 @@ if (file_exists(SERVERPATH . '/' . USER_PLUGIN_FOLDER . '/alt/auth.php')) {
 	 * 		ADMIN_RIGHTS to insure that there is some user capable of adding users or
 	 * 		modifying user rights.
 	 *
-	 * @package core
+	 * @package zpcore
 	 * @subpackage classes\authorization
 	 */
 	require_once(SERVERPATH . '/' . USER_PLUGIN_FOLDER . '/alt/auth.php');

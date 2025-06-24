@@ -3,18 +3,22 @@
  * This plugin handles <i>RSS</i> feeds:
  *
  * @author Stephen Billard (sbillard)
- * @package plugins
- * @subpackage rss
+ * @package zpcore\plugins\rss
  */
 // force UTF-8 Ø
 
-$plugin_is_filter = 900 | FEATURE_PLUGIN;
+$plugin_is_filter = 900 | FEATURE_PLUGIN | ADMIN_PLUGIN;
 $plugin_description = gettext('The Zenphoto <em>RSS</em> handler.');
 $plugin_notice = gettext('This plugin must be enabled to supply <em>RSS</em> feeds.') . '<br />' . gettext('<strong>Note:</strong> Theme support is required to display RSS links.');
 $plugin_category = gettext('Feed');
 $plugin_author = "Stephen Billard (sbillard)";
 
 $option_interface = 'rss_options';
+
+zp_register_filter('admin_utilities_buttons', 'RSS::overviewbutton');
+zp_register_filter('show_change', 'RSS::clearCacheOnPublish');
+
+$_zp_cached_feeds = array('RSS'); //    Add to this array any feed classes that need cache clearing
 
 class rss_options {
 
@@ -72,6 +76,11 @@ class rss_options {
 			setOptionDefault('RSS_cache_expire', 86400);
 			setOptionDefault('RSS_hitcounter', 1);
 			setOptionDefault('RSS_title', 'both');
+
+			setOptionDefault('RSS__cache_albums', 0);
+			setOptionDefault('RSS__cache_images', 0);
+			setOptionDefault('RSS__cache_news', 0);
+			setOptionDefault('RSS__cache_pages', 0);
 		}
 	}
 
@@ -164,7 +173,8 @@ class rss_options {
 						'key' => 'RSS_portable_link',
 						'type' => OPTION_TYPE_CHECKBOX,
 						'order' => 14,
-						'desc' => gettext('If checked links generated for logged‑in users will include a token identifying the user. Use of that link when not logged‑in will give the same feed as if the user were logged‑in.'))
+						'desc' => gettext('If checked links generated for logged‑in users will include a token identifying the user. Use of that link when not logged‑in will give the same feed as if the user were logged‑in.')),
+				
 		);
 		if (extensionEnabled('zenpage')) {
 			$options[gettext('Feed text length')] = array(
@@ -178,6 +188,24 @@ class rss_options {
 					'order' => 5,
 					'desc' => gettext("The number of news articles you want to appear in your site’s News RSS feed."));
 		}
+		$list = array(
+				'<em>' . gettext('Albums') . '</em>' => 'RSS_cache_albums',
+				'<em>' . gettext('Images') . '</em>' => 'RSS_cache_images');
+		if (extensionEnabled('zenpage')) {
+			$list['<em>' . gettext('News') . '</em>'] = 'RSS_cache_news';
+			$list['<em>' . gettext('Pages') . '</em>'] = 'RSS_cache_pages';
+		} else {
+			setOption('RSS_cache_news', 0);
+			setOption('RSS_cache_pages', 0);
+		}
+		$options[gettext('Purge cache files')] = array(
+				'key' => 'RSS_cache_items',
+				'type' => OPTION_TYPE_CHECKBOX_ARRAY,
+				'order' => 0,
+				'checkboxes' => $list,
+				'desc' => gettext('If a <em>type</em> is checked, the RSS caches for the item will be purged when the published state of an item of <em>type</em> changes.') .
+				'<div class="notebox">' . gettext('<strong>NOTE:</strong> The entire cache is cleared since there is no way to ascertain if a gallery page contains dependencies on the item.') . '</div>');
+
 		return $options;
 	}
 
@@ -217,7 +245,7 @@ class rss_options {
  * @param string $option type of RSS: "Gallery" feed for latest images of the whole gallery
  * 																		"Album" for latest images only of the album it is called from
  * 																		"Collection" for latest images of the album it is called from and all of its subalbums
- * 																		"Comments" for all comments of all albums and images
+ * 																		"Comments-gallery" for all comments of all albums and images
  * 																		"Comments-image" for latest comments of only the image it is called from
  * 																		"Comments-album" for latest comments of only the album it is called from
  * 																		"AlbumsRSS" for latest albums
@@ -226,7 +254,7 @@ class rss_options {
  * 																		"News" feed for all news articles
  * 																		"Category" for only the news articles of the category that is currently selected
  * 																		"NewsWithImages" for all news articles and latest images
- * 																		"Comments" for all news articles and pages
+ * 																		"Comments-zenpage" for all comments of all news articles and pages
  * 																		"Comments-news" for comments of only the news article it is called from
  * 																		"Comments-page" for comments of only the page it is called from
  * 																		"Comments-all" for comments from all albums, images, news articels and pages
@@ -266,7 +294,7 @@ function getRSSLink($option, $lang = NULL, $addl = NULL) {
 				$link = array('rss' => 'gallery', 'folder' => $album->getName());
 			}
 			break;
-		case 'comments':
+		case 'comments-gallery':
 			if (getOption('RSS_comments')) {
 				$link = array('rss' => 'comments', 'type' => 'gallery');
 			}
@@ -318,9 +346,9 @@ function getRSSLink($option, $lang = NULL, $addl = NULL) {
 				$link = array('rss' => 'news', 'withimages' => '');
 			}
 			break;
-		case 'comments':
+		case 'comments-zenpage':
 			if (getOption('RSS_article_comments')) {
-				$link = array('comments' => 1, 'type' => 'zenpage');
+				$link = array('rss' => 'comments', 'type' => 'zenpage');
 			}
 			break;
 		case 'comments-news':
@@ -334,7 +362,7 @@ function getRSSLink($option, $lang = NULL, $addl = NULL) {
 			}
 			break;
 		case 'comments-all':
-			if (getOption('RSS_article_comments')) {
+			if (getOption('RSS_article_comments') && getOption('RSS_comments')) {
 				$link = array('rss' => 'comments', 'type' => 'allcomments');
 			}
 			break;
@@ -405,6 +433,7 @@ require_once(SERVERPATH . '/' . ZENFOLDER . '/classes/class-mimetypes.php');
 class RSS extends feed {
 
 	protected $feed = 'RSS';
+	public $feeditems = array();
 
 	/**
 	 * Creates a feed object from the URL parameters fetched only
@@ -433,7 +462,6 @@ class RSS extends feed {
 		}
 // general feed setup
 		$channeltitlemode = getOption('RSS_title');
-		$this->host = html_encode($_SERVER["HTTP_HOST"]);
 
 //channeltitle general
 		switch ($channeltitlemode) {
@@ -627,9 +655,9 @@ class RSS extends feed {
 		if ($this->mode == "albums") {
 			$albumobj = $item;
 			$totalimages = $albumobj->getNumImages();
-			$itemlink = $this->host . $albumobj->getLink();
+			$itemlink = $albumobj->getLink(1, FULLWEBPATH);
 			$thumb = $albumobj->getAlbumThumbImage();
-			$thumburl = '<img border="0" src="' . PROTOCOL . '://' . $this->host . html_encode(pathurlencode($thumb->getCustomImage($this->imagesize, NULL, NULL, NULL, NULL, NULL, NULL, TRUE))) . '" alt="' . html_encode($albumobj->getTitle($this->locale)) . '" />';
+			$thumburl = '<img border="0" src="' . SERVER_HTTP_HOST . html_encode(pathurlencode($thumb->getCustomImage($this->imagesize, NULL, NULL, NULL, NULL, NULL, NULL, TRUE))) . '" alt="' . html_encode($albumobj->getTitle($this->locale)) . '" />';
 			$title = $albumobj->getTitle($this->locale);
 			if (true || $this->sortorder == "latestupdated") {
 				$filechangedate = filectime(ALBUM_FOLDER_SERVERPATH . internalToFilesystem($albumobj->name));
@@ -644,28 +672,27 @@ class RSS extends feed {
 				} else {
 					$imagenumber = $title;
 				}
-				$feeditem['desc'] = '<a title="' . $title . '" href="' . PROTOCOL . '://' . $itemlink . '">' . $thumburl . '</a>' .
-								'<p>' . html_encode($imagenumber) . '</p>' . $albumobj->getDesc($this->locale) . '<br />' . sprintf(gettext("Last update: %s"), zpFormattedDate(DATE_FORMAT, $filechangedate));
+				$feeditem['desc'] = '<a title="' . $title . '" href="' . $itemlink . '">' . $thumburl . '</a>' .
+								'<p>' . html_encode($imagenumber) . '</p>' . $albumobj->getDesc($this->locale) . '<br />' . sprintf(gettext("Last update: %s"), zpFormattedDate(DATETIME_DISPLAYFORMAT, $filechangedate));
 			} else {
 				if ($totalimages != 0) {
 					$imagenumber = sprintf(ngettext('%s (%u image)', '%s (%u images)', $totalimages), $title, $totalimages);
 				}
-				$feeditem['desc'] = '<a title="' . html_encode($title) . '" href="' . PROTOCOL . '://' . $itemlink . '">' . $thumburl . '</a>' . $item->getDesc($this->locale) . '<br />' . sprintf(gettext("Date: %s"), zpFormattedDate(DATE_FORMAT, $item->get('mtime')));
+				$feeditem['desc'] = '<a title="' . html_encode($title) . '" href="' . $itemlink . '">' . $thumburl . '</a>' . $item->getDesc($this->locale) . '<br />' . sprintf(gettext("Date: %s"), zpFormattedDate(DATETIME_DISPLAYFORMAT, $item->get('mtime')));
 			}
 			$ext = getSuffix($thumb->localpath);
 		} else {
 			$ext = getSuffix($item->localpath);
 			$albumobj = $item->getAlbum();
-			$itemlink = $this->host . $item->getLink();
-			$fullimagelink = $this->host . html_encode(pathurlencode($item->getFullImageURL()));
-			$thumburl = '<img border="0" src="' . PROTOCOL . '://' . $this->host . html_encode(pathurlencode($item->getCustomImage($this->imagesize, NULL, NULL, NULL, NULL, NULL, NULL, TRUE))) . '" alt="' . $item->getTitle($this->locale) . '" /><br />';
+			$itemlink = $item->getLink(FULLWEBPATH);
+			$fullimagelink = html_encode(pathurlencode($item->getFullImageURL(FULLWEBPATH)));
+			$thumburl = '<img border="0" src="' . SERVER_HTTP_HOST . pathurlencode($item->getCustomImage($this->imagesize, NULL, NULL, NULL, NULL, NULL, NULL, TRUE)) . '" alt="' . $item->getTitle($this->locale) . '" /><br />';
 			$title = $item->getTitle($this->locale);
-			$albumtitle = $albumobj->getTitle($this->locale);
-			$datecontent = '<br />Date: ' . zpFormattedDate(DATE_FORMAT, $item->get('mtime'));
-			if ((($ext == "flv") || ($ext == "mp3") || ($ext == "mp4") || ($ext == "3gp") || ($ext == "mov")) AND $this->mode != "album") {
-				$feeditem['desc'] = '<a title="' . html_encode($title) . ' in ' . html_encode($albumobj->getTitle($this->locale)) . '" href="' . PROTOCOL . '://' . $itemlink . '">' . $thumburl . '</a>' . $item->getDesc($this->locale) . $datecontent;
+			$datecontent = '<br />Date: ' . zpFormattedDate(DATETIME_DISPLAYFORMAT, $item->get('mtime'));
+			if (in_array($ext, array('mp3', 'm4a', 'm4v', 'mp4')) AND $this->mode != "album") {
+				$feeditem['desc'] = '<a title="' . html_encode($title) . ' in ' . html_encode($albumobj->getTitle($this->locale)) . '" href="' . $itemlink . '">' . $thumburl . '</a>' . $item->getDesc($this->locale) . $datecontent;
 			} else {
-				$feeditem['desc'] = '<a title="' . html_encode($title) . ' in ' . html_encode($albumobj->getTitle($this->locale)) . '" href="' . PROTOCOL . '://' . $itemlink . '"><img src="' . PROTOCOL . '://' . $this->host . html_encode(pathurlencode($item->getCustomImage($this->imagesize, NULL, NULL, NULL, NULL, NULL, NULL, TRUE))) . '" alt="' . html_encode($title) . '" /></a>' . $item->getDesc($this->locale) . $datecontent;
+				$feeditem['desc'] = '<a title="' . html_encode($title) . ' in ' . html_encode($albumobj->getTitle($this->locale)) . '" href="' . $itemlink . '"><img src="' . SERVER_HTTP_HOST . html_encode(pathurlencode($item->getCustomImage($this->imagesize, NULL, NULL, NULL, NULL, NULL, NULL, TRUE))) . '" alt="' . html_encode($title) . '" /></a>' . $item->getDesc($this->locale) . $datecontent;
 			}
 		}
 // title
@@ -675,12 +702,12 @@ class RSS extends feed {
 			$feeditem['title'] = $imagenumber;
 		}
 //link
-		$feeditem['link'] = PROTOCOL . '://' . $itemlink;
+		$feeditem['link'] = $itemlink;
 
 // enclosure
 		$feeditem['enclosure'] = '';
 		if (getOption("RSS_enclosure") AND $this->mode != "albums") {
-			$feeditem['enclosure'] = '<enclosure url="' . PROTOCOL . '://' . $fullimagelink . '" type="' . mimeTypes::getType($ext) . '" length="' . filesize($item->localpath) . '" />';
+			$feeditem['enclosure'] = '<enclosure url="' . $fullimagelink . '" type="' . mimeTypes::getType($ext) . '" length="' . filesize($item->localpath) . '" />';
 		}
 //category
 		if ($this->mode != "albums") {
@@ -692,8 +719,8 @@ class RSS extends feed {
 		$feeditem['media_content'] = '';
 		$feeditem['media_thumbnail'] = '';
 		if (getOption("RSS_mediarss") AND $this->mode != "albums") {
-			$feeditem['media_content'] = '<media:content url="' . PROTOCOL . '://' . $fullimagelink . '" type="image/jpeg" />';
-			$feeditem['media_thumbnail'] = '<media:thumbnail url="' . PROTOCOL . '://' . $fullimagelink . '" width="' . $this->imagesize . '"	height="' . $this->imagesize . '" />';
+			$feeditem['media_content'] = '<media:content url="' . $fullimagelink . '" type="image/jpeg" />';
+			$feeditem['media_thumbnail'] = '<media:thumbnail url="' . $fullimagelink . '" width="' . $this->imagesize . '"	height="' . $this->imagesize . '" />';
 		}
 //date
 		if ($this->mode != "albums") {
@@ -719,8 +746,7 @@ class RSS extends feed {
 		$feeditem['enclosure'] = '';
 		$obj = new ZenpageNews($item['titlelink']);
 		$title = $feeditem['title'] = get_language_string($obj->getTitle('all'), $this->locale);
-		$link = $obj->getLink();
-		$count2 = 0;
+		$link = $obj->getLink(FULLWEBPATH);
 		$plaincategories = $obj->getCategories();
 		$categories = '';
 		foreach ($plaincategories as $cat) {
@@ -734,7 +760,7 @@ class RSS extends feed {
 			$feeditem['category'] = html_encode($categories);
 			$feeditem['title'] = $title . ' (' . $categories . ')';
 		}
-		$feeditem['link'] = PROTOCOL . '://' . $this->host . $link;
+		$feeditem['link'] = $link;
 		$feeditem['media_content'] = '';
 		$feeditem['media_thumbnail'] = '';
 		$feeditem['pubdate'] = date("r", strtotime($item['date']));
@@ -758,8 +784,8 @@ class RSS extends feed {
 		<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
 			<channel>
 				<title><![CDATA[<?php echo $this->channel_title; ?>]]></title>
-				<link><?php echo PROTOCOL . '://' . $this->host . WEBPATH; ?></link>
-				<atom:link href="<?php echo PROTOCOL; ?>://<?php echo $this->host; ?><?php echo html_encode(getRequestURI()); ?>" rel="self"	type="application/rss+xml" />
+				<link><?php echo FULLWEBPATH; ?></link>
+				<atom:link href="<?php echo FULLWEBPATH ?><?php echo html_encode(getRequestURI()); ?>" rel="self"	type="application/rss+xml" />
 				<description><![CDATA[<?php echo getBare($_zp_gallery->getDesc($this->locale)); ?>]]></description>
 				<language><?php echo $this->locale_xml; ?></language>
 				<pubDate><?php echo date("r", time()); ?></pubDate>
@@ -826,10 +852,54 @@ class RSS extends feed {
 		<?php
 		$this->endCache();
 	}
+	
+	/**
+	 * Adds the utility  button for cache clearing
+	 * 
+	 * @since 1.6.1 moved from cacheManager
+	 * 
+	 * @param array $buttons
+	 * @return string
+	 */
+	static function overviewbutton($buttons) {
+		$buttons[] = array(
+				'XSRFTag' => 'clear_cache',
+				'category' => gettext('Cache'),
+				'enable' => true,
+				'button_text' => gettext('Purge RSS cache'),
+				'formname' => 'purge_rss_cache',
+				'action' => FULLWEBPATH . '/' . ZENFOLDER . '/admin.php?action=clear_rss_cache',
+				'icon' => 'images/edit-delete.png',
+				'alt' => '',
+				'title' => gettext('Delete all files from the RSS cache'),
+				'hidden' => '<input type="hidden" name="action" value="clear_rss_cache" />',
+				'rights' => ADMIN_RIGHTS
+		);
+		return $buttons;
+	}
+		/**
+	 *
+	 * Clears the RSS cache for items if published and this is enabled on the options
+	 * 
+	 * @since 1.6.1 former published() method moved from cacheManager
+	 * 
+	 * @param object $obj
+	 */
+	static function clearCacheOnPublish($obj) {
+		global $_zp_cached_feeds;
+		if (getOption('RSS_cache' . $obj->table)) {
+			foreach ($_zp_cached_feeds as $feed) {
+				$feeder = new Feed($feed);
+				$feeder->clearCache();
+			}
+		}
+		return $obj;
+	}
 
 }
 
 function executeRSS() {
+	global $_zp_gallery_page;
 	if (!$_GET['rss']) {
 		$_GET['rss'] = 'gallery';
 	}
@@ -843,4 +913,3 @@ function executeRSS() {
 if (!OFFSET_PATH && isset($_GET['rss'])) {
 	zp_register_filter('load_theme_script', 'executeRSS', 9999);
 }
-?>

@@ -111,10 +111,13 @@ namespace Wikimedia\Rdbms;
  * @ingroup Database
  */
 interface ILoadBalancer {
-	/** Request a replica DB connection */
+	/**
+	 * Request a replica DB connection. Can't be used as a binary flag with bitwise operators!
+	 */
 	public const DB_REPLICA = -1;
 	/**
-	 * Request a primary, write-enabled DB connection
+	 * Request a primary, write-enabled DB connection. Can't be used as a binary flag with bitwise
+	 * operators!
 	 * @since 1.36
 	 */
 	public const DB_PRIMARY = -2;
@@ -140,8 +143,6 @@ interface ILoadBalancer {
 	public const CONN_SILENCE_ERRORS = 4;
 	/** Caller is requesting the primary DB server for possibly writes */
 	public const CONN_INTENT_WRITABLE = 8;
-	/** Bypass and update any server-side read-only mode state cache */
-	public const CONN_REFRESH_READ_ONLY = 16;
 
 	/**
 	 * Get the name of the overall cluster of database servers managing the dataset
@@ -180,14 +181,6 @@ interface ILoadBalancer {
 	public function resolveDomainID( $domain ): string;
 
 	/**
-	 * Close all connection and redefine the local domain for testing or schema creation
-	 *
-	 * @param DatabaseDomain|string $domain
-	 * @since 1.33
-	 */
-	public function redefineLocalDomain( $domain );
-
-	/**
 	 * Indicate whether the tables on this domain are only temporary tables for testing
 	 *
 	 * In "temporary tables mode", the CONN_TRX_AUTOCOMMIT flag is ignored
@@ -213,49 +206,6 @@ interface ILoadBalancer {
 	 * @return int|false Specific server index, or false if no DB handle can be obtained
 	 */
 	public function getReaderIndex( $group = false );
-
-	/**
-	 * Set the primary position to reach before the next generic group DB query
-	 *
-	 * If a generic replica DB connection is already open then this immediately waits
-	 * for that DB to catch up to the specified replication position. Otherwise, it will
-	 * do so once such a connection is opened.
-	 *
-	 * If a timeout happens when waiting, then laggedReplicaUsed()
-	 * will return true. This is useful for discouraging clients from taking further actions
-	 * if session consistency could not be maintained with respect to their last actions.
-	 *
-	 * @param DBPrimaryPos $pos Primary position
-	 */
-	public function waitFor( DBPrimaryPos $pos );
-
-	/**
-	 * Set the primary wait position and wait for ALL replica DBs to catch up to it
-	 *
-	 * This method is only intended for use a throttling mechanism for high-volume updates.
-	 * Unlike waitFor(), failure does not effect laggedReplicaUsed().
-	 *
-	 * @param DBPrimaryPos $pos Primary position
-	 * @param int|null $timeout Max seconds to wait; default is mWaitTimeout
-	 * @return bool Success (able to connect and no timeouts reached)
-	 */
-	public function waitForAll( DBPrimaryPos $pos, $timeout = null );
-
-	/**
-	 * Get an existing DB handle to the given server index (on any domain)
-	 *
-	 * Use the CONN_TRX_AUTOCOMMIT flag to only look for connections opened with that flag.
-	 *
-	 * Avoid the use of begin()/commit() and startAtomic()/endAtomic() on any handle returned.
-	 * This method is intended for internal RDBMS callers that issue queries that do
-	 * not affect any current transaction.
-	 *
-	 * @internal For use by Rdbms classes only
-	 * @param int $i Specific or virtual (DB_PRIMARY/DB_REPLICA) server index
-	 * @param int $flags Bitfield of CONN_* class constants
-	 * @return Database|false False if no such connection is open
-	 */
-	public function getAnyOpenConnection( $i, $flags = 0 );
 
 	/**
 	 * Get a lazy-connecting database handle for a specific or virtual (DB_PRIMARY/DB_REPLICA) server index
@@ -469,40 +419,6 @@ interface ILoadBalancer {
 	public function getPrimaryPos();
 
 	/**
-	 * Get the highest DB replication position for chronology control purposes
-	 *
-	 * If there is only a primary server then this returns false. If replication is present
-	 * and correctly configured, then this returns the highest replication position of any
-	 * server with an open connection. That position can later be passed to waitFor() on a
-	 * new load balancer instance to make sure that queries on the new connections see data
-	 * at least as up-to-date as queries (prior to this method call) on the old connections.
-	 *
-	 * This can be useful for implementing session consistency, where the session
-	 * will be resumed across multiple HTTP requests or CLI script instances.
-	 *
-	 * @internal For use by Rdbms classes only
-	 * @return DBPrimaryPos|false Replication position or false if not applicable
-	 * @since 1.34
-	 */
-	public function getReplicaResumePos();
-
-	/**
-	 * Close a connection
-	 *
-	 * Using this function makes sure the LoadBalancer knows the connection is closed.
-	 * If you use $conn->close() directly, the load balancer won't update its state.
-	 *
-	 * @param IDatabase $conn
-	 */
-	public function closeConnection( IDatabase $conn );
-
-	/**
-	 * @return bool Whether a primary connection is already open
-	 * @since 1.37
-	 */
-	public function hasPrimaryConnection();
-
-	/**
 	 * Whether there are pending changes or callbacks in a transaction by this thread
 	 * @return bool
 	 * @since 1.37
@@ -516,13 +432,6 @@ interface ILoadBalancer {
 	 * @since 1.39
 	 */
 	public function explicitTrxActive();
-
-	/**
-	 * Get the timestamp of the latest write query done by this thread
-	 * @return float|false UNIX timestamp or false
-	 * @since 1.37
-	 */
-	public function lastPrimaryChangeTimestamp();
 
 	/**
 	 * Check if this load balancer object had any recent or still
@@ -611,20 +520,6 @@ interface ILoadBalancer {
 	 * @param array[] $aliases Map of (table => (dbname, schema, prefix) map)
 	 */
 	public function setTableAliases( array $aliases );
-
-	/**
-	 * Convert certain index names to alternative names before querying the DB
-	 *
-	 * Note that this applies to indexes regardless of the table they belong to.
-	 *
-	 * This can be employed when an index was renamed X => Y in code, but the new Y-named
-	 * indexes were not yet built on all DBs. After all the Y-named ones are added by the DBA,
-	 * the aliases can be removed, and then the old X-named indexes dropped.
-	 *
-	 * @param string[] $aliases
-	 * @since 1.31
-	 */
-	public function setIndexAliases( array $aliases );
 
 	/**
 	 * Convert certain database domains to alternative ones.

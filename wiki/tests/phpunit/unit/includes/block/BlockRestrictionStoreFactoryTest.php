@@ -24,13 +24,13 @@ class BlockRestrictionStoreFactoryTest extends MediaWikiUnitTestCase {
 			->method( 'getMainLB' )
 			->with( $domain )
 			->willReturn( $lb );
-		$factory = new BlockRestrictionStoreFactory( $lbFactory );
+		$factory = new BlockRestrictionStoreFactory( $lbFactory, SCHEMA_COMPAT_OLD );
 
 		$restrictionStore = $factory->getBlockRestrictionStore( $domain );
 		$this->assertInstanceOf( BlockRestrictionStore::class, $restrictionStore );
 	}
 
-	public function provideDomains() {
+	public static function provideDomains() {
 		yield 'local wiki' => [ WikiAwareEntity::LOCAL ];
 		yield 'foreign wiki' => [ 'meta' ];
 	}

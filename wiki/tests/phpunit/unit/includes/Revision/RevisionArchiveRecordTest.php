@@ -2,8 +2,8 @@
 
 namespace MediaWiki\Tests\Unit\Revision;
 
-use CommentStoreComment;
 use DummyContentForTesting;
+use MediaWiki\CommentStore\CommentStoreComment;
 use MediaWiki\Page\PageIdentityValue;
 use MediaWiki\Revision\RevisionArchiveRecord;
 use MediaWiki\Revision\RevisionRecord;
@@ -18,6 +18,14 @@ use MediaWikiUnitTestCase;
  */
 class RevisionArchiveRecordTest extends MediaWikiUnitTestCase {
 	use RevisionRecordTests;
+
+	protected function expectedDefaultFieldVisibility( $field ): bool {
+		return [
+			RevisionRecord::DELETED_TEXT => false,
+			RevisionRecord::DELETED_COMMENT => false,
+			RevisionRecord::DELETED_USER => true,
+		][ $field ];
+	}
 
 	/**
 	 * @param array $rowOverrides

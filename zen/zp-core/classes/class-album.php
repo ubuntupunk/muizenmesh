@@ -1,8 +1,7 @@
 <?php
 /**
  * Album Class
- * @package core
- * @subpackage classes\objects
+ * @package zpcore\classes\objects
  */
 class Album extends AlbumBase {
 
@@ -69,7 +68,7 @@ class Album extends AlbumBase {
 		$parentalbum = $this->getParent();
 		$this->set('mtime', filemtime($this->localpath));
 		if (!$_zp_gallery->getAlbumUseImagedate()) {
-			$date = getFormattedLocaleDate('Y-m-d H:i:s', $this->get('mtime'));
+			$date = zpFormattedDate('Y-m-d H:i:s', $this->get('mtime'));
 			$this->setDateTime($date);
 		}
 		$title = trim($this->name);
@@ -206,9 +205,7 @@ class Album extends AlbumBase {
 			}
 			@chmod($this->localpath, 0777);
 			$rslt = @rmdir($this->localpath) && $success;
-			$cachepath = SERVERCACHE . '/' . pathurlencode($this->name) . '/';
-			@chmod($cachepath, 0777);
-			@rmdir($cachepath);
+			$this->removeCacheFolder();
 			$this->setUpdatedDateParents();
 		}
 		clearstatcache();

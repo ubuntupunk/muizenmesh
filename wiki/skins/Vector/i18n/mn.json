@@ -2,6 +2,7 @@
 	"@metadata": {
 		"authors": [
 			"Chinneeb",
+			"Enkhsaihan2005",
 			"MongolWiki",
 			"Sembuk",
 			"Wisdom"
@@ -13,7 +14,7 @@
 	"vector-action-toggle-sidebar": "Хажуугийн цэсийг нээж хаах",
 	"vector-languages": "Хэлнүүд",
 	"vector-language-button-label": "{{PLURAL:$1|$1 хэлээр}}",
-	"vector-language-redirect-to-top": "Хэлний цэсийг хуудасны баруун дээд өнцгөөс харна уу. [[#p-lang-btn|Эхлэл рүү шилжих]].",
+	"vector-no-language-button-label": "Хэл нэмэх",
 	"vector-action-addsection": "Сэдэв нэмэх",
 	"vector-action-delete": "Устгах",
 	"vector-action-move": "Зөөх",

@@ -75,16 +75,17 @@ describe( 'Page', function () {
 
 		// check
 		assert.strictEqual( await EditPage.heading.getText(), name );
+		// eslint-disable-next-line security/detect-non-literal-regexp
 		assert.match( await EditPage.displayedContent.getText(), new RegExp( editContent ) );
 	} );
 
 	it( 'should have history @daily', async function () {
 		// create
-		await bot.edit( name, content, `created with "${content}"` );
+		await bot.edit( name, content, `created with "${ content }"` );
 
 		// check
 		await HistoryPage.open( name );
-		assert.strictEqual( await HistoryPage.comment.getText(), `created with "${content}"` );
+		assert.strictEqual( await HistoryPage.comment.getText(), `created with "${ content }"` );
 	} );
 
 	it( 'should be deletable', async function () {
@@ -97,7 +98,8 @@ describe( 'Page', function () {
 		await DeletePage.delete( name, 'delete reason' );
 
 		// check
-		assert.match( await DeletePage.displayedContent.getText(), new RegExp( `"${name}" has been deleted.` ) );
+		// eslint-disable-next-line security/detect-non-literal-regexp
+		assert.match( await DeletePage.displayedContent.getText(), new RegExp( `"${ name }" has been deleted.` ) );
 	} );
 
 	it( 'should be restorable', async function () {

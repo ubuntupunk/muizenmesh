@@ -1,4 +1,5 @@
 <?php
+declare( strict_types = 1 );
 
 namespace Wikimedia\Parsoid\Language;
 
@@ -10,16 +11,10 @@ class Language {
 	/** @var LanguageConverter|null */
 	private $converter;
 
-	/**
-	 * @return LanguageConverter|null
-	 */
 	public function getConverter(): ?LanguageConverter {
 		return $this->converter;
 	}
 
-	/**
-	 * @param LanguageConverter $converter
-	 */
 	public function setConverter( LanguageConverter $converter ): void {
 		$this->converter = $converter;
 	}
@@ -33,9 +28,10 @@ class Language {
 	public static function isValidInternalCode( string $code ): bool {
 		static $validityCache = [];
 		if ( !isset( $validityCache[$code] ) ) {
-			// XXX PHP version also checks against
-			// MediaWikiTitleCodex::getTitleInvalidRegex()
-			$validityCache[$code] = preg_match( '/^[^:\\/\\\\\\000&<>\'"]+$/D', $code );
+			$validityCache[$code] = strcspn( $code, ":/\\\000&<>'\"" ) === strlen( $code ) &&
+				// XXX Core's version also checks against
+				// !preg_match( MediaWikiTitleCodec::getTitleInvalidRegex(), $code ) &&
+				strlen( $code ) <= 128;
 		}
 		return $validityCache[$code];
 	}

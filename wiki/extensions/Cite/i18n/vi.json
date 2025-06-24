@@ -3,8 +3,8 @@
 		"authors": [
 			"Minh Nguyen",
 			"NguoiDungKhongDinhDanh",
-			"Vinhtantran",
-			"NguyenHung"
+			"NguyenHung",
+			"Vinhtantran"
 		]
 	},
 	"cite-desc": "Thêm các thẻ <code>&lt;ref&gt;</code> và <code>&lt;references&gt;</code> để ghi chú thích hoặc nguồn tham khảo",
@@ -21,7 +21,6 @@
 	"cite_error_included_ref": "Không có <code>&lt;/ref&gt;</code> để đóng thẻ <code>&lt;ref&gt;</code>",
 	"cite_error_group_refs_without_references": "Đã tìm thấy thẻ <code>&lt;ref&gt;</code> với tên nhóm “$1”, nhưng không tìm thấy thẻ tương ứng <code>&lt;references group=\"$1\"/&gt;</code> tương ứng, hoặc thẻ đóng <code>&lt;/ref&gt;</code> bị thiếu",
 	"cite_error_references_group_mismatch": "Thẻ <code>&lt;ref&gt;</code> trong <code>&lt;references&gt;</code> có thuộc tính nhóm mâu thuẫn “$1”.",
-	"cite_error_references_missing_group": "Thẻ <code>&lt;ref&gt;</code> được định nghĩa trong <code>&lt;references&gt;</code> có thuộc tính nhóm  “$1” không thấy xuất hiện trong văn bản phía trên.",
 	"cite_error_references_missing_key": "Thẻ <code>&lt;ref&gt;</code> có tên  “$1” được định nghĩa trong <code>&lt;references&gt;</code> không được đoạn văn bản trên sử dụng.",
 	"cite_error_references_no_key": " Thẻ <code>&lt;ref&gt;</code> được định nghĩa trong <code>&lt;references&gt;</code> không có thuộc tính name.",
 	"cite_error_empty_references_define": "Thẻ <code>&lt;ref&gt;</code> được định nghĩa trong <code>&lt;references&gt;</code> có tên “$1” không có nội dung.",
@@ -32,5 +31,11 @@
 	"cite_references_link_many_accessibility_label": "Bước lên tới:",
 	"cite_section_preview_references": "Xem trước chú thích",
 	"cite_warning": "Cảnh báo chú thích: $1",
-	"cite_warning_sectionpreview_no_text": "Không thể xem truớc thẻ <code>&lt;ref&gt;</code> có tên <code>$1</code> vì nó được định rõ bên ngoài phần trang này hoặc không được định rõ."
+	"cite_warning_sectionpreview_no_text": "Không thể xem truớc thẻ <code>&lt;ref&gt;</code> có tên <code>$1</code> vì nó được định rõ bên ngoài phần trang này hoặc không được định rõ.",
+	"cite-wikieditor-tool-reference": "Chú thích tham khảo",
+	"cite-wikieditor-help-page-references": "Tham khảo",
+	"cite-wikieditor-help-content-reference-description": "Tham khảo",
+	"cite-wikieditor-help-content-named-reference-description": "Tham chiếu có tên",
+	"cite-wikieditor-help-content-rereference-description": "Sử dụng lại cùng chú thích",
+	"cite-wikieditor-help-content-showreferences-description": "Liệt kê các chú thích"
 }

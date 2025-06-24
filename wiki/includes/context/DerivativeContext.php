@@ -18,9 +18,23 @@
  * @author Daniel Friesen
  * @file
  */
+
+namespace MediaWiki\Context;
+
+use Language;
+use MediaWiki\Config\Config;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Message\Message;
+use MediaWiki\Output\OutputPage;
 use MediaWiki\Permissions\Authority;
+use MediaWiki\Request\WebRequest;
 use MediaWiki\Title\Title;
+use MediaWiki\User\User;
+use MessageSpecifier;
+use Skin;
+use Timing;
+use Wikimedia\Assert\Assert;
+use WikiPage;
 
 /**
  * An IContextSource implementation which will inherit context from another source
@@ -271,18 +285,16 @@ class DerivativeContext extends ContextSource implements MutableContext {
 
 	/**
 	 * @param Language|string $language Language instance or language code
-	 * @throws MWException
 	 * @since 1.19
 	 */
 	public function setLanguage( $language ) {
+		Assert::parameterType( [ Language::class, 'string' ], $language, '$language' );
 		if ( $language instanceof Language ) {
 			$this->lang = $language;
-		} elseif ( is_string( $language ) ) {
+		} else {
 			$language = RequestContext::sanitizeLangCode( $language );
 			$obj = MediaWikiServices::getInstance()->getLanguageFactory()->getLanguage( $language );
 			$this->lang = $obj;
-		} else {
-			throw new MWException( __METHOD__ . " was passed an invalid type of data." );
 		}
 	}
 
@@ -326,3 +338,6 @@ class DerivativeContext extends ContextSource implements MutableContext {
 		return wfMessage( $key, ...$params )->setContext( $this );
 	}
 }
+
+/** @deprecated class alias since 1.42 */
+class_alias( DerivativeContext::class, 'DerivativeContext' );

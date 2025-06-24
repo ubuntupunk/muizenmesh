@@ -1,12 +1,13 @@
 <?php
 
+use MediaWiki\Title\TitleValue;
 use MediaWiki\User\UserIdentityValue;
 use Wikimedia\Rdbms\DBReadOnlyError;
 
 /**
  * @author Addshore
  *
- * @covers NoWriteWatchedItemStore
+ * @covers \NoWriteWatchedItemStore
  */
 class NoWriteWatchedItemStoreUnitTest extends \MediaWikiUnitTestCase {
 

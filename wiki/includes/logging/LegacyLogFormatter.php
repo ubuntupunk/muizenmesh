@@ -23,6 +23,9 @@
  * @since 1.19
  */
 
+use MediaWiki\HookContainer\HookContainer;
+use MediaWiki\HookContainer\HookRunner;
+
 /**
  * This class formats all log entries for log types
  * which have not been converted to the new system.
@@ -52,6 +55,16 @@ class LegacyLogFormatter extends LogFormatter {
 	 * @var string|null
 	 */
 	private $revert = null;
+
+	private HookRunner $hookRunner;
+
+	public function __construct(
+		LogEntry $entry,
+		HookContainer $hookContainer
+	) {
+		parent::__construct( $entry );
+		$this->hookRunner = new HookRunner( $hookContainer );
+	}
 
 	public function getComment() {
 		$this->comment ??= parent::getComment();
@@ -117,8 +130,8 @@ class LegacyLogFormatter extends LogFormatter {
 
 		$params = $this->entry->getParameters();
 
-		Hooks::runner()->onLogLine( $type, $subtype, $title, $params, $this->comment,
-			$this->revert, $this->entry->getTimestamp() );
+		$this->hookRunner->onLogLine(
+			$type, $subtype, $title, $params, $this->comment, $this->revert, $this->entry->getTimestamp() );
 
 		return $this->revert;
 	}

@@ -6,11 +6,12 @@ use ExtensionRegistry;
 use LogPage;
 use ManualLogEntry;
 use MediaWiki\CheckUser\Hooks as CUHooks;
+use MediaWiki\ExternalLinks\ExternalLinksLookup;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Title\Title;
+use MediaWiki\User\User;
 use ObjectCache;
 use RequestContext;
-use Title;
-use User;
 use Wikimedia\AtEase\AtEase;
 use Wikimedia\Rdbms\Database;
 
@@ -190,14 +191,11 @@ class SpamBlacklist extends BaseBlacklist {
 			$cache->makeKey( 'external-link-list', $title->getLatestRevID() ),
 			$cache::TTL_MINUTE,
 			static function ( $oldValue, &$ttl, array &$setOpts ) use ( $title, $fname ) {
-				$dbr = wfGetDB( DB_REPLICA );
+				$dbr = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
 				$setOpts += Database::getCacheSetOptions( $dbr );
-
-				return $dbr->selectFieldValues(
-					'externallinks',
-					'el_to',
-					// should be zero queries
-					[ 'el_from' => $title->getArticleID() ],
+				return ExternalLinksLookup::getExternalLinksForPage(
+					$title->getArticleID(),
+					$dbr,
 					$fname
 				);
 			}

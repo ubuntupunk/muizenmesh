@@ -10,7 +10,7 @@ use MockTitleTrait;
 
 /**
  * @group Database
- * @coversDefaultClass LogPage
+ * @coversDefaultClass \LogPage
  * @package MediaWiki\Tests\Log
  */
 class LogPageTest extends \MediaWikiIntegrationTestCase {
@@ -30,7 +30,6 @@ class LogPageTest extends \MediaWikiIntegrationTestCase {
 				'test_test' => 'testing-log-restriction'
 			]
 		] );
-		$this->tablesUsed[] = 'logging';
 	}
 
 	/**
@@ -92,5 +91,14 @@ class LogPageTest extends \MediaWikiIntegrationTestCase {
 		$this->assertArrayEquals( [ 'param_one', 'param_two' ], $savedLogEntry->getParameters() );
 		$this->assertTrue( $title->equals( $savedLogEntry->getTarget() ) );
 		$this->assertTrue( $user->equals( $savedLogEntry->getPerformerIdentity() ) );
+	}
+
+	/**
+	 * @covers ::actionText
+	 */
+	public function testUnknownAction() {
+		$title = $this->makeMockTitle( 'Test Title' );
+		$text = LogPage::actionText( 'unknown', 'action', $title, null, [ 'discarded' ] );
+		$this->assertSame( 'performed unknown action &quot;unknown/action&quot; on [[Test Title]]', $text );
 	}
 }

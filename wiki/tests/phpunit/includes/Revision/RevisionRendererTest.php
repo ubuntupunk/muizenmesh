@@ -2,14 +2,15 @@
 
 namespace MediaWiki\Tests\Revision;
 
-use CommentStoreComment;
 use Content;
 use LogicException;
+use MediaWiki\CommentStore\CommentStoreComment;
 use MediaWiki\Content\IContentHandlerFactory;
 use MediaWiki\Content\Renderer\ContentRenderer;
 use MediaWiki\HookContainer\HookContainer;
 use MediaWiki\Page\PageIdentityValue;
 use MediaWiki\Page\PageReference;
+use MediaWiki\Parser\ParserOutput;
 use MediaWiki\Revision\MainSlotRoleHandler;
 use MediaWiki\Revision\MutableRevisionRecord;
 use MediaWiki\Revision\RevisionRecord;
@@ -22,15 +23,16 @@ use MediaWiki\Title\TitleFactory;
 use MediaWiki\User\UserIdentityValue;
 use MediaWikiIntegrationTestCase;
 use ParserOptions;
-use ParserOutput;
 use PHPUnit\Framework\MockObject\MockObject;
 use Wikimedia\Rdbms\DBConnRef;
 use Wikimedia\Rdbms\IDatabase;
 use Wikimedia\Rdbms\ILoadBalancer;
+use Wikimedia\Rdbms\SelectQueryBuilder;
 use WikitextContent;
 
 /**
  * @covers \MediaWiki\Revision\RevisionRenderer
+ * @group Database
  */
 class RevisionRendererTest extends MediaWikiIntegrationTestCase {
 	use MockAuthorityTrait;
@@ -59,6 +61,7 @@ class RevisionRendererTest extends MediaWikiIntegrationTestCase {
 					);
 				}
 			);
+		$db->method( 'newSelectQueryBuilder' )->willReturnCallback( static fn () => new SelectQueryBuilder( $db ) );
 
 		return $db;
 	}
@@ -106,7 +109,7 @@ class RevisionRendererTest extends MediaWikiIntegrationTestCase {
 	}
 
 	private function selectFieldCallback( $table, $fields, $cond, $maxRev ) {
-		if ( [ $table, $fields, $cond ] === [ 'revision', 'MAX(rev_id)', [] ] ) {
+		if ( [ $table, $fields, $cond ] === [ [ 'revision' ], 'MAX(rev_id)', [] ] ) {
 			return $maxRev;
 		}
 
@@ -372,7 +375,7 @@ class RevisionRendererTest extends MediaWikiIntegrationTestCase {
 		$parserOutput = $rr->getRevisionParserOutput();
 		// Assert parser output recorded timestamp and parsed rev_id
 		$this->assertSame( $rev->getId(), $parserOutput->getCacheRevisionId() );
-		$this->assertSame( $rev->getTimestamp(), $parserOutput->getTimestamp() );
+		$this->assertSame( $rev->getTimestamp(), $parserOutput->getRevisionTimestamp() );
 
 		$html = $parserOutput->getText();
 
@@ -404,6 +407,9 @@ class RevisionRendererTest extends MediaWikiIntegrationTestCase {
 
 		$combinedHtml = $combinedOutput->getText();
 		$mainHtml = $mainOutput->getText();
+
+		$this->assertNotSame( $combinedHtml, $mainHtml );
+
 		$auxHtml = $auxOutput->getText();
 
 		$this->assertStringContainsString( 'Kittens', $mainHtml );
@@ -420,13 +426,13 @@ class RevisionRendererTest extends MediaWikiIntegrationTestCase {
 		);
 
 		// make sure output wrapping works right
-		$this->assertStringContainsString( 'class="mw-parser-output"', $mainHtml );
-		$this->assertStringContainsString( 'class="mw-parser-output"', $auxHtml );
-		$this->assertStringContainsString( 'class="mw-parser-output"', $combinedHtml );
+		$this->assertStringContainsString( 'class="mw-content-ltr mw-parser-output"', $mainHtml );
+		$this->assertStringContainsString( 'class="mw-content-ltr mw-parser-output"', $auxHtml );
+		$this->assertStringContainsString( 'class="mw-content-ltr mw-parser-output"', $combinedHtml );
 
 		// there should be only one wrapper div
-		$this->assertSame( 1, preg_match_all( '#class="mw-parser-output"#', $combinedHtml ) );
-		$this->assertStringNotContainsString( 'class="mw-parser-output"', $combinedOutput->getRawText() );
+		$this->assertSame( 1, preg_match_all( '#class="[^"]*mw-parser-output"#', $combinedHtml ) );
+		$this->assertStringNotContainsString( 'mw-parser-output"', $combinedOutput->getRawText() );
 
 		$combinedLinks = $combinedOutput->getLinks();
 		$mainLinks = $mainOutput->getLinks();
@@ -435,6 +441,22 @@ class RevisionRendererTest extends MediaWikiIntegrationTestCase {
 		$this->assertTrue( isset( $combinedLinks[NS_MAIN]['Goats'] ), 'links from aux slot' );
 		$this->assertFalse( isset( $mainLinks[NS_MAIN]['Goats'] ), 'no aux links in main' );
 		$this->assertFalse( isset( $auxLinks[NS_MAIN]['Kittens'] ), 'no main links in aux' );
+
+		// Same tests with Parsoid
+		// T351026: We should get only main slot output in the combined output.
+		// T351113 will have to update this test.
+		$options = ParserOptions::newFromAnon();
+		$options->setUseParsoid();
+		$rr = $renderer->getRenderedRevision( $rev, $options );
+
+		$combinedOutput = $rr->getRevisionParserOutput();
+		$mainOutput = $rr->getSlotParserOutput( SlotRecord::MAIN );
+		$combinedHtml = $combinedOutput->getText();
+		$this->assertSame( $combinedHtml, $mainOutput->getText() );
+		$this->assertSame( $combinedOutput->getLinks(), $mainOutput->getLinks() );
+		$this->assertStringContainsString( 'class="mw-content-ltr mw-parser-output"', $combinedHtml );
+		$this->assertStringContainsString( 'Kittens', $combinedHtml );
+		$this->assertStringNotContainsString( 'Goats', $combinedHtml );
 	}
 
 	public function testGetRenderedRevision_noHtml() {

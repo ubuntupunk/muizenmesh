@@ -4,10 +4,9 @@
  * Base class that kicks in if neither GD or Imagick are available for image handling
  * Provides basic check method to see what library is available
  * 
- * @since ZenphotoCMS 1.6 - reworked as class
+ * @since 1.6 - reworked as class
  * 
- * @package core
- * @subpackage classes\graphics
+ * @package zpcore\classes\graphics
  */
 class graphicsBase {
 	
@@ -111,10 +110,50 @@ class graphicsBase {
 	function flipImage($im, $direction) {
 		return false;
 	}
+	
+	/**
+	 * Rotates and/or flips an image based on by using rotateImage() and flipImage() methods
+	 * 
+	 * @since 1.6.1
+	 * 
+	 * @param object $im GDImage or imagick image object
+	 * @param array $rotate Two dimensional array with rotate and flip indexes as returned be getImageRotation()
+	 * @return object|false
+	 */
+	function flipRotateImage($im, $rotate) {
+		if ($rotate['flip']) {
+			$im = $this->flipImage($im, $rotate['flip']);
+		}
+		if ($rotate['rotate']) {
+			$im = $this->rotateImage($im, $rotate['rotate']);
+		}
+		return $im;
+	}
+	
+	/**
+	 * Returns  the counter clockwise rotation degree the GD library requires
+	 * 
+	 * @since 1.6.1
+	 * 
+	 * Adapted from anonymous comment on https://www.php.net/manual/en/imagick.rotateimage
+	 * @param int $degree Rotation degree clockwise
+	 * @return int
+	 */
+	static function getCounterClockwiseRotation($degree) {
+		if ($degree == 0 || $degree == 180) {
+			return $degree;
+		}
+		if ($degree < 0 || $degree > 360) {
+			$degree = 90;
+		}
+		return intval(360 - $degree);
+	}
 
 	function imageDims($filename) {
-		$imageinfo = NULL;
-		$rslt = getimagesize($filename, $imageinfo);
+		$imageinfo = $rslt = NULL;
+		if (function_exists('getimagesize')) {
+			$rslt = getimagesize($filename, $imageinfo);
+		}
 		if (is_array($rslt)) {
 			return array('width' => $rslt[0], 'height' => $rslt[1]);
 		} else {
@@ -123,8 +162,10 @@ class graphicsBase {
 	}
 
 	function imageIPTC($filename) {
-		$imageinfo = NULL;
-		$rslt = getimagesize($filename, $imageinfo);
+		$imageinfo = $rslt = NULL;
+		if (function_exists('getimagesize')) {
+			$rslt = getimagesize($filename, $imageinfo);
+		}
 		if (is_array($rslt) && isset($imageinfo['APP13'])) {
 			return $imageinfo['APP13'];
 		} else {

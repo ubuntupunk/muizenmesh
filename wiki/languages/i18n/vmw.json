@@ -3,10 +3,10 @@
 		"authors": [
 			"Amire80",
 			"Gildo Máquina",
+			"Gito da Ana",
 			"Jacinto Jeque",
 			"Ofa1975",
-			"Tomas Armando Moz",
-			"Gito da Ana"
+			"Tomas Armando Moz"
 		]
 	},
 	"underline-always": "Kweekwe",
@@ -143,10 +143,10 @@
 	"privacypage": "Project:Muthinto wa okhoottihiwa muthenkeso",
 	"ok": "Aayo",
 	"retrievedfrom": "Yoophwanyiwa ni $1",
-	"youhavenewmessages": "{{PLURAL:$3|Nyuwo mookhalano}} $1 ($2).",
-	"youhavenewmessagesfromusers": "{{PLURAL:$4|muhana}} $1 okhuma {{PLURAL:$3|mulipa-olepa mukina|$3 users}} ($2).",
-	"newmessageslinkplural": "{{PLURAL:$1|muhupi mmosa musya|999=mihupi isya}}",
-	"newmessagesdifflinkplural": "{{PLURAL:$1|nvirikanyiho wookiserya|999=mivirikanyiho sookiserya}}",
+	"new-messages": "{{PLURAL:$3|Nyuwo mookhalano}} $1 ($2).",
+	"new-messages-from-users": "{{PLURAL:$4|muhana}} $1 okhuma {{PLURAL:$3|mulipa-olepa mukina|$3 users}} ($2).",
+	"new-messages-link-plural": "{{PLURAL:$1|muhupi mmosa musya|999=mihupi isya}}",
+	"new-messages-diff-link-plural": "{{PLURAL:$1|nvirikanyiho wookiserya|999=mivirikanyiho sookiserya}}",
 	"editsection": "oleeliherya",
 	"editold": "Oreerihela",
 	"viewsourceold": "Oweha ekootiku-yoopacerya",
@@ -256,7 +256,6 @@
 	"recreate-moveddeleted-warn": "<strong>Nwiriyane: nyuwo munhula nikukhu nittipihiwe khalayeene.</strong>\n\nMwahana wuupuwelele vakhala wira onnirerela orowa muhoolo mulepaka nikukhu nene nenla. \nOxipiya ni orowa muhoolo nikukhu nene nenla sinooniheriwa mwaha wira onnirerela:",
 	"moveddeleted-notice": "Opuro ola kokhanle. \nWiireliwaka okhala ittharihelo sanyu, sinnooniheriwa vathi soolempwa icipiciwe, okhapelela ni siiranen\"ye opuro yoola.",
 	"content-model-wikitext": "Yoolempwa wiki",
-	"content-model-javascript": "JavaScript",
 	"undo-failure": "Khivaweryanen\"ye onyaanya ereerihelo ela mwaha mwa mwaattattanyo ni soovirikaniha inaakiha",
 	"viewpagelogs": "Oweha ireerihelo sa opuro ola",
 	"currentrev-asof": "Mureerihelo wa naanano okhuma $1",
@@ -599,6 +598,6 @@
 	"blockedtext-expiration-time": "Omala wa otthukiwa: $1",
 	"blockedtext-intended-blockee": "Namatthukeliwa: $1",
 	"blockedtext-contact-blocker-admin": "Mokhala olavula ni $1 wala mukina [[{{MediaWiki:Grouppage-sysop}}|amuheleli]] wiira mulanule mwaha anyu.",
-	"blockedtext-block-ip": "IP anyu vano ti $3",
+	"blockedtext-block-ip": "IP anyu vano ti $1.",
 	"blockedtext-include-details-queries": "Xontte mulepe sowooniherya sotheene nveliwaanyu olepa."
 }

@@ -1,5 +1,12 @@
 <?php
 
+namespace MediaWiki\HTMLForm\Field;
+
+use FormatJson;
+use InvalidArgumentException;
+use MediaWiki\HTMLForm\HTMLFormField;
+use XmlSelect;
+
 /**
  * Text field for selecting a value from a large list of possible values, with
  * auto-completion and optionally with a select dropdown for selecting common
@@ -95,9 +102,10 @@ class HTMLAutoCompleteSelectField extends HTMLTextField {
 
 		$validOptions = HTMLFormField::flattenOptions( $this->getOptions() ?: [] );
 
-		if ( in_array( strval( $value ), $validOptions, true ) ) {
-			return true;
-		} elseif ( in_array( strval( $value ), $this->autocompleteData, true ) ) {
+		if (
+			in_array( strval( $value ), $validOptions, true ) ||
+			in_array( strval( $value ), $this->autocompleteData, true )
+		) {
 			return true;
 		} elseif ( $this->mParams['require-match'] ) {
 			return $this->msg( 'htmlform-select-badoption' );
@@ -181,3 +189,6 @@ class HTMLAutoCompleteSelectField extends HTMLTextField {
 		return false;
 	}
 }
+
+/** @deprecated class alias since 1.42 */
+class_alias( HTMLAutoCompleteSelectField::class, 'HTMLAutoCompleteSelectField' );

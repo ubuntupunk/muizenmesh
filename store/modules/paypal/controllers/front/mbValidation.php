@@ -1,6 +1,6 @@
 <?php
-/**
- * 2007-2023 PayPal
+/*
+ * Since 2007 PayPal
  *
  * NOTICE OF LICENSE
  *
@@ -18,10 +18,11 @@
  *  versions in the future. If you wish to customize PrestaShop for your
  *  needs please refer to http://www.prestashop.com for more information.
  *
- *  @author 2007-2023 PayPal
+ *  @author Since 2007 PayPal
  *  @author 202 ecommerce <tech@202-ecommerce.com>
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
+ *
  */
 
 use PaypalAddons\classes\AbstractMethodPaypal;
@@ -61,18 +62,6 @@ class PaypalMbValidationModuleFrontController extends PaypalAbstarctModuleFrontC
             $cart = Context::getContext()->cart;
             $customer = new Customer($cart->id_customer);
             $this->redirectUrl = 'index.php?controller=order-confirmation&id_cart=' . $cart->id . '&id_module=' . $paypal->id . '&id_order=' . $paypal->currentOrder . '&key=' . $customer->secure_key;
-        } catch (PayPal\Exception\PayPalConnectionException $e) {
-            $decoded_message = json_decode($e->getData());
-            $this->_errors['error_code'] = $e->getCode();
-            $this->_errors['error_msg'] = $decoded_message->message;
-            $this->_errors['msg_long'] = $decoded_message->name;
-            if (!empty($decoded_message->details)) {
-                $this->_errors['msg_long'] .= ' - ' . $decoded_message->details[0]->issue;
-            }
-        } catch (PayPal\Exception\PayPalInvalidCredentialException $e) {
-            $this->_errors['error_msg'] = $e->errorMessage();
-        } catch (PayPal\Exception\PayPalMissingCredentialException $e) {
-            $this->_errors['error_msg'] = $paypal->l('Invalid configuration. Please check your configuration file.', pathinfo(__FILE__)['filename']);
         } catch (Exception $e) {
             $this->_errors['error_code'] = $e->getCode();
             $this->_errors['error_msg'] = $e->getMessage();

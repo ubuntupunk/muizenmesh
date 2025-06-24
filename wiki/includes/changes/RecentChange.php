@@ -21,6 +21,9 @@
  */
 
 use MediaWiki\ChangeTags\Taggable;
+use MediaWiki\Config\Config;
+use MediaWiki\Deferred\DeferredUpdates;
+use MediaWiki\HookContainer\HookRunner;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Page\PageIdentity;
@@ -32,6 +35,7 @@ use MediaWiki\Storage\EditResult;
 use MediaWiki\Title\Title;
 use MediaWiki\User\UserIdentity;
 use MediaWiki\User\UserIdentityValue;
+use MediaWiki\Utils\MWTimestamp;
 use Wikimedia\Assert\Assert;
 use Wikimedia\AtEase\AtEase;
 use Wikimedia\IPUtils;
@@ -167,8 +171,7 @@ class RecentChange implements Taggable {
 	/**
 	 * Parsing text to RC_* constants
 	 * @since 1.24
-	 * @param string|array $type
-	 * @throws MWException
+	 * @param string|array $type Callers must make sure that the given types are valid RC types.
 	 * @return int|array RC_TYPE
 	 */
 	public static function parseToRCType( $type ) {
@@ -182,7 +185,7 @@ class RecentChange implements Taggable {
 		}
 
 		if ( !array_key_exists( $type, self::CHANGE_TYPES ) ) {
-			throw new MWException( "Unknown type '$type'" );
+			throw new InvalidArgumentException( "Unknown type '$type'" );
 		}
 		return self::CHANGE_TYPES[$type];
 	}
@@ -232,7 +235,10 @@ class RecentChange implements Taggable {
 		$fname = __METHOD__,
 		$dbType = DB_REPLICA
 	) {
-		$db = wfGetDB( $dbType );
+		$icp = MediaWikiServices::getInstance()->getConnectionProvider();
+
+		$db = ( $dbType === DB_REPLICA ) ? $icp->getReplicaDatabase() : $icp->getPrimaryDatabase();
+
 		$rcQuery = self::getQueryInfo();
 		$row = $db->selectRow(
 			$rcQuery['tables'], $rcQuery['fields'], $conds, $fname, [], $rcQuery['joins']
@@ -367,21 +373,6 @@ class RecentChange implements Taggable {
 	}
 
 	/**
-	 * Get the User object of the person who performed this change.
-	 * @deprecated since 1.36, hard deprecated since 1.37, use getPerformerIdentity() instead.
-	 *
-	 * @return User
-	 */
-	public function getPerformer(): User {
-		wfDeprecated( __METHOD__, '1.36' );
-		if ( !$this->mPerformer instanceof User ) {
-			$this->mPerformer = User::newFromIdentity( $this->getPerformerIdentity() );
-		}
-
-		return $this->mPerformer;
-	}
-
-	/**
 	 * Get the UserIdentity of the client that performed this change.
 	 *
 	 * @since 1.36
@@ -413,7 +404,7 @@ class RecentChange implements Taggable {
 		$services = MediaWikiServices::getInstance();
 		$mainConfig = $services->getMainConfig();
 		$putIPinRC = $mainConfig->get( MainConfigNames::PutIPinRC );
-		$dbw = wfGetDB( DB_PRIMARY );
+		$dbw = $services->getConnectionProvider()->getPrimaryDatabase();
 		if ( !is_array( $this->mExtra ) ) {
 			$this->mExtra = [];
 		}
@@ -461,13 +452,17 @@ class RecentChange implements Taggable {
 		unset( $row['rc_id'] );
 
 		# Insert new row
-		$dbw->insert( 'recentchanges', $row, __METHOD__ );
+		$dbw->newInsertQueryBuilder()
+			->insertInto( 'recentchanges' )
+			->row( $row )
+			->caller( __METHOD__ )->execute();
 
 		# Set the ID
 		$this->mAttribs['rc_id'] = $dbw->insertId();
 
 		# Notify extensions
-		Hooks::runner()->onRecentChange_save( $this );
+		$hookRunner = new HookRunner( $services->getHookContainer() );
+		$hookRunner->onRecentChange_save( $this );
 
 		// Apply revert tags (if needed)
 		if ( $this->editResult !== null && count( $this->editResult->getRevertTags() ) ) {
@@ -509,7 +504,7 @@ class RecentChange implements Taggable {
 			// Never send an RC notification email about categorization changes
 			if (
 				$title &&
-				Hooks::runner()->onAbortEmailNotification( $editor, $title, $this ) &&
+				$hookRunner->onAbortEmailNotification( $editor, $title, $this ) &&
 				$this->mAttribs['rc_type'] != RC_CATEGORIZE
 			) {
 				// @FIXME: This would be better as an extension hook
@@ -582,32 +577,6 @@ class RecentChange implements Taggable {
 	}
 
 	/**
-	 * @since 1.22
-	 * @codeCoverageIgnore
-	 * @deprecated since 1.29 Use RCFeed::factory() instead. Hard deprecated since 1.38.
-	 * @param string $uri URI to get the engine object for
-	 * @param array $params
-	 * @return FormattedRCFeed
-	 * @throws MWException
-	 */
-	public static function getEngine( $uri, $params = [] ) {
-		wfDeprecated( __METHOD__, '1.29' );
-		$rcEngines =
-			MediaWikiServices::getInstance()->getMainConfig()->get( MainConfigNames::RCEngines );
-		$scheme = parse_url( $uri, PHP_URL_SCHEME );
-		if ( !$scheme ) {
-			throw new MWException( "Invalid RCFeed uri: '$uri'" );
-		}
-		if ( !isset( $rcEngines[$scheme] ) ) {
-			throw new MWException( "Unknown RCFeed engine: '$scheme'" );
-		}
-		if ( defined( 'MW_PHPUNIT_TEST' ) && is_object( $rcEngines[$scheme] ) ) {
-			return $rcEngines[$scheme];
-		}
-		return new $rcEngines[$scheme]( $params );
-	}
-
-	/**
 	 * Mark this RecentChange as patrolled
 	 *
 	 * NOTE: Can also return 'rcpatroldisabled', 'hookaborted' and
@@ -623,7 +592,8 @@ class RecentChange implements Taggable {
 			wfWarn( __METHOD__ . ' with $auto = true' );
 			return [];
 		}
-		$mainConfig = MediaWikiServices::getInstance()->getMainConfig();
+		$services = MediaWikiServices::getInstance();
+		$mainConfig = $services->getMainConfig();
 		$useRCPatrol = $mainConfig->get( MainConfigNames::UseRCPatrol );
 		$useNPPatrol = $mainConfig->get( MainConfigNames::UseNPPatrol );
 		$useFilePatrol = $mainConfig->get( MainConfigNames::UseFilePatrol );
@@ -643,8 +613,9 @@ class RecentChange implements Taggable {
 			$status->fatal( 'rcpatroldisabled' );
 		}
 		$performer->authorizeWrite( 'patrol', $this->getTitle(), $status );
-		$user = MediaWikiServices::getInstance()->getUserFactory()->newFromAuthority( $performer );
-		if ( !Hooks::runner()->onMarkPatrolled(
+		$user = $services->getUserFactory()->newFromAuthority( $performer );
+		$hookRunner = new HookRunner( $services->getHookContainer() );
+		if ( !$hookRunner->onMarkPatrolled(
 			$this->getAttribute( 'rc_id' ), $user, false, false, $tags )
 		) {
 			$status->fatal( 'hookaborted' );
@@ -662,12 +633,20 @@ class RecentChange implements Taggable {
 		if ( $this->getAttribute( 'rc_patrolled' ) ) {
 			return [];
 		}
-		// Actually set the 'patrolled' flag in RC
-		$this->reallyMarkPatrolled();
+		// Attempt to set the 'patrolled' flag in RC database
+		$affectedRowCount = $this->reallyMarkPatrolled();
+
+		if ( $affectedRowCount === 0 ) {
+			// Query succeeded but no rows change, e.g. another request
+			// patrolled the same change just before us.
+			// Avoid duplicate log entry (T196182).
+			return [];
+		}
+
 		// Log this patrol event
 		PatrolLog::record( $this, false, $performer->getUser(), $tags );
 
-		Hooks::runner()->onMarkPatrolledComplete(
+		$hookRunner->onMarkPatrolledComplete(
 			$this->getAttribute( 'rc_id' ), $user, false, false );
 
 		return [];
@@ -675,20 +654,25 @@ class RecentChange implements Taggable {
 
 	/**
 	 * Mark this RecentChange patrolled, without error checking
-	 * @return int Number of affected rows
+	 *
+	 * @return int Number of database rows changed, usually 1, but 0 if
+	 * another request already patrolled it in the mean time.
 	 */
 	public function reallyMarkPatrolled() {
-		$dbw = wfGetDB( DB_PRIMARY );
-		$dbw->update(
-			'recentchanges',
-			[
-				'rc_patrolled' => self::PRC_PATROLLED
-			],
-			[
-				'rc_id' => $this->getAttribute( 'rc_id' )
-			],
-			__METHOD__
-		);
+		$dbw = MediaWikiServices::getInstance()->getConnectionProvider()->getPrimaryDatabase();
+		$dbw->newUpdateQueryBuilder()
+			->update( 'recentchanges' )
+			->set( [ 'rc_patrolled' => self::PRC_PATROLLED ] )
+			->where( [
+				'rc_id' => $this->getAttribute( 'rc_id' ),
+				'rc_patrolled' => self::PRC_UNPATROLLED,
+			] )
+			->caller( __METHOD__ )->execute();
+		$affectedRowCount = $dbw->affectedRows();
+		// The change was patrolled already, do nothing
+		if ( $affectedRowCount === 0 ) {
+			return 0;
+		}
 		// Invalidate the page cache after the page has been patrolled
 		// to make sure that the Patrol link isn't visible any longer!
 		$this->getTitle()->invalidateCache();
@@ -701,7 +685,7 @@ class RecentChange implements Taggable {
 			$revertedTagUpdateManager->approveRevertedTagForRevision( $revisionId );
 		}
 
-		return $dbw->affectedRows();
+		return $affectedRowCount;
 	}
 
 	/**
@@ -784,7 +768,7 @@ class RecentChange implements Taggable {
 				$rc->save();
 			},
 			DeferredUpdates::POSTSEND,
-			wfGetDB( DB_PRIMARY )
+			MediaWikiServices::getInstance()->getConnectionProvider()->getPrimaryDatabase()
 		);
 
 		return $rc;
@@ -864,7 +848,7 @@ class RecentChange implements Taggable {
 				$rc->save();
 			},
 			DeferredUpdates::POSTSEND,
-			wfGetDB( DB_PRIMARY )
+			MediaWikiServices::getInstance()->getConnectionProvider()->getPrimaryDatabase()
 		);
 
 		return $rc;
@@ -928,8 +912,10 @@ class RecentChange implements Taggable {
 	public static function newLogEntry( $timestamp,
 		$logPage, $user, $actionComment, $ip,
 		$type, $action, $target, $logComment, $params, $newId = 0, $actionCommentIRC = '',
-		$revId = 0, $isPatrollable = false, $forceBotFlag = null ) {
+		$revId = 0, $isPatrollable = false, $forceBotFlag = null
+	) {
 		global $wgRequest;
+
 		$permissionManager = MediaWikiServices::getInstance()->getPermissionManager();
 
 		# # Get pageStatus for email notification
@@ -1144,9 +1130,10 @@ class RecentChange implements Taggable {
 		// rc_deleted MUST be set
 		$this->mAttribs['rc_deleted'] = $row->rc_deleted;
 
+		$dbr = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
 		$comment = MediaWikiServices::getInstance()->getCommentStore()
 			// Legacy because $row may have come from self::selectFields()
-			->getCommentLegacy( wfGetDB( DB_REPLICA ), 'rc_comment', $row, true )
+			->getCommentLegacy( $dbr, 'rc_comment', $row, true )
 			->text;
 		$this->mAttribs['rc_comment'] = &$comment;
 		$this->mAttribs['rc_comment_text'] = &$comment;
@@ -1191,7 +1178,7 @@ class RecentChange implements Taggable {
 				// NOTE: rc_actor exists in the database, but application logic should not use it.
 				wfDeprecatedMsg( 'Accessing deprecated field rc_actor', '1.36' );
 				$actorStore = MediaWikiServices::getInstance()->getActorStore();
-				$db = wfGetDB( DB_REPLICA );
+				$db = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
 				return $actorStore->findActorId( $user, $db );
 			}
 		}
@@ -1251,9 +1238,10 @@ class RecentChange implements Taggable {
 
 	private static function checkIPAddress( $ip ) {
 		global $wgRequest;
+
 		if ( $ip ) {
 			if ( !IPUtils::isIPAddress( $ip ) ) {
-				throw new MWException( "Attempt to write \"" . $ip .
+				throw new RuntimeException( "Attempt to write \"" . $ip .
 					"\" as an IP address into recent changes" );
 			}
 		} else {
@@ -1312,6 +1300,45 @@ class RecentChange implements Taggable {
 		return $conf->get( MainConfigNames::EnotifUserTalk ) ||
 			$conf->get( MainConfigNames::EnotifWatchlist ) ||
 			$conf->get( MainConfigNames::ShowUpdatedMarker );
+	}
+
+	/**
+	 * Get the extra URL that is given as part of the notification to RCFeed consumers.
+	 *
+	 * This is mainly to facilitate patrolling or other content review.
+	 *
+	 * @since 1.40
+	 * @return string|null URL
+	 */
+	public function getNotifyUrl() {
+		$services = MediaWikiServices::getInstance();
+		$mainConfig = $services->getMainConfig();
+		$useRCPatrol = $mainConfig->get( MainConfigNames::UseRCPatrol );
+		$useNPPatrol = $mainConfig->get( MainConfigNames::UseNPPatrol );
+		$localInterwikis = $mainConfig->get( MainConfigNames::LocalInterwikis );
+		$canonicalServer = $mainConfig->get( MainConfigNames::CanonicalServer );
+		$script = $mainConfig->get( MainConfigNames::Script );
+
+		$type = $this->getAttribute( 'rc_type' );
+		if ( $type == RC_LOG ) {
+			$url = null;
+		} else {
+			$url = $canonicalServer . $script;
+			if ( $type == RC_NEW ) {
+				$query = '?oldid=' . $this->getAttribute( 'rc_this_oldid' );
+			} else {
+				$query = '?diff=' . $this->getAttribute( 'rc_this_oldid' )
+					. '&oldid=' . $this->getAttribute( 'rc_last_oldid' );
+			}
+			if ( $useRCPatrol || ( $this->getAttribute( 'rc_type' ) == RC_NEW && $useNPPatrol ) ) {
+				$query .= '&rcid=' . $this->getAttribute( 'rc_id' );
+			}
+
+			( new HookRunner( $services->getHookContainer() ) )->onIRCLineURL( $url, $query, $this );
+			$url .= $query;
+		}
+
+		return $url;
 	}
 
 	/**
@@ -1392,7 +1419,7 @@ class RecentChange implements Taggable {
 				}
 			}
 		} elseif ( $actorId > 0 ) {
-			$db = wfGetDB( DB_REPLICA );
+			$db = MediaWikiServices::getInstance()->getConnectionProvider()->getReplicaDatabase();
 			$user = $actorStore->getActorById( $actorId, $db );
 
 			if ( !$user ) {

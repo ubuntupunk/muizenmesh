@@ -1,10 +1,11 @@
 <?php
 
+use MediaWiki\Title\TitleValue;
 use MediaWiki\User\UserIdentityValue;
 use Wikimedia\Timestamp\ConvertibleTimestamp;
 
 /**
- * @covers WatchedItem
+ * @covers \WatchedItem
  */
 class WatchedItemUnitTest extends MediaWikiUnitTestCase {
 
@@ -27,7 +28,7 @@ class WatchedItemUnitTest extends MediaWikiUnitTestCase {
 		$target = new TitleValue( 0, 'SomeDbKey' );
 
 		// Fake current time to be 2020-05-27T00:00:00Z
-		$fakeTime = ConvertibleTimestamp::setFakeTime( '20200527000000' );
+		ConvertibleTimestamp::setFakeTime( '20200527000000' );
 
 		// Adding a watched item with an expiry of a month from the frozen time
 		$watchedItemMonth = new WatchedItem( $user, $target, null, '20200627000000' );
@@ -72,7 +73,7 @@ class WatchedItemUnitTest extends MediaWikiUnitTestCase {
 		);
 
 		// Fake current time to be 2020-05-27T00:00:00Z
-		$fakeTime = ConvertibleTimestamp::setFakeTime( '20200527000000' );
+		ConvertibleTimestamp::setFakeTime( '20200527000000' );
 
 		// Adding a watched item with an expiry of a month from the frozen time
 		$watchedItemMonth = new WatchedItem( $user, $target, null, '20200627000000' );

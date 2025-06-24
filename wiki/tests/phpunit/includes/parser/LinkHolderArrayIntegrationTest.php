@@ -2,17 +2,24 @@
 
 declare( strict_types = 1 );
 
+namespace MediaWiki\Tests\Parser;
+
+use ILanguageConverter;
+use LinkHolderArray;
 use MediaWiki\MainConfigNames;
+use MediaWiki\Parser\Parser;
 use MediaWiki\Title\Title;
+use MediaWikiLangTestCase;
+use Wikimedia\TestingAccessWrapper;
 
 /**
- * @covers LinkHolderArray
+ * @covers \LinkHolderArray
  */
 class LinkHolderArrayIntegrationTest extends MediaWikiLangTestCase {
 
 	/**
 	 * @dataProvider provideIsBig
-	 * @covers LinkHolderArray::isBig
+	 * @covers \LinkHolderArray::isBig
 	 *
 	 * @param int $size
 	 * @param int $global
@@ -25,12 +32,14 @@ class LinkHolderArrayIntegrationTest extends MediaWikiLangTestCase {
 			$this->createMock( ILanguageConverter::class ),
 			$this->createHookContainer()
 		);
+		/** @var LinkHolderArray $linkHolderArray */
+		$linkHolderArray = TestingAccessWrapper::newFromObject( $linkHolderArray );
 		$linkHolderArray->size = $size;
 
 		$this->assertSame( $expected, $linkHolderArray->isBig() );
 	}
 
-	public function provideIsBig() {
+	public static function provideIsBig() {
 		yield [ 0, 0, false ];
 		yield [ 0, 1, false ];
 		yield [ 1, 0, true ];
@@ -39,7 +48,7 @@ class LinkHolderArrayIntegrationTest extends MediaWikiLangTestCase {
 
 	/**
 	 * @dataProvider provideMakeHolder_withNsText
-	 * @covers LinkHolderArray::makeHolder
+	 * @covers \LinkHolderArray::makeHolder
 	 *
 	 * @param bool $isExternal
 	 * @param string $expected
@@ -53,6 +62,8 @@ class LinkHolderArrayIntegrationTest extends MediaWikiLangTestCase {
 			$this->createMock( ILanguageConverter::class ),
 			$this->createHookContainer()
 		);
+		/** @var LinkHolderArray $link */
+		$link = TestingAccessWrapper::newFromObject( $link );
 		$parser = $this->createMock( Parser::class );
 		$parser->method( 'nextLinkID' )->willReturn( 9 );
 		$link->parent = $parser;
@@ -100,7 +111,7 @@ class LinkHolderArrayIntegrationTest extends MediaWikiLangTestCase {
 		}
 	}
 
-	public function provideMakeHolder_withNsText() {
+	public static function provideMakeHolder_withNsText() {
 		yield [
 			false,
 			'<!--LINK\'" 1234:9-->2 trail',

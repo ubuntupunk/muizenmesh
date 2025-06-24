@@ -1,7 +1,7 @@
 /*!
  * VisualEditor UserInterface MWPreviewElement class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see AUTHORS.txt
+ * @copyright See AUTHORS.txt
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
@@ -30,6 +30,25 @@ ve.ui.MWPreviewElement = function VeUiMwPreviewElement() {
 OO.inheritClass( ve.ui.MWPreviewElement, ve.ui.PreviewElement );
 
 /* Method */
+
+/**
+ * @inheritdoc
+ */
+ve.ui.MWPreviewElement.prototype.beforeAppend = function ( element ) {
+	// Parent method
+	ve.ui.MWPreviewElement.super.prototype.beforeAppend.apply( this, arguments );
+
+	// Remove any TemplateStyles stylesheets already present on the page, to avoid
+	// very slow repaints (T330781)
+	Array.prototype.forEach.call( element.querySelectorAll( 'style[data-mw-deduplicate]' ), function ( style ) {
+		var key = style.getAttribute( 'data-mw-deduplicate' );
+
+		var duplicate = element.querySelector( 'style[data-mw-deduplicate="' + key + '"]' );
+		if ( duplicate ) {
+			style.parentNode.removeChild( style );
+		}
+	} );
+};
 
 /**
  * @inheritdoc

@@ -20,13 +20,19 @@
  * @file
  */
 
-use MediaWiki\ExtensionInfo;
+use MediaWiki\Context\DerivativeContext;
+use MediaWiki\Context\IContextSource;
 use MediaWiki\Html\Html;
 use MediaWiki\Html\HtmlHelper;
-use MediaWiki\Linker\Linker;
 use MediaWiki\MainConfigNames;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Output\OutputPage;
+use MediaWiki\Parser\ParserOutput;
+use MediaWiki\Parser\ParserOutputFlags;
+use MediaWiki\SpecialPage\SpecialPage;
+use MediaWiki\Specials\SpecialVersion;
 use MediaWiki\Title\Title;
+use MediaWiki\Utils\ExtensionInfo;
 use Wikimedia\ParamValidator\ParamValidator;
 use Wikimedia\Parsoid\Core\TOCData;
 use Wikimedia\RemexHtml\Serializer\SerializerNode;
@@ -38,8 +44,7 @@ use Wikimedia\RemexHtml\Serializer\SerializerNode;
  * @ingroup API
  */
 class ApiHelp extends ApiBase {
-	/** @var SkinFactory */
-	private $skinFactory;
+	private SkinFactory $skinFactory;
 
 	/**
 	 * @param ApiMain $main
@@ -144,7 +149,7 @@ class ApiHelp extends ApiBase {
 			'mediawiki.hlist',
 			'mediawiki.apipretty',
 		] );
-		$out->setPageTitle( $context->msg( 'api-help-title' ) );
+		$out->setPageTitleMsg( $context->msg( 'api-help-title' ) );
 
 		$services = MediaWikiServices::getInstance();
 		$cache = $services->getMainWANObjectCache();
@@ -186,7 +191,11 @@ class ApiHelp extends ApiBase {
 		$haveModules = [];
 		$html = self::getHelpInternal( $context, $modules, $options, $haveModules );
 		if ( !empty( $options['toc'] ) && $haveModules ) {
-			$out->addHTML( Linker::generateTOC( TOCData::fromLegacy( $haveModules ), $context->getLanguage() ) );
+			$pout = new ParserOutput;
+			$pout->setTOCData( TOCData::fromLegacy( array_values( $haveModules ) ) );
+			$pout->setOutputFlag( ParserOutputFlags::SHOW_TOC );
+			$pout->setText( Parser::TOC_PLACEHOLDER );
+			$out->addParserOutput( $pout );
 		}
 		$out->addHTML( $html );
 
@@ -335,7 +344,7 @@ class ApiHelp extends ApiBase {
 					'anchor' => $anchor,
 					'line' => $headerContent,
 					'number' => implode( '.', $tocnumber ),
-					'index' => false,
+					'index' => '',
 				];
 				if ( empty( $options['noheader'] ) ) {
 					$help['header'] .= Html::rawElement(
@@ -497,8 +506,13 @@ class ApiHelp extends ApiBase {
 						$groups[] = $name;
 					}
 
+					$encodedParamName = $module->encodeParamName( $name );
+					$paramNameAttribs = [ 'dir' => 'ltr', 'lang' => 'en' ];
+					if ( isset( $anchor ) ) {
+						$paramNameAttribs['id'] = "$anchor:$encodedParamName";
+					}
 					$help['parameters'] .= Html::rawElement( 'dt', [],
-						Html::element( 'span', [ 'dir' => 'ltr', 'lang' => 'en' ], $module->encodeParamName( $name ) )
+						Html::element( 'span', $paramNameAttribs, $encodedParamName )
 					);
 
 					// Add description
@@ -575,7 +589,7 @@ class ApiHelp extends ApiBase {
 					// Type documentation
 					foreach ( $paramHelp as $m ) {
 						$m->setContext( $context );
-						$info[] = $m;
+						$info[] = $m->parse();
 					}
 
 					foreach ( $info as $i ) {

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * MySQL-specific installer.
  *
@@ -21,10 +22,11 @@
  * @ingroup Installer
  */
 
-use MediaWiki\Html\Html;
-use MediaWiki\MediaWikiServices;
-use Wikimedia\Rdbms\Database;
+namespace MediaWiki\Installer;
+
+use MediaWiki\Status\Status;
 use Wikimedia\Rdbms\DatabaseFactory;
+use Wikimedia\Rdbms\DatabaseMySQL;
 use Wikimedia\Rdbms\DBConnectionError;
 use Wikimedia\Rdbms\DBQueryError;
 use Wikimedia\Rdbms\IDatabase;
@@ -42,6 +44,7 @@ class MysqlInstaller extends DatabaseInstaller {
 		'wgDBname',
 		'wgDBuser',
 		'wgDBpassword',
+		'wgDBssl',
 		'wgDBprefix',
 		'wgDBTableOptions',
 	];
@@ -83,66 +86,12 @@ class MysqlInstaller extends DatabaseInstaller {
 		return self::checkExtension( 'mysqli' );
 	}
 
-	/**
-	 * @return string
-	 */
-	public function getConnectForm() {
-		return $this->getTextBox(
-			'wgDBserver',
-			'config-db-host',
-			[],
-			$this->parent->getHelpBox( 'config-db-host-help' )
-		) .
-			Html::openElement( 'fieldset' ) .
-			Html::element( 'legend', [], wfMessage( 'config-db-wiki-settings' )->text() ) .
-			$this->getTextBox( 'wgDBname', 'config-db-name', [ 'dir' => 'ltr' ],
-				$this->parent->getHelpBox( 'config-db-name-help' ) ) .
-			$this->getTextBox( 'wgDBprefix', 'config-db-prefix', [ 'dir' => 'ltr' ],
-				$this->parent->getHelpBox( 'config-db-prefix-help' ) ) .
-			Html::closeElement( 'fieldset' ) .
-			$this->getInstallUserBox();
+	public function getConnectForm( WebInstaller $webInstaller ): DatabaseConnectForm {
+		return new MysqlConnectForm( $webInstaller, $this );
 	}
 
-	public function submitConnectForm() {
-		// Get variables from the request.
-		$newValues = $this->setVarsFromRequest( [ 'wgDBserver', 'wgDBname', 'wgDBprefix' ] );
-
-		// Validate them.
-		$status = Status::newGood();
-		if ( !strlen( $newValues['wgDBserver'] ) ) {
-			$status->fatal( 'config-missing-db-host' );
-		}
-		if ( !strlen( $newValues['wgDBname'] ) ) {
-			$status->fatal( 'config-missing-db-name' );
-		} elseif ( !preg_match( '/^[a-z0-9+_-]+$/i', $newValues['wgDBname'] ) ) {
-			$status->fatal( 'config-invalid-db-name', $newValues['wgDBname'] );
-		}
-		if ( !preg_match( '/^[a-z0-9_-]*$/i', $newValues['wgDBprefix'] ) ) {
-			$status->fatal( 'config-invalid-db-prefix', $newValues['wgDBprefix'] );
-		}
-		if ( !$status->isOK() ) {
-			return $status;
-		}
-
-		// Submit user box
-		$status = $this->submitInstallUserBox();
-		if ( !$status->isOK() ) {
-			return $status;
-		}
-
-		// Try to connect
-		$status = $this->getConnection();
-		if ( !$status->isOK() ) {
-			return $status;
-		}
-		/**
-		 * @var Database $conn
-		 */
-		$conn = $status->value;
-		'@phan-var Database $conn';
-
-		// Check version
-		return static::meetsMinimumRequirement( $conn );
+	public function getSettingsForm( WebInstaller $webInstaller ): DatabaseSettingsForm {
+		return new MysqlSettingsForm( $webInstaller, $this );
 	}
 
 	public static function meetsMinimumRequirement( IDatabase $conn ) {
@@ -154,20 +103,21 @@ class MysqlInstaller extends DatabaseInstaller {
 	}
 
 	/**
-	 * @return Status
+	 * @return ConnectionStatus
 	 */
 	public function openConnection() {
-		$status = Status::newGood();
+		$status = new ConnectionStatus;
 		try {
-			/** @var DatabaseMysqlBase $db */
+			/** @var DatabaseMySQL $db */
 			$db = ( new DatabaseFactory() )->create( 'mysql', [
 				'host' => $this->getVar( 'wgDBserver' ),
 				'user' => $this->getVar( '_InstallUser' ),
 				'password' => $this->getVar( '_InstallPassword' ),
+				'ssl' => $this->getVar( 'wgDBssl' ),
 				'dbname' => false,
 				'flags' => 0,
 				'tablePrefix' => $this->getVar( 'wgDBprefix' ) ] );
-			$status->value = $db;
+			$status->setDB( $db );
 		} catch ( DBConnectionError $e ) {
 			$status->fatal( 'config-connection-error', $e->getMessage() );
 		}
@@ -184,10 +134,7 @@ class MysqlInstaller extends DatabaseInstaller {
 
 			return;
 		}
-		/**
-		 * @var Database $conn
-		 */
-		$conn = $status->value;
+		$conn = $status->getDB();
 		$this->selectDatabase( $conn, $this->getVar( 'wgDBname' ) );
 		# Determine existing default character set
 		if ( $conn->tableExists( "revision", __METHOD__ ) ) {
@@ -247,11 +194,7 @@ class MysqlInstaller extends DatabaseInstaller {
 	 */
 	public function getEngines() {
 		$status = $this->getConnection();
-
-		/**
-		 * @var Database $conn
-		 */
-		$conn = $status->value;
+		$conn = $status->getDB();
 
 		$engines = [];
 		$res = $conn->query( 'SHOW ENGINES', __METHOD__ );
@@ -284,8 +227,7 @@ class MysqlInstaller extends DatabaseInstaller {
 		if ( !$status->isOK() ) {
 			return false;
 		}
-		/** @var Database $conn */
-		$conn = $status->value;
+		$conn = $status->getDB();
 
 		// Get current account name
 		$currentName = $conn->selectField( '', 'CURRENT_USER()', '', __METHOD__ );
@@ -363,82 +305,6 @@ class MysqlInstaller extends DatabaseInstaller {
 		return "/$r/s";
 	}
 
-	/**
-	 * @return string
-	 */
-	public function getSettingsForm() {
-		if ( $this->canCreateAccounts() ) {
-			$noCreateMsg = false;
-		} else {
-			$noCreateMsg = 'config-db-web-no-create-privs';
-		}
-		$s = $this->getWebUserBox( $noCreateMsg );
-
-		// Do engine selector
-		$engines = $this->getEngines();
-		// If the current default engine is not supported, use an engine that is
-		if ( !in_array( $this->getVar( '_MysqlEngine' ), $engines ) ) {
-			$this->setVar( '_MysqlEngine', reset( $engines ) );
-		}
-
-		// If the current default charset is not supported, use a charset that is
-		$charsets = $this->getCharsets();
-		if ( !in_array( $this->getVar( '_MysqlCharset' ), $charsets ) ) {
-			$this->setVar( '_MysqlCharset', reset( $charsets ) );
-		}
-
-		return $s;
-	}
-
-	/**
-	 * @return Status
-	 */
-	public function submitSettingsForm() {
-		$this->setVarsFromRequest( [ '_MysqlEngine', '_MysqlCharset' ] );
-		$status = $this->submitWebUserBox();
-		if ( !$status->isOK() ) {
-			return $status;
-		}
-
-		// Validate the create checkbox
-		$canCreate = $this->canCreateAccounts();
-		if ( !$canCreate ) {
-			$this->setVar( '_CreateDBAccount', false );
-			$create = false;
-		} else {
-			$create = $this->getVar( '_CreateDBAccount' );
-		}
-
-		if ( !$create ) {
-			// Test the web account
-			try {
-				MediaWikiServices::getInstance()->getDatabaseFactory()->create( 'mysql', [
-					'host' => $this->getVar( 'wgDBserver' ),
-					'user' => $this->getVar( 'wgDBuser' ),
-					'password' => $this->getVar( 'wgDBpassword' ),
-					'dbname' => false,
-					'flags' => 0,
-					'tablePrefix' => $this->getVar( 'wgDBprefix' )
-				] );
-			} catch ( DBConnectionError $e ) {
-				return Status::newFatal( 'config-connection-error', $e->getMessage() );
-			}
-		}
-
-		// Validate engines and charsets
-		// This is done pre-submit already so it's just for security
-		$engines = $this->getEngines();
-		if ( !in_array( $this->getVar( '_MysqlEngine' ), $engines ) ) {
-			$this->setVar( '_MysqlEngine', reset( $engines ) );
-		}
-		$charsets = $this->getCharsets();
-		if ( !in_array( $this->getVar( '_MysqlCharset' ), $charsets ) ) {
-			$this->setVar( '_MysqlCharset', reset( $charsets ) );
-		}
-
-		return Status::newGood();
-	}
-
 	public function preInstall() {
 		# Add our user callback to installSteps, right before the tables are created.
 		$callback = [
@@ -456,8 +322,7 @@ class MysqlInstaller extends DatabaseInstaller {
 		if ( !$status->isOK() ) {
 			return $status;
 		}
-		/** @var Database $conn */
-		$conn = $status->value;
+		$conn = $status->getDB();
 		$dbName = $this->getVar( 'wgDBname' );
 		if ( !$this->databaseExists( $dbName ) ) {
 			$conn->query(
@@ -512,6 +377,7 @@ class MysqlInstaller extends DatabaseInstaller {
 					'host' => $server,
 					'user' => $dbUser,
 					'password' => $password,
+					'ssl' => $this->getVar( 'wgDBssl' ),
 					'dbname' => false,
 					'flags' => 0,
 					'tablePrefix' => $this->getVar( 'wgDBprefix' )
@@ -602,8 +468,11 @@ class MysqlInstaller extends DatabaseInstaller {
 	 */
 	private function userDefinitelyExists( $host, $user ) {
 		try {
-			$res = $this->db->selectRow( 'mysql.user', [ 'Host', 'User' ],
-				[ 'Host' => $host, 'User' => $user ], __METHOD__ );
+			$res = $this->db->newSelectQueryBuilder()
+				->select( [ 'Host', 'User' ] )
+				->from( 'mysql.user' )
+				->where( [ 'Host' => $host, 'User' => $user ] )
+				->caller( __METHOD__ )->fetchRow();
 
 			return (bool)$res;
 		} catch ( DBQueryError $dqe ) {
@@ -645,10 +514,12 @@ class MysqlInstaller extends DatabaseInstaller {
 
 	public function getLocalSettings() {
 		$prefix = LocalSettingsGenerator::escapePhpString( $this->getVar( 'wgDBprefix' ) );
+		$useSsl = $this->getVar( 'wgDBssl' ) ? 'true' : 'false';
 		$tblOpts = LocalSettingsGenerator::escapePhpString( $this->getTableOptions() );
 
 		return "# MySQL specific settings
 \$wgDBprefix = \"{$prefix}\";
+\$wgDBssl = {$useSsl};
 
 # MySQL table options to use during installation or update
 \$wgDBTableOptions = \"{$tblOpts}\";";

@@ -21,6 +21,11 @@
  * @ingroup SpecialPage
  */
 
+namespace MediaWiki\Specials;
+
+use MediaWiki\SpecialPage\SpecialRedirectWithAction;
+use SearchEngineFactory;
+
 /**
  * @author Zabe
  *
@@ -41,3 +46,6 @@ class SpecialDeletePage extends SpecialRedirectWithAction {
 	// specialdeletepage-page
 	// specialdeletepage-submit
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( SpecialDeletePage::class, 'SpecialDeletePage' );

@@ -18,8 +18,7 @@
  *
  *
  * @author Stephen Billard (sbillard)
- * @package plugins
- * @subpackage elfinder
+ * @package zpcore\plugins\elfinder
  */
 $plugin_is_filter = 5 | ADMIN_PLUGIN;
 $plugin_description = gettext('Provides file handling for the <code>upload/files</code> tab and the <em>TinyMCE</em> file browser.');
@@ -89,26 +88,42 @@ function elFinder_tinymce($discard) {
 
 	$file = FULLWEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER . '/elFinder/elfinder.php?XSRFToken=' . getXSRFToken('elFinder');
 	?>
-	<script type="text/javascript">
-		// <!-- <![CDATA[
+	<script>
 		function elFinderBrowser(field_name, url, type, win) {
-			tinymce.activeEditor.windowManager.open({
-				file: '<?php echo $file; ?>', // use an absolute path!
-				title: 'elFinder 2.0',
-				width: 900,
-				height: 450,
-				close_previous: 'no',
-				inline: 'yes', // This parameter only has an effect if you use the inlinepopups plugin!
-				popup_css: false, // Disable TinyMCE's default popup CSS
-				resizable: 'yes'
-			}, {
-				setUrl: function(url) {
-					win.document.getElementById(field_name).value = url;
-				}
-			});
+			if (tinymce.majorVersion == 4) {
+				tinymce.activeEditor.windowManager.open({
+					file: '<?php echo $file; ?>', // use an absolute path!
+					title: 'elFinder 2.0',
+					width: 900,
+					height: 450,
+					close_previous: 'no',
+					inline: 'yes', // This parameter only has an effect if you use the inlinepopups plugin!
+					popup_css: false, // Disable TinyMCE's default popup CSS
+					resizable: 'yes'
+				}, {
+					setUrl: function(url) {
+						win.document.getElementById(field_name).value = url;
+					}
+				});
+			} else {
+				tinymce.activeEditor.windowManager.openUrl({
+					url: '<?php echo $file; ?>', // use an absolute path!
+					title: 'elFinder 2.0',
+					body: {
+						type: 'bar',
+					},
+					width: 1000,
+					height: 500,
+					onMessage: function (api, data) {
+						if (data.mceAction === 'insertMyURL') {
+							field_name(data.url);
+							api.close();
+						}
+					}
+				});
+			}
 			return false;
 		}
-		// ]]> -->
 	</script>
 
 	<?php

@@ -4,6 +4,7 @@ namespace Test\Parsoid\Utils;
 
 use Wikimedia\Bcp47Code\Bcp47CodeValue;
 use Wikimedia\Parsoid\NodeData\I18nInfo;
+use Wikimedia\Parsoid\Utils\ContentUtils;
 use Wikimedia\Parsoid\Utils\DOMCompat;
 use Wikimedia\Parsoid\Utils\DOMDataUtils;
 use Wikimedia\Parsoid\Utils\DOMUtils;
@@ -41,19 +42,15 @@ class WTUtilsTest extends \PHPUnit\Framework\TestCase {
 			[ 'Use &gt; here', 'Use &#x26;gt; here', 20 ],
 			[ '--&gt;', '&#x2D;&#x2D;&#x3E;', 13 ],
 			[ '--&amp;gt;', '&#x2D;&#x2D;&#x26;gt;', 17 ],
-			[ '--&amp;amp;gt;','&#x2D;&#x2D;&#x26;amp;gt;', 21 ],
+			[ '--&amp;amp;gt;', '&#x2D;&#x2D;&#x26;amp;gt;', 21 ],
 		];
 	}
 
 	/**
 	 * @covers ::createPageContentI18nFragment
-	 * @return void
-	 * @throws \DOMException
 	 */
 	public function testCreatePageContentI18nFragment() {
-		$doc = DOMCompat::newDocument( true );
-		$doc->loadHTML( "<html><body></body></html>" );
-		DOMDataUtils::prepareDoc( $doc );
+		$doc = ContentUtils::createAndLoadDocument( "<html><body></body></html>" );
 		$fragment = WTUtils::createPageContentI18nFragment( $doc, 'key.of.message' );
 		DOMDataUtils::visitAndStoreDataAttribs( $fragment, [ 'discardDataParsoid' => true ] );
 		$actualHtml = DOMUtils::getFragmentInnerHTML( $fragment );
@@ -64,13 +61,9 @@ class WTUtilsTest extends \PHPUnit\Framework\TestCase {
 
 	/**
 	 * @covers ::createInterfaceI18nFragment
-	 * @return void
-	 * @throws \DOMException
 	 */
 	public function testCreateInterfaceI18nFragment() {
-		$doc = DOMCompat::newDocument( true );
-		$doc->loadHTML( "<html><body></body></html>" );
-		DOMDataUtils::prepareDoc( $doc );
+		$doc = ContentUtils::createAndLoadDocument( "<html><body></body></html>" );
 		$fragment = WTUtils::createInterfaceI18nFragment( $doc, 'key.of.message', [ 'Foo' ] );
 		DOMDataUtils::visitAndStoreDataAttribs( $fragment, [ 'discardDataParsoid' => true ] );
 		$actualHtml = DOMUtils::getFragmentInnerHTML( $fragment );
@@ -81,13 +74,9 @@ class WTUtilsTest extends \PHPUnit\Framework\TestCase {
 
 	/**
 	 * @covers ::createLangI18nFragment
-	 * @return void
-	 * @throws \DOMException
 	 */
 	public function testCreateLangI18nFragment() {
-		$doc = DOMCompat::newDocument( true );
-		$doc->loadHTML( "<html><body></body></html>" );
-		DOMDataUtils::prepareDoc( $doc );
+		$doc = ContentUtils::createAndLoadDocument( "<html><body></body></html>" );
 		$lang = new Bcp47CodeValue( 'fr' );
 		$fragment = WTUtils::createLangI18nFragment( $doc, $lang, 'key.of.message' );
 		DOMDataUtils::visitAndStoreDataAttribs( $fragment, [ 'discardDataParsoid' => true ] );
@@ -101,12 +90,9 @@ class WTUtilsTest extends \PHPUnit\Framework\TestCase {
 	 * @covers ::addInterfaceI18nAttribute
 	 * @covers ::addPageContentI18nAttribute
 	 * @covers ::addLangI18nAttribute
-	 * @return void
 	 */
 	public function testAddI18nAttributes() {
-		$doc = DOMCompat::newDocument( true );
-		$doc->loadHTML( "<html><body><span>hello</span></body></html>" );
-		DOMDataUtils::prepareDoc( $doc );
+		$doc = ContentUtils::createAndLoadDocument( "<html><body><span>hello</span></body></html>" );
 		$span = DOMCompat::getBody( $doc )->firstChild;
 		WTUtils::addPageContentI18nAttribute( $span, 'param1', 'key1' );
 		WTUtils::addInterfaceI18nAttribute( $span, 'param2', 'key2', [ 'Foo' ] );
@@ -125,21 +111,15 @@ class WTUtilsTest extends \PHPUnit\Framework\TestCase {
 	 * This also tests the storage/loading of mw-data-i18n attributes in the databag.
 	 * @covers ::addPageContentI18nAttribute
 	 * @covers ::createInterfaceI18nFragment
-	 * @return void
-	 * @throws \DOMException
 	 */
 	public function testCombinedI18n() {
-		$doc = DOMCompat::newDocument( true );
-		$doc->loadHTML( "<html><body></body></html>" );
-		DOMDataUtils::prepareDoc( $doc );
+		$doc = ContentUtils::createAndLoadDocument( "<html><body></body></html>" );
 		$fragment = WTUtils::createInterfaceI18nFragment( $doc, 'key.of.message', [ 'Foo' ] );
 		WTUtils::addPageContentI18nAttribute( $fragment->firstChild, 'attr1', 'key1' );
 		DOMDataUtils::visitAndStoreDataAttribs( $fragment, [ 'discardDataParsoid' => true ] );
 
-		$newDoc = DOMCompat::newDocument( true );
-		$newDoc->loadHTML( '<html><body>' . DOMUtils::getFragmentInnerHTML( $fragment ) . '</body></html>' );
-		DOMDataUtils::prepareDoc( $newDoc );
-		DOMDataUtils::visitAndLoadDataAttribs( $newDoc );
+		$newDoc = ContentUtils::createAndLoadDocument(
+			'<html><body>' . DOMUtils::getFragmentInnerHTML( $fragment ) . '</body></html>' );
 		$span = DOMCompat::getBody( $newDoc )->firstChild;
 		$typeof = DOMUtils::attributes( $span )['typeof'];
 		self::assertEquals( 'mw:I18n mw:LocalizedAttrs', $typeof );
@@ -157,7 +137,6 @@ class WTUtilsTest extends \PHPUnit\Framework\TestCase {
 
 	/**
 	 * @covers ::decodedCommentLength
-	 * @return void
 	 */
 	public function testDecodedCommentLength() {
 		$doc = DOMCompat::newDocument( true );

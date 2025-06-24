@@ -3,11 +3,11 @@
 namespace Cite\Tests\Unit;
 
 use Cite\Hooks\CiteHooks;
-use Title;
+use MediaWiki\Title\Title;
+use MediaWiki\User\Options\StaticUserOptionsLookup;
 
 /**
  * @covers \Cite\Hooks\CiteHooks
- *
  * @license GPL-2.0-or-later
  */
 class CiteHooksUnitTest extends \MediaWikiUnitTestCase {
@@ -19,7 +19,7 @@ class CiteHooksUnitTest extends \MediaWikiUnitTestCase {
 		$title->method( 'getText' )
 			->willReturn( 'Cite-tool-definition.json' );
 
-		$citeHooks = new CiteHooks();
+		$citeHooks = new CiteHooks( new StaticUserOptionsLookup( [] ) );
 		$citeHooks->onContentHandlerDefaultModelFor( $title, $model );
 
 		$this->assertSame( CONTENT_MODEL_JSON, $model );

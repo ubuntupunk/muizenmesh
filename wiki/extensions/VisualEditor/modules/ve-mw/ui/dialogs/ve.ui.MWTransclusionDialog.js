@@ -1,7 +1,7 @@
 /*!
  * VisualEditor user interface MWTransclusionDialog class.
  *
- * @copyright 2011-2020 VisualEditor Team and others; see AUTHORS.txt
+ * @copyright See AUTHORS.txt
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
@@ -149,6 +149,10 @@ ve.ui.MWTransclusionDialog.prototype.addParameter = function ( e ) {
 		// Otherwise add to the template that's currently selected via its title or parameter
 		partId = this.bookletLayout.getTopLevelPartIdForSelection();
 		part = this.transclusionModel.getPartFromId( partId );
+	}
+
+	if ( this.transclusionModel.isSingleTemplate() ) {
+		part = this.transclusionModel.getParts()[ 0 ];
 	}
 
 	if ( !( part instanceof ve.dm.MWTemplateModel ) ) {
@@ -543,8 +547,6 @@ ve.ui.MWTransclusionDialog.prototype.initialize = function () {
  * @inheritdoc
  */
 ve.ui.MWTransclusionDialog.prototype.getSetupProcess = function ( data ) {
-	this.onTearDownCallback = data && data.onTearDownCallback;
-
 	return ve.ui.MWTransclusionDialog.super.prototype.getSetupProcess.call( this, data )
 		.next( function () {
 			this.bookletLayout.getOutlineControls().toggle( !this.transclusionModel.isSingleTemplate() );
@@ -562,15 +564,6 @@ ve.ui.MWTransclusionDialog.prototype.getSetupProcess = function ( data ) {
 			// We can do this only after the widget is visible on screen
 			this.sidebar.initializeAllStickyHeaderHeights();
 		}, this );
-};
-
-/** @inheritdoc */
-ve.ui.MWTransclusionDialog.prototype.getTeardownProcess = function () {
-	if ( this.onTearDownCallback ) {
-		this.onTearDownCallback();
-	}
-
-	return ve.ui.MWTransclusionDialog.super.prototype.getTeardownProcess.apply( this, arguments );
 };
 
 /**

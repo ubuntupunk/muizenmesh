@@ -21,7 +21,7 @@
  * @ingroup Maintenance
  */
 
-use MediaWiki\MediaWikiServices;
+use MediaWiki\FileRepo\File\FileSelectQueryBuilder;
 
 require_once __DIR__ . '/Maintenance.php';
 
@@ -40,22 +40,18 @@ class CheckImages extends Maintenance {
 
 	public function execute() {
 		$start = '';
-		$dbr = $this->getDB( DB_REPLICA );
+		$dbr = $this->getReplicaDB();
 
 		$numImages = 0;
 		$numGood = 0;
 
-		$repo = MediaWikiServices::getInstance()->getRepoGroup()->getLocalRepo();
-		$fileQuery = LocalFile::getQueryInfo();
+		$repo = $this->getServiceContainer()->getRepoGroup()->getLocalRepo();
 		do {
-			$res = $dbr->newSelectQueryBuilder()
-				->select( $fileQuery['fields'] )
-				->tables( $fileQuery['tables'] )
-				->where( 'img_name > ' . $dbr->addQuotes( $start ) )
-				->joinConds( $fileQuery['joins'] )
-				->caller( __METHOD__ )
+			$queryBuilder = FileSelectQueryBuilder::newForFile( $dbr );
+
+			$res = $queryBuilder->where( $dbr->expr( 'img_name', '>', $start ) )
 				->limit( $this->getBatchSize() )
-				->fetchResultSet();
+				->caller( __METHOD__ )->fetchResultSet();
 			foreach ( $res as $row ) {
 				$numImages++;
 				$start = $row->img_name;

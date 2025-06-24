@@ -13,16 +13,24 @@
 $filehandler = zp_apply_filter('tinymce_zenpage_config', NULL);
 global $_zp_rtl_css;
 ?>
-<script type="text/javascript" src="<?php echo WEBPATH . "/" . ZENFOLDER . "/" . PLUGIN_FOLDER; ?>/tinymce4/tinymce.min.js"></script>
-<script type="text/javascript">
-// <!-- <![CDATA[
+<script src="<?php echo WEBPATH . "/" . ZENFOLDER . "/" . PLUGIN_FOLDER; ?>/tinymce4/tinymce.min.js"></script>
+<script>
 	tinymce.init({
 		selector: "textarea.content,textarea.desc,textarea.extracontent,textarea.texteditor",
 		language: "<?php echo $locale; ?>",
 		entity_encoding: '<?php echo getOption('tinymce4_entityencoding'); ?>',
 		<?php if(!empty(trim(strval(getOption('tinymce4_entities'))))) { ?>
 			entities: '<?php echo getOption('tinymce4_entities'); ?>',
-		<?php } ?>	
+		<?php } ?>
+		<?php if (getOption('tinymce4_textfield-height')) { ?>
+		min_height: <?php echo getOption('tinymce4_textfield-height'); ?>,
+		<?php } ?>
+		<?php if (getOption('tinymce4_browser-spellcheck')) { ?>
+		browser_spellcheck: true,
+		<?php } ?>
+		<?php if (getOption('tinymce4_browser-menu')) { ?>
+		contextmenu: false,
+		<?php } ?>
 		directionality: "<?php echo $_zp_rtl_css ? 'rtl' : 'ltr'; ?>",
 		relative_urls: false,
 		image_advtab: true,
@@ -35,11 +43,19 @@ if ($filehandler) {
 	<?php
 }
 ?>
+<?php if (getOption('tinymce4_browser-menu')) { ?>
+		plugins: [
+			"advlist autolink autosave link image lists charmap print preview hr anchor pagebreak spellchecker",
+			"searchreplace wordcount visualblocks visualchars code fullscreen insertdatetime media nonbreaking",
+			"table directionality emoticons template textcolor paste textcolor textpattern imagetools tinyzenpage"
+		],
+<?php } else { ?>
 		plugins: [
 			"advlist autolink autosave link image lists charmap print preview hr anchor pagebreak spellchecker",
 			"searchreplace wordcount visualblocks visualchars code fullscreen insertdatetime media nonbreaking",
 			"table contextmenu directionality emoticons template textcolor paste textcolor textpattern imagetools tinyzenpage"
 		],
+<?php } ?>
 		toolbar1: "newdocument | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | styleselect formatselect fontselect fontsizeselect",
 		toolbar2: "cut copy paste | searchreplace | bullist numlist | outdent indent blockquote | undo redo | link unlink anchor image media code | inserttime preview | forecolor backcolor",
 		toolbar3: "table | hr removeformat | subscript superscript | charmap emoticons | print fullscreen | ltr rtl | spellchecker | visualchars visualblocks nonbreaking template restoredraft pagebreak tinyzenpage",
@@ -51,5 +67,4 @@ if ($filehandler) {
 			});
 		}
 	});
-// ]]> -->
 </script>

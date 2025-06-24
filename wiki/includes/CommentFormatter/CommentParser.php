@@ -5,23 +5,24 @@ namespace MediaWiki\CommentFormatter;
 use File;
 use HtmlArmor;
 use Language;
-use LinkBatch;
-use LinkCache;
-use MalformedTitleException;
+use MediaWiki\Cache\LinkBatch;
 use MediaWiki\Cache\LinkBatchFactory;
+use MediaWiki\Cache\LinkCache;
 use MediaWiki\HookContainer\HookContainer;
 use MediaWiki\HookContainer\HookRunner;
 use MediaWiki\Linker\Linker;
 use MediaWiki\Linker\LinkRenderer;
 use MediaWiki\Linker\LinkTarget;
+use MediaWiki\Parser\Parser;
+use MediaWiki\Parser\Sanitizer;
+use MediaWiki\Title\MalformedTitleException;
+use MediaWiki\Title\NamespaceInfo;
 use MediaWiki\Title\Title;
+use MediaWiki\Title\TitleParser;
+use MediaWiki\Title\TitleValue;
 use MediaWiki\WikiMap\WikiMap;
-use NamespaceInfo;
-use Parser;
 use RepoGroup;
 use StringUtils;
-use TitleParser;
-use TitleValue;
 
 /**
  * The text processing backend for CommentFormatter.
@@ -63,6 +64,8 @@ class CommentParser {
 
 	/** @var int The maximum number of digits in a marker ID */
 	private const MAX_ID_SIZE = 7;
+	/** @var string Prefix for marker. ' and " included to break attributes (T355538) */
+	private const MARKER_PREFIX = "\x1B\"'";
 
 	/**
 	 * @param LinkRenderer $linkRenderer
@@ -142,7 +145,7 @@ class CommentParser {
 	public function finalize( $comments ) {
 		$this->flushLinkBatches();
 		return preg_replace_callback(
-			'/\x1b([0-9]{' . self::MAX_ID_SIZE . '})/',
+			'/' . self::MARKER_PREFIX . '([0-9]{' . self::MAX_ID_SIZE . '})/',
 			function ( $m ) {
 				$callback = $this->links[(int)$m[1]] ?? null;
 				if ( $callback ) {
@@ -172,7 +175,7 @@ class CommentParser {
 		$comment = strtr( $comment, "\n\x1b", "  " );
 		// Allow HTML entities (for T15815)
 		if ( !$unsafe ) {
-			$comment = \Sanitizer::escapeHtmlAllowEntities( $comment );
+			$comment = Sanitizer::escapeHtmlAllowEntities( $comment );
 		}
 		if ( $enableSectionLinks ) {
 			$comment = $this->doSectionLinks( $comment, $selfLinkTarget, $samePage, $wikiId );
@@ -449,7 +452,7 @@ class CommentParser {
 			throw new \RuntimeException( 'Too many links in comment batch' );
 		}
 		$this->links[] = $callback;
-		return sprintf( "\x1b%0" . self::MAX_ID_SIZE . 'd', $nextId );
+		return sprintf( self::MARKER_PREFIX . "%0" . self::MAX_ID_SIZE . 'd', $nextId );
 	}
 
 	/**

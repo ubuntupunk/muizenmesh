@@ -1,7 +1,5 @@
 <?php
 /**
- * Job queue task description base code.
- *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -20,12 +18,12 @@
  * @file
  */
 
+use MediaWiki\Http\Telemetry;
 use MediaWiki\Page\PageReference;
 use MediaWiki\Page\PageReferenceValue;
-use MediaWiki\Title\Title;
 
 /**
- * Job queue task description base code
+ * Job queue task description base code.
  *
  * Example usage:
  * @code
@@ -37,8 +35,8 @@ use MediaWiki\Title\Title;
  * MediaWikiServices::getInstance()->getJobQueueGroup()->push( $job )
  * @endcode
  *
- * @ingroup JobQueue
  * @since 1.23
+ * @ingroup JobQueue
  */
 class JobSpecification implements IJobSpecification {
 	/** @var string */
@@ -64,6 +62,9 @@ class JobSpecification implements IJobSpecification {
 	public function __construct(
 		$type, array $params, array $opts = [], PageReference $page = null
 	) {
+		$params += [
+			'requestId' => Telemetry::getInstance()->getRequestId(),
+		];
 		$this->validateParams( $params );
 		$this->validateParams( $opts );
 
@@ -103,15 +104,6 @@ class JobSpecification implements IJobSpecification {
 		return $this->type;
 	}
 
-	/**
-	 * @deprecated since 1.37.
-	 * @return Title|null
-	 */
-	public function getTitle() {
-		wfDeprecated( __METHOD__, '1.37' );
-		return Title::castFromPageReference( $this->page );
-	}
-
 	public function getParams() {
 		return $this->params;
 	}
@@ -137,6 +129,8 @@ class JobSpecification implements IJobSpecification {
 			unset( $info['params']['rootJobTimestamp'] );
 			// Likewise for jobs with different delay times
 			unset( $info['params']['jobReleaseTimestamp'] );
+			// Identical jobs from different requests should count as duplicates
+			unset( $info['params']['requestId'] );
 			if ( isset( $this->opts['removeDuplicatesIgnoreParams'] ) ) {
 				foreach ( $this->opts['removeDuplicatesIgnoreParams'] as $field ) {
 					unset( $info['params'][$field] );
@@ -164,10 +158,12 @@ class JobSpecification implements IJobSpecification {
 	}
 
 	/**
+	 * @deprecated since 1.41
 	 * @return array Field/value map that can immediately be serialized
 	 * @since 1.25
 	 */
 	public function toSerializableArray() {
+		wfDeprecated( __METHOD__, '1.41' );
 		return [
 			'type'   => $this->type,
 			'params' => $this->params,

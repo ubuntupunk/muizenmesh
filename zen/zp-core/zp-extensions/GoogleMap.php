@@ -16,8 +16,7 @@
  * </ul>
  *
  * @author Stephen Billard (sbillard), Vincent Bourganel (vincent3569)
- * @package plugins
- * @subpackage googlemap
+ * @package zpcore\plugins\googlemap
  */
 $plugin_is_filter = 5 | THEME_PLUGIN;
 $plugin_description = gettext('Display Google Maps based on <em>latitude</em> and <em>longitude</em> metadata in the images.');
@@ -42,7 +41,7 @@ if (isset($_zp_gallery_page) && $_zp_gallery_page != 'index.php') {
 
 /**
  * googleMap
- *
+ * @deprecated 2.0
  */
 class GoogleMap {
 
@@ -67,6 +66,10 @@ class GoogleMap {
 		}
 	}
 
+	/**
+	 * @deprecated 2.0
+	 * @return type
+	 */
 	function getOptionsSupported() {
 
 		$MapTypes = array(); // order matters here because the first allowed map is selected if the 'gmap_starting_map' is not allowed
@@ -155,6 +158,7 @@ class GoogleMap {
 
 	/**
 	 * Add required informations in the header
+	  * @deprecated 2.0 
 	 */
 	static function js() {
 
@@ -175,9 +179,9 @@ class GoogleMap {
 			$url_appendix = implode('&amp;', $parameters);
 		}
 		?>
-		<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?<?php echo $url_appendix; ?>"></script>
-		<script type="text/javascript" src="<?php echo WEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER; ?>/GoogleMap/markerClustererPlus/markerclusterer.js"></script>
-		<script type="text/javascript" src="<?php echo WEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER; ?>/GoogleMap/overlappingMarkerSpiderfier/oms.min.js"></script>
+		<script src="https://maps.googleapis.com/maps/api/js?<?php echo $url_appendix; ?>"></script>
+		<script src="<?php echo WEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER; ?>/GoogleMap/markerClustererPlus/markerclusterer.js"></script>
+		<script src="<?php echo WEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER; ?>/GoogleMap/overlappingMarkerSpiderfier/oms.min.js"></script>
 		<link rel="stylesheet" href="<?php echo WEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER; ?>/GoogleMap/googleMap.css" type="text/css" media="screen"/>
 		<?php
 	}
@@ -187,6 +191,9 @@ class GoogleMap {
 // codeIgniter stuff
 require_once(SERVERPATH . '/' . ZENFOLDER . '/' . COMMON_FOLDER . '/jsMin/JSMin.php');
 
+/**
+ * @deprecated 2.0
+ */
 class CI_load {
 
 	function library($library) {
@@ -195,7 +202,9 @@ class CI_load {
 	}
 
 }
-
+/**
+ * @deprecated 2.0
+ */
 class CI_jsmin {
 
 	function min($js) {
@@ -203,12 +212,17 @@ class CI_jsmin {
 	}
 
 }
-
+/**
+ * @deprecated 2.0
+ */
 class codeIgniter_kludge { //	dummy for all the CI stuff in the CodeIngnter-Google_maps script
 
-	var $load;
-	var $jsmin;
+	public $load;
+	public $jsmin;
 
+	/**
+ * @deprecated 2.0
+ */
 	function __construct() {
 		$this->load = new CI_load();
 		$this->jsmin = new CI_jsmin();
@@ -216,15 +230,24 @@ class codeIgniter_kludge { //	dummy for all the CI stuff in the CodeIngnter-Goog
 
 }
 
+/**
+ * @deprecated 2.0
+ */
 function log_message($class, $msg) {
 	// do nothing
 }
 
+/**
+ * @deprecated 2.0
+ */
 function get_instance() {
 	// standin for CI library
 	return new codeIgniter_kludge();
 }
 
+/**
+ * @deprecated 2.0
+ */
 function omsAdditions() {
 	// maybe we can move some of the zenphoto hacks here.
 	return '';
@@ -232,6 +255,7 @@ function omsAdditions() {
 
 /**
  * $returns coordinate informations for an image
+ * @deprecated 2.0 
  * @param $image		image object
  */
 function getGeoCoord($image) {
@@ -254,6 +278,7 @@ function getGeoCoord($image) {
 
 /**
  * Add a point to a map object
+ * @deprecated 2.0
  * @param $map			google map object
  * @param $coord		coordinates array
  */
@@ -276,7 +301,7 @@ function addGeoCoord($map, $coord) {
 		}
 
 		$marker['position'] = number_format($coord['lat'], 12, '.', '') . ", " . number_format($coord['long'], 12, '.', '');
-		$marker['title'] = addslashes($coord['title']);
+		$marker['title'] = addslashes(strval($coord['title']));
 		$marker['infowindow_content'] = $title . $thumb . $desc;
 		$map->add_marker($marker);
 		$lat_f = $coord['lat'] * M_PI / 180;
@@ -290,6 +315,7 @@ function addGeoCoord($map, $coord) {
 
 /**
  * Gathers the data for an image
+  * @deprecated 2.0
  * @param $image		image object
  * @param $map			google map object
  */
@@ -303,6 +329,7 @@ function getImageGeodata($image, $map) {
 
 /**
  * Gathers the map data for an album
+ * @deprecated 2.0
  * @param $album		album object
  * @param $map			google map object
  */
@@ -322,6 +349,7 @@ function getAlbumGeodata($album, $map) {
 
 /**
  * Output the google map
+ * @deprecated 2.0
  *
  * @param string $text text for the "toggle" link that shows/hides the map. Set empty to omit (then Map is always displayed)
  * @param string $id used to set the IDs for the toggle href element ($id_toggle) and the map element ($id_data)
@@ -450,8 +478,7 @@ function printGoogleMap($text = NULL, $id = NULL, $hide = NULL, $obj = NULL, $ca
 		case 'show':
 			$map->create_map();
 			?>
-			<script type="text/javascript">
-				//<![CDATA[
+			<script>
 			<?php
 			echo $map->output_js_contents;
 			echo omsAdditions();
@@ -460,7 +487,6 @@ function printGoogleMap($text = NULL, $id = NULL, $hide = NULL, $obj = NULL, $ca
 				function image(album, image) {
 					window.location = '<?php echo WEBPATH ?>/index.php?album=' + album + '&image=' + image;
 				}
-				//]]>
 			</script>
 			<div id="<?php echo $id_data; ?>">
 				<?php echo $map->output_html; ?>
@@ -470,8 +496,7 @@ function printGoogleMap($text = NULL, $id = NULL, $hide = NULL, $obj = NULL, $ca
 		case 'hide':
 			$map->create_map();
 			?>
-			<script type="text/javascript">
-				//<![CDATA[
+			<script>
 			<?php
 			echo $map->output_js_contents;
 			echo omsAdditions();
@@ -494,7 +519,6 @@ function printGoogleMap($text = NULL, $id = NULL, $hide = NULL, $obj = NULL, $ca
 						$('#<?php echo $id_data; ?>').addClass('hidden_map');
 					}
 				}
-				//]]>
 			</script>
 			<a id="<?php echo $id_toggle; ?>" href="javascript:toggle_<?php echo $id_data; ?>();" title="<?php echo gettext('Display or hide the Google Map.'); ?>">
 				<?php echo $text; ?>
@@ -526,8 +550,7 @@ function printGoogleMap($text = NULL, $id = NULL, $hide = NULL, $obj = NULL, $ca
 				<a href="<?php echo WEBPATH . '/' . ZENFOLDER . '/' . PLUGIN_FOLDER . '/GoogleMap/Map.php' . $param ?>" title="<?php echo $text; ?>" class="google_map">
 					<?php echo $text; ?>
 				</a>
-				<script type="text/javascript">
-					//<![CDATA[
+				<script>
 					$(document).ready(function() {
 						$(".google_map").colorbox({
 							iframe: true,
@@ -539,7 +562,6 @@ function printGoogleMap($text = NULL, $id = NULL, $hide = NULL, $obj = NULL, $ca
 							}
 						});
 					});
-					//]]>
 				</script>
 				<?php
 			}

@@ -21,7 +21,13 @@
  * @ingroup SpecialPage
  */
 
+namespace MediaWiki\SpecialPage;
+
+use ImageGalleryBase;
+use MediaWiki\Output\OutputPage;
 use MediaWiki\Title\Title;
+use Skin;
+use stdClass;
 use Wikimedia\Rdbms\IDatabase;
 use Wikimedia\Rdbms\IResultWrapper;
 
@@ -59,7 +65,7 @@ abstract class ImageQueryPage extends QueryPage {
 				$i++;
 				$namespace = $row->namespace ?? NS_FILE;
 				$title = Title::makeTitleSafe( $namespace, $row->title );
-				if ( $title instanceof Title && $title->getNamespace() === NS_FILE ) {
+				if ( $title instanceof Title && $title->inNamespace( NS_FILE ) ) {
 					$gallery->add( $title, $this->getCellHtml( $row ), '', '', [], ImageGalleryBase::LOADING_LAZY );
 				}
 				if ( $i === $num ) {
@@ -95,3 +101,6 @@ abstract class ImageQueryPage extends QueryPage {
 		return '';
 	}
 }
+
+/** @deprecated class alias since 1.41 */
+class_alias( ImageQueryPage::class, 'ImageQueryPage' );

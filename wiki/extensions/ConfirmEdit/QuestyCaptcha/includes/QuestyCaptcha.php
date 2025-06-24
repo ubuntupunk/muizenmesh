@@ -10,11 +10,12 @@
 
 namespace MediaWiki\Extension\ConfirmEdit\QuestyCaptcha;
 
-use Html;
 use MediaWiki\Auth\AuthenticationRequest;
 use MediaWiki\Extension\ConfirmEdit\Auth\CaptchaAuthenticationRequest;
 use MediaWiki\Extension\ConfirmEdit\SimpleCaptcha\SimpleCaptcha;
 use MediaWiki\Extension\ConfirmEdit\Store\CaptchaStore;
+use MediaWiki\Html\Html;
+use RequestContext;
 use Xml;
 
 class QuestyCaptcha extends SimpleCaptcha {
@@ -106,11 +107,12 @@ class QuestyCaptcha extends SimpleCaptcha {
 	}
 
 	public function showHelp() {
-		global $wgOut;
-		$wgOut->setPageTitle( wfMessage( 'captchahelp-title' )->text() );
-		$wgOut->addWikiMsg( 'questycaptchahelp-text' );
+		$context = RequestContext::getMain();
+		$out = $context->getOutput();
+		$out->setPageTitleMsg( $context->msg( 'captchahelp-title' ) );
+		$out->addWikiMsg( 'questycaptchahelp-text' );
 		if ( CaptchaStore::get()->cookiesNeeded() ) {
-			$wgOut->addWikiMsg( 'captchahelp-cookies-needed' );
+			$out->addWikiMsg( 'captchahelp-cookies-needed' );
 		}
 	}
 

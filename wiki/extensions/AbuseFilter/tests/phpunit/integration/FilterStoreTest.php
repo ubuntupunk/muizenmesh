@@ -8,6 +8,7 @@ use MediaWiki\Extension\AbuseFilter\Filter\Flags;
 use MediaWiki\Extension\AbuseFilter\Filter\LastEditInfo;
 use MediaWiki\Extension\AbuseFilter\Filter\MutableFilter;
 use MediaWiki\Extension\AbuseFilter\Filter\Specs;
+use MediaWiki\Extension\AbuseFilter\FilterStore;
 use MediaWikiIntegrationTestCase;
 use Wikimedia\TestingAccessWrapper;
 
@@ -36,9 +37,6 @@ class FilterStoreTest extends MediaWikiIntegrationTestCase {
 		'group' => 'default'
 	];
 
-	/** @inheritDoc */
-	protected $tablesUsed = [ 'abuse_filter' ];
-
 	/**
 	 * @param int $id
 	 */
@@ -47,10 +45,17 @@ class FilterStoreTest extends MediaWikiIntegrationTestCase {
 		$row['timestamp'] = $this->db->timestamp( $row['timestamp'] );
 		$filter = $this->getFilterFromSpecs( [ 'id' => $id ] + $row );
 		// Use some black magic to bypass checks
+		/** @var FilterStore $filterStore */
 		$filterStore = TestingAccessWrapper::newFromObject( AbuseFilterServices::getFilterStore() );
+		$row = $filterStore->filterToDatabaseRow( $filter );
+		$row += AbuseFilterServices::getActorMigration()->getInsertValues(
+			$this->db,
+			'af_user',
+			$this->getTestUser()->getUserIdentity()
+		);
 		$this->db->insert(
 			'abuse_filter',
-			$filterStore->filterToDatabaseRow( $filter ),
+			$row,
 			__METHOD__
 		);
 	}
@@ -88,7 +93,20 @@ class FilterStoreTest extends MediaWikiIntegrationTestCase {
 		);
 	}
 
-	public function testSaveFilter_valid() {
+	public static function provideSaveFilter_valid(): array {
+		return [
+			[ SCHEMA_COMPAT_OLD ],
+			[ SCHEMA_COMPAT_WRITE_BOTH | SCHEMA_COMPAT_READ_OLD ],
+			[ SCHEMA_COMPAT_WRITE_BOTH | SCHEMA_COMPAT_READ_NEW ],
+			[ SCHEMA_COMPAT_NEW ],
+		];
+	}
+
+	/**
+	 * @dataProvider provideSaveFilter_valid
+	 */
+	public function testSaveFilter_valid( int $stage ) {
+		$this->overrideConfigValue( 'AbuseFilterActorTableSchemaMigrationStage', $stage );
 		$row = [
 			'id' => null,
 			'rules' => '/* My rules */',
@@ -104,7 +122,7 @@ class FilterStoreTest extends MediaWikiIntegrationTestCase {
 			$this->getTestSysop()->getUser(), $row['id'], $newFilter, $origFilter
 		);
 
-		$this->assertTrue( $status->isGood(), "Save failed with status: $status" );
+		$this->assertStatusGood( $status );
 		$value = $status->getValue();
 		$this->assertIsArray( $value );
 		$this->assertCount( 2, $value );
@@ -132,9 +150,7 @@ class FilterStoreTest extends MediaWikiIntegrationTestCase {
 		$this->overrideUserPermissions( $user, [ 'abusefilter-modify' ] );
 		$status = AbuseFilterServices::getFilterStore()->saveFilter( $user, $row['id'], $newFilter, $origFilter );
 
-		$this->assertFalse( $status->isGood(), 'The filter validation returned a valid status.' );
-		$actual = $status->getErrors()[0]['message'];
-		$this->assertSame( $expectedError, $actual );
+		$this->assertStatusWarning( $expectedError, $status );
 	}
 
 	public function testSaveFilter_noChange() {
@@ -153,7 +169,7 @@ class FilterStoreTest extends MediaWikiIntegrationTestCase {
 			$this->getTestSysop()->getUser(), $filter, $newFilter, $origFilter
 		);
 
-		$this->assertTrue( $status->isGood(), "Got a non-good status: $status" );
+		$this->assertStatusGood( $status );
 		$this->assertFalse( $status->getValue(), 'Status value should be false' );
 	}
 }

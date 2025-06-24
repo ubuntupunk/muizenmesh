@@ -1,6 +1,6 @@
 <?php
-/**
- * 2007-2023 PayPal
+/*
+ * Since 2007 PayPal
  *
  * NOTICE OF LICENSE
  *
@@ -18,10 +18,11 @@
  *  versions in the future. If you wish to customize PrestaShop for your
  *  needs please refer to http://www.prestashop.com for more information.
  *
- *  @author 2007-2023 PayPal
+ *  @author Since 2007 PayPal
  *  @author 202 ecommerce <tech@202-ecommerce.com>
  *  @license http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  *  @copyright PayPal
+ *
  */
 if (!defined('_PS_VERSION_')) {
     exit;
@@ -44,7 +45,7 @@ function upgrade_module_5_5_0($module)
         Configuration::updateGlobalValue(PayPal::NEED_INSTALL_MODELS, 1);
     }
 
-    $count = Db::getInstance()->getValue('SELECT count(*) 
+    $count = Db::getInstance()->getValue('SELECT count(*)
 	    FROM INFORMATION_SCHEMA.COLUMNS
 		WHERE `TABLE_NAME` = "' . _DB_PREFIX_ . 'paypal_order"
 		AND `TABLE_SCHEMA` = "' . _DB_NAME_ . '"

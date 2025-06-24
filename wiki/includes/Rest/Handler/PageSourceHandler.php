@@ -4,14 +4,14 @@ namespace MediaWiki\Rest\Handler;
 
 use LogicException;
 use MediaWiki\Page\PageReference;
-use MediaWiki\Page\RedirectStore;
 use MediaWiki\Rest\Handler\Helper\PageContentHelper;
+use MediaWiki\Rest\Handler\Helper\PageRedirectHelper;
 use MediaWiki\Rest\Handler\Helper\PageRestHelperFactory;
 use MediaWiki\Rest\LocalizedHttpException;
 use MediaWiki\Rest\Response;
 use MediaWiki\Rest\SimpleHandler;
-use TitleFormatter;
-use Wikimedia\Assert\Assert;
+use MediaWiki\Title\TitleFormatter;
+use Wikimedia\Message\MessageValue;
 
 /**
  * Handler class for Core REST API Page Source endpoint with the following routes:
@@ -19,25 +19,27 @@ use Wikimedia\Assert\Assert;
  * - /page/{title}/bare
  */
 class PageSourceHandler extends SimpleHandler {
-	use PageRedirectHandlerTrait;
 
-	/** @var TitleFormatter */
-	private $titleFormatter;
-
-	/** @var PageContentHelper */
-	private $contentHelper;
-
-	/** @var RedirectStore */
-	private $redirectStore;
+	private TitleFormatter $titleFormatter;
+	private PageRestHelperFactory $helperFactory;
+	private PageContentHelper $contentHelper;
 
 	public function __construct(
 		TitleFormatter $titleFormatter,
-		RedirectStore $redirectStore,
 		PageRestHelperFactory $helperFactory
 	) {
 		$this->titleFormatter = $titleFormatter;
-		$this->redirectStore = $redirectStore;
 		$this->contentHelper = $helperFactory->newPageContentHelper();
+		$this->helperFactory = $helperFactory;
+	}
+
+	private function getRedirectHelper(): PageRedirectHelper {
+		return $this->helperFactory->newPageRedirectHelper(
+			$this->getResponseFactory(),
+			$this->getRouter(),
+			$this->getPath(),
+			$this->getRequest()
+		);
 	}
 
 	protected function postValidationSetup() {
@@ -61,17 +63,26 @@ class PageSourceHandler extends SimpleHandler {
 	 */
 	public function run(): Response {
 		$this->contentHelper->checkAccess();
-		$page = $this->contentHelper->getPage();
+		$page = $this->contentHelper->getPageIdentity();
 
-		// The call to $this->contentHelper->getPage() should not return null if
-		// $this->contentHelper->checkAccess() did not throw.
-		Assert::invariant( $page !== null, 'Page should be known' );
+		if ( !$page->exists() ) {
+			// We may get here for "known" but non-existing pages, such as
+			// message pages. Since there is no page, we should still return
+			// a 404. See T349677 for discussion.
+			$titleText = $this->contentHelper->getTitleText() ?? '(unknown)';
+			throw new LocalizedHttpException(
+				MessageValue::new( 'rest-nonexistent-title' )
+					->plaintextParams( $titleText ),
+				404
+			);
+		}
+
+		$redirectHelper = $this->getRedirectHelper();
 
 		'@phan-var \MediaWiki\Page\ExistingPageRecord $page';
-		$redirectResponse = $this->createNormalizationRedirectResponseIfNeeded(
+		$redirectResponse = $redirectHelper->createNormalizationRedirectResponseIfNeeded(
 			$page,
-			$this->contentHelper->getTitleText(),
-			$this->titleFormatter
+			$this->contentHelper->getTitleText()
 		);
 
 		if ( $redirectResponse !== null ) {
@@ -93,17 +104,13 @@ class PageSourceHandler extends SimpleHandler {
 				throw new LogicException( "Unknown HTML type $outputMode" );
 		}
 
-		if ( $page ) {
-			// If param redirect=no is present, that means this page can be a redirect
-			// check for a redirectTargetUrl and send it to the body as `redirect_target`
-			'@phan-var \MediaWiki\Page\ExistingPageRecord $page';
-			$redirectTargetUrl = $this->getWikiRedirectTargetUrl(
-				$page, $this->redirectStore, $this->titleFormatter
-			);
+		// If param redirect=no is present, that means this page can be a redirect
+		// check for a redirectTargetUrl and send it to the body as `redirect_target`
+		'@phan-var \MediaWiki\Page\ExistingPageRecord $page';
+		$redirectTargetUrl = $redirectHelper->getWikiRedirectTargetUrl( $page );
 
-			if ( $redirectTargetUrl ) {
-				$body['redirect_target'] = $redirectTargetUrl;
-			}
+		if ( $redirectTargetUrl ) {
+			$body['redirect_target'] = $redirectTargetUrl;
 		}
 
 		$response = $this->getResponseFactory()->createJson( $body );

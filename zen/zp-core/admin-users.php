@@ -1,7 +1,7 @@
 <?php
 /**
  * provides the Options tab of admin
- * @package admin
+ * @package zpcore\admin
  */
 // force UTF-8 Ø
 
@@ -264,10 +264,10 @@ if (!$_zp_current_admin_obj && $_zp_current_admin_obj->getID()) {
 printAdminHeader($_current_tab);
 echo $refresh;
 ?>
-<script type="text/javascript" src="js/farbtastic.js"></script>
-<script type="text/javascript" src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/sprintf.js"></script>
+<script src="js/farbtastic.js"></script>
+<script src="<?php echo WEBPATH . '/' . ZENFOLDER; ?>/js/sprintf.js"></script>
 <link rel="stylesheet" href="js/farbtastic.css" type="text/css" />
-<script type='text/javascript'>
+<script>
 	var visible = false;
 	function getVisible(id, category, show, hide) {
 		prefix = '#' + category + '-' + id + ' ';
@@ -440,7 +440,7 @@ echo $refresh;
 						echo '</div>';
 					}
 					?>
-					<script type="text/javascript">
+					<script>
 						function languageChange(id, lang) {
 							var oldid = '#' + $('#admin_language_' + id).val() + '_' + id;
 							var newid = '#' + lang + '_' + id;
@@ -599,7 +599,7 @@ echo $refresh;
 
 															<em><?php echo gettext("New User"); ?></em>
 															<input type="text" size="<?php echo TEXT_INPUT_SIZE; ?>" id="adminuser<?php echo $id; ?>" name="adminuser<?php echo $id; ?>" value=""
-																		 onclick="toggleExtraInfo('<?php echo $id; ?>', 'user', visible);
+																	onclick="toggleExtraInfo('<?php echo $id; ?>', 'user', visible);
 																						 $('#adminuser<?php echo $id; ?>').focus();" />
 
 															<?php
@@ -781,8 +781,10 @@ echo $refresh;
 
 													<?php
 													if (zp_loggedin(MANAGE_ALL_ALBUM_RIGHTS)) {
+														$albumlist_managedobjects = $albumlist;
 														$album_alter_rights = $local_alterrights;
 													} else {
+														$albumlist_managedobjects = array();
 														$album_alter_rights = ' disabled="disabled"';
 													}
 													if ($ismaster) {
@@ -793,20 +795,24 @@ echo $refresh;
 														} else {
 															$flag = array();
 														}
-														printManagedObjects('albums', $albumlist, $album_alter_rights, $userobj, $id, gettext('user'), $flag);
+														printManagedObjects('albums', $albumlist_managedobjects, $album_alter_rights, $userobj, $id, gettext('user'), $flag);
 														if (extensionEnabled('zenpage')) {
 															$pagelist = array();
-															$pages = $_zp_zenpage->getPages(false);
-															foreach ($pages as $page) {
-																if (!$page['parentid']) {
-																	$pagelist[get_language_string($page['title'])] = $page['titlelink'];
+															if (zp_loggedin(MANAGE_ALL_PAGES_RIGHTS)) {
+																$pages = $_zp_zenpage->getPages(false);
+																foreach ($pages as $page) {
+																	if (!$page['parentid']) {
+																		$pagelist[get_language_string($page['title'])] = $page['titlelink'];
+																	}
 																}
 															}
 															printManagedObjects('pages', $pagelist, $album_alter_rights, $userobj, $id, gettext('user'), NULL);
 															$newslist = array();
-															$categories = $_zp_zenpage->getAllCategories(false);
-															foreach ($categories as $category) {
-																$newslist[get_language_string($category['title'])] = $category['titlelink'];
+															if (zp_loggedin(MANAGE_ALL_NEWS_RIGHTS)) {
+																$categories = $_zp_zenpage->getAllCategories(false);
+																foreach ($categories as $category) {
+																	$newslist[get_language_string($category['title'])] = $category['titlelink'];
+																}
 															}
 															printManagedObjects('news', $newslist, $album_alter_rights, $userobj, $id, gettext('user'), NULL);
 														}
@@ -876,8 +882,7 @@ echo $refresh;
 						}
 					}
 					?>
-					<script type="text/javascript">
-						//<!-- <![CDATA[
+					<script>
 						var admins = ["<?php echo implode('","', $alladmins); ?>"];
 						function checkNewuser() {
 							var newuserid = <?php echo ($id - 1); ?>;
@@ -896,7 +901,6 @@ echo $refresh;
 							}
 							return true;
 						}
-						// ]]> -->
 					</script>
 
 					<br class="clearall" />

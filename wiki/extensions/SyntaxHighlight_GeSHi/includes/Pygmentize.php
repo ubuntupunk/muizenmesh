@@ -22,6 +22,7 @@ namespace MediaWiki\SyntaxHighlight;
 
 use MediaWiki\MediaWikiServices;
 use Shellbox\Command\BoxedCommand;
+use Shellbox\ShellboxError;
 
 /**
  * Wrapper around the `pygmentize` command
@@ -30,8 +31,6 @@ class Pygmentize {
 
 	/**
 	 * If no pygmentize is configured, use bundled
-	 *
-	 * @return bool
 	 */
 	public static function useBundled(): bool {
 		global $wgPygmentizePath;
@@ -40,8 +39,6 @@ class Pygmentize {
 
 	/**
 	 * Get a real path to pygmentize
-	 *
-	 * @return string
 	 */
 	private static function getPath(): string {
 		global $wgPygmentizePath;
@@ -52,8 +49,6 @@ class Pygmentize {
 
 	/**
 	 * Get the version of pygments (cached)
-	 *
-	 * @return string
 	 */
 	public static function getVersion(): string {
 		static $version;
@@ -93,8 +88,6 @@ class Pygmentize {
 
 	/**
 	 * Get the version of bundled pygments
-	 *
-	 * @return string
 	 */
 	private static function getBundledVersion(): string {
 		return trim( file_get_contents( __DIR__ . '/../pygments/VERSION' ) );
@@ -104,7 +97,6 @@ class Pygmentize {
 	 * Shell out to get installed pygments version
 	 *
 	 * @internal For use by WANObjectCache/BagOStuff only
-	 * @return string
 	 */
 	public static function fetchVersion(): string {
 		$result = self::boxedCommand()
@@ -128,8 +120,6 @@ class Pygmentize {
 	 *
 	 * Note: if using bundled, the CSS is already available
 	 * in modules/pygments.generated.css.
-	 *
-	 * @return string
 	 */
 	public static function getGeneratedCSS(): string {
 		// This is rarely called as the result gets HTTP-cached via long-expiry load.php.
@@ -148,7 +138,6 @@ class Pygmentize {
 	 * Shell out to get generated CSS from pygments
 	 *
 	 * @internal Only public for updateCSS.php
-	 * @return string
 	 */
 	public static function fetchGeneratedCSS(): string {
 		$result = self::boxedCommand()
@@ -168,7 +157,7 @@ class Pygmentize {
 	/**
 	 * Get the list of supported lexers by pygments (cached)
 	 *
-	 * @return array
+	 * @return array<string,true>
 	 */
 	public static function getLexers(): array {
 		if ( self::useBundled() ) {
@@ -202,7 +191,7 @@ class Pygmentize {
 	 * Shell out to get supported lexers by pygments
 	 *
 	 * @internal Only public for updateLexerList.php
-	 * @return array
+	 * @return array<string,true>
 	 */
 	public static function fetchLexers(): array {
 		$cliParams = [ self::getPath(), '-L', 'lexer' ];
@@ -226,14 +215,8 @@ class Pygmentize {
 			$lexers = self::parseLexersFromText( $output );
 		}
 
-		$lexers = array_unique( $lexers );
 		sort( $lexers );
-		$data = [];
-		foreach ( $lexers as $lexer ) {
-			$data[$lexer] = true;
-		}
-
-		return $data;
+		return array_fill_keys( $lexers, true );
 	}
 
 	/**
@@ -266,7 +249,7 @@ class Pygmentize {
 	private static function parseLexersFromText( $output ): array {
 		$lexers = [];
 		foreach ( explode( "\n", $output ) as $line ) {
-			if ( substr( $line, 0, 1 ) === '*' ) {
+			if ( str_starts_with( $line, '*' ) ) {
 				$newLexers = explode( ', ', trim( $line, "* :\r\n" ) );
 
 				// Skip internal, unnamed lexers
@@ -291,22 +274,33 @@ class Pygmentize {
 		foreach ( $options as $k => $v ) {
 			$optionPairs[] = "{$k}={$v}";
 		}
-		$result = self::boxedCommand()
-			->params(
-				self::getPath(),
-				'-l', $lexer,
-				'-f', 'html',
-				'-O', implode( ',', $optionPairs ),
-				'file'
-			)
-			->inputFileFromString( 'file', $code )
-			->execute();
 		self::recordShellout( 'highlight' );
+
+		try {
+			$result = self::boxedCommand()
+				->params(
+					self::getPath(),
+					'-l', $lexer,
+					'-f', 'html',
+					'-O', implode( ',', $optionPairs ),
+					'file'
+				)
+				->inputFileFromString( 'file', $code )
+				->execute();
+		} catch ( ShellboxError $exception ) {
+			// If we have trouble sending or receiving over the network to
+			// Shellbox, we technically don't know if the command succeed or failed,
+			// but, treat the highlight() command as recoverable by wrapping this in
+			// PygmentsException. This permits the Parser tag to fallback to
+			// plainCodeWrap(), thus avoiding a fatal on pageviews (T292663).
+			throw new PygmentsException( 'ShellboxError', 0, $exception );
+		}
 
 		$output = $result->getStdout();
 		if ( $result->getExitCode() != 0 ) {
 			throw new PygmentsException( $output );
 		}
+
 		return $output;
 	}
 

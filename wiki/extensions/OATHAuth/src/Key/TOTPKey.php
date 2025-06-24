@@ -25,8 +25,8 @@ use EmptyBagOStuff;
 use Exception;
 use jakobo\HOTP\HOTP;
 use MediaWiki\Extension\OATHAuth\IAuthKey;
+use MediaWiki\Extension\OATHAuth\OATHAuthServices;
 use MediaWiki\Extension\OATHAuth\OATHUser;
-use MediaWiki\Extension\OATHAuth\OATHUserRepository;
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MediaWikiServices;
 use MWException;
@@ -41,11 +41,14 @@ use Psr\Log\LoggerInterface;
  * @ingroup Extensions
  */
 class TOTPKey implements IAuthKey {
+	/** @var int|null */
+	private ?int $id;
+
 	/** @var array Two factor binary secret */
 	private $secret;
 
-	/** @var string[] List of scratch tokens */
-	private $scratchTokens = [];
+	/** @var string[] List of recovery codes */
+	private $recoveryCodes = [];
 
 	/**
 	 * @return TOTPKey
@@ -53,6 +56,7 @@ class TOTPKey implements IAuthKey {
 	 */
 	public static function newFromRandom() {
 		$object = new self(
+			null,
 			Base32::encode( random_bytes( 10 ) ),
 			[]
 		);
@@ -63,20 +67,6 @@ class TOTPKey implements IAuthKey {
 	}
 
 	/**
-	 * Create key from json encoded string
-	 *
-	 * @param string $data
-	 * @return TOTPKey|null on invalid data
-	 */
-	public static function newFromString( $data ) {
-		$data = json_decode( $data, true );
-		if ( json_last_error() !== JSON_ERROR_NONE ) {
-			return null;
-		}
-		return static::newFromArray( $data );
-	}
-
-	/**
 	 * @param array $data
 	 * @return TOTPKey|null on invalid data
 	 */
@@ -84,22 +74,32 @@ class TOTPKey implements IAuthKey {
 		if ( !isset( $data['secret'] ) || !isset( $data['scratch_tokens'] ) ) {
 			return null;
 		}
-		return new static( $data['secret'], $data['scratch_tokens'] );
+		return new static( $data['id'] ?? null, $data['secret'], $data['scratch_tokens'] );
 	}
 
 	/**
+	 * @param int|null $id the database id of this key
 	 * @param string $secret
-	 * @param array $scratchTokens
+	 * @param array $recoveryCodes
 	 */
-	public function __construct( $secret, array $scratchTokens ) {
-		// Currently hardcoded values; might be used in future
+	public function __construct( ?int $id, $secret, array $recoveryCodes ) {
+		$this->id = $id;
+
+		// Currently hardcoded values; might be used in the future
 		$this->secret = [
 			'mode' => 'hotp',
 			'secret' => $secret,
 			'period' => 30,
 			'algorithm' => 'SHA1',
 		];
-		$this->scratchTokens = array_values( $scratchTokens );
+		$this->recoveryCodes = array_values( $recoveryCodes );
+	}
+
+	/**
+	 * @return int|null
+	 */
+	public function getId(): ?int {
+		return $this->id;
 	}
 
 	/**
@@ -113,13 +113,13 @@ class TOTPKey implements IAuthKey {
 	 * @return string[]
 	 */
 	public function getScratchTokens() {
-		return $this->scratchTokens;
+		return $this->recoveryCodes;
 	}
 
 	/**
 	 * @param array $data
 	 * @param OATHUser $user
-	 * @return bool|int
+	 * @return bool
 	 * @throws MWException
 	 */
 	public function verify( $data, OATHUser $user ) {
@@ -139,12 +139,7 @@ class TOTPKey implements IAuthKey {
 			$store = ObjectCache::getLocalServerInstance( CACHE_ANYTHING );
 		}
 
-		$uid = MediaWikiServices::getInstance()
-			->getCentralIdLookupFactory()
-			->getLookup()
-			->centralIdFromLocalUser( $user->getUser() );
-
-		$key = $store->makeKey( 'oathauth-totp', 'usedtokens', $uid );
+		$key = $store->makeKey( 'oathauth-totp', 'usedtokens', $user->getCentralId() );
 		$lastWindow = (int)$store->get( $key );
 
 		$results = HOTP::generateByTimeWindow(
@@ -155,7 +150,6 @@ class TOTPKey implements IAuthKey {
 		);
 
 		// Remove any whitespace from the received token, which can be an intended group separator
-		// or trimmeable whitespace
 		$token = preg_replace( '/\s+/', '', $token );
 
 		$clientIP = $user->getUser()->getRequest()->getIP();
@@ -183,27 +177,21 @@ class TOTPKey implements IAuthKey {
 			}
 		}
 
-		// See if the user is using a scratch token
-		foreach ( $this->scratchTokens as $i => $scratchToken ) {
-			if ( hash_equals( $token, $scratchToken ) ) {
-				// If we used a scratch token, remove it from the scratch token list.
-				// This is saved below via OATHUserRepository::persist, TOTP::getDataFromUser.
-				array_splice( $this->scratchTokens, $i, 1 );
+		// See if the user is using a recovery code
+		foreach ( $this->recoveryCodes as $i => $recoveryCode ) {
+			if ( hash_equals( $token, $recoveryCode ) ) {
+				// If we used a recovery code, remove it from the recovery code list.
+				// This is saved below via OATHUserRepository::persist
+				array_splice( $this->recoveryCodes, $i, 1 );
 
-				$logger->info( 'OATHAuth user {user} used a scratch token from {clientip}', [
+				$logger->info( 'OATHAuth user {user} used a recovery token from {clientip}', [
 					'user' => $user->getAccount(),
 					'clientip' => $clientIP,
 				] );
 
-				$moduleRegistry = MediaWikiServices::getInstance()->getService( 'OATHAuthModuleRegistry' );
-				$module = $moduleRegistry->getModuleByKey( 'totp' );
-
-				/** @var OATHUserRepository $userRepo */
-				$userRepo = MediaWikiServices::getInstance()->getService( 'OATHUserRepository' );
-				$user->addKey( $this );
-				$user->setModule( $module );
-				$userRepo->persist( $user, $clientIP );
-
+				OATHAuthServices::getInstance()
+					->getUserRepository()
+					->updateKey( $user, $this );
 				return true;
 			}
 		}
@@ -216,19 +204,19 @@ class TOTPKey implements IAuthKey {
 		for ( $i = 0; $i < 10; $i++ ) {
 			$scratchTokens[] = Base32::encode( random_bytes( 10 ) );
 		}
-		$this->scratchTokens = $scratchTokens;
+		$this->recoveryCodes = $scratchTokens;
 	}
 
 	/**
-	 * Check if a token is one of the scratch tokens for this two factor key.
+	 * Check if a token is one of the recovery codes for this two-factor key.
 	 *
 	 * @param string $token Token to verify
 	 *
-	 * @return bool true if this is a scratch token.
+	 * @return bool true if this is a recovery code.
 	 */
 	public function isScratchToken( $token ) {
 		$token = preg_replace( '/\s+/', '', $token );
-		return in_array( $token, $this->scratchTokens, true );
+		return in_array( $token, $this->recoveryCodes, true );
 	}
 
 	/**
