@@ -1,0 +1,22 @@
+
+
+body {
+	background:none !important;
+	font: 86%/1.6em verdana, tahoma, arial,  sans-serif; 
+}
+h1,h2,h3,h4,h5,h6
+{
+    font-family:Cambria, Georgia, Verdana, Arial, Serif;
+}
+a 
+{
+    text-decoration:none;
+}
+#navigation,
+#feedarea, 
+#sidebar,
+p.postmetadata,
+#commentform, .commentlist, #comments, #respond 
+{
+    display:none;
+}
