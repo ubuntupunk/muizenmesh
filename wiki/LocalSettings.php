@@ -298,6 +298,5 @@ $wgGroupPermissions['emailconfirmed']['edit'] = true;
 #$wgShowDBErrorBacktrace = true;
 #$wgShowSQLErrors = true;
 
-
 ##POS HACK
 ##ini_set( 'memory_limit', '32M' );
