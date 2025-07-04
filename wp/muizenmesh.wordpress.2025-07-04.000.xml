@@ -17,16 +17,16 @@
  7. WordPress will then import each of the posts, pages, comments, categories, etc.
     contained in this file into your site.
 -->
-<!-- generator="WordPress/6.8.1" created="2025-07-01 07:46" -->
+<!-- generator="WordPress/6.8.1" created="2025-07-04 10:58" -->
 <rss version="2.0" xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:wfw="http://wellformedweb.org/CommentAPI/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:wp="http://wordpress.org/export/1.2/">
   <channel>
 <title>MuizenMesh</title>
 <link>http://muizenmesh.co.za/wp/web/</link>
 <description>False Bay Community Internet</description>
-<pubDate>Tue, 01 Jul 2025 07:46:49 +0000</pubDate>
+<pubDate>Fri, 04 Jul 2025 10:58:29 +0000</pubDate>
 <language>en-US</language>
 <wp:wxr_version>1.2</wp:wxr_version>
-<wp:base_site_url>http://muizenmesh.co.za/wp/web/</wp:base_site_url>
+<wp:base_site_url>https://muizenmesh.co.za/wp/web/</wp:base_site_url>
 <wp:base_blog_url>http://muizenmesh.co.za/wp/web/</wp:base_blog_url>
 <wp:author>
   <wp:author_id>1</wp:author_id>
@@ -1101,7 +1101,7 @@ Commenter avatars come from <a href="https://gravatar.com">Gravatar</a>.]]></wp:
   <wp:post_type>attachment</wp:post_type>
   <wp:post_password/>
   <wp:is_sticky>0</wp:is_sticky>
-  <wp:attachment_url>http://muizenmesh.co.za/wp/web//app/uploads/2023/06/Receivingtheloveshower.jpeg</wp:attachment_url>
+  <wp:attachment_url>https://muizenmesh.co.za/wp/web//app/uploads/2023/06/Receivingtheloveshower.jpeg</wp:attachment_url>
   <wp:postmeta>
     <wp:meta_key>_wp_attached_file</wp:meta_key>
     <wp:meta_value><![CDATA[2023/06/Receivingtheloveshower.jpeg]]></wp:meta_value>
@@ -1232,7 +1232,7 @@ Commenter avatars come from <a href="https://gravatar.com">Gravatar</a>.]]></wp:
   <wp:post_type>attachment</wp:post_type>
   <wp:post_password/>
   <wp:is_sticky>0</wp:is_sticky>
-  <wp:attachment_url>http://muizenmesh.co.za/wp/web//app/uploads/2023/06/Website-banner2-980x510-1.png</wp:attachment_url>
+  <wp:attachment_url>https://muizenmesh.co.za/wp/web//app/uploads/2023/06/Website-banner2-980x510-1.png</wp:attachment_url>
   <wp:postmeta>
     <wp:meta_key>_wp_attached_file</wp:meta_key>
     <wp:meta_value><![CDATA[2023/06/Website-banner2-980x510-1.png]]></wp:meta_value>
@@ -1363,7 +1363,7 @@ Commenter avatars come from <a href="https://gravatar.com">Gravatar</a>.]]></wp:
   <wp:post_type>attachment</wp:post_type>
   <wp:post_password/>
   <wp:is_sticky>0</wp:is_sticky>
-  <wp:attachment_url>http://muizenmesh.co.za/wp/web//app/uploads/2023/06/20230615_184110.jpg</wp:attachment_url>
+  <wp:attachment_url>https://muizenmesh.co.za/wp/web//app/uploads/2023/06/20230615_184110.jpg</wp:attachment_url>
   <wp:postmeta>
     <wp:meta_key>_wp_attached_file</wp:meta_key>
     <wp:meta_value><![CDATA[2023/06/20230615_184110.jpg]]></wp:meta_value>
@@ -1396,7 +1396,7 @@ Commenter avatars come from <a href="https://gravatar.com">Gravatar</a>.]]></wp:
   <wp:post_type>attachment</wp:post_type>
   <wp:post_password/>
   <wp:is_sticky>0</wp:is_sticky>
-  <wp:attachment_url>http://muizenmesh.co.za/wp/web//app/uploads/2023/06/James-wong.png</wp:attachment_url>
+  <wp:attachment_url>https://muizenmesh.co.za/wp/web//app/uploads/2023/06/James-wong.png</wp:attachment_url>
   <wp:postmeta>
     <wp:meta_key>_wp_attached_file</wp:meta_key>
     <wp:meta_value><![CDATA[2023/06/James-wong.png]]></wp:meta_value>
@@ -1429,7 +1429,7 @@ Commenter avatars come from <a href="https://gravatar.com">Gravatar</a>.]]></wp:
   <wp:post_type>attachment</wp:post_type>
   <wp:post_password/>
   <wp:is_sticky>0</wp:is_sticky>
-  <wp:attachment_url>http://muizenmesh.co.za/wp/web//app/uploads/2023/06/Receiving-the-love-shower.jpeg</wp:attachment_url>
+  <wp:attachment_url>https://muizenmesh.co.za/wp/web//app/uploads/2023/06/Receiving-the-love-shower.jpeg</wp:attachment_url>
   <wp:postmeta>
     <wp:meta_key>_wp_attached_file</wp:meta_key>
     <wp:meta_value><![CDATA[2023/06/Receiving-the-love-shower.jpeg]]></wp:meta_value>
@@ -1462,7 +1462,7 @@ Commenter avatars come from <a href="https://gravatar.com">Gravatar</a>.]]></wp:
   <wp:post_type>attachment</wp:post_type>
   <wp:post_password/>
   <wp:is_sticky>0</wp:is_sticky>
-  <wp:attachment_url>http://muizenmesh.co.za/wp/web//app/uploads/2023/06/unnamed.png</wp:attachment_url>
+  <wp:attachment_url>https://muizenmesh.co.za/wp/web//app/uploads/2023/06/unnamed.png</wp:attachment_url>
   <wp:postmeta>
     <wp:meta_key>_wp_attached_file</wp:meta_key>
     <wp:meta_value><![CDATA[2023/06/unnamed.png]]></wp:meta_value>
@@ -1495,7 +1495,7 @@ Commenter avatars come from <a href="https://gravatar.com">Gravatar</a>.]]></wp:
   <wp:post_type>attachment</wp:post_type>
   <wp:post_password/>
   <wp:is_sticky>0</wp:is_sticky>
-  <wp:attachment_url>http://muizenmesh.co.za/wp/web//app/uploads/2023/06/Receiving-the-love-shower-1.jpeg</wp:attachment_url>
+  <wp:attachment_url>https://muizenmesh.co.za/wp/web//app/uploads/2023/06/Receiving-the-love-shower-1.jpeg</wp:attachment_url>
   <wp:postmeta>
     <wp:meta_key>_wp_attached_file</wp:meta_key>
     <wp:meta_value><![CDATA[2023/06/Receiving-the-love-shower-1.jpeg]]></wp:meta_value>
@@ -1528,7 +1528,7 @@ Commenter avatars come from <a href="https://gravatar.com">Gravatar</a>.]]></wp:
   <wp:post_type>attachment</wp:post_type>
   <wp:post_password/>
   <wp:is_sticky>0</wp:is_sticky>
-  <wp:attachment_url>http://muizenmesh.co.za/wp/web//app/uploads/2023/06/David-Lipschitz-scaled-1.jpg</wp:attachment_url>
+  <wp:attachment_url>https://muizenmesh.co.za/wp/web//app/uploads/2023/06/David-Lipschitz-scaled-1.jpg</wp:attachment_url>
   <wp:postmeta>
     <wp:meta_key>_wp_attached_file</wp:meta_key>
     <wp:meta_value><![CDATA[2023/06/David-Lipschitz-scaled-1.jpg]]></wp:meta_value>
@@ -1561,7 +1561,7 @@ Commenter avatars come from <a href="https://gravatar.com">Gravatar</a>.]]></wp:
   <wp:post_type>attachment</wp:post_type>
   <wp:post_password/>
   <wp:is_sticky>0</wp:is_sticky>
-  <wp:attachment_url>http://muizenmesh.co.za/wp/web//app/uploads/2023/06/james.jpeg</wp:attachment_url>
+  <wp:attachment_url>https://muizenmesh.co.za/wp/web//app/uploads/2023/06/james.jpeg</wp:attachment_url>
   <wp:postmeta>
     <wp:meta_key>_wp_attached_file</wp:meta_key>
     <wp:meta_value><![CDATA[2023/06/james.jpeg]]></wp:meta_value>
